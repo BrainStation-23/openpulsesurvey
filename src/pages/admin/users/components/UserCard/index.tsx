@@ -1,5 +1,4 @@
 import { memo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { User } from "../../types";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,12 +33,12 @@ export const UserCard = memo(function UserCard({
   user,
   selected,
   onSelect,
+  onEdit,
   onDelete,
   onPasswordChange,
   onRoleToggle,
   onStatusToggle,
 }: UserCardProps) {
-  const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(user.user_roles.role === "admin");
   const [isActive, setIsActive] = useState(user.status === "active");
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
