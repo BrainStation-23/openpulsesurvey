@@ -219,7 +219,6 @@ export default function UsersPage() {
           }}
           onEdit={setSelectedUser}
           onDelete={handleDelete}
-          onPasswordChange={() => {}}
           onRoleToggle={() => {}}
           onStatusToggle={() => {}}
           onBulkStatusToggle={handleBulkStatusToggle}

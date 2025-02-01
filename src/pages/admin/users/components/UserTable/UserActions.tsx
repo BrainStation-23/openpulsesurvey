@@ -8,16 +8,32 @@ import {
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { User } from "../../types";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UserActionsProps {
   user: User;
   onEdit: (user: User) => void;
   onDelete: (userId: string) => void;
-  onPasswordChange: (userId: string) => void;
 }
 
-export default function UserActions({ user, onDelete, onPasswordChange }: UserActionsProps) {
+export default function UserActions({ user, onDelete }: UserActionsProps) {
   const navigate = useNavigate();
+
+  const handleResetPassword = async () => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Password reset email sent successfully");
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast.error("Failed to send password reset email");
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -31,8 +47,8 @@ export default function UserActions({ user, onDelete, onPasswordChange }: UserAc
         <DropdownMenuItem onClick={() => navigate(`/admin/users/${user.id}/edit`)}>
           Edit
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onPasswordChange(user.id)}>
-          Change Password
+        <DropdownMenuItem onClick={handleResetPassword}>
+          Reset Password
         </DropdownMenuItem>
         <DropdownMenuItem
           className="text-destructive"
