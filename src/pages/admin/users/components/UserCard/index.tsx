@@ -50,6 +50,7 @@ export const UserCard = memo(function UserCard({
 
   const getPrimaryManagerName = (supervisor: User['primary_supervisor']) => {
     if (supervisor === null || supervisor === undefined) return "N/A";
+    console.log('supervisor data:', supervisor);
     const firstName = supervisor.first_name || "";
     const lastName = supervisor.last_name || "";
     const fullName = `${firstName} ${lastName}`.trim();
