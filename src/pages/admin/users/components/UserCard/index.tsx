@@ -298,7 +298,7 @@ export const UserCard = memo(function UserCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-[200px]">
             <DropdownMenuItem 
-              onClick={() => navigate(`/admin/users/${user.id}/edit`)}
+              onClick={() => onEdit(user)}
               className="cursor-pointer"
             >
               Edit

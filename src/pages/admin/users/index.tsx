@@ -5,6 +5,7 @@ import { useUsers } from "./hooks/useUsers";
 import { useUserActions } from "./hooks/useUserActions";
 import { useSBUs } from "./hooks/useSBUs";
 import { useFilterOptions } from "./hooks/useFilterOptions";
+import { usePasswordManagement } from "./hooks/usePasswordManagement";
 import { UserGrid } from "./components/UserGrid";
 import CreateUserDialog from "./components/CreateUserDialog";
 import EditUserDialog from "./components/EditUserDialog";
@@ -12,6 +13,7 @@ import { SearchFilters } from "./components/UserTable/SearchFilters";
 import { ImportDialog } from "./components/ImportDialog";
 import { BulkUpdateDialog } from "./components/BulkUpdateDialog";
 import { ExportProgress } from "./components/UserTable/ExportProgress";
+import { PasswordDialog } from "./components/UserTable/PasswordDialog";
 import { Button } from "@/components/ui/button";
 import { Power, MoreHorizontal, Upload, UserRoundPlus, FilePlus2, FileSpreadsheet, Download } from "lucide-react";
 import {
@@ -69,6 +71,15 @@ export default function UsersPage() {
     isLoading: isLoadingFilters
   } = useFilterOptions();
   const { handleCreateSuccess, handleDelete } = useUserActions(refetch);
+
+  const { 
+    isPasswordDialogOpen, 
+    setIsPasswordDialogOpen, 
+    newPassword, 
+    setNewPassword, 
+    handlePasswordChange, 
+    handlePasswordSave 
+  } = usePasswordManagement();
 
   const handleBulkDelete = async () => {
     try {
@@ -219,7 +230,7 @@ export default function UsersPage() {
           }}
           onEdit={setSelectedUser}
           onDelete={handleDelete}
-          onPasswordChange={() => {}}
+          onPasswordChange={handlePasswordChange}
           onRoleToggle={() => {}}
           onStatusToggle={() => {}}
           onBulkStatusToggle={handleBulkStatusToggle}
@@ -260,6 +271,19 @@ export default function UsersPage() {
           refetch();
           setIsUpdateDialogOpen(false);
         }}
+      />
+
+      <PasswordDialog
+        isOpen={isPasswordDialogOpen}
+        onOpenChange={(open) => {
+          setIsPasswordDialogOpen(open);
+          if (!open) {
+            setNewPassword("");
+          }
+        }}
+        newPassword={newPassword}
+        onPasswordChange={setNewPassword}
+        onSave={handlePasswordSave}
       />
 
       <ExportProgress
