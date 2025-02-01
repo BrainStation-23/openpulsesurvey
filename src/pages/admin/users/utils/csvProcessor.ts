@@ -375,6 +375,8 @@ export async function importUsers(
   }
 }
 
+import { randomBytes } from 'crypto';
+
 function generateTempPassword(): string {
-  return Math.random().toString(36).slice(-8);
+  return randomBytes(6).toString('base64').slice(0, 8);
 }
