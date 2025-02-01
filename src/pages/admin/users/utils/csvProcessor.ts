@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Level, User } from "../types";
 import { supabase } from "@/integrations/supabase/client";
 import { ImportError } from "./errorReporting";
+import { randomBytes } from 'crypto';
 import Papa from 'papaparse';
 
 const csvRowSchema = z.object({
@@ -376,5 +377,5 @@ export async function importUsers(
 }
 
 function generateTempPassword(): string {
-  return Math.random().toString(36).slice(-8);
+  return randomBytes(6).toString('base64').slice(0, 8);
 }
