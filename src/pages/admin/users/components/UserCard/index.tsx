@@ -5,6 +5,8 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Briefcase, Users, MapPin, Building, GraduationCap, Mail, Loader } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,8 +18,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface UserCardProps {
   user: User;
@@ -25,7 +25,6 @@ interface UserCardProps {
   onSelect: (userId: string, checked: boolean) => void;
   onEdit: (user: User) => void;
   onDelete: (userId: string) => void;
-  onPasswordChange: (userId: string) => void;
   onRoleToggle: (userId: string, isAdmin: boolean) => void;
   onStatusToggle: (userId: string, isActive: boolean) => void;
 }
@@ -35,7 +34,6 @@ export const UserCard = memo(function UserCard({
   selected,
   onSelect,
   onDelete,
-  onPasswordChange,
   onRoleToggle,
   onStatusToggle,
 }: UserCardProps) {
@@ -44,12 +42,12 @@ export const UserCard = memo(function UserCard({
   const [isActive, setIsActive] = useState(user.status === "active");
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const primarySbu = user.user_sbus?.find((sbu) => sbu.is_primary)?.sbu.name;
   const otherSbus = user.user_sbus?.filter(sbu => !sbu.is_primary).map(sbu => sbu.sbu.name);
 
   const getPrimaryManagerName = (supervisor: User['primary_supervisor']) => {
-    console.log('supervisor data:', supervisor); 
     if (supervisor === null || supervisor === undefined) return "N/A";
     const firstName = supervisor.first_name || "";
     const lastName = supervisor.last_name || "";
@@ -59,7 +57,6 @@ export const UserCard = memo(function UserCard({
 
   const handleRoleToggle = async (checked: boolean) => {
     setIsUpdatingRole(true);
-    // Optimistically update the UI
     setIsAdmin(checked);
 
     try {
@@ -71,19 +68,11 @@ export const UserCard = memo(function UserCard({
       if (roleError) throw roleError;
 
       onRoleToggle(user.id, checked);
-      toast({
-        title: "Success",
-        description: `User role updated to ${checked ? 'admin' : 'user'}`,
-      });
+      toast.success(`User role updated to ${checked ? 'admin' : 'user'}`);
     } catch (error) {
-      // Revert the optimistic update on failure
       setIsAdmin(!checked);
       console.error('Error updating role:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: 'Failed to update user role',
-      });
+      toast.error('Failed to update user role');
     } finally {
       setIsUpdatingRole(false);
     }
@@ -91,7 +80,6 @@ export const UserCard = memo(function UserCard({
 
   const handleStatusToggle = async (checked: boolean) => {
     setIsUpdatingStatus(true);
-    // Optimistically update the UI
     setIsActive(checked);
 
     try {
@@ -105,21 +93,31 @@ export const UserCard = memo(function UserCard({
       if (error) throw error;
 
       onStatusToggle(user.id, checked);
-      toast({
-        title: "Success",
-        description: `User ${checked ? 'activated' : 'deactivated'} successfully`,
-      });
+      toast.success(`User ${checked ? 'activated' : 'deactivated'} successfully`);
     } catch (error) {
-      // Revert the optimistic update on failure
       setIsActive(!checked);
       console.error('Error updating status:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: 'Failed to update user status',
-      });
+      toast.error('Failed to update user status');
     } finally {
       setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    setIsResettingPassword(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast.success('Password reset email sent successfully');
+    } catch (error) {
+      console.error('Error sending reset password email:', error);
+      toast.error('Failed to send reset password email');
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -291,6 +289,7 @@ export const UserCard = memo(function UserCard({
             <Button 
               variant="ghost" 
               className="h-8 w-8 p-0 transition-transform duration-200 hover:scale-110"
+              disabled={isResettingPassword}
             >
               <span className="sr-only">Open menu</span>
               <MoreHorizontal className="h-4 w-4" />
@@ -304,10 +303,11 @@ export const UserCard = memo(function UserCard({
               Edit
             </DropdownMenuItem>
             <DropdownMenuItem 
-              onClick={() => onPasswordChange(user.id)}
+              onClick={handleResetPassword}
               className="cursor-pointer"
+              disabled={isResettingPassword}
             >
-              Change Password
+              {isResettingPassword ? "Sending..." : "Reset Password"}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive cursor-pointer"
