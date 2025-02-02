@@ -9,24 +9,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { EyeOff } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
 import { CampaignFormData } from "./CampaignForm";
-import { EyeOff } from "lucide-react";
+import { SurveySelector } from "./SurveySelector";
 
 interface BasicInfoFormProps {
   form: UseFormReturn<CampaignFormData>;
-  surveys: { id: string; name: string; }[];
 }
 
-export function BasicInfoForm({ form, surveys }: BasicInfoFormProps) {
+export function BasicInfoForm({ form }: BasicInfoFormProps) {
   return (
     <Card className="p-6">
       <div className="space-y-6">
@@ -67,20 +60,9 @@ export function BasicInfoForm({ form, surveys }: BasicInfoFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Survey</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a survey" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {surveys.map((survey) => (
-                    <SelectItem key={survey.id} value={survey.id}>
-                      {survey.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <SurveySelector value={field.value} onChange={field.onChange} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
