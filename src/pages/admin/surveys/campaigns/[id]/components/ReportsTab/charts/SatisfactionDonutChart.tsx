@@ -94,9 +94,9 @@ export function SatisfactionDonutChart({ data }: SatisfactionDonutChartProps) {
             />
             <YAxis type="category" hide />
             <Tooltip 
-              formatter={(value: number) => [
+              formatter={(value: number, name: string) => [
                 `${value} responses (${getPercentage(value)}%)`,
-                "Responses"
+                name
               ]}
             />
             <Legend 
