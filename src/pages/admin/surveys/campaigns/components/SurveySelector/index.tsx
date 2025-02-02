@@ -5,6 +5,7 @@ import { SurveyCard } from "./SurveyCard";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { TagFilter } from "../../../components/TagFilter";
 
 interface SurveySelectorProps {
   value: string;
@@ -13,9 +14,10 @@ interface SurveySelectorProps {
 
 export function SurveySelector({ value, onChange }: SurveySelectorProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const { data: surveys, isLoading } = useQuery({
-    queryKey: ["surveys", searchQuery],
+    queryKey: ["surveys", searchQuery, selectedTags],
     queryFn: async () => {
       const query = supabase
         .from("surveys")
@@ -29,11 +31,28 @@ export function SurveySelector({ value, onChange }: SurveySelectorProps) {
         );
       }
 
+      if (selectedTags.length > 0) {
+        query.contains("tags", selectedTags);
+      }
+
       const { data, error } = await query;
       if (error) throw error;
       return data;
     },
   });
+
+  // Get unique tags from all surveys
+  const allTags = Array.from(
+    new Set(surveys?.flatMap((survey) => survey.tags || []) || [])
+  );
+
+  const handleTagToggle = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag)
+        ? prev.filter((t) => t !== tag)
+        : [...prev, tag]
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -46,6 +65,14 @@ export function SurveySelector({ value, onChange }: SurveySelectorProps) {
           className="pl-9"
         />
       </div>
+
+      {allTags.length > 0 && (
+        <TagFilter
+          tags={allTags}
+          selectedTags={selectedTags}
+          onTagToggle={handleTagToggle}
+        />
+      )}
 
       {isLoading ? (
         <div className="flex justify-center p-8">
