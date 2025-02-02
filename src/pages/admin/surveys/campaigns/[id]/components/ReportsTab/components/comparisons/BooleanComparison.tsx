@@ -68,9 +68,9 @@ export function BooleanComparison({
         : 'space-y-4'
     }>
       {data.map((groupData, index) => (
-        <Card key={groupData.name} className="p-6">
+        <Card key={groupData.name} className="p-4">
           <h3 className="mb-4 text-lg font-semibold">{groupData.name}</h3>
-          <div className="aspect-[3/2]">
+          <div className="aspect-[1/2]">
             <GroupedBarChart 
               data={[groupData]} 
               keys={keys} 
