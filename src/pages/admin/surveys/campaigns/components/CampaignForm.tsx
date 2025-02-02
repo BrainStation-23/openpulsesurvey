@@ -39,7 +39,6 @@ interface CampaignFormProps {
 
 export function CampaignForm({ 
   onSubmit, 
-  surveys, 
   defaultValues,
   currentStep,
   onStepComplete,
@@ -64,7 +63,6 @@ export function CampaignForm({
   });
 
   const handleNext = async () => {
-    // Only validate for steps 1 and 2
     if (currentStep < 3) {
       const isValid = await form.trigger();
       if (isValid) {
@@ -74,12 +72,10 @@ export function CampaignForm({
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-    // For steps 1 and 2, prevent form submission and handle step navigation
     if (currentStep < 3) {
       e.preventDefault();
       handleNext();
     } else {
-      // For step 3, allow the form to submit normally if ready to proceed
       if (isReadyToProceed) {
         form.handleSubmit(onSubmit)(e);
       } else {
@@ -91,14 +87,13 @@ export function CampaignForm({
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return <BasicInfoForm form={form} surveys={surveys} />;
+        return <BasicInfoForm form={form} />;
       case 2:
         return <ScheduleConfig form={form} />;
       case 3:
         return (
           <ReviewStep 
             form={form} 
-            surveys={surveys} 
             isReadyToProceed={isReadyToProceed}
             onReadyToProceedChange={setIsReadyToProceed}
           />
