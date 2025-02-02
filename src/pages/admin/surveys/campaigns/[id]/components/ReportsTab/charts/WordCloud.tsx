@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect, useState } from "react";
 import Wordcloud from "@visx/wordcloud/lib/Wordcloud";
 
 interface WordCloudProps {
@@ -15,6 +15,7 @@ interface WordData {
 
 export function WordCloud({ words }: WordCloudProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 600, height: 300 });
   const colors = [
     "#9b87f5",  // Primary Purple
     "#F97316",  // Bright Orange
@@ -25,8 +26,23 @@ export function WordCloud({ words }: WordCloudProps) {
   ];
 
   useEffect(() => {
-    console.log("WordCloud received words:", words);
-  }, [words]);
+    if (!containerRef.current) return;
+
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight,
+        });
+      }
+    };
+
+    const observer = new ResizeObserver(updateDimensions);
+    observer.observe(containerRef.current);
+    updateDimensions();
+
+    return () => observer.disconnect();
+  }, []);
 
   // Convert our data format to what @visx/wordcloud expects
   const formattedWords = words.map((w) => ({
@@ -42,27 +58,28 @@ export function WordCloud({ words }: WordCloudProps) {
     const maxSize = Math.max(...words.map((w) => w.value));
     const minSize = Math.min(...words.map((w) => w.value));
     const scale = (word.size - minSize) / (maxSize - minSize || 1);
-    return 14 + scale * 36; // Scale between 14px and 50px
-  }, [words]);
+    
+    // Base font size on container size
+    const baseFontSize = Math.min(dimensions.width, dimensions.height) / 25;
+    return Math.max(12, baseFontSize + (scale * baseFontSize * 0.5));
+  }, [words, dimensions]);
 
   const getColor = useCallback((word: WordData) => {
-    // Use the word's text to generate a consistent but random index
     const index = Math.abs(word.text.split('').reduce((acc, char) => {
       return char.charCodeAt(0) + ((acc << 5) - acc);
     }, 0)) % colors.length;
     return colors[index];
   }, []);
 
-
   return (
-    <div ref={containerRef} className="w-full h-[500px] flex items-center justify-center p-4">
+    <div ref={containerRef} className="w-full h-full min-h-[200px]">
       <Wordcloud
         words={formattedWords}
-        width={containerRef.current?.clientWidth || 800}
-        height={500}
+        width={dimensions.width}
+        height={dimensions.height}
         fontSize={(w) => getFontSize(w as WordData)}
         font={"Inter"}
-        padding={3}
+        padding={2}
         rotate={getRotation}
         spiral="archimedean"
       >
