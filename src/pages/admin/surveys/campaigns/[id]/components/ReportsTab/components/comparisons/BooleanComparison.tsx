@@ -75,7 +75,7 @@ export function BooleanComparison({
               data={[groupData]} 
               keys={keys} 
               colors={colors}
-              height={250}
+              height={150}
             />
           </div>
         </Card>
