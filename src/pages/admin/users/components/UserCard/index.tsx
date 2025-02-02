@@ -48,6 +48,15 @@ export const UserCard = memo(function UserCard({
   const primarySbu = user.user_sbus?.find((sbu) => sbu.is_primary)?.sbu.name;
   const otherSbus = user.user_sbus?.filter(sbu => !sbu.is_primary).map(sbu => sbu.sbu.name);
 
+  const getPrimaryManagerName = (supervisor: User['primary_supervisor']) => {
+    console.log('supervisor data:', supervisor); 
+    if (supervisor === null || supervisor === undefined) return "N/A";
+    const firstName = supervisor.first_name || "";
+    const lastName = supervisor.last_name || "";
+    const fullName = `${firstName} ${lastName}`.trim();
+    return fullName || "N/A";
+  };
+
   const handleRoleToggle = async (checked: boolean) => {
     setIsUpdatingRole(true);
     // Optimistically update the UI
@@ -157,7 +166,6 @@ export const UserCard = memo(function UserCard({
 
       <CardContent className="space-y-4">
         <div className="grid gap-4">
-          {/* Status Section */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <Badge variant={isActive ? "default" : "secondary"}>
@@ -223,6 +231,14 @@ export const UserCard = memo(function UserCard({
                 <span className="font-medium truncate">{otherSbus.join(", ")}</span>
               </div>
             )}
+            {/* Primary Manager section */}
+            <div className="flex items-center gap-2 text-sm">
+              <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground whitespace-nowrap">Primary Manager:</span>
+              <span className="font-medium truncate">
+                {getPrimaryManagerName(user.primary_supervisor)}
+              </span>
+            </div>
             {user.designation && (
               <div className="flex items-center gap-2 text-sm">
                 <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />

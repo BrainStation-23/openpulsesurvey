@@ -35,6 +35,12 @@ interface SearchUsersResponse {
       role: string;
     };
     user_sbus: UserSBU[];
+    primary_supervisor: {
+      id: string;
+      email: string;
+      first_name: string | null;
+      last_name: string | null;
+    } | null;
   };
   total_count: number;
 }
@@ -113,7 +119,8 @@ export function useUsers({
           employee_role: profile.employee_role,
           employee_type: profile.employee_type,
           user_roles: profile.user_roles,
-          user_sbus: profile.user_sbus
+          user_sbus: profile.user_sbus,
+          primary_supervisor: profile.primary_supervisor
         } as User;
       });
 
