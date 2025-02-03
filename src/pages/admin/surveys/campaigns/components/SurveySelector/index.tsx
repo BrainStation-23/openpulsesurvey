@@ -11,22 +11,20 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { addDays } from "date-fns";
+import type { DateRange } from "react-day-picker";
 
 interface SurveySelectorProps {
   value: string;
   onChange: (value: string) => void;
 }
 
-type DateRange = {
-  from: Date | undefined;
-  to: Date | undefined;
-} | undefined;
+type SurveyStatus = "draft" | "published" | "archived" | "all";
 
 export function SurveySelector({ value, onChange }: SurveySelectorProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [dateRange, setDateRange] = useState<DateRange>(undefined);
+  const [statusFilter, setStatusFilter] = useState<SurveyStatus>("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   const { data: surveys, isLoading } = useQuery({
     queryKey: ["surveys", searchQuery, selectedTags, statusFilter, dateRange],
@@ -131,7 +129,7 @@ export function SurveySelector({ value, onChange }: SurveySelectorProps) {
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <DatePickerWithRange
               value={dateRange}
-              onChange={setDateRange}
+              onChange={(value) => setDateRange(value)}
             />
           </div>
         </div>
