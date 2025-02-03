@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
-import { addDays } from "date-fns";
 import type { DateRange } from "react-day-picker";
 
 interface SurveySelectorProps {
@@ -112,7 +111,10 @@ export function SurveySelector({ value, onChange }: SurveySelectorProps) {
         <div className="flex flex-wrap gap-4">
           <div className="flex items-center gap-2">
             <CheckSquare className="h-4 w-4 text-muted-foreground" />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select 
+              value={statusFilter} 
+              onValueChange={(value: SurveyStatus) => setStatusFilter(value)}
+            >
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
