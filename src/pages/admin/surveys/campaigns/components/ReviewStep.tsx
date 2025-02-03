@@ -8,17 +8,31 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Calendar, CheckCircle, FileText, Users, EyeOff } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ReviewStepProps {
   form: UseFormReturn<CampaignFormData>;
-  surveys: { id: string; name: string; }[];
   isReadyToProceed: boolean;
   onReadyToProceedChange: (checked: boolean) => void;
 }
 
-export function ReviewStep({ form, surveys, isReadyToProceed, onReadyToProceedChange }: ReviewStepProps) {
+export function ReviewStep({ form, isReadyToProceed, onReadyToProceedChange }: ReviewStepProps) {
   const values = form.getValues();
-  const selectedSurvey = surveys.find(s => s.id === values.survey_id);
+
+  const { data: surveys } = useQuery({
+    queryKey: ['surveys'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('surveys')
+        .select('id, name');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const selectedSurvey = surveys?.find(s => s.id === values.survey_id);
 
   return (
     <div className="space-y-6">

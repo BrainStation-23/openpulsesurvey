@@ -12,7 +12,6 @@ interface UserRowProps {
   user: User;
   onEdit: (user: User) => void;
   onDelete: (userId: string) => void;
-  onPasswordChange: (userId: string) => void;
   selected: boolean;
   onSelect: (userId: string, checked: boolean) => void;
 }
@@ -20,8 +19,7 @@ interface UserRowProps {
 export function UserRow({ 
   user, 
   onEdit, 
-  onDelete, 
-  onPasswordChange,
+  onDelete,
   selected,
   onSelect
 }: UserRowProps) {
@@ -122,7 +120,6 @@ export function UserRow({
           user={user}
           onEdit={onEdit}
           onDelete={onDelete}
-          onPasswordChange={onPasswordChange}
         />
       </TableCell>
     </TableRow>

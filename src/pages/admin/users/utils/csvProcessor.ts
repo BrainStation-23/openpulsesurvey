@@ -31,6 +31,13 @@ export type ProcessingResult = {
   errors: { row: number; errors: string[] }[];
 };
 
+import cryptoRandomString from 'crypto-random-string';
+
+function generateTempPassword(): string {
+  // Generate a random string of 8 characters
+  return cryptoRandomString({length: 8, type: 'alphanumeric'});
+}
+
 async function getLevelId(levelName?: string): Promise<string | null> {
   if (!levelName) return null;
   
@@ -375,6 +382,3 @@ export async function importUsers(
   }
 }
 
-function generateTempPassword(): string {
-  return Math.random().toString(36).slice(-8);
-}

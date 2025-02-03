@@ -8,7 +8,6 @@ interface TableContainerProps {
   users: User[];
   onEdit: (user: User) => void;
   onDelete: (userId: string) => void;
-  onPasswordChange: (userId: string) => void;
   isLoading?: boolean;
   selectedUsers: string[];
   onSelectAll: (checked: boolean) => void;
@@ -18,8 +17,7 @@ interface TableContainerProps {
 export function TableContainer({ 
   users, 
   onEdit, 
-  onDelete, 
-  onPasswordChange,
+  onDelete,
   isLoading,
   selectedUsers,
   onSelectAll,
@@ -55,7 +53,6 @@ export function TableContainer({
             user={user}
             onEdit={onEdit}
             onDelete={onDelete}
-            onPasswordChange={onPasswordChange}
             selected={selectedUsers.includes(user.id)}
             onSelect={onSelectUser}
           />

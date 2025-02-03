@@ -15,7 +15,6 @@ interface UserGridProps {
   onSelectUser: (userId: string, checked: boolean) => void;
   onEdit: (user: User) => void;
   onDelete: (userId: string) => void;
-  onPasswordChange: (userId: string) => void;
   onRoleToggle: (userId: string, isAdmin: boolean) => void;
   onStatusToggle: (userId: string, isActive: boolean) => void;
   onBulkStatusToggle: () => void;
@@ -33,7 +32,6 @@ export function UserGrid({
   onSelectUser,
   onEdit,
   onDelete,
-  onPasswordChange,
   onRoleToggle,
   onStatusToggle,
   onBulkStatusToggle,
@@ -130,7 +128,6 @@ export function UserGrid({
             onSelect={onSelectUser}
             onEdit={onEdit}
             onDelete={onDelete}
-            onPasswordChange={onPasswordChange}
             onRoleToggle={onRoleToggle}
             onStatusToggle={onStatusToggle}
           />
