@@ -1,0 +1,33 @@
+import { HeatMapChart } from "../../../../ReportsTab/charts/HeatMapChart";
+import { NpsChart } from "../../../../ReportsTab/charts/NpsChart";
+
+interface ComparisonViewProps {
+  data: any;
+  isNps: boolean;
+  dimensionTitle: string;
+}
+
+export function ComparisonView({ data, isNps, dimensionTitle }: ComparisonViewProps) {
+  return (
+    <div className="w-full max-w-[1400px]">
+      {isNps ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {data.map((groupData: any) => (
+            <div key={groupData.dimension} className="bg-white rounded-lg shadow p-4">
+              <h3 className="text-lg font-semibold mb-4">{groupData.dimension}</h3>
+              <NpsChart 
+                data={[
+                  { rating: 0, count: groupData.detractors },
+                  { rating: 7, count: groupData.passives },
+                  { rating: 9, count: groupData.promoters }
+                ]} 
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <HeatMapChart data={data} title={dimensionTitle} />
+      )}
+    </div>
+  );
+}
