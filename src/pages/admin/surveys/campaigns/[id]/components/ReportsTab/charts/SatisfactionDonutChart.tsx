@@ -97,6 +97,7 @@ export function SatisfactionDonutChart({ data }: SatisfactionDonutChartProps) {
               formatter={(value: number, name: string) => [
                 `${value} responses (${getPercentage(value)}%)`,
                 name
+
               ]}
             />
             <Legend 

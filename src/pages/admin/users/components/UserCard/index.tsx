@@ -50,6 +50,7 @@ export const UserCard = memo(function UserCard({
   const otherSbus = user.user_sbus?.filter(sbu => !sbu.is_primary).map(sbu => sbu.sbu.name);
 
   const getPrimaryManagerName = (supervisor: User['primary_supervisor']) => {
+
     if (supervisor === null || supervisor === undefined) return "N/A";
     const firstName = supervisor.first_name || "";
     const lastName = supervisor.last_name || "";
@@ -165,13 +166,13 @@ export const UserCard = memo(function UserCard({
           </div>
 
           <Separator />
-
           <UserEmploymentDetails
             user={user}
             primarySbu={primarySbu}
             otherSbus={otherSbus}
             primaryManagerName={getPrimaryManagerName(user.primary_supervisor)}
           />
+
         </div>
       </CardContent>
 

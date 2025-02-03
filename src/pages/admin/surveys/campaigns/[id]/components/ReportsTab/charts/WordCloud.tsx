@@ -65,6 +65,7 @@ export function WordCloud({ words }: WordCloudProps) {
   }, [words, dimensions]);
 
   const getColor = useCallback((word: WordData) => {
+
     const index = Math.abs(word.text.split('').reduce((acc, char) => {
       return char.charCodeAt(0) + ((acc << 5) - acc);
     }, 0)) % colors.length;
@@ -77,9 +78,10 @@ export function WordCloud({ words }: WordCloudProps) {
         words={formattedWords}
         width={dimensions.width}
         height={dimensions.height}
+
         fontSize={(w) => getFontSize(w as WordData)}
         font={"Inter"}
-        padding={2}
+        padding={3}
         rotate={getRotation}
         spiral="archimedean"
       >
