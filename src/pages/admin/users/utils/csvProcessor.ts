@@ -31,12 +31,11 @@ export type ProcessingResult = {
   errors: { row: number; errors: string[] }[];
 };
 
+import cryptoRandomString from 'crypto-random-string';
+
 function generateTempPassword(): string {
   // Generate a random string of 8 characters
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  return Array.from(crypto.getRandomValues(new Uint8Array(8)))
-    .map(x => chars.charAt(x % chars.length))
-    .join('');
+  return cryptoRandomString({length: 8, type: 'alphanumeric'});
 }
 
 async function getLevelId(levelName?: string): Promise<string | null> {
