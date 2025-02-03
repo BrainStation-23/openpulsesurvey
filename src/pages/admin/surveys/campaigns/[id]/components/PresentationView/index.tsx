@@ -11,6 +11,7 @@ import { ResponseTrendsSlide } from "./slides/ResponseTrendsSlide";
 import { QuestionSlide } from "./slides/QuestionSlide";
 import { PresentationLayout } from "./components/PresentationLayout";
 import { PresentationControls } from "./components/PresentationControls";
+import { CampaignData, SurveyJsonData } from "./types";
 
 const COMPARISON_DIMENSIONS: ComparisonDimension[] = ['sbu', 'gender', 'location', 'employment_type'];
 
@@ -66,14 +67,19 @@ export default function PresentationView() {
 
       if (instanceError) throw instanceError;
       
+      // Parse json_data to ensure it matches SurveyJsonData type
+      const parsedJsonData = typeof data.survey.json_data === 'string' 
+        ? JSON.parse(data.survey.json_data) 
+        : data.survey.json_data;
+
       return {
         ...data,
         instance,
         survey: {
           ...data.survey,
-          json_data: data.survey.json_data
+          json_data: parsedJsonData as SurveyJsonData
         }
-      };
+      } as CampaignData;
     },
     enabled: !!id && !!instanceId,
   });
