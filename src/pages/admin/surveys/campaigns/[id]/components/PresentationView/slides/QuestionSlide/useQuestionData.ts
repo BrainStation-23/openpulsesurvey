@@ -1,12 +1,12 @@
 import { useMemo } from "react";
-import { ProcessedData } from "../../types/responses";
-import { ComparisonDimension } from "../../../../ReportsTab/types/comparison";
+import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
+import { ComparisonDimension } from "../../types/comparison";
 
 export function useQuestionData(
   data: ProcessedData | undefined,
   questionName: string,
   questionType: string,
-  slideType: 'main' | ComparisonDimension
+  slideType: ComparisonDimension
 ) {
   return useMemo(() => {
     if (!data?.responses) return null;
@@ -22,10 +22,11 @@ export function useQuestionData(
             .filter(r => r.answers[questionName]?.answer !== undefined)
             .map(r => r.answers[questionName].answer);
           
-          return {
+          const result: BooleanResponseData = {
             yes: answers.filter((a) => a === true).length,
             no: answers.filter((a) => a === false).length,
           };
+          return result;
         }
 
         case "rating": {
@@ -37,7 +38,7 @@ export function useQuestionData(
             return new Array(11).fill(0).map((_, rating) => ({
               rating,
               count: answers.filter(a => a === rating).length
-            }));
+            })) as RatingResponseData;
           } else {
             const validAnswers = answers.filter(
               (rating) => typeof rating === "number" && rating >= 1 && rating <= 5
@@ -53,13 +54,14 @@ export function useQuestionData(
               return sorted[middle];
             };
 
-            return {
+            const result: SatisfactionData = {
               unsatisfied: validAnswers.filter((r) => r <= 2).length,
               neutral: validAnswers.filter((r) => r === 3).length,
               satisfied: validAnswers.filter((r) => r >= 4).length,
               total: validAnswers.length,
               median: calculateMedian(validAnswers)
             };
+            return result;
           }
         }
 
@@ -84,7 +86,7 @@ export function useQuestionData(
           return Object.entries(wordFrequency)
             .map(([text, value]) => ({ text, value }))
             .sort((a, b) => b.value - a.value)
-            .slice(0, 50);
+            .slice(0, 50) as TextResponseData;
         }
 
         default:

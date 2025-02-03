@@ -1,3 +1,32 @@
+export interface BooleanResponseData {
+  yes: number;
+  no: number;
+}
+
+export interface RatingResponseData {
+  rating: number;
+  count: number;
+  group?: string;
+}[]
+
+export interface SatisfactionData {
+  unsatisfied: number;
+  neutral: number;
+  satisfied: number;
+  total: number;
+  median: number;
+}
+
+export interface TextResponseData {
+  text: string;
+  value: number;
+}[]
+
+export interface ProcessedData {
+  questions: Question[];
+  responses: ProcessedResponse[];
+}
+
 export interface Question {
   name: string;
   title: string;
@@ -5,7 +34,7 @@ export interface Question {
   rateCount?: number;
 }
 
-export type ProcessedResponse = {
+export interface ProcessedResponse {
   id: string;
   respondent: {
     name: string;
@@ -30,32 +59,4 @@ export type ProcessedResponse = {
     answer: any;
     questionType: string;
   }>;
-}
-
-export type BooleanResponseData = {
-  yes: number;
-  no: number;
-};
-
-export type RatingResponseData = {
-  rating: number;
-  count: number;
-  group?: string;
-}[];
-
-export type SatisfactionResponseData = {
-  unsatisfied: number;
-  neutral: number;
-  satisfied: number;
-  total: number;
-};
-
-export type TextResponseData = {
-  text: string;
-  value: number;
-}[];
-
-export type ProcessedData = {
-  questions: Question[];
-  responses: ProcessedResponse[];
 }

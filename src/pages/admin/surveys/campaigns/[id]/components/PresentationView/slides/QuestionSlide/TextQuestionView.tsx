@@ -1,4 +1,4 @@
-import { WordCloud } from "../../../../ReportsTab/charts/WordCloud";
+import { WordCloud } from "../../../ReportsTab/charts/WordCloud";
 import { TextResponseData } from "../../types/responses";
 
 interface TextQuestionViewProps {

@@ -1,4 +1,4 @@
-import { BooleanCharts } from "../../../../ReportsTab/charts/BooleanCharts";
+import { BooleanCharts } from "../../../ReportsTab/charts/BooleanCharts";
 import { BooleanResponseData } from "../../types/responses";
 
 interface BooleanQuestionViewProps {

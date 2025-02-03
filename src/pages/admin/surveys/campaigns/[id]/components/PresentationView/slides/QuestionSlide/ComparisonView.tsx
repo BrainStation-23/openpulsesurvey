@@ -1,5 +1,5 @@
-import { HeatMapChart } from "../../../../ReportsTab/charts/HeatMapChart";
-import { NpsChart } from "../../../../ReportsTab/charts/NpsChart";
+import { HeatMapChart } from "../../../ReportsTab/charts/HeatMapChart";
+import { NpsChart } from "../../../ReportsTab/charts/NpsChart";
 
 interface ComparisonViewProps {
   data: any;
