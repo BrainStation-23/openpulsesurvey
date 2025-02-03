@@ -7,13 +7,14 @@ import { TextQuestionView } from "./TextQuestionView";
 import { ComparisonView } from "./ComparisonView";
 import { useQuestionData } from "./useQuestionData";
 import { usePresentationResponses } from "../../hooks/usePresentationResponses";
+import { ComparisonLayout } from "../../components/ComparisonLayout";
 import { BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
 
 interface QuestionSlideProps extends SlideProps {
   questionName: string;
   questionTitle: string;
   questionType: string;
-  slideType: ComparisonDimension;
+  slideType: "main" | ComparisonDimension;
 }
 
 export function QuestionSlide({ 
@@ -49,7 +50,7 @@ export function QuestionSlide({
       comparisonTitle={slideType !== 'main' ? getDimensionTitle(slideType) : undefined}
     >
       {slideType === 'main' ? (
-        <>
+        <div className="w-full flex items-center justify-center">
           {questionType === "boolean" && (
             <BooleanQuestionView data={processedData as BooleanResponseData} />
           )}
@@ -62,13 +63,15 @@ export function QuestionSlide({
           {(questionType === "text" || questionType === "comment") && (
             <TextQuestionView data={processedData as TextResponseData} />
           )}
-        </>
+        </div>
       ) : (
-        <ComparisonView 
-          data={processedData}
-          isNps={isNps}
-          dimensionTitle={getDimensionTitle(slideType)}
-        />
+        <ComparisonLayout title={getDimensionTitle(slideType)}>
+          <ComparisonView 
+            data={processedData}
+            isNps={isNps}
+            dimensionTitle={getDimensionTitle(slideType)}
+          />
+        </ComparisonLayout>
       )}
     </QuestionSlideLayout>
   );
