@@ -1,5 +1,5 @@
 import { SlideProps } from "../../types";
-import { ComparisonDimension } from "../../../ReportsTab/types/comparison";
+import { ComparisonDimension } from "../../types/comparison";
 import { QuestionSlideLayout } from "./QuestionSlideLayout";
 import { BooleanQuestionView } from "./BooleanQuestionView";
 import { RatingQuestionView } from "./RatingQuestionView";
@@ -7,12 +7,13 @@ import { TextQuestionView } from "./TextQuestionView";
 import { ComparisonView } from "./ComparisonView";
 import { useQuestionData } from "./useQuestionData";
 import { usePresentationResponses } from "../../hooks/usePresentationResponses";
+import { BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
 
 interface QuestionSlideProps extends SlideProps {
   questionName: string;
   questionTitle: string;
   questionType: string;
-  slideType: 'main' | ComparisonDimension;
+  slideType: ComparisonDimension;
 }
 
 export function QuestionSlide({ 
@@ -50,13 +51,16 @@ export function QuestionSlide({
       {slideType === 'main' ? (
         <>
           {questionType === "boolean" && (
-            <BooleanQuestionView data={processedData} />
+            <BooleanQuestionView data={processedData as BooleanResponseData} />
           )}
           {questionType === "rating" && (
-            <RatingQuestionView data={processedData} isNps={isNps} />
+            <RatingQuestionView 
+              data={processedData as (RatingResponseData | SatisfactionData)} 
+              isNps={isNps} 
+            />
           )}
           {(questionType === "text" || questionType === "comment") && (
-            <TextQuestionView data={processedData} />
+            <TextQuestionView data={processedData as TextResponseData} />
           )}
         </>
       ) : (

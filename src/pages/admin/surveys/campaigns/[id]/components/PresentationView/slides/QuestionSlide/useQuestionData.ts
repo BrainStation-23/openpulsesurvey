@@ -2,12 +2,14 @@ import { useMemo } from "react";
 import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
 
+type ProcessedResult = BooleanResponseData | RatingResponseData | SatisfactionData | TextResponseData | any[];
+
 export function useQuestionData(
   data: ProcessedData | undefined,
   questionName: string,
   questionType: string,
   slideType: ComparisonDimension
-) {
+): ProcessedResult | null {
   return useMemo(() => {
     if (!data?.responses) return null;
 
@@ -35,10 +37,11 @@ export function useQuestionData(
             .map(r => r.answers[questionName].answer);
           
           if (isNps) {
-            return new Array(11).fill(0).map((_, rating) => ({
+            const ratingCounts: RatingResponseData = new Array(11).fill(0).map((_, rating) => ({
               rating,
               count: answers.filter(a => a === rating).length
-            })) as RatingResponseData;
+            }));
+            return ratingCounts;
           } else {
             const validAnswers = answers.filter(
               (rating) => typeof rating === "number" && rating >= 1 && rating <= 5
@@ -83,10 +86,11 @@ export function useQuestionData(
             }
           });
 
-          return Object.entries(wordFrequency)
+          const result: TextResponseData = Object.entries(wordFrequency)
             .map(([text, value]) => ({ text, value }))
             .sort((a, b) => b.value - a.value)
-            .slice(0, 50) as TextResponseData;
+            .slice(0, 50);
+          return result;
         }
 
         default:

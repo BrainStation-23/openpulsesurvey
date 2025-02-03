@@ -3,11 +3,13 @@ export interface BooleanResponseData {
   no: number;
 }
 
-export interface RatingResponseData {
+export interface RatingDataPoint {
   rating: number;
   count: number;
   group?: string;
-}[]
+}
+
+export type RatingResponseData = RatingDataPoint[];
 
 export interface SatisfactionData {
   unsatisfied: number;
@@ -17,10 +19,12 @@ export interface SatisfactionData {
   median: number;
 }
 
-export interface TextResponseData {
+export interface TextDataPoint {
   text: string;
   value: number;
-}[]
+}
+
+export type TextResponseData = TextDataPoint[];
 
 export interface ProcessedData {
   questions: Question[];
