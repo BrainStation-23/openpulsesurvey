@@ -14,7 +14,7 @@ interface QuestionSlideProps extends SlideProps {
   questionName: string;
   questionTitle: string;
   questionType: string;
-  slideType: "main" | ComparisonDimension;
+  slideType: ComparisonDimension;
 }
 
 export function QuestionSlide({ 
@@ -35,7 +35,8 @@ export function QuestionSlide({
       sbu: "Response Distribution by Department",
       gender: "Response Distribution by Gender",
       location: "Response Distribution by Location",
-      employment_type: "Response Distribution by Employment Type"
+      employment_type: "Response Distribution by Employment Type",
+      none: "No Comparison"
     };
     return titles[dim] || "";
   };
