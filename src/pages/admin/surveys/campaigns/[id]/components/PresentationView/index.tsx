@@ -2,17 +2,16 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ArrowLeft, Fullscreen } from "lucide-react";
-import { CampaignData } from "./types";
+import { useToast } from "@/hooks/use-toast";
+import { ComparisonDimension } from "./types/comparison";
 import { TitleSlide } from "./slides/TitleSlide";
 import { CompletionRateSlide } from "./slides/CompletionRateSlide";
 import { ResponseDistributionSlide } from "./slides/ResponseDistributionSlide";
 import { ResponseTrendsSlide } from "./slides/ResponseTrendsSlide";
 import { QuestionSlide } from "./slides/QuestionSlide";
-import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
-import { ComparisonDimension } from "../ReportsTab/types/comparison";
+import { PresentationLayout } from "./components/PresentationLayout";
+import { PresentationControls } from "./components/PresentationControls";
+import { CampaignData, SurveyJsonData } from "./types";
 
 const COMPARISON_DIMENSIONS: ComparisonDimension[] = ['sbu', 'gender', 'location', 'employment_type'];
 
@@ -35,6 +34,16 @@ export default function PresentationView() {
       navigate(`/admin/surveys/campaigns/${id}`);
     }
   }, [instanceId, id, navigate, toast]);
+
+  // Add fullscreenchange event listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const { data: campaign } = useQuery({
     queryKey: ["campaign", id, instanceId],
@@ -60,7 +69,6 @@ export default function PresentationView() {
 
       if (error) throw error;
 
-      // Fetch instance data
       const { data: instance, error: instanceError } = await supabase
         .from("campaign_instances")
         .select("*")
@@ -69,12 +77,16 @@ export default function PresentationView() {
 
       if (instanceError) throw instanceError;
       
+      const parsedJsonData = typeof data.survey.json_data === 'string' 
+        ? JSON.parse(data.survey.json_data) 
+        : data.survey.json_data;
+
       return {
         ...data,
         instance,
         survey: {
           ...data.survey,
-          json_data: data.survey.json_data
+          json_data: parsedJsonData as SurveyJsonData
         }
       } as CampaignData;
     },
@@ -85,7 +97,6 @@ export default function PresentationView() {
     (page) => page.elements || []
   );
 
-  // Calculate total slides including comparison slides
   const totalSlides = 4 + (surveyQuestions.length * (1 + COMPARISON_DIMENSIONS.length));
 
   useEffect(() => {
@@ -103,27 +114,27 @@ export default function PresentationView() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [totalSlides]);
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (error) {
+      console.error("Error toggling fullscreen:", error);
+      toast({
+        title: "Fullscreen Error",
+        description: "Unable to toggle fullscreen mode. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  if (!campaign) return null;
-
-  const nextSlide = () => {
-    setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1));
-  };
-
-  const previousSlide = () => {
-    setCurrentSlide((prev) => Math.max(0, prev - 1));
-  };
-
   const handleBack = () => {
+    if (isFullscreen) {
+      document.exitFullscreen();
+    }
     navigate(`/admin/surveys/campaigns/${id}`);
   };
 
@@ -131,7 +142,6 @@ export default function PresentationView() {
     return surveyQuestions.map((question, index) => {
       const baseSlideIndex = 4 + (index * (1 + COMPARISON_DIMENSIONS.length));
       
-      // Main question slide
       const slides = [(
         <QuestionSlide
           key={`${question.name}-main`}
@@ -144,7 +154,6 @@ export default function PresentationView() {
         />
       )];
 
-      // Comparison slides
       COMPARISON_DIMENSIONS.forEach((dimension, dimIndex) => {
         slides.push(
           <QuestionSlide
@@ -166,75 +175,27 @@ export default function PresentationView() {
   if (!campaign) return null;
 
   return (
-    <div className="h-full bg-background relative">
-      <div className="absolute top-4 left-4 z-10">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleBack}
-          className="bg-white/80 hover:bg-white/90 backdrop-blur-sm border border-gray-200"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Campaign
-        </Button>
-      </div>
-
-      <div className="relative h-full overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gray-200">
-          <div 
-            className="h-full bg-primary transition-all duration-300 ease-in-out"
-            style={{ width: `${((currentSlide + 1) / totalSlides) * 100}%` }}
-          />
-        </div>
-
-        <div className="absolute top-4 right-4 z-10 space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={toggleFullscreen}
-            className="bg-white/80 hover:bg-white/90 backdrop-blur-sm border border-gray-200"
-          >
-            <Fullscreen className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="absolute bottom-4 right-4 z-10 space-x-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={previousSlide}
-            disabled={currentSlide === 0}
-            className={cn(
-              "bg-white/80 hover:bg-white/90 backdrop-blur-sm border border-gray-200",
-              "disabled:opacity-50 disabled:cursor-not-allowed"
-            )}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={nextSlide}
-            disabled={currentSlide === totalSlides - 1}
-            className={cn(
-              "bg-white/80 hover:bg-white/90 backdrop-blur-sm border border-gray-200",
-              "disabled:opacity-50 disabled:cursor-not-allowed"
-            )}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="h-full p-8">
-          <div className="max-w-6xl mx-auto h-full">
-            <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
-            <CompletionRateSlide campaign={campaign} isActive={currentSlide === 1} />
-            <ResponseDistributionSlide campaign={campaign} isActive={currentSlide === 2} />
-            <ResponseTrendsSlide campaign={campaign} isActive={currentSlide === 3} />
-            {renderQuestionSlides()}
-          </div>
-        </div>
-      </div>
-    </div>
+    <PresentationLayout 
+      progress={((currentSlide + 1) / totalSlides) * 100}
+      isFullscreen={isFullscreen}
+    >
+      <PresentationControls
+        onBack={handleBack}
+        onPrevious={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
+        onNext={() => setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1))}
+        onFullscreen={toggleFullscreen}
+        isFirstSlide={currentSlide === 0}
+        isLastSlide={currentSlide === totalSlides - 1}
+        isFullscreen={isFullscreen}
+        currentSlide={currentSlide}
+        totalSlides={totalSlides}
+      />
+      
+      <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
+      <CompletionRateSlide campaign={campaign} isActive={currentSlide === 1} />
+      <ResponseDistributionSlide campaign={campaign} isActive={currentSlide === 2} />
+      <ResponseTrendsSlide campaign={campaign} isActive={currentSlide === 3} />
+      {renderQuestionSlides()}
+    </PresentationLayout>
   );
 }

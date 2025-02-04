@@ -541,6 +541,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "survey_responses_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_survey_deadlines"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "survey_responses_campaign_instance_id_fkey"
             columns: ["campaign_instance_id"]
             isOneToOne: false
@@ -707,7 +714,84 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      demographic_employment_analysis: {
+        Row: {
+          employment_type: string | null
+          response_count: number | null
+        }
+        Relationships: []
+      }
+      demographic_gender_analysis: {
+        Row: {
+          gender: string | null
+          response_count: number | null
+        }
+        Relationships: []
+      }
+      demographic_location_analysis: {
+        Row: {
+          location: string | null
+          response_count: number | null
+        }
+        Relationships: []
+      }
+      department_performance: {
+        Row: {
+          completed_responses: number | null
+          completion_rate: number | null
+          sbu_name: string | null
+          total_assignments: number | null
+        }
+        Relationships: []
+      }
+      recent_activities: {
+        Row: {
+          activity_time: string | null
+          activity_type: string | null
+          campaign_name: string | null
+          id: string | null
+          survey_name: string | null
+          user_name: string | null
+        }
+        Relationships: []
+      }
+      response_trends: {
+        Row: {
+          response_count: number | null
+          response_date: string | null
+          unique_respondents: number | null
+        }
+        Relationships: []
+      }
+      survey_overview_metrics: {
+        Row: {
+          active_campaigns: number | null
+          avg_completion_rate: number | null
+          completed_campaigns: number | null
+          total_responses: number | null
+          total_surveys: number | null
+        }
+        Relationships: []
+      }
+      survey_response_trends: {
+        Row: {
+          date: string | null
+          response_count: number | null
+          unique_respondents: number | null
+        }
+        Relationships: []
+      }
+      upcoming_survey_deadlines: {
+        Row: {
+          campaign_name: string | null
+          due_date: string | null
+          id: string | null
+          pending_responses: number | null
+          survey_name: string | null
+          total_assignments: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       is_admin: {
