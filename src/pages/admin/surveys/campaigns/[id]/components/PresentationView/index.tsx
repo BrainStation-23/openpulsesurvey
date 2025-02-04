@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ComparisonDimension } from "../ReportsTab/types/comparison";
+import { ComparisonDimension } from "./types/comparison";
 import { TitleSlide } from "./slides/TitleSlide";
 import { CompletionRateSlide } from "./slides/CompletionRateSlide";
 import { ResponseDistributionSlide } from "./slides/ResponseDistributionSlide";
