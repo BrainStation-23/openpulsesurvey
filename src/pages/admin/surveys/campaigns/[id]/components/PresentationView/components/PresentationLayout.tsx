@@ -8,6 +8,11 @@ interface PresentationLayoutProps extends PropsWithChildren {
 }
 
 export function PresentationLayout({ children, progress, isFullscreen, className }: PresentationLayoutProps) {
+  // Convert children to array to safely access elements
+  const childrenArray = Array.isArray(children) ? children : [children];
+  const controls = childrenArray[0];
+  const content = childrenArray.slice(1);
+
   return (
     <div className={cn(
       "relative h-full bg-background transition-colors duration-300",
@@ -28,7 +33,7 @@ export function PresentationLayout({ children, progress, isFullscreen, className
         isFullscreen ? "opacity-0 hover:opacity-100" : "opacity-100"
       )}>
         <div className="flex-1">
-          {children[0]} {/* This will be the PresentationControls */}
+          {controls}
         </div>
       </div>
 
@@ -36,7 +41,7 @@ export function PresentationLayout({ children, progress, isFullscreen, className
       <div className="relative h-full overflow-hidden pt-16"> {/* Added pt-16 to account for the controls */}
         <div className="h-full p-8">
           <div className="relative max-w-6xl mx-auto h-full">
-            {children.slice(1)} {/* This will be the slide content */}
+            {content}
           </div>
         </div>
       </div>
