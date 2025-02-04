@@ -67,7 +67,6 @@ export default function PresentationView() {
 
       if (instanceError) throw instanceError;
       
-      // Parse json_data to ensure it matches SurveyJsonData type
       const parsedJsonData = typeof data.survey.json_data === 'string' 
         ? JSON.parse(data.survey.json_data) 
         : data.survey.json_data;
@@ -98,24 +97,39 @@ export default function PresentationView() {
         setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1));
       } else if (e.key === "f") {
         toggleFullscreen();
+      } else if (e.key === "Escape" && isFullscreen) {
+        document.exitFullscreen();
+        setIsFullscreen(false);
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [totalSlides]);
+  }, [totalSlides, isFullscreen]);
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = async () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
+      try {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+      } catch (err) {
+        console.error("Error attempting to enable fullscreen:", err);
+      }
     } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
+      try {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      } catch (err) {
+        console.error("Error attempting to exit fullscreen:", err);
+      }
     }
   };
 
   const handleBack = () => {
+    if (isFullscreen) {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
     navigate(`/admin/surveys/campaigns/${id}`);
   };
 
@@ -156,7 +170,10 @@ export default function PresentationView() {
   if (!campaign) return null;
 
   return (
-    <PresentationLayout progress={((currentSlide + 1) / totalSlides) * 100}>
+    <PresentationLayout 
+      progress={((currentSlide + 1) / totalSlides) * 100}
+      isFullscreen={isFullscreen}
+    >
       <PresentationControls
         onBack={handleBack}
         onPrevious={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
@@ -164,6 +181,9 @@ export default function PresentationView() {
         onFullscreen={toggleFullscreen}
         isFirstSlide={currentSlide === 0}
         isLastSlide={currentSlide === totalSlides - 1}
+        isFullscreen={isFullscreen}
+        currentSlide={currentSlide}
+        totalSlides={totalSlides}
       />
       
       <TitleSlide campaign={campaign} isActive={currentSlide === 0} />

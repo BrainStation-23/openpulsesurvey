@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronLeft, ChevronRight, Fullscreen } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Minimize } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PresentationControlsProps {
@@ -9,6 +9,9 @@ interface PresentationControlsProps {
   onFullscreen: () => void;
   isFirstSlide: boolean;
   isLastSlide: boolean;
+  isFullscreen: boolean;
+  currentSlide: number;
+  totalSlides: number;
 }
 
 export function PresentationControls({
@@ -18,10 +21,17 @@ export function PresentationControls({
   onFullscreen,
   isFirstSlide,
   isLastSlide,
+  isFullscreen,
+  currentSlide,
+  totalSlides,
 }: PresentationControlsProps) {
   return (
     <>
-      <div className="absolute top-4 left-4 z-10">
+      {/* Back button */}
+      <div className={cn(
+        "fixed top-4 left-4 z-30 transition-opacity duration-300",
+        isFullscreen ? "opacity-0 hover:opacity-100" : "opacity-100"
+      )}>
         <Button
           variant="outline"
           size="sm"
@@ -33,41 +43,52 @@ export function PresentationControls({
         </Button>
       </div>
 
-      <div className="absolute top-4 right-4 z-10 space-x-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onFullscreen}
-          className="bg-white/80 hover:bg-white/90 backdrop-blur-sm border border-gray-200"
-        >
-          <Fullscreen className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <div className="absolute bottom-4 right-4 z-10 space-x-2">
+      {/* Navigation controls */}
+      <div className={cn(
+        "fixed bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-4 px-6 py-3 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg transition-opacity duration-300",
+        isFullscreen ? "opacity-0 hover:opacity-100" : "opacity-100"
+      )}>
         <Button
           variant="outline"
           size="icon"
           onClick={onPrevious}
           disabled={isFirstSlide}
-          className={cn(
-            "bg-white/80 hover:bg-white/90 backdrop-blur-sm border border-gray-200",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          )}
+          className="bg-white/80 hover:bg-white/90"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
+
+        <span className="text-sm font-medium">
+          {currentSlide + 1} / {totalSlides}
+        </span>
+
         <Button
           variant="outline"
           size="icon"
           onClick={onNext}
           disabled={isLastSlide}
-          className={cn(
-            "bg-white/80 hover:bg-white/90 backdrop-blur-sm border border-gray-200",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          )}
+          className="bg-white/80 hover:bg-white/90"
         >
           <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Fullscreen toggle */}
+      <div className={cn(
+        "fixed top-4 right-4 z-30 transition-opacity duration-300",
+        isFullscreen ? "opacity-0 hover:opacity-100" : "opacity-100"
+      )}>
+        <Button 
+          variant="outline" 
+          size="icon"
+          onClick={onFullscreen}
+          className="bg-white/80 hover:bg-white/90 backdrop-blur-sm border border-gray-200"
+        >
+          {isFullscreen ? (
+            <Minimize className="h-4 w-4" />
+          ) : (
+            <Maximize className="h-4 w-4" />
+          )}
         </Button>
       </div>
     </>
