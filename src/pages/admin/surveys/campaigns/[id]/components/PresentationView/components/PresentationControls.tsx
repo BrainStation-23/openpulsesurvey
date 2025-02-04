@@ -26,63 +26,47 @@ export function PresentationControls({
   totalSlides,
 }: PresentationControlsProps) {
   return (
-    <>
-      {/* Back button */}
-      <div className={cn(
-        "fixed top-4 left-4 z-30 transition-opacity duration-300",
-        isFullscreen ? "opacity-0 hover:opacity-100" : "opacity-100"
-      )}>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onBack}
-          className="bg-white/80 hover:bg-white/90 backdrop-blur-sm border border-gray-200"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Campaign
-        </Button>
-      </div>
+    <div className="flex items-center gap-4">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onBack}
+        className="text-white hover:bg-white/20 hover:text-white"
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Back to Campaign
+      </Button>
 
-      {/* Navigation controls */}
-      <div className={cn(
-        "fixed bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-4 px-6 py-3 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg transition-opacity duration-300",
-        isFullscreen ? "opacity-0 hover:opacity-100" : "opacity-100"
-      )}>
+      <div className="flex items-center gap-2 ml-auto">
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           onClick={onPrevious}
           disabled={isFirstSlide}
-          className="bg-white/80 hover:bg-white/90"
+          className="text-white hover:bg-white/20 hover:text-white"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
 
-        <span className="text-sm font-medium">
+        <span className="text-sm font-medium text-white">
           {currentSlide + 1} / {totalSlides}
         </span>
 
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           onClick={onNext}
           disabled={isLastSlide}
-          className="bg-white/80 hover:bg-white/90"
+          className="text-white hover:bg-white/20 hover:text-white"
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
-      </div>
 
-      {/* Fullscreen toggle */}
-      <div className={cn(
-        "fixed top-4 right-4 z-30 transition-opacity duration-300",
-        isFullscreen ? "opacity-0 hover:opacity-100" : "opacity-100"
-      )}>
         <Button 
-          variant="outline" 
+          variant="ghost" 
           size="icon"
           onClick={onFullscreen}
-          className="bg-white/80 hover:bg-white/90 backdrop-blur-sm border border-gray-200"
+          className="text-white hover:bg-white/20 hover:text-white"
         >
           {isFullscreen ? (
             <Minimize className="h-4 w-4" />
@@ -91,6 +75,6 @@ export function PresentationControls({
           )}
         </Button>
       </div>
-    </>
+    </div>
   );
 }

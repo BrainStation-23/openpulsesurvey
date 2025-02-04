@@ -15,18 +15,28 @@ export function PresentationLayout({ children, progress, isFullscreen, className
       className
     )}>
       {/* Progress bar */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gray-200 z-30">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gray-200 z-[60]">
         <div 
           className="h-full bg-primary transition-all duration-300 ease-in-out"
           style={{ width: `${progress}%` }}
         />
       </div>
 
+      {/* Controls container - positioned relative to presentation area */}
+      <div className={cn(
+        "absolute top-0 left-0 right-0 p-4 flex justify-between items-center transition-opacity duration-300 bg-gradient-to-b from-black/20 to-transparent z-[55]",
+        isFullscreen ? "opacity-0 hover:opacity-100" : "opacity-100"
+      )}>
+        <div className="flex-1">
+          {children[0]} {/* This will be the PresentationControls */}
+        </div>
+      </div>
+
       {/* Main content */}
-      <div className="relative h-full overflow-hidden">
+      <div className="relative h-full overflow-hidden pt-16"> {/* Added pt-16 to account for the controls */}
         <div className="h-full p-8">
           <div className="relative max-w-6xl mx-auto h-full">
-            {children}
+            {children.slice(1)} {/* This will be the slide content */}
           </div>
         </div>
       </div>
