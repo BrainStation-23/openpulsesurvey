@@ -18,14 +18,14 @@ export function TopSurveysTable() {
       const { data, error } = await supabase
         .from("survey_campaigns")
         .select(`
-          name as campaign_name,
+          name,
           completion_rate,
-          surveys!inner (
-            name as survey_name
+          surveys (
+            name
           ),
           survey_assignments (
             survey_responses (
-              count
+              id
             )
           )
         `)
@@ -35,13 +35,13 @@ export function TopSurveysTable() {
       if (error) throw error;
 
       return data.map((item) => ({
-        survey_name: item.surveys.survey_name,
-        campaign_name: item.campaign_name,
+        survey_name: item.surveys?.name || "Untitled Survey",
+        campaign_name: item.name,
         completion_rate: item.completion_rate || 0,
-        total_responses: item.survey_assignments.reduce(
+        total_responses: item.survey_assignments?.reduce(
           (acc: number, curr: any) => acc + (curr.survey_responses?.length || 0),
           0
-        ),
+        ) || 0,
       })) as TopSurvey[];
     },
   });
