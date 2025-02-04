@@ -802,6 +802,7 @@ export type Database = {
         }
         Relationships: []
       }
+      
       top_performing_surveys: {
         Row: {
           campaign_id: string | null
@@ -816,6 +817,7 @@ export type Database = {
         }
         Relationships: []
       }
+
       upcoming_survey_deadlines: {
         Row: {
           campaign_name: string | null

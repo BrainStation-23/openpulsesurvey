@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowUpRight } from "lucide-react";
 import { format } from "date-fns";
 
+
 type TopSurvey = {
   survey_name: string;
   completion_rate: number;
@@ -12,6 +13,7 @@ type TopSurvey = {
   campaign_name: string;
   starts_at: string;
   ends_at: string;
+
 };
 
 export function TopSurveysTable() {
@@ -21,6 +23,7 @@ export function TopSurveysTable() {
       const { data, error } = await supabase
         .from("top_performing_surveys")
         .select("*");
+
 
       if (error) throw error;
 
@@ -38,6 +41,7 @@ export function TopSurveysTable() {
   const formatDateRange = (starts_at: string, ends_at: string) => {
     return `${format(new Date(starts_at), "MMM d")} - ${format(new Date(ends_at), "MMM d")}`;
   };
+
 
   if (isLoading) {
     return (
@@ -62,6 +66,7 @@ export function TopSurveysTable() {
               <TableHead>Survey</TableHead>
               <TableHead>Campaign</TableHead>
               <TableHead className="text-right">Period</TableHead>
+
               <TableHead className="text-right">Responses</TableHead>
               <TableHead className="text-right">Completion Rate</TableHead>
             </TableRow>
@@ -74,6 +79,7 @@ export function TopSurveysTable() {
                 <TableCell className="text-right">
                   {formatDateRange(survey.starts_at, survey.ends_at)}
                 </TableCell>
+
                 <TableCell className="text-right">{survey.total_responses}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">

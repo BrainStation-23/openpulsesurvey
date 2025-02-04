@@ -31,6 +31,7 @@ export function DepartmentCompletionChart() {
 
   return (
     <Card className="overflow-hidden">
+
       <CardHeader>
         <CardTitle>Department Completion Rates</CardTitle>
       </CardHeader>
@@ -42,6 +43,7 @@ export function DepartmentCompletionChart() {
           </TabsList>
 
           <TabsContent value="chart" className="aspect-[16/9] w-full">
+
             <ChartContainer config={{}}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={departmentStats}>
@@ -111,3 +113,4 @@ export function DepartmentCompletionChart() {
     </Card>
   );
 }
+
