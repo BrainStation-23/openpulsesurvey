@@ -1,0 +1,1 @@
+export type ComparisonDimension = "none" | "sbu" | "gender" | "location" | "employment_type";
