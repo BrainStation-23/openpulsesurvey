@@ -25,7 +25,8 @@ export function UpcomingSurveyDeadlines() {
   });
 
   const getUrgencyColor = (dueDate: string) => {
-     = new Date(dueDate);
+    const now = new Date();
+    const due = new Date(dueDate);
     const threeDaysFromNow = addDays(now, 3);
 
     if (isBefore(due, now)) return "text-red-500";
