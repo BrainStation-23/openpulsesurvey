@@ -51,6 +51,13 @@ export type Database = {
             referencedRelation: "survey_campaigns"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "campaign_instances_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
         ]
       }
       email_config: {
@@ -395,6 +402,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "survey_assignments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
+          {
             foreignKeyName: "survey_assignments_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -553,6 +567,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "campaign_instances"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
+            columns: ["campaign_instance_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["instance_id"]
           },
           {
             foreignKeyName: "survey_responses_user_id_fkey"
@@ -778,6 +799,18 @@ export type Database = {
           date: string | null
           response_count: number | null
           unique_respondents: number | null
+        }
+        Relationships: []
+      }
+      top_performing_surveys: {
+        Row: {
+          campaign_id: string | null
+          campaign_name: string | null
+          completion_rate: number | null
+          instance_id: string | null
+          period_number: number | null
+          survey_name: string | null
+          total_responses: number | null
         }
         Relationships: []
       }
