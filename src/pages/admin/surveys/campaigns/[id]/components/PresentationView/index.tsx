@@ -98,8 +98,7 @@ export default function PresentationView() {
       } else if (e.key === "f") {
         toggleFullscreen();
       } else if (e.key === "Escape" && isFullscreen) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
+        handleExitFullscreen();
       }
     };
 
@@ -107,28 +106,42 @@ export default function PresentationView() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [totalSlides, isFullscreen]);
 
-  const toggleFullscreen = async () => {
-    if (!document.fullscreenElement) {
-      try {
-        await document.documentElement.requestFullscreen();
-        setIsFullscreen(true);
-      } catch (err) {
-        console.error("Error attempting to enable fullscreen:", err);
-      }
-    } else {
-      try {
+  const handleExitFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
         await document.exitFullscreen();
         setIsFullscreen(false);
-      } catch (err) {
-        console.error("Error attempting to exit fullscreen:", err);
       }
+    } catch (error) {
+      console.error("Error exiting fullscreen:", error);
+      // Force the state update even if the API call fails
+      setIsFullscreen(false);
+    }
+  };
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await handleExitFullscreen();
+      }
+    } catch (error) {
+      console.error("Error toggling fullscreen:", error);
+      // Update state to match actual fullscreen status
+      setIsFullscreen(!!document.fullscreenElement);
+      toast({
+        title: "Fullscreen Error",
+        description: "Unable to toggle fullscreen mode. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleBack = () => {
     if (isFullscreen) {
-      document.exitFullscreen();
-      setIsFullscreen(false);
+      handleExitFullscreen();
     }
     navigate(`/admin/surveys/campaigns/${id}`);
   };
