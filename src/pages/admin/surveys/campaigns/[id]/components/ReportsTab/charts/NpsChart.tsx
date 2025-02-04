@@ -1,4 +1,5 @@
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 interface NpsChartProps {
   data: Array<{
@@ -10,6 +11,16 @@ interface NpsChartProps {
 }
 
 export function NpsChart({ data, showComparison = false }: NpsChartProps) {
+  const calculateAverage = (groupData: typeof data) => {
+    const totalResponses = groupData.reduce((sum, item) => sum + item.count, 0);
+    const weightedSum = groupData.reduce((sum, item) => sum + (item.rating * item.count), 0);
+    return totalResponses ? Number((weightedSum / totalResponses).toFixed(1)) : 0;
+  };
+
+  const getScoreColor = (score: number) => {
+    return score >= 8 ? 'text-green-500' : 'text-red-500';
+  };
+
   // Group data by dimension if it exists
   const groupedData = data.reduce((acc, item) => {
     const group = item.group || 'Overall';
@@ -24,6 +35,7 @@ export function NpsChart({ data, showComparison = false }: NpsChartProps) {
     <div className={showComparison ? "space-y-8" : "space-y-6"}>
       {Object.entries(groupedData).map(([group, groupData]) => {
         const totalResponses = groupData.reduce((sum, item) => sum + item.count, 0);
+        const averageScore = calculateAverage(groupData);
         
         const segments = groupData.reduce((acc, item) => {
           if (item.rating <= 6) {
@@ -50,7 +62,20 @@ export function NpsChart({ data, showComparison = false }: NpsChartProps) {
               {showComparison && (
                 <div className="text-lg font-semibold">{group}</div>
               )}
-              <div className="text-2xl font-bold">NPS: {npsScore}</div>
+              <div className="flex items-center gap-6">
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">eNPS Score</div>
+                  <div className={cn("text-2xl font-bold", getScoreColor(npsScore))}>
+                    {npsScore}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Average Rating</div>
+                  <div className={cn("text-2xl font-bold", getScoreColor(averageScore))}>
+                    {averageScore}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Segments */}
