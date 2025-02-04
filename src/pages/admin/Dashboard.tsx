@@ -7,6 +7,7 @@ import { ResponseTrendChart } from "@/components/admin/dashboard/analytics/Respo
 import { DepartmentCompletionChart } from "@/components/admin/dashboard/analytics/DepartmentCompletionChart";
 import { TopSurveysTable } from "@/components/admin/dashboard/analytics/TopSurveysTable";
 import { DemographicBreakdown } from "@/components/admin/dashboard/analytics/DemographicBreakdown";
+import { UpcomingSurveyDeadlines } from "@/components/admin/dashboard/analytics/UpcomingSurveyDeadlines";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -34,9 +35,11 @@ export default function AdminDashboard() {
       
       <div className="grid gap-6 md:grid-cols-2">
         <TopSurveysTable />
-        <RecentActivity />
+        <UpcomingSurveyDeadlines />
       </div>
 
+      <RecentActivity />
+      
       <DemographicBreakdown />
     </div>
   );
