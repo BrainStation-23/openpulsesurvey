@@ -714,10 +714,22 @@ export type Database = {
       }
     }
     Views: {
-      demographic_analysis: {
+      demographic_employment_analysis: {
         Row: {
           employment_type: string | null
-          gender: Database["public"]["Enums"]["gender_type"] | null
+          response_count: number | null
+        }
+        Relationships: []
+      }
+      demographic_gender_analysis: {
+        Row: {
+          gender: string | null
+          response_count: number | null
+        }
+        Relationships: []
+      }
+      demographic_location_analysis: {
+        Row: {
           location: string | null
           response_count: number | null
         }

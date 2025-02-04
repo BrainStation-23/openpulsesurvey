@@ -5,17 +5,43 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function DemographicBreakdown() {
-  const { data: demographicData, isLoading } = useQuery({
-    queryKey: ["demographic-analysis"],
+  const { data: locationData, isLoading: isLocationLoading } = useQuery({
+    queryKey: ["demographic-location-analysis"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("demographic_analysis")
+        .from("demographic_location_analysis")
         .select("*");
 
       if (error) throw error;
       return data;
     },
   });
+
+  const { data: genderData, isLoading: isGenderLoading } = useQuery({
+    queryKey: ["demographic-gender-analysis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("demographic_gender_analysis")
+        .select("*");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: employmentData, isLoading: isEmploymentLoading } = useQuery({
+    queryKey: ["demographic-employment-analysis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("demographic_employment_analysis")
+        .select("*");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const isLoading = isLocationLoading || isGenderLoading || isEmploymentLoading;
 
   if (isLoading) {
     return (
@@ -27,27 +53,6 @@ export function DemographicBreakdown() {
       </Card>
     );
   }
-
-  const locationData = demographicData
-    ?.filter((d) => d.location)
-    .map((d) => ({
-      name: d.location,
-      responses: d.response_count,
-    }));
-
-  const genderData = demographicData
-    ?.filter((d) => d.gender)
-    .map((d) => ({
-      name: d.gender,
-      responses: d.response_count,
-    }));
-
-  const employmentTypeData = demographicData
-    ?.filter((d) => d.employment_type)
-    .map((d) => ({
-      name: d.employment_type,
-      responses: d.response_count,
-    }));
 
   return (
     <Card className="col-span-2">
@@ -66,10 +71,10 @@ export function DemographicBreakdown() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={locationData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
+                <XAxis dataKey="location" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="responses" fill="#8884d8" />
+                <Bar dataKey="response_count" fill="#8884d8" />
               </BarChart>
             </ResponsiveContainer>
           </TabsContent>
@@ -78,22 +83,22 @@ export function DemographicBreakdown() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={genderData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
+                <XAxis dataKey="gender" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="responses" fill="#82ca9d" />
+                <Bar dataKey="response_count" fill="#82ca9d" />
               </BarChart>
             </ResponsiveContainer>
           </TabsContent>
 
           <TabsContent value="employment" className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={employmentTypeData}>
+              <BarChart data={employmentData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
+                <XAxis dataKey="employment_type" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="responses" fill="#ffc658" />
+                <Bar dataKey="response_count" fill="#ffc658" />
               </BarChart>
             </ResponsiveContainer>
           </TabsContent>
