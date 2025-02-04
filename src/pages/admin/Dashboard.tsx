@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { MetricsOverview } from "@/components/admin/dashboard/MetricsOverview";
 import { RecentActivity } from "@/components/admin/dashboard/RecentActivity";
+import { ResponseTrendChart } from "@/components/admin/dashboard/analytics/ResponseTrendChart";
+import { DepartmentCompletionChart } from "@/components/admin/dashboard/analytics/DepartmentCompletionChart";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -23,9 +25,13 @@ export default function AdminDashboard() {
       
       <MetricsOverview />
       
+      <div className="grid gap-6 md:grid-cols-2">
+        <ResponseTrendChart />
+        <DepartmentCompletionChart />
+      </div>
+      
       <div className="grid gap-4 md:grid-cols-2">
         <RecentActivity />
-        {/* More sections will be added in future phases */}
       </div>
     </div>
   );
