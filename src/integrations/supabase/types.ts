@@ -541,6 +541,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "survey_responses_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_survey_deadlines"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "survey_responses_campaign_instance_id_fkey"
             columns: ["campaign_instance_id"]
             isOneToOne: false
@@ -751,6 +758,25 @@ export type Database = {
           completed_campaigns: number | null
           total_responses: number | null
           total_surveys: number | null
+        }
+        Relationships: []
+      }
+      survey_response_trends: {
+        Row: {
+          date: string | null
+          response_count: number | null
+          unique_respondents: number | null
+        }
+        Relationships: []
+      }
+      upcoming_survey_deadlines: {
+        Row: {
+          campaign_name: string | null
+          due_date: string | null
+          id: string | null
+          pending_responses: number | null
+          survey_name: string | null
+          total_assignments: number | null
         }
         Relationships: []
       }

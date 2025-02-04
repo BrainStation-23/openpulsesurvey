@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, ChartBar, ChartPie, CheckCircle, Database } from "lucide-react";
+import { Activity, ChartBar, ChartPie, Database } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "./MetricCard";
 
@@ -10,7 +10,7 @@ export function MetricsOverview() {
       const { data, error } = await supabase
         .from("survey_overview_metrics")
         .select("*")
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -34,7 +34,7 @@ export function MetricsOverview() {
       <MetricCard
         title="Completed Campaigns"
         value={metrics?.completed_campaigns ?? 0}
-        icon={CheckCircle}
+        icon={ChartBar}
         loading={isLoading}
       />
       <MetricCard
