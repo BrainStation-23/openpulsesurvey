@@ -35,6 +35,16 @@ export default function PresentationView() {
     }
   }, [instanceId, id, navigate, toast]);
 
+  // Add fullscreenchange event listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
   const { data: campaign } = useQuery({
     queryKey: ["campaign", id, instanceId],
     queryFn: async () => {
@@ -97,40 +107,22 @@ export default function PresentationView() {
         setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1));
       } else if (e.key === "f") {
         toggleFullscreen();
-      } else if (e.key === "Escape" && isFullscreen) {
-        handleExitFullscreen();
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [totalSlides, isFullscreen]);
-
-  const handleExitFullscreen = async () => {
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-        setIsFullscreen(false);
-      }
-    } catch (error) {
-      console.error("Error exiting fullscreen:", error);
-      // Force the state update even if the API call fails
-      setIsFullscreen(false);
-    }
-  };
+  }, [totalSlides]);
 
   const toggleFullscreen = async () => {
     try {
       if (!document.fullscreenElement) {
         await document.documentElement.requestFullscreen();
-        setIsFullscreen(true);
       } else {
-        await handleExitFullscreen();
+        await document.exitFullscreen();
       }
     } catch (error) {
       console.error("Error toggling fullscreen:", error);
-      // Update state to match actual fullscreen status
-      setIsFullscreen(!!document.fullscreenElement);
       toast({
         title: "Fullscreen Error",
         description: "Unable to toggle fullscreen mode. Please try again.",
@@ -141,7 +133,7 @@ export default function PresentationView() {
 
   const handleBack = () => {
     if (isFullscreen) {
-      handleExitFullscreen();
+      document.exitFullscreen();
     }
     navigate(`/admin/surveys/campaigns/${id}`);
   };
