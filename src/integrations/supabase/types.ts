@@ -807,8 +807,10 @@ export type Database = {
           campaign_id: string | null
           campaign_name: string | null
           completion_rate: number | null
+          ends_at: string | null
           instance_id: string | null
           period_number: number | null
+          starts_at: string | null
           survey_name: string | null
           total_responses: number | null
         }
