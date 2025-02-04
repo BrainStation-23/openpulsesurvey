@@ -27,11 +27,11 @@ export function ResponseTrendChart() {
   if (isLoading) return <div>Loading...</div>;
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader>
         <CardTitle>Response Trends</CardTitle>
       </CardHeader>
-      <CardContent className="h-[300px]">
+      <CardContent className="aspect-[16/9] w-full">
         <ChartContainer config={{}}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={trends}>
