@@ -949,7 +949,6 @@ export type Database = {
         }
         Relationships: []
       }
-
       upcoming_survey_deadlines: {
         Row: {
           campaign_name: string | null
