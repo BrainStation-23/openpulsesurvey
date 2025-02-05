@@ -35,6 +35,13 @@ const getQuestionResponses = async (campaignId: string, questionName: string, in
 
 // Helper to process boolean responses for charts
 const processBooleanResponses = (responses: any[]) => {
+  if (!responses || responses.length === 0) {
+    return [
+      { name: "Yes", value: 0 },
+      { name: "No", value: 0 }
+    ];
+  }
+
   const counts = responses.reduce((acc: { [key: string]: number }, value) => {
     acc[value ? "Yes" : "No"] = (acc[value ? "Yes" : "No"] || 0) + 1;
     return acc;
@@ -48,8 +55,17 @@ const processBooleanResponses = (responses: any[]) => {
 
 // Helper to process rating responses for charts
 const processRatingResponses = (responses: any[], maxRating: number = 5) => {
+  if (!responses || responses.length === 0) {
+    return Array.from({ length: maxRating }, (_, i) => ({
+      name: `${i + 1}`,
+      value: 0
+    }));
+  }
+
   const counts = responses.reduce((acc: { [key: string]: number }, value) => {
-    acc[value] = (acc[value] || 0) + 1;
+    if (typeof value === 'number' && value >= 1 && value <= maxRating) {
+      acc[value] = (acc[value] || 0) + 1;
+    }
     return acc;
   }, {});
 
@@ -93,7 +109,7 @@ export const exportToPptx = async (campaign: CampaignData) => {
 
   titleSlide.addText([
     { text: "Period: ", options: { bold: true } },
-    { text: `${formatDate(campaign.starts_at)} - ${formatDate(campaign.ends_at)}` },
+    { text: `${formatDate(campaign.starts_at)} - ${campaign.ends_at ? formatDate(campaign.ends_at) : 'Ongoing'}` },
     { text: "\nCompletion Rate: ", options: { bold: true } },
     { text: `${campaign.completion_rate?.toFixed(1)}%` },
   ], {
@@ -115,13 +131,15 @@ export const exportToPptx = async (campaign: CampaignData) => {
     color: "363636",
   });
 
-  completionSlide.addChart(pptx.ChartType.doughnut, [
-    [{
+  const completionData = [
+    {
       name: "Completed",
       labels: ["Completed", "Pending"],
       values: [campaign.completion_rate || 0, 100 - (campaign.completion_rate || 0)],
-    }]
-  ], {
+    }
+  ];
+
+  completionSlide.addChart(pptx.ChartType.doughnut, completionData, {
     x: 1,
     y: 1.5,
     w: 8,
@@ -155,13 +173,11 @@ export const exportToPptx = async (campaign: CampaignData) => {
     // Add appropriate chart based on question type
     if (question.type === "boolean") {
       const data = processBooleanResponses(responses);
-      questionSlide.addChart(pptx.ChartType.bar, [
-        {
-          name: "Responses",
-          labels: data.map(d => d.name),
-          values: data.map(d => d.value),
-        }
-      ], {
+      questionSlide.addChart(pptx.ChartType.bar, [{
+        name: "Responses",
+        labels: data.map(d => d.name),
+        values: data.map(d => d.value),
+      }], {
         x: 1,
         y: 1.5,
         w: 8,
@@ -170,20 +186,20 @@ export const exportToPptx = async (campaign: CampaignData) => {
         showValue: true,
       });
     } else if (question.type === "rating") {
-      const data = processRatingResponses(responses, question.rateCount || 5);
-      questionSlide.addChart(pptx.ChartType.column, [
-        {
-          name: "Responses",
-          labels: data.map(d => d.name),
-          values: data.map(d => d.value),
-        }
-      ], {
+      const maxRating = question.rateCount || 5;
+      const data = processRatingResponses(responses, maxRating);
+      questionSlide.addChart(pptx.ChartType.column, [{
+        name: "Responses",
+        labels: data.map(d => d.name),
+        values: data.map(d => d.value),
+      }], {
         x: 1,
         y: 1.5,
         w: 8,
         h: 5,
         chartColors: ['#8884d8'],
         showValue: true,
+        chartColorsOpacity: 75,
       });
     }
     // For text/comment questions, we might want to add a word cloud or just list responses
