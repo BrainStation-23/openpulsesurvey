@@ -934,6 +934,7 @@ export type Database = {
           },
         ]
       }
+
       top_performing_surveys: {
         Row: {
           campaign_id: string | null
