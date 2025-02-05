@@ -4,6 +4,7 @@ export interface SurveyQuestion {
   name: string;
   title: string;
   type: string;
+  rateMax?: number; // Added this for rating questions
 }
 
 export interface SurveyPage {
