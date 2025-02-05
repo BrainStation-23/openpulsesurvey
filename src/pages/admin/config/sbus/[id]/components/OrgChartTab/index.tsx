@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ReactFlow,
@@ -137,7 +137,7 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
   }, [setNodes, setEdges]);
 
   // Update nodes and edges when data changes
-  useCallback(() => {
+  useEffect(() => {
     if (hierarchyData) {
       processHierarchyData(hierarchyData);
     }
