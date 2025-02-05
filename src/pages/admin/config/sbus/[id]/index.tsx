@@ -1,9 +1,11 @@
+
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DetailsTab from "./components/DetailsTab";
 import EmployeesTab from "./components/EmployeesTab";
+import OrgChartTab from "./components/OrgChartTab";
 
 export default function SBUDetails() {
   const navigate = useNavigate();
@@ -27,12 +29,16 @@ export default function SBUDetails() {
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
+          <TabsTrigger value="org-chart">Org Chart</TabsTrigger>
         </TabsList>
         <TabsContent value="details">
           <DetailsTab sbuId={id} />
         </TabsContent>
         <TabsContent value="employees">
           <EmployeesTab sbuId={id} />
+        </TabsContent>
+        <TabsContent value="org-chart">
+          <OrgChartTab sbuId={id} />
         </TabsContent>
       </Tabs>
     </div>
