@@ -10,6 +10,7 @@ import { TopManagersTable } from "@/components/admin/dashboard/analytics/TopMana
 import { ManagersNeedingImprovement } from "@/components/admin/dashboard/analytics/ManagersNeedingImprovement";
 import { DemographicBreakdown } from "@/components/admin/dashboard/analytics/DemographicBreakdown";
 import { UpcomingSurveyDeadlines } from "@/components/admin/dashboard/analytics/UpcomingSurveyDeadlines";
+import { SilentEmployees } from "@/components/admin/dashboard/analytics/SilentEmployees";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -42,12 +43,16 @@ export default function AdminDashboard() {
 
       <div className="grid gap-6 md:grid-cols-2">
         <ManagersNeedingImprovement />
-        <DemographicBreakdown />
+        <SilentEmployees />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <UpcomingSurveyDeadlines />
         <RecentActivity />
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <DemographicBreakdown />
       </div>
     </div>
   );

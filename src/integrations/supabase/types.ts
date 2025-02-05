@@ -348,6 +348,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sbus_head_id_fkey"
+            columns: ["head_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
         ]
       }
       survey_assignments: {
@@ -416,6 +423,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "survey_assignments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "survey_assignments_survey_id_fkey"
             columns: ["survey_id"]
             isOneToOne: false
@@ -427,6 +441,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
             referencedColumns: ["id"]
           },
         ]
@@ -501,6 +522,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
             referencedColumns: ["id"]
           },
           {
@@ -582,6 +610,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "survey_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
         ]
       }
       surveys: {
@@ -624,6 +659,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "surveys_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
             referencedColumns: ["id"]
           },
         ]
@@ -689,6 +731,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_sbus_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_supervisors: {
@@ -725,10 +774,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_supervisors_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_supervisors_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_supervisors_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
             referencedColumns: ["id"]
           },
         ]
@@ -782,6 +845,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_supervisors_supervisor_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
         ]
       }
       recent_activities: {
@@ -800,6 +870,23 @@ export type Database = {
           response_count: number | null
           response_date: string | null
           unique_respondents: number | null
+        }
+        Relationships: []
+      }
+      silent_employees: {
+        Row: {
+          designation: string | null
+          email: string | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          last_response_date: string | null
+          level: string | null
+          location: string | null
+          participation_status: string | null
+          sbu_name: string | null
+          total_assignments: number | null
+          total_responses: number | null
         }
         Relationships: []
       }
@@ -836,6 +923,13 @@ export type Database = {
             columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_supervisors_supervisor_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
             referencedColumns: ["id"]
           },
         ]
