@@ -802,6 +802,25 @@ export type Database = {
         }
         Relationships: []
       }
+      top_performing_managers: {
+        Row: {
+          average_score: number | null
+          manager_id: string | null
+          manager_name: string | null
+          rank: number | null
+          total_ratings: number | null
+          total_respondents: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_supervisors_supervisor_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       top_performing_surveys: {
         Row: {
           campaign_id: string | null
