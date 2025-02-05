@@ -204,7 +204,7 @@ export const exportToPptx = async (campaign: CampaignData) => {
           y: 1.5,
           w: 8,
           h: 5,
-          chartColors
+          chartColors: ['#8884d8'],
           showValue: true,
           barDir: 'bar',
           dataLabelPosition: 'outEnd'
