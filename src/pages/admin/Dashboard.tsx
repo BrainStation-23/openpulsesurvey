@@ -48,8 +48,10 @@ export default function AdminDashboard() {
             <ResponseTrendChart />
             <DepartmentCompletionChart />
           </div>
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-1">
             <TopSurveysTable />
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
             <RecentActivity />
           </div>
         </TabsContent>
@@ -73,11 +75,13 @@ export default function AdminDashboard() {
 
         {/* Needs Attention Tab */}
         <TabsContent value="attention" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-1">
             <SilentEmployees />
+          </div>
+          <div className="grid gap-6 md:grid-cols-1">
             <ManagersNeedingImprovement />
           </div>
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-1">
             <UpcomingSurveyDeadlines />
           </div>
         </TabsContent>
