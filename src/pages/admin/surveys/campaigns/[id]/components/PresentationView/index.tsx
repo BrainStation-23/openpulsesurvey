@@ -189,6 +189,7 @@ export default function PresentationView() {
         isFullscreen={isFullscreen}
         currentSlide={currentSlide}
         totalSlides={totalSlides}
+        campaign={campaign}
       />
       
       <TitleSlide campaign={campaign} isActive={currentSlide === 0} />

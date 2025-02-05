@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Minimize } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Maximize, Minimize } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { exportToPptx } from "../utils/pptxExport";
+import { CampaignData } from "../types";
 
 interface PresentationControlsProps {
   onBack: () => void;
@@ -12,6 +14,7 @@ interface PresentationControlsProps {
   isFullscreen: boolean;
   currentSlide: number;
   totalSlides: number;
+  campaign: CampaignData;
 }
 
 export function PresentationControls({
@@ -24,7 +27,16 @@ export function PresentationControls({
   isFullscreen,
   currentSlide,
   totalSlides,
+  campaign,
 }: PresentationControlsProps) {
+  const handleDownload = async () => {
+    try {
+      await exportToPptx(campaign);
+    } catch (error) {
+      console.error("Error exporting presentation:", error);
+    }
+  };
+
   return (
     <div className="flex items-center gap-4">
       <Button
@@ -38,6 +50,15 @@ export function PresentationControls({
       </Button>
 
       <div className="flex items-center gap-2 ml-auto">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleDownload}
+          className="text-white hover:bg-white/20 hover:text-white"
+        >
+          <Download className="h-4 w-4" />
+        </Button>
+
         <Button
           variant="ghost"
           size="icon"
