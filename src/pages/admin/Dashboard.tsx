@@ -44,14 +44,13 @@ export default function AdminDashboard() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-1">
             <ResponseTrendChart />
+          </div>
+          <div className="grid gap-6 md:grid-cols-1">
             <DepartmentCompletionChart />
           </div>
           <div className="grid gap-6 md:grid-cols-1">
-            <TopSurveysTable />
-          </div>
-          <div className="grid gap-6 md:grid-cols-2">
             <RecentActivity />
           </div>
         </TabsContent>
@@ -62,7 +61,7 @@ export default function AdminDashboard() {
             <TopManagersTable />
           </div>
           <div className="grid gap-6 md:grid-cols-1">
-            <DepartmentCompletionChart />
+            <TopSurveysTable />
           </div>
         </TabsContent>
 
