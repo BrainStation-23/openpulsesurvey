@@ -43,7 +43,7 @@ export function PresentationControls({
         variant="ghost"
         size="sm"
         onClick={onBack}
-        className="text-white hover:bg-white/20 hover:text-white"
+        className="text-black hover:bg-black/20 hover:text-black"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Campaign
@@ -54,7 +54,7 @@ export function PresentationControls({
           variant="ghost"
           size="icon"
           onClick={handleDownload}
-          className="text-white hover:bg-white/20 hover:text-white"
+          className="text-black hover:bg-black/20 hover:text-black"
         >
           <Download className="h-4 w-4" />
         </Button>
@@ -64,7 +64,7 @@ export function PresentationControls({
           size="icon"
           onClick={onPrevious}
           disabled={isFirstSlide}
-          className="text-white hover:bg-white/20 hover:text-white"
+          className="text-black hover:bg-black/20 hover:text-black"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -78,7 +78,7 @@ export function PresentationControls({
           size="icon"
           onClick={onNext}
           disabled={isLastSlide}
-          className="text-white hover:bg-white/20 hover:text-white"
+          className="text-black hover:bg-black/20 hover:text-black"
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -87,7 +87,7 @@ export function PresentationControls({
           variant="ghost" 
           size="icon"
           onClick={onFullscreen}
-          className="text-white hover:bg-white/20 hover:text-white"
+          className="text-black hover:bg-black/20 hover:text-black"
         >
           {isFullscreen ? (
             <Minimize className="h-4 w-4" />
