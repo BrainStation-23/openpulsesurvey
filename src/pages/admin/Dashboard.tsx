@@ -7,6 +7,7 @@ import { ResponseTrendChart } from "@/components/admin/dashboard/analytics/Respo
 import { DepartmentCompletionChart } from "@/components/admin/dashboard/analytics/DepartmentCompletionChart";
 import { TopSurveysTable } from "@/components/admin/dashboard/analytics/TopSurveysTable";
 import { TopManagersTable } from "@/components/admin/dashboard/analytics/TopManagersTable";
+import { ManagersNeedingImprovement } from "@/components/admin/dashboard/analytics/ManagersNeedingImprovement";
 import { DemographicBreakdown } from "@/components/admin/dashboard/analytics/DemographicBreakdown";
 import { UpcomingSurveyDeadlines } from "@/components/admin/dashboard/analytics/UpcomingSurveyDeadlines";
 
@@ -40,11 +41,14 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <UpcomingSurveyDeadlines />
+        <ManagersNeedingImprovement />
         <DemographicBreakdown />
       </div>
 
-      <RecentActivity />
+      <div className="grid gap-6 md:grid-cols-2">
+        <UpcomingSurveyDeadlines />
+        <RecentActivity />
+      </div>
     </div>
   );
 }

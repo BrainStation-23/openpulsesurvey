@@ -765,6 +765,25 @@ export type Database = {
         }
         Relationships: []
       }
+      managers_needing_improvement: {
+        Row: {
+          average_score: number | null
+          improvement_rank: number | null
+          manager_id: string | null
+          manager_name: string | null
+          total_ratings: number | null
+          total_respondents: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_supervisors_supervisor_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recent_activities: {
         Row: {
           activity_time: string | null
