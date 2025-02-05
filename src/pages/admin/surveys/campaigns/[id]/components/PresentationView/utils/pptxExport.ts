@@ -1,6 +1,7 @@
 import pptxgen from "pptxgenjs";
 import { CampaignData } from "../types";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 // Helper to create a clean text from HTML content
 const cleanText = (text: string) => {
@@ -10,6 +11,52 @@ const cleanText = (text: string) => {
 // Helper to format dates consistently
 const formatDate = (date: string) => {
   return format(new Date(date), "PPP");
+};
+
+// Helper to get response data for a question
+const getQuestionResponses = async (campaignId: string, questionName: string, instanceId?: string) => {
+  const query = supabase
+    .from("survey_responses")
+    .select(`
+      response_data,
+      assignment:survey_assignments!inner(
+        campaign_id
+      )
+    `)
+    .eq("assignment.campaign_id", campaignId);
+
+  if (instanceId) {
+    query.eq("campaign_instance_id", instanceId);
+  }
+
+  const { data: responses } = await query;
+  return responses?.map(r => r.response_data[questionName]) || [];
+};
+
+// Helper to process boolean responses for charts
+const processBooleanResponses = (responses: any[]) => {
+  const counts = responses.reduce((acc: { [key: string]: number }, value) => {
+    acc[value ? "Yes" : "No"] = (acc[value ? "Yes" : "No"] || 0) + 1;
+    return acc;
+  }, {});
+
+  return [
+    { name: "Yes", value: counts["Yes"] || 0 },
+    { name: "No", value: counts["No"] || 0 }
+  ];
+};
+
+// Helper to process rating responses for charts
+const processRatingResponses = (responses: any[], maxRating: number = 5) => {
+  const counts = responses.reduce((acc: { [key: string]: number }, value) => {
+    acc[value] = (acc[value] || 0) + 1;
+    return acc;
+  }, {});
+
+  return Array.from({ length: maxRating }, (_, i) => ({
+    name: `${i + 1}`,
+    value: counts[i + 1] || 0
+  }));
 };
 
 export const exportToPptx = async (campaign: CampaignData) => {
@@ -57,7 +104,7 @@ export const exportToPptx = async (campaign: CampaignData) => {
     color: "666666",
   });
 
-  // Completion Rate Slide
+  // Completion Rate Slide with Donut Chart
   const completionSlide = pptx.addSlide();
   completionSlide.background = { color: "FFFFFF" };
   completionSlide.addText("Campaign Completion", {
@@ -68,28 +115,29 @@ export const exportToPptx = async (campaign: CampaignData) => {
     color: "363636",
   });
 
-  completionSlide.addText(`${campaign.completion_rate?.toFixed(1)}%`, {
-    x: 0.5,
-    y: 2,
-    fontSize: 72,
-    bold: true,
-    color: campaign.completion_rate >= 75 ? "22c55e" : 
-           campaign.completion_rate >= 50 ? "eab308" : "ef4444",
+  completionSlide.addChart(pptx.ChartType.doughnut, [
+    [{
+      name: "Completed",
+      labels: ["Completed", "Pending"],
+      values: [campaign.completion_rate || 0, 100 - (campaign.completion_rate || 0)],
+    }]
+  ], {
+    x: 1,
+    y: 1.5,
+    w: 8,
+    h: 5,
+    chartColors: ['#22c55e', '#ef4444'],
+    showLegend: true,
+    legendPos: 'b',
   });
 
-  completionSlide.addText("Overall Completion Rate", {
-    x: 0.5,
-    y: 3.5,
-    fontSize: 20,
-    color: "666666",
-  });
-
-  // For each question in the survey, create a slide
+  // For each question in the survey, create a slide with appropriate chart
   const surveyQuestions = (campaign.survey.json_data.pages || []).flatMap(
     (page) => page.elements || []
   );
 
-  surveyQuestions.forEach((question) => {
+  for (const question of surveyQuestions) {
+    const responses = await getQuestionResponses(campaign.id, question.name, campaign.instance?.id);
     const questionSlide = pptx.addSlide();
     questionSlide.background = { color: "FFFFFF" };
     
@@ -104,16 +152,42 @@ export const exportToPptx = async (campaign: CampaignData) => {
       wrap: true,
     });
 
-    // Add placeholder for chart/data visualization
-    questionSlide.addText("Response data visualization will be added here", {
-      x: 0.5,
-      y: 2,
-      w: "90%",
-      fontSize: 16,
-      color: "666666",
-      italic: true,
-    });
-  });
+    // Add appropriate chart based on question type
+    if (question.type === "boolean") {
+      const data = processBooleanResponses(responses);
+      questionSlide.addChart(pptx.ChartType.bar, [
+        {
+          name: "Responses",
+          labels: data.map(d => d.name),
+          values: data.map(d => d.value),
+        }
+      ], {
+        x: 1,
+        y: 1.5,
+        w: 8,
+        h: 5,
+        chartColors: ['#8884d8'],
+        showValue: true,
+      });
+    } else if (question.type === "rating") {
+      const data = processRatingResponses(responses, question.rateCount || 5);
+      questionSlide.addChart(pptx.ChartType.column, [
+        {
+          name: "Responses",
+          labels: data.map(d => d.name),
+          values: data.map(d => d.value),
+        }
+      ], {
+        x: 1,
+        y: 1.5,
+        w: 8,
+        h: 5,
+        chartColors: ['#8884d8'],
+        showValue: true,
+      });
+    }
+    // For text/comment questions, we might want to add a word cloud or just list responses
+  }
 
   // Save the presentation
   const fileName = `${campaign.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_presentation.pptx`;
