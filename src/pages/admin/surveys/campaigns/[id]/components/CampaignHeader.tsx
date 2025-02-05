@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDateTime } from "@/components/ui/calendar-datetime";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, Check, Edit2, Play, X } from "lucide-react";
 import { format, isValid } from "date-fns";
@@ -37,15 +36,18 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
-  const [editedName, setEditedName] = useState(campaign?.name || "");
-  const [editedDescription, setEditedDescription] = useState(campaign?.description || "");
-  const [editedStatus, setEditedStatus] = useState(campaign?.status || "");
-  const [editedStartsAt, setEditedStartsAt] = useState(
-    campaign?.starts_at ? new Date(campaign.starts_at) : new Date()
-  );
-  const [editedEndsAt, setEditedEndsAt] = useState(
-    campaign?.ends_at ? new Date(campaign.ends_at) : new Date()
-  );
+  const [editedName, setEditedName] = useState("");
+  const [editedDescription, setEditedDescription] = useState("");
+  const [editedStatus, setEditedStatus] = useState("");
+
+  // Update local state when campaign data changes
+  useEffect(() => {
+    if (campaign) {
+      setEditedName(campaign.name);
+      setEditedDescription(campaign.description || "");
+      setEditedStatus(campaign.status);
+    }
+  }, [campaign]);
 
   const handleSave = async () => {
     if (!campaign) return;
@@ -57,8 +59,6 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
           name: editedName,
           description: editedDescription,
           status: editedStatus,
-          starts_at: editedStartsAt.toISOString(),
-          ends_at: editedEndsAt.toISOString(),
         })
         .eq("id", campaign.id);
 
@@ -81,13 +81,12 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
   };
 
   const handleCancel = () => {
-    setEditedName(campaign?.name || "");
-    setEditedDescription(campaign?.description || "");
-    setEditedStatus(campaign?.status || "");
-    setEditedStartsAt(campaign?.starts_at ? new Date(campaign.starts_at) : new Date());
-    setEditedEndsAt(campaign?.ends_at ? new Date(campaign.ends_at) : new Date());
+    if (campaign) {
+      setEditedName(campaign.name);
+      setEditedDescription(campaign.description || "");
+      setEditedStatus(campaign.status);
+    }
     setIsEditing(false);
-    navigate(`/admin/surveys/campaigns/${id}`);
   };
 
   const handlePresent = () => {
@@ -135,7 +134,7 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
                 placeholder="Campaign name"
               />
               <Textarea
-                value={editedDescription || ""}
+                value={editedDescription}
                 onChange={(e) => setEditedDescription(e.target.value)}
                 className="min-h-[100px]"
                 placeholder="Campaign description"
@@ -211,30 +210,9 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
         </div>
       </div>
 
-      <div className="space-y-2">
-        {isEditing ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-medium">Start Date & Time</label>
-              <CalendarDateTime
-                value={editedStartsAt}
-                onChange={setEditedStartsAt}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">End Date & Time</label>
-              <CalendarDateTime
-                value={editedEndsAt}
-                onChange={setEditedEndsAt}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="flex gap-4 text-sm text-muted-foreground">
-            <span>Starts: {formatDate(campaign.starts_at)}</span>
-            <span>Ends: {formatDate(campaign.ends_at)}</span>
-          </div>
-        )}
+      <div className="flex gap-4 text-sm text-muted-foreground">
+        <span>Starts: {formatDate(campaign.starts_at)}</span>
+        <span>Ends: {formatDate(campaign.ends_at)}</span>
       </div>
     </div>
   );
