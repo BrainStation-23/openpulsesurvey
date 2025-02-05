@@ -58,12 +58,10 @@ export default function AdminDashboard() {
 
         {/* Performance Tab */}
         <TabsContent value="performance" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-1">
             <TopManagersTable />
-            <ManagersNeedingImprovement />
           </div>
-          <div className="grid gap-6 md:grid-cols-2">
-            <UpcomingSurveyDeadlines />
+          <div className="grid gap-6 md:grid-cols-1">
             <DepartmentCompletionChart />
           </div>
         </TabsContent>
