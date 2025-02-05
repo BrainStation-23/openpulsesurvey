@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MetricsOverview } from "@/components/admin/dashboard/MetricsOverview";
 import { RecentActivity } from "@/components/admin/dashboard/RecentActivity";
 import { ResponseTrendChart } from "@/components/admin/dashboard/analytics/ResponseTrendChart";
@@ -17,43 +18,70 @@ export default function AdminDashboard() {
   
   return (
     <div className="space-y-6">
-      <div className="flex items-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="mr-4"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            className="mr-4"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+        </div>
       </div>
       
       <MetricsOverview />
       
-      <div className="grid gap-6 md:grid-cols-2">
-        <ResponseTrendChart />
-        <DepartmentCompletionChart />
-      </div>
-      
-      <div className="grid gap-6 md:grid-cols-2">
-        <TopSurveysTable />
-        <TopManagersTable />
-      </div>
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="demographics">Demographics</TabsTrigger>
+          <TabsTrigger value="attention">Needs Attention</TabsTrigger>
+        </TabsList>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <ManagersNeedingImprovement />
-        <SilentEmployees />
-      </div>
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <ResponseTrendChart />
+            <DepartmentCompletionChart />
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <TopSurveysTable />
+            <RecentActivity />
+          </div>
+        </TabsContent>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <UpcomingSurveyDeadlines />
-        <RecentActivity />
-      </div>
+        {/* Performance Tab */}
+        <TabsContent value="performance" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <TopManagersTable />
+            <ManagersNeedingImprovement />
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <UpcomingSurveyDeadlines />
+            <DepartmentCompletionChart />
+          </div>
+        </TabsContent>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <DemographicBreakdown />
-      </div>
+        {/* Demographics Tab */}
+        <TabsContent value="demographics" className="space-y-6">
+          <DemographicBreakdown />
+        </TabsContent>
+
+        {/* Needs Attention Tab */}
+        <TabsContent value="attention" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <SilentEmployees />
+            <ManagersNeedingImprovement />
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <UpcomingSurveyDeadlines />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
