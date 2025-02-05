@@ -85,53 +85,63 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
         supervisors: supervisorsData || [],
       };
     },
-    onSuccess: (data) => {
-      if (!data) return;
+    enabled: !!sbuId
+  });
 
-      const newNodes = [];
-      const newEdges = [];
+  // Use useCallback to handle data processing
+  const processHierarchyData = useCallback((data: typeof hierarchyData) => {
+    if (!data) return;
+
+    const newNodes = [];
+    const newEdges = [];
+    
+    // Add SBU head node
+    const headNode = {
+      id: data.sbu.head.id,
+      position: { x: 400, y: 50 },
+      data: {
+        label: `${data.sbu.head.first_name} ${data.sbu.head.last_name}`,
+        subtitle: data.sbu.head.designation || 'SBU Head',
+        email: data.sbu.head.email,
+      },
+      ...nodeDefaults,
+    };
+    newNodes.push(headNode);
+
+    // Add direct reports
+    data.supervisors.forEach((relation, index) => {
+      const user = relation.user;
+      const xOffset = (index - Math.floor(data.supervisors.length / 2)) * 200;
       
-      // Add SBU head node
-      const headNode = {
-        id: data.sbu.head.id,
-        position: { x: 400, y: 50 },
+      newNodes.push({
+        id: user.id,
+        position: { x: 400 + xOffset, y: 200 },
         data: {
-          label: `${data.sbu.head.first_name} ${data.sbu.head.last_name}`,
-          subtitle: data.sbu.head.designation || 'SBU Head',
-          email: data.sbu.head.email,
+          label: `${user.first_name} ${user.last_name}`,
+          subtitle: user.designation || 'Team Member',
+          email: user.email,
         },
         ...nodeDefaults,
-      };
-      newNodes.push(headNode);
-
-      // Add direct reports
-      data.supervisors.forEach((relation, index) => {
-        const user = relation.user;
-        const xOffset = (index - Math.floor(data.supervisors.length / 2)) * 200;
-        
-        newNodes.push({
-          id: user.id,
-          position: { x: 400 + xOffset, y: 200 },
-          data: {
-            label: `${user.first_name} ${user.last_name}`,
-            subtitle: user.designation || 'Team Member',
-            email: user.email,
-          },
-          ...nodeDefaults,
-        });
-
-        newEdges.push({
-          id: `${data.sbu.head.id}-${user.id}`,
-          source: data.sbu.head.id,
-          target: user.id,
-          type: 'smoothstep',
-        });
       });
 
-      setNodes(newNodes);
-      setEdges(newEdges);
-    },
-  });
+      newEdges.push({
+        id: `${data.sbu.head.id}-${user.id}`,
+        source: data.sbu.head.id,
+        target: user.id,
+        type: 'smoothstep',
+      });
+    });
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+  }, [setNodes, setEdges]);
+
+  // Update nodes and edges when data changes
+  useCallback(() => {
+    if (hierarchyData) {
+      processHierarchyData(hierarchyData);
+    }
+  }, [hierarchyData, processHierarchyData]);
 
   const renderNodeContent = useCallback(({ data }: any) => {
     return (
