@@ -25,8 +25,8 @@ export function UpcomingSurveyDeadlines() {
   });
 
   const sendReminderMutation = useMutation({
-    mutationFn: async ({ instanceId, campaignId }: { instanceId: string, campaignId: string }) => {
-      // Get all pending assignments for this campaign
+    mutationFn: async ({ instanceId }: { instanceId: string }) => {
+      // Get all pending assignments for this instance
       const { data: assignments, error: assignmentsError } = await supabase
         .from("survey_assignments")
         .select(`
@@ -42,7 +42,6 @@ export function UpcomingSurveyDeadlines() {
             name
           )
         `)
-        .eq("campaign_id", campaignId)
         .eq("status", "pending");
 
       if (assignmentsError) throw assignmentsError;
@@ -138,8 +137,7 @@ export function UpcomingSurveyDeadlines() {
                     variant="ghost"
                     size="sm"
                     onClick={() => sendReminderMutation.mutate({
-                      instanceId: deadline.id,
-                      campaignId: deadline.campaign_id
+                      instanceId: deadline.id
                     })}
                     disabled={sendReminderMutation.isPending || deadline.pending_responses === 0}
                   >
