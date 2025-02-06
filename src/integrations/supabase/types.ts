@@ -583,13 +583,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "survey_responses_assignment_id_fkey"
-            columns: ["assignment_id"]
-            isOneToOne: false
-            referencedRelation: "upcoming_survey_deadlines"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "survey_responses_campaign_instance_id_fkey"
             columns: ["campaign_instance_id"]
             isOneToOne: false
@@ -602,6 +595,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "top_performing_surveys"
             referencedColumns: ["instance_id"]
+          },
+          {
+            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
+            columns: ["campaign_instance_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_survey_deadlines"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "survey_responses_user_id_fkey"
