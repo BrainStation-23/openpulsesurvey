@@ -18,11 +18,26 @@ import { supabase } from "@/integrations/supabase/client";
 interface UserSelectorProps {
   selectedUsers: string[];
   onChange: (users: string[]) => void;
+  campaignId: string;
 }
 
-export function UserSelector({ selectedUsers, onChange }: UserSelectorProps) {
+export function UserSelector({ selectedUsers, onChange, campaignId }: UserSelectorProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSBU, setSelectedSBU] = useState<string>("all");
+
+  // Fetch already assigned users
+  const { data: assignedUsers } = useQuery({
+    queryKey: ["assigned-users", campaignId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("survey_assignments")
+        .select("user_id")
+        .eq("campaign_id", campaignId);
+      
+      if (error) throw error;
+      return data.map(assignment => assignment.user_id);
+    },
+  });
 
   // Fetch SBUs
   const { data: sbus } = useQuery({
@@ -74,7 +89,11 @@ export function UserSelector({ selectedUsers, onChange }: UserSelectorProps) {
   }) || [];
 
   const handleSelectAll = () => {
-    onChange(filteredUsers.map(user => user.id));
+    // Only select users that aren't already assigned
+    const availableUsers = filteredUsers
+      .filter(user => !assignedUsers?.includes(user.id))
+      .map(user => user.id);
+    onChange(availableUsers);
   };
 
   const handleDeselectAll = () => {
@@ -82,6 +101,9 @@ export function UserSelector({ selectedUsers, onChange }: UserSelectorProps) {
   };
 
   const toggleUser = (userId: string) => {
+    // Don't allow toggling if user is already assigned
+    if (assignedUsers?.includes(userId)) return;
+
     const newSelection = selectedUsers.includes(userId)
       ? selectedUsers.filter(id => id !== userId)
       : [...selectedUsers, userId];
@@ -126,7 +148,7 @@ export function UserSelector({ selectedUsers, onChange }: UserSelectorProps) {
           size="sm"
           onClick={handleSelectAll}
         >
-          Select All
+          Select Available Users
         </Button>
         <Button
           variant="outline"
@@ -141,6 +163,7 @@ export function UserSelector({ selectedUsers, onChange }: UserSelectorProps) {
         <div className="space-y-1">
           {filteredUsers.map((user) => {
             const isSelected = selectedUsers.includes(user.id);
+            const isAssigned = assignedUsers?.includes(user.id);
             const displayName = `${user.first_name || ''} ${user.last_name || ''} ${!user.first_name && !user.last_name ? user.email : ''}`.trim();
             
             return (
@@ -148,13 +171,20 @@ export function UserSelector({ selectedUsers, onChange }: UserSelectorProps) {
                 key={user.id}
                 onClick={() => toggleUser(user.id)}
                 className={cn(
-                  "w-full flex items-center space-x-2 px-2 py-1.5 rounded-sm text-sm",
+                  "w-full flex items-center justify-between px-2 py-1.5 rounded-sm text-sm",
                   "hover:bg-accent hover:text-accent-foreground",
-                  isSelected && "bg-accent"
+                  isSelected && "bg-accent",
+                  isAssigned && "opacity-50 cursor-not-allowed hover:bg-transparent"
                 )}
                 type="button"
+                disabled={isAssigned}
               >
-                <div className="flex-1 text-left">{displayName}</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-left">{displayName}</span>
+                  {isAssigned && (
+                    <span className="text-xs text-muted-foreground">(Already assigned)</span>
+                  )}
+                </div>
                 {isSelected && <Check className="h-4 w-4" />}
               </button>
             );

@@ -1,41 +1,41 @@
-import * as React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useState } from "react";
+import { useParams } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { UserPlus } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { UserSelector } from "./UserSelector";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { UserPlus } from "lucide-react";
 
 interface AssignmentDialogProps {
-  campaignId: string;
   surveyId: string;
+  campaignId: string;
 }
 
-export function AssignmentDialog({ campaignId, surveyId }: AssignmentDialogProps) {
-  const [open, setOpen] = React.useState(false);
-  const [selectedUsers, setSelectedUsers] = React.useState<string[]>([]);
+export function AssignmentDialog({ surveyId, campaignId }: AssignmentDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const handleAssign = async () => {
-    try {
-      if (selectedUsers.length === 0) {
-        toast.error("Please select at least one user");
-        return;
-      }
+  const assignMutation = useMutation({
+    mutationFn: async (userIds: string[]) => {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error("No session found");
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      
-      if (!sessionData?.session?.user?.id) {
-        toast.error("No authenticated user found");
-        return;
-      }
-
-      const assignments = selectedUsers.map(userId => ({
+      const assignments = userIds.map(userId => ({
         survey_id: surveyId,
         user_id: userId,
-        created_by: sessionData.session.user.id,
         campaign_id: campaignId,
+        created_by: session.user.id,
       }));
 
       const { error } = await supabase
@@ -43,45 +43,71 @@ export function AssignmentDialog({ campaignId, surveyId }: AssignmentDialogProps
         .insert(assignments);
 
       if (error) throw error;
-
-      toast.success("Users assigned successfully");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
+      toast({
+        title: "Success",
+        description: "Users have been assigned to the survey",
+      });
       setOpen(false);
       setSelectedUsers([]);
-      queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
-    } catch (error: any) {
-      console.error("Error assigning users:", error);
-      toast.error("Failed to assign users");
+    },
+    onError: (error) => {
+      console.error("Assignment error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to assign users to the survey",
+      });
+    },
+  });
+
+  const handleAssign = () => {
+    if (selectedUsers.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select at least one user",
+      });
+      return;
     }
+
+    assignMutation.mutate(selectedUsers);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <UserPlus className="mr-2 h-4 w-4" />
+        <Button className="gap-2">
+          <UserPlus className="h-4 w-4" />
           Assign Users
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Assign Users to Campaign</DialogTitle>
+          <DialogTitle>Assign Users to Survey</DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 py-4">
-          <UserSelector
-            selectedUsers={selectedUsers}
-            onChange={setSelectedUsers}
-          />
-          <div className="flex justify-end space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleAssign}>
-              Assign Selected Users
-            </Button>
-          </div>
+
+        <UserSelector
+          selectedUsers={selectedUsers}
+          onChange={setSelectedUsers}
+          campaignId={campaignId}
+        />
+
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAssign}
+            disabled={assignMutation.isPending}
+          >
+            {assignMutation.isPending ? "Assigning..." : "Assign Selected Users"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
