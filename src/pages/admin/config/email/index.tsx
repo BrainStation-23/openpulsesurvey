@@ -36,6 +36,7 @@ export default function EmailConfig() {
       const { data, error } = await supabase
         .from("email_config")
         .select("*")
+        .eq('provider', 'resend')
         .maybeSingle();
 
       if (error) throw error;
@@ -50,12 +51,14 @@ export default function EmailConfig() {
         from_email: values.from_email,
         from_name: values.from_name,
         provider_settings: {},
-        is_singleton: true,
       };
 
       const { error } = await supabase
         .from("email_config")
-        .upsert(configData);
+        .upsert(configData, { 
+          onConflict: 'provider',
+          ignoreDuplicates: false 
+        });
 
       if (error) throw error;
     },
