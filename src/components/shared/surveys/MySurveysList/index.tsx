@@ -50,6 +50,12 @@ type Assignment = {
     instance_end_time: string | null;
     updated_at: string;
   };
+  active_instance?: {
+    id: string;
+    starts_at: string;
+    ends_at: string;
+    status: string;
+  } | null;
 };
 
 export default function MySurveysList() {
@@ -100,7 +106,30 @@ export default function MySurveysList() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Assignment[];
+
+      // For each assignment with a campaign, fetch the active instance
+      const assignmentsWithInstances = await Promise.all(
+        data.map(async (assignment) => {
+          if (assignment.campaign_id) {
+            const { data: instances, error: instanceError } = await supabase
+              .from("campaign_instances")
+              .select("*")
+              .eq("campaign_id", assignment.campaign_id)
+              .eq("status", "active")
+              .maybeSingle();
+
+            if (instanceError) throw instanceError;
+            
+            return {
+              ...assignment,
+              active_instance: instances
+            };
+          }
+          return assignment;
+        })
+      );
+
+      return assignmentsWithInstances as Assignment[];
     },
   });
 
@@ -109,7 +138,7 @@ export default function MySurveysList() {
     if (assignments) {
       const now = new Date();
       assignments.forEach(assignment => {
-        const effectiveDueDate = assignment.due_date || assignment.campaign?.ends_at;
+        const effectiveDueDate = assignment.active_instance?.ends_at || assignment.due_date;
         
         if (effectiveDueDate && assignment.status !== 'completed') {
           const dueDate = new Date(effectiveDueDate);

@@ -46,6 +46,12 @@ type Assignment = {
     instance_end_time: string | null;
     updated_at: string;
   };
+  active_instance?: {
+    id: string;
+    starts_at: string;
+    ends_at: string;
+    status: string;
+  } | null;
 };
 
 interface SurveyCardProps {
@@ -73,7 +79,7 @@ const getDaysRemaining = (dueDate: string) => {
 };
 
 export default function SurveyCard({ assignment, onSelect }: SurveyCardProps) {
-  const effectiveDueDate = assignment.due_date || assignment.campaign?.ends_at;
+  const effectiveDueDate = assignment.active_instance?.ends_at || assignment.due_date;
   const daysRemaining = effectiveDueDate ? getDaysRemaining(effectiveDueDate) : null;
   const isOverdue = daysRemaining !== null && daysRemaining < 0;
   const isDueSoon = daysRemaining !== null && daysRemaining <= 3 && daysRemaining > 0;
