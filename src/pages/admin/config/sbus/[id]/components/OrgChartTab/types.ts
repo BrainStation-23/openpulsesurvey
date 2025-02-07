@@ -6,7 +6,7 @@ export interface CategoryWithColor {
   color_code: string;
 }
 
-export interface UserNodeData {
+export interface UserNodeData extends Record<string, unknown> {
   label: string;
   subtitle: string;
   email: string;
@@ -19,7 +19,7 @@ export interface UserNodeData {
   level?: CategoryWithColor;
 }
 
-export interface UserNode extends Node {
+export interface UserNode extends Node<UserNodeData> {
   data: UserNodeData;
 }
 

@@ -1,16 +1,10 @@
 
 import { useEffect } from 'react';
 import {
-  ReactFlow,
-  MiniMap,
-  Controls,
-  Background,
   useNodesState,
   useEdgesState,
-  BackgroundVariant,
 } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import { CustomNode } from './components/CustomNode';
+import { FlowWrapper } from './components/FlowWrapper';
 import { useOrgChart } from './hooks/useOrgChart';
 import { OrgChartProps } from './types';
 
@@ -29,24 +23,12 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
   }, [hierarchyData, processHierarchyData, setNodes, setEdges]);
 
   return (
-    <div className="h-[600px] border rounded-lg">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        nodeTypes={{
-          userNode: (props) => <CustomNode {...props} toggleNodeExpansion={toggleNodeExpansion} />,
-        }}
-        fitView
-        minZoom={0.1}
-        maxZoom={2}
-        proOptions={{ hideAttribution: true }}
-      >
-        <Controls />
-        <MiniMap zoomable pannable />
-        <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-      </ReactFlow>
-    </div>
+    <FlowWrapper
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      toggleNodeExpansion={toggleNodeExpansion}
+    />
   );
 }
