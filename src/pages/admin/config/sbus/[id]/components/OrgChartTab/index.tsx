@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -14,7 +15,8 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import '@xyflow/react/dist/style.css';
 import { Card } from '@/components/ui/card';
-import { ChevronDown, ChevronRight, UserCircle2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ChevronDown, ChevronRight, UserCircle2, Briefcase, Users, Shield, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface OrgChartProps {
@@ -29,6 +31,22 @@ interface UserNode extends Node {
     userId: string;
     isExpanded?: boolean;
     hasChildren?: boolean;
+    employmentType?: {
+      name: string;
+      color_code: string;
+    };
+    employeeType?: {
+      name: string;
+      color_code: string;
+    };
+    employeeRole?: {
+      name: string;
+      color_code: string;
+    };
+    level?: {
+      name: string;
+      color_code: string;
+    };
   };
 }
 
@@ -36,14 +54,14 @@ const nodeDefaults = {
   sourcePosition: Position.Bottom,
   targetPosition: Position.Top,
   style: {
-    minWidth: '300px',
+    minWidth: '350px',
     padding: '0',
     borderRadius: '8px',
   },
 };
 
 const VERTICAL_SPACING = 120;
-const HORIZONTAL_SPACING = 350;
+const HORIZONTAL_SPACING = 400;
 
 export default function OrgChartTab({ sbuId }: OrgChartProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -67,10 +85,10 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
             last_name,
             email,
             designation,
-            employment_type:employment_types(name),
-            employee_type:employee_types(name),
-            employee_role:employee_roles(name),
-            level:levels(name)
+            employment_type:employment_types(name, color_code),
+            employee_type:employee_types(name, color_code),
+            employee_role:employee_roles(name, color_code),
+            level:levels(name, color_code)
           )
         `)
         .eq('id', sbuId)
@@ -88,10 +106,10 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
             last_name,
             email,
             designation,
-            employment_type:employment_types(name),
-            employee_type:employee_types(name),
-            employee_role:employee_roles(name),
-            level:levels(name),
+            employment_type:employment_types(name, color_code),
+            employee_type:employee_types(name, color_code),
+            employee_role:employee_roles(name, color_code),
+            level:levels(name, color_code),
             supervisors:user_supervisors!user_supervisors_user_id_fkey (
               is_primary,
               supervisor:profiles!user_supervisors_supervisor_id_fkey (
@@ -144,7 +162,7 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
         const node: UserNode = {
           id: emp.id,
           type: 'userNode',
-          position: { x: 0, y: 0 }, // Will be calculated later
+          position: { x: 0, y: 0 },
           data: {
             label: `${emp.first_name} ${emp.last_name}`,
             subtitle: emp.designation || 'Team Member',
@@ -152,6 +170,10 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
             userId: emp.id,
             isExpanded: expandedNodes.has(emp.id),
             hasChildren: false,
+            employmentType: emp.employment_type,
+            employeeType: emp.employee_type,
+            employeeRole: emp.employee_role,
+            level: emp.level,
           },
           ...nodeDefaults,
         };
@@ -178,13 +200,17 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
           userId: data.sbu.head.id,
           isExpanded: expandedNodes.has(data.sbu.head.id),
           hasChildren: nodesByManager[data.sbu.head.id]?.length > 0,
+          employmentType: data.sbu.head.employment_type,
+          employeeType: data.sbu.head.employee_type,
+          employeeRole: data.sbu.head.employee_role,
+          level: data.sbu.head.level,
         },
         ...nodeDefaults,
       };
       newNodes.push(headNode);
       processedNodes.add(data.sbu.head.id);
 
-      // Recursive function to position nodes
+      // Position nodes using the same logic as before
       const positionNodes = (
         managerId: string,
         level: number,
@@ -207,7 +233,6 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
             newNodes.push(node);
             processedNodes.add(node.id);
 
-            // Add edge from manager to direct report
             newEdges.push({
               id: `${managerId}-${node.id}`,
               source: managerId,
@@ -223,10 +248,9 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
         });
       };
 
-      // Position nodes starting from the head
       positionNodes(data.sbu.head.id, 1, 400, headNode);
 
-      // Position orphaned nodes in a separate section
+      // Position orphaned nodes
       if (orphanedNodes.length > 0) {
         const orphanedY = Math.max(...newNodes.map((n) => n.position.y)) + VERTICAL_SPACING * 2;
         orphanedNodes.forEach((node, index) => {
@@ -256,28 +280,69 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
   const CustomNode = ({ data }: { data: UserNode['data'] }) => {
     return (
       <Card className="w-full">
-        <div className="p-4 flex items-start gap-3">
-          {data.hasChildren && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => toggleNodeExpansion(data.userId)}
-            >
-              {data.isExpanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </Button>
-          )}
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <UserCircle2 className="h-5 w-5 text-muted-foreground" />
-              <div className="font-medium text-base">{data.label}</div>
+        <div className="p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            {data.hasChildren && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => toggleNodeExpansion(data.userId)}
+              >
+                {data.isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <UserCircle2 className="h-5 w-5 text-muted-foreground" />
+                <div className="font-medium text-base">{data.label}</div>
+              </div>
+              <div className="text-sm text-muted-foreground">{data.subtitle}</div>
+              <div className="text-xs text-muted-foreground mt-1">{data.email}</div>
             </div>
-            <div className="text-sm text-muted-foreground">{data.subtitle}</div>
-            <div className="text-xs text-muted-foreground mt-1">{data.email}</div>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            {data.employmentType && (
+              <Badge 
+                style={{ backgroundColor: data.employmentType.color_code }}
+                className="flex items-center gap-1"
+              >
+                <Briefcase className="h-3 w-3" />
+                {data.employmentType.name}
+              </Badge>
+            )}
+            {data.employeeType && (
+              <Badge 
+                style={{ backgroundColor: data.employeeType.color_code }}
+                className="flex items-center gap-1"
+              >
+                <Users className="h-3 w-3" />
+                {data.employeeType.name}
+              </Badge>
+            )}
+            {data.employeeRole && (
+              <Badge 
+                style={{ backgroundColor: data.employeeRole.color_code }}
+                className="flex items-center gap-1"
+              >
+                <Shield className="h-3 w-3" />
+                {data.employeeRole.name}
+              </Badge>
+            )}
+            {data.level && (
+              <Badge 
+                style={{ backgroundColor: data.level.color_code }}
+                className="flex items-center gap-1"
+              >
+                <Layers className="h-3 w-3" />
+                {data.level.name}
+              </Badge>
+            )}
           </div>
         </div>
       </Card>
