@@ -57,21 +57,21 @@ export function EmployeeRoleTable({
                 <ArrowUpDown className="ml-2 h-4 w-4" />
               </Button>
             </TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead className="text-center">Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {employeeRoles?.map((role) => (
             <TableRow key={role.id}>
               <TableCell>{role.name}</TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                 <Badge variant={role.status === 'active' ? "success" : "secondary"}>
                   {role.status}
                 </Badge>
               </TableCell>
               <TableCell>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 justify-end">
                   <Button
                     variant="ghost"
                     size="icon"

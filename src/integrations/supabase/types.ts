@@ -95,6 +95,7 @@ export type Database = {
       }
       employee_roles: {
         Row: {
+          color_code: string | null
           created_at: string
           id: string
           name: string
@@ -102,6 +103,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          color_code?: string | null
           created_at?: string
           id?: string
           name: string
@@ -109,6 +111,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          color_code?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -119,6 +122,7 @@ export type Database = {
       }
       employee_types: {
         Row: {
+          color_code: string | null
           created_at: string
           id: string
           name: string
@@ -126,6 +130,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          color_code?: string | null
           created_at?: string
           id?: string
           name: string
@@ -133,6 +138,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          color_code?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -143,6 +149,7 @@ export type Database = {
       }
       employment_types: {
         Row: {
+          color_code: string | null
           created_at: string
           id: string
           name: string
@@ -150,6 +157,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          color_code?: string | null
           created_at?: string
           id?: string
           name: string
@@ -157,6 +165,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          color_code?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -167,6 +176,7 @@ export type Database = {
       }
       levels: {
         Row: {
+          color_code: string | null
           created_at: string
           id: string
           name: string
@@ -174,6 +184,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          color_code?: string | null
           created_at?: string
           id?: string
           name: string
@@ -181,6 +192,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          color_code?: string | null
           created_at?: string
           id?: string
           name?: string
