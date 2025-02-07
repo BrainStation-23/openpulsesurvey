@@ -13,18 +13,20 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Run Qodana Analysis
+      - name: Run Qodana Analysis (Community Edition)
         uses: JetBrains/qodana-action@v2023.2
         with:
+          linter: jetbrains/qodana-js-community # Change this based on your language
           use-caches: true
-          upload-result: false # Do NOT upload reports to Qodana Cloud
+          upload-result: false
           args: "--save-report"
 
       - name: Annotate Issues
         uses: JetBrains/qodana-action@v2023.2
         with:
+          linter: jetbrains/qodana-js-community
           use-caches: true
-          upload-result: false # Ensures no upload
+          upload-result: false
           args: "--apply-comments"
 
       - name: Upload Qodana Report as Artifact
