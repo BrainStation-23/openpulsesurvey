@@ -13,25 +13,21 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Run Qodana Analysis (Community Edition)
-        uses: JetBrains/qodana-action@v2023.2
-        with:
-          linter: jetbrains/qodana-js-community:2023.1 # ✅ Use the community edition
-          use-caches: true
-          upload-result: false
-          args: "--save-report" # ✅ Correct flag usage
+      - name: Set up Qodana (Community Edition)
+        run: |
+          docker pull jetbrains/qodana-js-community:2023.1
 
-      - name: Annotate Issues
-        uses: JetBrains/qodana-action@v2023.2
-        with:
-          linter: jetbrains/qodana-js-community:2023.1
-          use-caches: true
-          upload-result: false
-          args: "--apply-comments"
+      - name: Run Qodana Analysis
+        run: |
+          docker run --rm -u $(id -u):$(id -g) \
+            -v "${{ github.workspace }}:/data/project" \
+            -v "${{ github.workspace }}/qodana-results:/data/results" \
+            jetbrains/qodana-js-community:2023.1 \
+            --save-report --skip-pull
 
       - name: Upload Qodana Report as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: qodana-report
-          path: .qodana/results/
+          path: qodana-results/
           retention-days: 7
