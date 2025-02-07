@@ -9,6 +9,7 @@ import {
   useEdgesState,
   BackgroundVariant,
   Node,
+  Position,
 } from '@xyflow/react';
 import { supabase } from '@/integrations/supabase/client';
 import '@xyflow/react/dist/style.css';
@@ -32,8 +33,8 @@ interface UserNode extends Node {
 }
 
 const nodeDefaults = {
-  sourcePosition: 'bottom',
-  targetPosition: 'top',
+  sourcePosition: Position.Bottom,
+  targetPosition: Position.Top,
   style: {
     minWidth: '300px',
     padding: '0',
