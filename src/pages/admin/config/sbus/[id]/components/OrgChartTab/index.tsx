@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ReactFlow,
@@ -8,28 +8,46 @@ import {
   useNodesState,
   useEdgesState,
   BackgroundVariant,
+  Node,
 } from '@xyflow/react';
 import { supabase } from '@/integrations/supabase/client';
 import '@xyflow/react/dist/style.css';
 import { Card } from '@/components/ui/card';
+import { ChevronDown, ChevronRight, UserCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface OrgChartProps {
   sbuId: string | undefined;
+}
+
+interface UserNode extends Node {
+  data: {
+    label: string;
+    subtitle: string;
+    email: string;
+    userId: string;
+    isExpanded?: boolean;
+    hasChildren?: boolean;
+  };
 }
 
 const nodeDefaults = {
   sourcePosition: 'bottom',
   targetPosition: 'top',
   style: {
-    minWidth: '250px',
+    minWidth: '300px',
     padding: '0',
     borderRadius: '8px',
   },
 };
 
+const VERTICAL_SPACING = 120;
+const HORIZONTAL_SPACING = 350;
+
 export default function OrgChartTab({ sbuId }: OrgChartProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   const { data: hierarchyData } = useQuery({
     queryKey: ['sbu-hierarchy', sbuId],
@@ -85,101 +103,177 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
         employees: employeesData || [],
       };
     },
-    enabled: !!sbuId
+    enabled: !!sbuId,
   });
 
-  const processHierarchyData = useCallback((data: typeof hierarchyData) => {
-    if (!data) return;
+  const toggleNodeExpansion = useCallback((nodeId: string) => {
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  }, []);
 
-    const newNodes = [];
-    const newEdges = [];
-    const levelMap = new Map();
-    const processedNodes = new Set();
+  const processHierarchyData = useCallback(
+    (data: typeof hierarchyData) => {
+      if (!data) return;
 
-    // Add SBU head node at level 0
-    const headNode = {
-      id: data.sbu.head.id,
-      position: { x: 400, y: 50 },
-      data: {
-        label: `${data.sbu.head.first_name} ${data.sbu.head.last_name}`,
-        subtitle: data.sbu.head.designation || 'SBU Head',
-        email: data.sbu.head.email,
-      },
-      ...nodeDefaults,
-    };
-    newNodes.push(headNode);
-    levelMap.set(data.sbu.head.id, 0);
-    processedNodes.add(data.sbu.head.id);
+      const newNodes: UserNode[] = [];
+      const newEdges: any[] = [];
+      const processedNodes = new Set<string>();
+      const nodesByManager: { [key: string]: UserNode[] } = {};
+      const orphanedNodes: UserNode[] = [];
 
-    // Process all employees and build hierarchy
-    const employees = data.employees.map(e => e.user).filter(Boolean);
-    let currentLevel = 1;
-    let nodesToProcess = [data.sbu.head.id];
+      // Process all employees first to build the hierarchy map
+      const employees = data.employees.map((e) => e.user).filter(Boolean);
+      employees.forEach((emp) => {
+        const primarySupervisor = emp.supervisors?.find((s) => s.is_primary)?.supervisor;
+        const node: UserNode = {
+          id: emp.id,
+          type: 'userNode',
+          position: { x: 0, y: 0 }, // Will be calculated later
+          data: {
+            label: `${emp.first_name} ${emp.last_name}`,
+            subtitle: emp.designation || 'Team Member',
+            email: emp.email,
+            userId: emp.id,
+            isExpanded: expandedNodes.has(emp.id),
+            hasChildren: false,
+          },
+          ...nodeDefaults,
+        };
 
-    while (nodesToProcess.length > 0) {
-      const nextLevel = [];
-      const levelNodes = [];
+        if (primarySupervisor) {
+          if (!nodesByManager[primarySupervisor.id]) {
+            nodesByManager[primarySupervisor.id] = [];
+          }
+          nodesByManager[primarySupervisor.id].push(node);
+        } else {
+          orphanedNodes.push(node);
+        }
+      });
 
-      for (const supervisorId of nodesToProcess) {
-        // Find direct reports for this supervisor
-        const directReports = employees.filter(emp => 
-          emp.supervisors?.some(s => s.is_primary && s.supervisor.id === supervisorId)
-        );
+      // Add SBU head at the top
+      const headNode: UserNode = {
+        id: data.sbu.head.id,
+        type: 'userNode',
+        position: { x: 400, y: 50 },
+        data: {
+          label: `${data.sbu.head.first_name} ${data.sbu.head.last_name}`,
+          subtitle: data.sbu.head.designation || 'SBU Head',
+          email: data.sbu.head.email,
+          userId: data.sbu.head.id,
+          isExpanded: expandedNodes.has(data.sbu.head.id),
+          hasChildren: nodesByManager[data.sbu.head.id]?.length > 0,
+        },
+        ...nodeDefaults,
+      };
+      newNodes.push(headNode);
+      processedNodes.add(data.sbu.head.id);
 
-        directReports.forEach((emp, index) => {
-          if (!processedNodes.has(emp.id)) {
-            const xOffset = (index - Math.floor(directReports.length / 2)) * 300;
-            const baseX = 400; // Center position
+      // Recursive function to position nodes
+      const positionNodes = (
+        managerId: string,
+        level: number,
+        startX: number,
+        parentNode: UserNode
+      ) => {
+        if (!expandedNodes.has(managerId)) return;
 
-            levelNodes.push({
-              id: emp.id,
-              position: { x: baseX + xOffset, y: currentLevel * 200 },
-              data: {
-                label: `${emp.first_name} ${emp.last_name}`,
-                subtitle: emp.designation || 'Team Member',
-                email: emp.email,
-              },
-              ...nodeDefaults,
-            });
+        const directReports = nodesByManager[managerId] || [];
+        const totalWidth = directReports.length * HORIZONTAL_SPACING;
+        let currentX = startX - totalWidth / 2;
 
+        directReports.forEach((node, index) => {
+          if (!processedNodes.has(node.id)) {
+            node.position = {
+              x: currentX + index * HORIZONTAL_SPACING,
+              y: level * VERTICAL_SPACING,
+            };
+            node.data.hasChildren = !!nodesByManager[node.id]?.length;
+            newNodes.push(node);
+            processedNodes.add(node.id);
+
+            // Add edge from manager to direct report
             newEdges.push({
-              id: `${supervisorId}-${emp.id}`,
-              source: supervisorId,
-              target: emp.id,
+              id: `${managerId}-${node.id}`,
+              source: managerId,
+              target: node.id,
               type: 'smoothstep',
               style: { stroke: '#64748b', strokeWidth: 2 },
             });
 
-            processedNodes.add(emp.id);
-            nextLevel.push(emp.id);
+            if (expandedNodes.has(node.id)) {
+              positionNodes(node.id, level + 1, currentX + index * HORIZONTAL_SPACING, node);
+            }
+          }
+        });
+      };
+
+      // Position nodes starting from the head
+      positionNodes(data.sbu.head.id, 1, 400, headNode);
+
+      // Position orphaned nodes in a separate section
+      if (orphanedNodes.length > 0) {
+        const orphanedY = Math.max(...newNodes.map((n) => n.position.y)) + VERTICAL_SPACING * 2;
+        orphanedNodes.forEach((node, index) => {
+          if (!processedNodes.has(node.id)) {
+            node.position = {
+              x: 400 + (index - Math.floor(orphanedNodes.length / 2)) * HORIZONTAL_SPACING,
+              y: orphanedY,
+            };
+            node.data.hasChildren = !!nodesByManager[node.id]?.length;
+            newNodes.push(node);
           }
         });
       }
 
-      newNodes.push(...levelNodes);
-      nodesToProcess = nextLevel;
-      currentLevel++;
-    }
-
-    setNodes(newNodes);
-    setEdges(newEdges);
-  }, [setNodes, setEdges]);
+      setNodes(newNodes);
+      setEdges(newEdges);
+    },
+    [setNodes, setEdges, expandedNodes]
+  );
 
   useEffect(() => {
     if (hierarchyData) {
       processHierarchyData(hierarchyData);
     }
-  }, [hierarchyData, processHierarchyData]);
+  }, [hierarchyData, processHierarchyData, expandedNodes]);
 
-  const renderNodeContent = useCallback(({ data }: any) => {
+  const CustomNode = ({ data }: { data: UserNode['data'] }) => {
     return (
-      <Card className="p-4 w-full">
-        <div className="font-medium text-base">{data.label}</div>
-        <div className="text-sm text-muted-foreground">{data.subtitle}</div>
-        <div className="text-xs text-muted-foreground mt-1">{data.email}</div>
+      <Card className="w-full">
+        <div className="p-4 flex items-start gap-3">
+          {data.hasChildren && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => toggleNodeExpansion(data.userId)}
+            >
+              {data.isExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <UserCircle2 className="h-5 w-5 text-muted-foreground" />
+              <div className="font-medium text-base">{data.label}</div>
+            </div>
+            <div className="text-sm text-muted-foreground">{data.subtitle}</div>
+            <div className="text-xs text-muted-foreground mt-1">{data.email}</div>
+          </div>
+        </div>
       </Card>
     );
-  }, []);
+  };
 
   return (
     <div className="h-[600px] border rounded-lg">
@@ -189,7 +283,7 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={{
-          default: ({ data }) => renderNodeContent({ data }),
+          userNode: CustomNode,
         }}
         fitView
         minZoom={0.1}
