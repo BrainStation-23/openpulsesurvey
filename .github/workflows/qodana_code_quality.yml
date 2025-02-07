@@ -13,21 +13,27 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Clear GitHub Actions Cache
+        uses: actions/cache@v4
+        with:
+          path: .qodana/caches
+          key: clear-cache-${{ github.run_id }}
+
       - name: Run Qodana Analysis (Community Edition)
         uses: JetBrains/qodana-action@v2023.2
         with:
-          linter: jetbrains/qodana-js-community # Change this based on your language
+          linter: jetbrains/qodana-js-community:2023.1 # Ensure it's Community Edition and older version
           use-caches: true
           upload-result: false
-          args: "--save-report"
+          args: "--save-report --no-pull"
 
       - name: Annotate Issues
         uses: JetBrains/qodana-action@v2023.2
         with:
-          linter: jetbrains/qodana-js-community
+          linter: jetbrains/qodana-js-community:2023.1
           use-caches: true
           upload-result: false
-          args: "--apply-comments"
+          args: "--apply-comments --no-pull"
 
       - name: Upload Qodana Report as Artifact
         uses: actions/upload-artifact@v4
