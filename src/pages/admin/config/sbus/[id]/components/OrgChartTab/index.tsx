@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -22,10 +21,9 @@ const nodeDefaults = {
   sourcePosition: 'bottom',
   targetPosition: 'top',
   style: {
-    padding: '12px',
+    minWidth: '250px',
+    padding: '0',
     borderRadius: '8px',
-    minWidth: '150px',
-    textAlign: 'center' as const,
   },
 };
 
@@ -57,45 +55,48 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
 
       if (!sbuData?.head) return null;
 
-      // Fetch all supervisors in this SBU
-      const { data: supervisorsData } = await supabase
-        .from('user_supervisors')
+      // Fetch all employees and their supervisors in this SBU
+      const { data: employeesData } = await supabase
+        .from('user_sbus')
         .select(`
-          user_id,
-          is_primary,
-          user:profiles!user_supervisors_user_id_fkey (
+          user:profiles!user_sbus_user_id_fkey (
             id,
             first_name,
             last_name,
             email,
-            designation
-          ),
-          supervisor:profiles!user_supervisors_supervisor_id_fkey (
-            id,
-            first_name,
-            last_name,
-            email,
-            designation
+            designation,
+            supervisors:user_supervisors!user_supervisors_user_id_fkey (
+              is_primary,
+              supervisor:profiles!user_supervisors_supervisor_id_fkey (
+                id,
+                first_name,
+                last_name,
+                email,
+                designation
+              )
+            )
           )
         `)
-        .eq('supervisor_id', sbuData.head.id);
+        .eq('sbu_id', sbuId)
+        .eq('is_primary', true);
 
       return {
         sbu: sbuData,
-        supervisors: supervisorsData || [],
+        employees: employeesData || [],
       };
     },
     enabled: !!sbuId
   });
 
-  // Use useCallback to handle data processing
   const processHierarchyData = useCallback((data: typeof hierarchyData) => {
     if (!data) return;
 
     const newNodes = [];
     const newEdges = [];
-    
-    // Add SBU head node
+    const levelMap = new Map();
+    const processedNodes = new Set();
+
+    // Add SBU head node at level 0
     const headNode = {
       id: data.sbu.head.id,
       position: { x: 400, y: 50 },
@@ -107,36 +108,63 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
       ...nodeDefaults,
     };
     newNodes.push(headNode);
+    levelMap.set(data.sbu.head.id, 0);
+    processedNodes.add(data.sbu.head.id);
 
-    // Add direct reports
-    data.supervisors.forEach((relation, index) => {
-      const user = relation.user;
-      const xOffset = (index - Math.floor(data.supervisors.length / 2)) * 200;
-      
-      newNodes.push({
-        id: user.id,
-        position: { x: 400 + xOffset, y: 200 },
-        data: {
-          label: `${user.first_name} ${user.last_name}`,
-          subtitle: user.designation || 'Team Member',
-          email: user.email,
-        },
-        ...nodeDefaults,
-      });
+    // Process all employees and build hierarchy
+    const employees = data.employees.map(e => e.user).filter(Boolean);
+    let currentLevel = 1;
+    let nodesToProcess = [data.sbu.head.id];
 
-      newEdges.push({
-        id: `${data.sbu.head.id}-${user.id}`,
-        source: data.sbu.head.id,
-        target: user.id,
-        type: 'smoothstep',
-      });
-    });
+    while (nodesToProcess.length > 0) {
+      const nextLevel = [];
+      const levelNodes = [];
+
+      for (const supervisorId of nodesToProcess) {
+        // Find direct reports for this supervisor
+        const directReports = employees.filter(emp => 
+          emp.supervisors?.some(s => s.is_primary && s.supervisor.id === supervisorId)
+        );
+
+        directReports.forEach((emp, index) => {
+          if (!processedNodes.has(emp.id)) {
+            const xOffset = (index - Math.floor(directReports.length / 2)) * 300;
+            const baseX = 400; // Center position
+
+            levelNodes.push({
+              id: emp.id,
+              position: { x: baseX + xOffset, y: currentLevel * 200 },
+              data: {
+                label: `${emp.first_name} ${emp.last_name}`,
+                subtitle: emp.designation || 'Team Member',
+                email: emp.email,
+              },
+              ...nodeDefaults,
+            });
+
+            newEdges.push({
+              id: `${supervisorId}-${emp.id}`,
+              source: supervisorId,
+              target: emp.id,
+              type: 'smoothstep',
+              style: { stroke: '#64748b', strokeWidth: 2 },
+            });
+
+            processedNodes.add(emp.id);
+            nextLevel.push(emp.id);
+          }
+        });
+      }
+
+      newNodes.push(...levelNodes);
+      nodesToProcess = nextLevel;
+      currentLevel++;
+    }
 
     setNodes(newNodes);
     setEdges(newEdges);
   }, [setNodes, setEdges]);
 
-  // Update nodes and edges when data changes
   useEffect(() => {
     if (hierarchyData) {
       processHierarchyData(hierarchyData);
@@ -145,8 +173,8 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
 
   const renderNodeContent = useCallback(({ data }: any) => {
     return (
-      <Card className="p-3 min-w-[200px]">
-        <div className="font-medium">{data.label}</div>
+      <Card className="p-4 w-full">
+        <div className="font-medium text-base">{data.label}</div>
         <div className="text-sm text-muted-foreground">{data.subtitle}</div>
         <div className="text-xs text-muted-foreground mt-1">{data.email}</div>
       </Card>
