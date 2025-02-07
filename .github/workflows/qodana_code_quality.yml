@@ -1,28 +1,35 @@
-name: Qodana
+name: Qodana Analysis
+
 on:
-  workflow_dispatch:
-  pull_request:
   push:
-    branches: # Specify your branches here
-      - main # The 'main' branch
-      - 'releases/*' # The release branches
+    branches:
+      - main
+  pull_request:
 
 jobs:
   qodana:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      checks: write
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Qodana Analysis
+        uses: JetBrains/qodana-action@v2023.2
         with:
-          ref: ${{ github.event.pull_request.head.sha }}  # to check out the actual pull request commit, not the merge commit
-          fetch-depth: 0  # a full history is required for pull request analysis
-      - name: 'Qodana Scan'
-        uses: JetBrains/qodana-action@v2024.3
+          use-caches: true
+          upload-result: false # Do NOT upload reports to Qodana Cloud
+          args: "--save-report"
+
+      - name: Annotate Issues
+        uses: JetBrains/qodana-action@v2023.2
         with:
-          pr-mode: false
-        env:
-          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN_1303408814 }}
-          QODANA_ENDPOINT: 'https://qodana.cloud'
+          use-caches: true
+          upload-result: false # Ensures no upload
+          args: "--apply-comments"
+
+      - name: Upload Qodana Report as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qodana-report
+          path: .qodana/results/
+          retention-days: 7
