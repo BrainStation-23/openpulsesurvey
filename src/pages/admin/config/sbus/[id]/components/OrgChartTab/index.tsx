@@ -66,7 +66,11 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
             first_name,
             last_name,
             email,
-            designation
+            designation,
+            employment_type:employment_types(name),
+            employee_type:employee_types(name),
+            employee_role:employee_roles(name),
+            level:levels(name)
           )
         `)
         .eq('id', sbuId)
@@ -84,6 +88,10 @@ export default function OrgChartTab({ sbuId }: OrgChartProps) {
             last_name,
             email,
             designation,
+            employment_type:employment_types(name),
+            employee_type:employee_types(name),
+            employee_role:employee_roles(name),
+            level:levels(name),
             supervisors:user_supervisors!user_supervisors_user_id_fkey (
               is_primary,
               supervisor:profiles!user_supervisors_supervisor_id_fkey (
