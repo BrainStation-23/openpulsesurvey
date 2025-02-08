@@ -1,5 +1,3 @@
-
-// ... Similar changes as employment-type/EmploymentTypeTable.tsx
 import { Power, Pencil, Trash2, ArrowUpDown } from "lucide-react";
 import {
   Table,
@@ -23,6 +21,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface EmployeeRole {
   id: string;
@@ -52,6 +51,22 @@ export function EmployeeRoleTable({
   sortOrder,
   onSort
 }: EmployeeRoleTableProps) {
+  const [tempColors, setTempColors] = useState<Record<string, string>>({});
+
+  const handleColorChange = (id: string, color: string) => {
+    setTempColors(prev => ({ ...prev, [id]: color }));
+  };
+
+  const handleColorSubmit = (id: string) => {
+    if (tempColors[id]) {
+      onColorChange(id, tempColors[id]);
+      setTempColors(prev => {
+        const { [id]: _, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -76,14 +91,31 @@ export function EmployeeRoleTable({
                 <div className="flex items-center gap-2">
                   <div 
                     className="w-6 h-6 rounded border" 
-                    style={{ backgroundColor: role.color_code }}
+                    style={{ backgroundColor: tempColors[role.id] || role.color_code }}
                   />
-                  <Input
-                    type="color"
-                    value={role.color_code}
-                    onChange={(e) => onColorChange(role.id, e.target.value)}
-                    className="w-12 h-8 p-0 border-0"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        Change Color
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-3">
+                      <div className="flex flex-col gap-2">
+                        <Input
+                          type="color"
+                          value={tempColors[role.id] || role.color_code}
+                          onChange={(e) => handleColorChange(role.id, e.target.value)}
+                          className="w-32 h-8"
+                        />
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleColorSubmit(role.id)}
+                        >
+                          Apply Color
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </TableCell>
               <TableCell className="text-center">
