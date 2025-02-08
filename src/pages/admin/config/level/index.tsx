@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { ArrowLeft, Plus, ArrowUpDown } from "lucide-react";
+import { ArrowLeft, Plus, ArrowUpDown, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -36,6 +37,11 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,12 +50,20 @@ const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
 });
 
+const PRESET_COLORS = [
+  "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEEAD",
+  "#D4A5A5", "#9B5DE5", "#F15BB5", "#00BBF9", "#00F5D4",
+  "#E63946", "#457B9D", "#2A9D8F", "#E9C46A", "#E76F51"
+];
+
 export default function LevelConfig() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingLevel, setEditingLevel] = useState<any>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [tempColors, setTempColors] = useState<Record<string, string>>({});
+  const [openColorPicker, setOpenColorPicker] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -129,6 +143,24 @@ export default function LevelConfig() {
     },
   });
 
+  const updateColorMutation = useMutation({
+    mutationFn: async ({ id, color }: { id: string; color: string }) => {
+      const { error } = await supabase
+        .from("levels")
+        .update({ color_code: color })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["levels"] });
+      toast.success("Level color updated");
+    },
+    onError: (error) => {
+      toast.error("Failed to update level color");
+      console.error("Error updating level color:", error);
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("levels").delete().eq("id", id);
@@ -154,6 +186,21 @@ export default function LevelConfig() {
 
   const handleSort = () => {
     setSortOrder(current => current === 'asc' ? 'desc' : 'asc');
+  };
+
+  const handleColorChange = (id: string, color: string) => {
+    setTempColors(prev => ({ ...prev, [id]: color }));
+  };
+
+  const handleColorSubmit = (id: string) => {
+    if (tempColors[id]) {
+      updateColorMutation.mutate({ id, color: tempColors[id] });
+      setTempColors(prev => {
+        const { [id]: _, ...rest } = prev;
+        return rest;
+      });
+      setOpenColorPicker(null);
+    }
   };
 
   return (
@@ -218,8 +265,8 @@ export default function LevelConfig() {
                   <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
               </TableHead>
+              <TableHead>Color</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Created At</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -241,6 +288,67 @@ export default function LevelConfig() {
                 <TableRow key={level.id}>
                   <TableCell>{level.name}</TableCell>
                   <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-6 h-6 rounded border" 
+                        style={{ backgroundColor: tempColors[level.id] || level.color_code }}
+                      />
+                      <Popover 
+                        open={openColorPicker === level.id}
+                        onOpenChange={(open) => {
+                          if (open) {
+                            setOpenColorPicker(level.id);
+                          } else {
+                            setOpenColorPicker(null);
+                          }
+                        }}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            Change Color
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-4">
+                          <div className="space-y-4">
+                            <div className="flex flex-col gap-2">
+                              <label className="text-sm font-medium">Custom Color</label>
+                              <input
+                                type="color"
+                                value={tempColors[level.id] || level.color_code}
+                                onChange={(e) => handleColorChange(level.id, e.target.value)}
+                                className="w-full h-8 cursor-pointer"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Preset Colors</label>
+                              <div className="grid grid-cols-5 gap-2">
+                                {PRESET_COLORS.map((color, index) => (
+                                  <button
+                                    key={index}
+                                    className={`w-6 h-6 rounded-full border-2 transition-all ${
+                                      (tempColors[level.id] || level.color_code) === color
+                                        ? "border-ring scale-110"
+                                        : "border-transparent hover:scale-110"
+                                    }`}
+                                    style={{ backgroundColor: color }}
+                                    onClick={() => handleColorChange(level.id, color)}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <Button 
+                              className="w-full"
+                              onClick={() => handleColorSubmit(level.id)}
+                            >
+                              <Check className="mr-2 h-4 w-4" />
+                              Apply Color
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <Switch
                       checked={level.status === "active"}
                       onCheckedChange={(checked) =>
@@ -250,9 +358,6 @@ export default function LevelConfig() {
                         })
                       }
                     />
-                  </TableCell>
-                  <TableCell>
-                    {new Date(level.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Dialog
