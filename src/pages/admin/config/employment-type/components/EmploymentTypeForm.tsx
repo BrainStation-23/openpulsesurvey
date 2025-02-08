@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 
 const employmentTypeFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  color_code: z.string().min(1, "Color is required"),
 });
 
 type EmploymentTypeFormValues = z.infer<typeof employmentTypeFormSchema>;
@@ -33,6 +35,7 @@ export function EmploymentTypeForm({
     resolver: zodResolver(employmentTypeFormSchema),
     defaultValues: initialValues || {
       name: "",
+      color_code: "#CBD5E1",
     },
   });
 
@@ -47,6 +50,29 @@ export function EmploymentTypeForm({
               <FormLabel>Name</FormLabel>
               <FormControl>
                 <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="color_code"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Color</FormLabel>
+              <FormControl>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-6 h-6 rounded border" 
+                    style={{ backgroundColor: field.value }}
+                  />
+                  <Input
+                    type="color"
+                    {...field}
+                    className="w-20 h-10"
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>

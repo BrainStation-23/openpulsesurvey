@@ -1,3 +1,5 @@
+
+// ... Similar changes as employment-type/EmploymentTypeTable.tsx
 import { Power, Pencil, Trash2, ArrowUpDown } from "lucide-react";
 import {
   Table,
@@ -20,11 +22,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 
 interface EmployeeRole {
   id: string;
   name: string;
   status: 'active' | 'inactive';
+  color_code: string;
 }
 
 interface EmployeeRoleTableProps {
@@ -32,6 +36,7 @@ interface EmployeeRoleTableProps {
   onEdit: (employeeRole: EmployeeRole) => void;
   onDelete: (id: string) => void;
   onToggleStatus: (id: string, newStatus: 'active' | 'inactive') => void;
+  onColorChange: (id: string, color: string) => void;
   isLoading?: boolean;
   sortOrder: 'asc' | 'desc';
   onSort: () => void;
@@ -42,6 +47,7 @@ export function EmployeeRoleTable({
   onEdit, 
   onDelete,
   onToggleStatus,
+  onColorChange,
   isLoading,
   sortOrder,
   onSort
@@ -57,6 +63,7 @@ export function EmployeeRoleTable({
                 <ArrowUpDown className="ml-2 h-4 w-4" />
               </Button>
             </TableHead>
+            <TableHead>Color</TableHead>
             <TableHead className="text-center">Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -65,6 +72,20 @@ export function EmployeeRoleTable({
           {employeeRoles?.map((role) => (
             <TableRow key={role.id}>
               <TableCell>{role.name}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-6 h-6 rounded border" 
+                    style={{ backgroundColor: role.color_code }}
+                  />
+                  <Input
+                    type="color"
+                    value={role.color_code}
+                    onChange={(e) => onColorChange(role.id, e.target.value)}
+                    className="w-12 h-8 p-0 border-0"
+                  />
+                </div>
+              </TableCell>
               <TableCell className="text-center">
                 <Badge variant={role.status === 'active' ? "success" : "secondary"}>
                   {role.status}
@@ -116,7 +137,7 @@ export function EmployeeRoleTable({
           ))}
           {!isLoading && (!employeeRoles || employeeRoles.length === 0) && (
             <TableRow>
-              <TableCell colSpan={3} className="text-center">
+              <TableCell colSpan={4} className="text-center">
                 No employee roles found
               </TableCell>
             </TableRow>

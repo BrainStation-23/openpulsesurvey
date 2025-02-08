@@ -1,4 +1,4 @@
-// ... Similar changes as employee-type/EmployeeTypeTable.tsx, adding the sort button
+
 import { Power, Pencil, Trash2, ArrowUpDown } from "lucide-react";
 import {
   Table,
@@ -21,11 +21,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 
 interface EmploymentType {
   id: string;
   name: string;
   status: 'active' | 'inactive';
+  color_code: string;
 }
 
 interface EmploymentTypeTableProps {
@@ -33,6 +35,7 @@ interface EmploymentTypeTableProps {
   onEdit: (employmentType: EmploymentType) => void;
   onDelete: (id: string) => void;
   onToggleStatus: (id: string, newStatus: 'active' | 'inactive') => void;
+  onColorChange: (id: string, color: string) => void;
   isLoading?: boolean;
   sortOrder: 'asc' | 'desc';
   onSort: () => void;
@@ -43,6 +46,7 @@ export function EmploymentTypeTable({
   onEdit, 
   onDelete,
   onToggleStatus,
+  onColorChange,
   isLoading,
   sortOrder,
   onSort
@@ -58,6 +62,7 @@ export function EmploymentTypeTable({
                 <ArrowUpDown className="ml-2 h-4 w-4" />
               </Button>
             </TableHead>
+            <TableHead>Color</TableHead>
             <TableHead className="text-center">Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -66,6 +71,20 @@ export function EmploymentTypeTable({
           {employmentTypes?.map((type) => (
             <TableRow key={type.id}>
               <TableCell>{type.name}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-6 h-6 rounded border" 
+                    style={{ backgroundColor: type.color_code }}
+                  />
+                  <Input
+                    type="color"
+                    value={type.color_code}
+                    onChange={(e) => onColorChange(type.id, e.target.value)}
+                    className="w-12 h-8 p-0 border-0"
+                  />
+                </div>
+              </TableCell>
               <TableCell className="text-center">
                 <Badge variant={type.status === 'active' ? "success" : "secondary"}>
                   {type.status}
@@ -117,7 +136,7 @@ export function EmploymentTypeTable({
           ))}
           {!isLoading && (!employmentTypes || employmentTypes.length === 0) && (
             <TableRow>
-              <TableCell colSpan={3} className="text-center">
+              <TableCell colSpan={4} className="text-center">
                 No employment types found
               </TableCell>
             </TableRow>
