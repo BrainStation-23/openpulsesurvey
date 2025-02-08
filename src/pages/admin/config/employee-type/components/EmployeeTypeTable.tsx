@@ -1,6 +1,4 @@
-
-import { useState } from "react";
-import { Power, Pencil, Trash2, ArrowUpDown, Check } from "lucide-react";
+import { Power, Pencil, Trash2, ArrowUpDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -22,19 +20,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 interface EmployeeType {
   id: string;
   name: string;
   status: 'active' | 'inactive';
-  color_code: string;
 }
 
 interface EmployeeTypeTableProps {
@@ -42,46 +32,20 @@ interface EmployeeTypeTableProps {
   onEdit: (employeeType: EmployeeType) => void;
   onDelete: (id: string) => void;
   onToggleStatus: (id: string, newStatus: 'active' | 'inactive') => void;
-  onColorChange: (id: string, color: string) => void;
   isLoading?: boolean;
   sortOrder: 'asc' | 'desc';
   onSort: () => void;
 }
-
-const PRESET_COLORS = [
-  "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEEAD",
-  "#D4A5A5", "#9B5DE5", "#F15BB5", "#00BBF9", "#00F5D4",
-  "#E63946", "#457B9D", "#2A9D8F", "#E9C46A", "#E76F51"
-];
 
 export function EmployeeTypeTable({ 
   employeeTypes, 
   onEdit, 
   onDelete,
   onToggleStatus,
-  onColorChange,
   isLoading,
   sortOrder,
   onSort
 }: EmployeeTypeTableProps) {
-  const [tempColors, setTempColors] = useState<Record<string, string>>({});
-  const [openColorDialog, setOpenColorDialog] = useState<string | null>(null);
-
-  const handleColorChange = (id: string, color: string) => {
-    setTempColors(prev => ({ ...prev, [id]: color }));
-  };
-
-  const handleColorSubmit = (id: string) => {
-    if (tempColors[id]) {
-      onColorChange(id, tempColors[id]);
-      setTempColors(prev => {
-        const { [id]: _, ...rest } = prev;
-        return rest;
-      });
-      setOpenColorDialog(null);
-    }
-  };
-
   return (
     <div className="rounded-md border">
       <Table>
@@ -90,10 +54,9 @@ export function EmployeeTypeTable({
             <TableHead>
               <Button variant="ghost" onClick={onSort} className="h-8 p-0">
                 Name
-                <ArrowUpDown className="ml-2 h-4 w-4" />
+                <ArrowUpDown className="ml-2 h-4 w-4"/>
               </Button>
             </TableHead>
-            <TableHead>Color</TableHead>
             <TableHead className="text-center">Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -102,78 +65,6 @@ export function EmployeeTypeTable({
           {employeeTypes?.map((type) => (
             <TableRow key={type.id}>
               <TableCell>{type.name}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-6 h-6 rounded border" 
-                    style={{ backgroundColor: tempColors[type.id] || type.color_code }}
-                  />
-                  <Dialog 
-                    open={openColorDialog === type.id} 
-                    onOpenChange={(open) => {
-                      if (open) {
-                        setOpenColorDialog(type.id);
-                        // Initialize temp color with current color when opening
-                        setTempColors(prev => ({ ...prev, [type.id]: type.color_code }));
-                      } else {
-                        setOpenColorDialog(null);
-                      }
-                    }}
-                  >
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        Change Color
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Change Color</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="flex flex-col gap-2">
-                          <label className="text-sm font-medium">Custom Color</label>
-                          <div className="flex items-center gap-4">
-                            <input
-                              type="color"
-                              value={tempColors[type.id] || type.color_code}
-                              onChange={(e) => handleColorChange(type.id, e.target.value)}
-                              className="w-full h-10 cursor-pointer rounded border"
-                            />
-                            <div 
-                              className="w-10 h-10 rounded border"
-                              style={{ backgroundColor: tempColors[type.id] || type.color_code }}
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Preset Colors</label>
-                          <div className="grid grid-cols-5 gap-2">
-                            {PRESET_COLORS.map((color, index) => (
-                              <button
-                                key={index}
-                                className={`w-8 h-8 rounded-full border-2 transition-all ${
-                                  (tempColors[type.id] || type.color_code) === color
-                                    ? "border-ring scale-110"
-                                    : "border-transparent hover:scale-110"
-                                }`}
-                                style={{ backgroundColor: color }}
-                                onClick={() => handleColorChange(type.id, color)}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        <Button 
-                          className="w-full mt-4"
-                          onClick={() => handleColorSubmit(type.id)}
-                        >
-                          <Check className="mr-2 h-4 w-4" />
-                          Apply Color
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </TableCell>
               <TableCell className="text-center">
                 <Badge variant={type.status === 'active' ? "success" : "secondary"}>
                   {type.status}
@@ -225,7 +116,7 @@ export function EmployeeTypeTable({
           ))}
           {!isLoading && (!employeeTypes || employeeTypes.length === 0) && (
             <TableRow>
-              <TableCell colSpan={4} className="text-center">
+              <TableCell colSpan={3} className="text-center">
                 No employee types found
               </TableCell>
             </TableRow>

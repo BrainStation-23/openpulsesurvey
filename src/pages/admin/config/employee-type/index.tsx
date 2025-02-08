@@ -145,34 +145,6 @@ export default function EmployeeTypeConfig() {
     },
   });
 
-  const updateColorMutation = useMutation({
-    mutationFn: async ({ id, color }: { id: string; color: string }) => {
-      const { data, error } = await supabase
-        .from('employee_types')
-        .update({ color_code: color })
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['employee-types'] });
-      toast({
-        title: "Success",
-        description: "Color updated successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update color",
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleSubmit = (values: { name: string }) => {
     if (selectedType) {
       updateMutation.mutate({ id: selectedType.id, name: values.name });
@@ -192,10 +164,6 @@ export default function EmployeeTypeConfig() {
 
   const handleToggleStatus = (id: string, newStatus: 'active' | 'inactive') => {
     toggleStatusMutation.mutate({ id, newStatus });
-  };
-
-  const handleColorChange = (id: string, color: string) => {
-    updateColorMutation.mutate({ id, color });
   };
 
   const handleSort = () => {
@@ -233,7 +201,6 @@ export default function EmployeeTypeConfig() {
         onEdit={handleEdit}
         onDelete={handleDelete}
         onToggleStatus={handleToggleStatus}
-        onColorChange={handleColorChange}
         isLoading={isLoading}
         sortOrder={sortOrder}
         onSort={handleSort}
