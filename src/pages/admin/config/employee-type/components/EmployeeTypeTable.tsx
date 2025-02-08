@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Power, Pencil, Trash2, ArrowUpDown, Check } from "lucide-react";
 import {
@@ -22,10 +23,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface EmployeeType {
   id: string;
@@ -62,7 +65,7 @@ export function EmployeeTypeTable({
   onSort
 }: EmployeeTypeTableProps) {
   const [tempColors, setTempColors] = useState<Record<string, string>>({});
-  const [openColorPicker, setOpenColorPicker] = useState<string | null>(null);
+  const [openColorDialog, setOpenColorDialog] = useState<string | null>(null);
 
   const handleColorChange = (id: string, color: string) => {
     setTempColors(prev => ({ ...prev, [id]: color }));
@@ -75,7 +78,7 @@ export function EmployeeTypeTable({
         const { [id]: _, ...rest } = prev;
         return rest;
       });
-      setOpenColorPicker(null);
+      setOpenColorDialog(null);
     }
   };
 
@@ -105,28 +108,42 @@ export function EmployeeTypeTable({
                     className="w-6 h-6 rounded border" 
                     style={{ backgroundColor: tempColors[type.id] || type.color_code }}
                   />
-                  <Popover open={openColorPicker === type.id} onOpenChange={(open) => {
-                    if (open) {
-                      setOpenColorPicker(type.id);
-                    } else {
-                      setOpenColorPicker(null);
-                    }
-                  }}>
-                    <PopoverTrigger asChild>
+                  <Dialog 
+                    open={openColorDialog === type.id} 
+                    onOpenChange={(open) => {
+                      if (open) {
+                        setOpenColorDialog(type.id);
+                        // Initialize temp color with current color when opening
+                        setTempColors(prev => ({ ...prev, [type.id]: type.color_code }));
+                      } else {
+                        setOpenColorDialog(null);
+                      }
+                    }}
+                  >
+                    <DialogTrigger asChild>
                       <Button variant="outline" size="sm">
                         Change Color
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-4">
-                      <div className="space-y-4">
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Change Color</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
                         <div className="flex flex-col gap-2">
                           <label className="text-sm font-medium">Custom Color</label>
-                          <input
-                            type="color"
-                            value={tempColors[type.id] || type.color_code}
-                            onChange={(e) => handleColorChange(type.id, e.target.value)}
-                            className="w-full h-8 cursor-pointer"
-                          />
+                          <div className="flex items-center gap-4">
+                            <input
+                              type="color"
+                              value={tempColors[type.id] || type.color_code}
+                              onChange={(e) => handleColorChange(type.id, e.target.value)}
+                              className="w-full h-10 cursor-pointer rounded border"
+                            />
+                            <div 
+                              className="w-10 h-10 rounded border"
+                              style={{ backgroundColor: tempColors[type.id] || type.color_code }}
+                            />
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Preset Colors</label>
@@ -134,7 +151,7 @@ export function EmployeeTypeTable({
                             {PRESET_COLORS.map((color, index) => (
                               <button
                                 key={index}
-                                className={`w-6 h-6 rounded-full border-2 transition-all ${
+                                className={`w-8 h-8 rounded-full border-2 transition-all ${
                                   (tempColors[type.id] || type.color_code) === color
                                     ? "border-ring scale-110"
                                     : "border-transparent hover:scale-110"
@@ -146,15 +163,15 @@ export function EmployeeTypeTable({
                           </div>
                         </div>
                         <Button 
-                          className="w-full"
+                          className="w-full mt-4"
                           onClick={() => handleColorSubmit(type.id)}
                         >
                           <Check className="mr-2 h-4 w-4" />
                           Apply Color
                         </Button>
                       </div>
-                    </PopoverContent>
-                  </Popover>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </TableCell>
               <TableCell className="text-center">
