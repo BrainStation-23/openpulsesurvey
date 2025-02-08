@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { Power, Pencil, Trash2, ArrowUpDown } from "lucide-react";
+import { Power, Pencil, Trash2, ArrowUpDown, Check } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -22,8 +21,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface EmployeeRole {
   id: string;
@@ -43,6 +45,12 @@ interface EmployeeRoleTableProps {
   onSort: () => void;
 }
 
+const PRESET_COLORS = [
+  "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEEAD",
+  "#D4A5A5", "#9B5DE5", "#F15BB5", "#00BBF9", "#00F5D4",
+  "#E63946", "#457B9D", "#2A9D8F", "#E9C46A", "#E76F51"
+];
+
 export function EmployeeRoleTable({ 
   employeeRoles, 
   onEdit, 
@@ -54,6 +62,7 @@ export function EmployeeRoleTable({
   onSort
 }: EmployeeRoleTableProps) {
   const [tempColors, setTempColors] = useState<Record<string, string>>({});
+  const [openColorPicker, setOpenColorPicker] = useState<string | null>(null);
 
   const handleColorChange = (id: string, color: string) => {
     setTempColors(prev => ({ ...prev, [id]: color }));
@@ -66,6 +75,7 @@ export function EmployeeRoleTable({
         const { [id]: _, ...rest } = prev;
         return rest;
       });
+      setOpenColorPicker(null);
     }
   };
 
@@ -95,24 +105,51 @@ export function EmployeeRoleTable({
                     className="w-6 h-6 rounded border" 
                     style={{ backgroundColor: tempColors[role.id] || role.color_code }}
                   />
-                  <Popover>
+                  <Popover open={openColorPicker === role.id} onOpenChange={(open) => {
+                    if (open) {
+                      setOpenColorPicker(role.id);
+                    } else {
+                      setOpenColorPicker(null);
+                    }
+                  }}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="sm">
                         Change Color
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-3">
-                      <div className="flex flex-col gap-2">
-                        <Input
-                          type="color"
-                          value={tempColors[role.id] || role.color_code}
-                          onChange={(e) => handleColorChange(role.id, e.target.value)}
-                          className="w-32 h-8"
-                        />
+                    <PopoverContent className="w-auto p-4">
+                      <div className="space-y-4">
+                        <div className="flex flex-col gap-2">
+                          <label className="text-sm font-medium">Custom Color</label>
+                          <input
+                            type="color"
+                            value={tempColors[role.id] || role.color_code}
+                            onChange={(e) => handleColorChange(role.id, e.target.value)}
+                            className="w-full h-8 cursor-pointer"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Preset Colors</label>
+                          <div className="grid grid-cols-5 gap-2">
+                            {PRESET_COLORS.map((color, index) => (
+                              <button
+                                key={index}
+                                className={`w-6 h-6 rounded-full border-2 transition-all ${
+                                  (tempColors[role.id] || role.color_code) === color
+                                    ? "border-ring scale-110"
+                                    : "border-transparent hover:scale-110"
+                                }`}
+                                style={{ backgroundColor: color }}
+                                onClick={() => handleColorChange(role.id, color)}
+                              />
+                            ))}
+                          </div>
+                        </div>
                         <Button 
-                          size="sm" 
+                          className="w-full"
                           onClick={() => handleColorSubmit(role.id)}
                         >
+                          <Check className="mr-2 h-4 w-4" />
                           Apply Color
                         </Button>
                       </div>
