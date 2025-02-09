@@ -1,3 +1,4 @@
+
 import { Power, Pencil, Trash2, ArrowUpDown } from "lucide-react";
 import {
   Table,
@@ -20,32 +21,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ConfigTableProps, ConfigItem } from "./types";
 
-interface EmployeeRole {
-  id: string;
-  name: string;
-  status: 'active' | 'inactive';
-}
-
-interface EmployeeRoleTableProps {
-  employeeRoles: EmployeeRole[];
-  onEdit: (employeeRole: EmployeeRole) => void;
-  onDelete: (id: string) => void;
-  onToggleStatus: (id: string, newStatus: 'active' | 'inactive') => void;
-  isLoading?: boolean;
-  sortOrder: 'asc' | 'desc';
-  onSort: () => void;
-}
-
-export function EmployeeRoleTable({ 
-  employeeRoles, 
+export function ConfigTable<T extends ConfigItem>({ 
+  items, 
   onEdit, 
   onDelete,
   onToggleStatus,
   isLoading,
   sortOrder,
   onSort
-}: EmployeeRoleTableProps) {
+}: ConfigTableProps<T>) {
   return (
     <div className="rounded-md border">
       <Table>
@@ -57,17 +43,29 @@ export function EmployeeRoleTable({
                 <ArrowUpDown className="ml-2 h-4 w-4" />
               </Button>
             </TableHead>
+            <TableHead>Color</TableHead>
             <TableHead className="text-center">Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {employeeRoles?.map((role) => (
-            <TableRow key={role.id}>
-              <TableCell>{role.name}</TableCell>
+          {items?.map((item) => (
+            <TableRow key={item.id}>
+              <TableCell>{item.name}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-6 h-6 rounded border"
+                    style={{ backgroundColor: item.color_code || '#CBD5E1' }}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {item.color_code || '#CBD5E1'}
+                  </span>
+                </div>
+              </TableCell>
               <TableCell className="text-center">
-                <Badge variant={role.status === 'active' ? "success" : "secondary"}>
-                  {role.status}
+                <Badge variant={item.status === 'active' ? "success" : "secondary"}>
+                  {item.status}
                 </Badge>
               </TableCell>
               <TableCell>
@@ -75,14 +73,14 @@ export function EmployeeRoleTable({
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onToggleStatus(role.id, role.status === 'active' ? 'inactive' : 'active')}
+                    onClick={() => onToggleStatus(item.id, item.status === 'active' ? 'inactive' : 'active')}
                   >
                     <Power className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onEdit(role)}
+                    onClick={() => onEdit(item)}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -94,15 +92,15 @@ export function EmployeeRoleTable({
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Employee Role</AlertDialogTitle>
+                        <AlertDialogTitle>Delete Item</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete {role.name}? This action cannot be undone.
+                          Are you sure you want to delete {item.name}? This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => onDelete(role.id)}
+                          onClick={() => onDelete(item.id)}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                           Delete
@@ -114,10 +112,10 @@ export function EmployeeRoleTable({
               </TableCell>
             </TableRow>
           ))}
-          {!isLoading && (!employeeRoles || employeeRoles.length === 0) && (
+          {!isLoading && (!items || items.length === 0) && (
             <TableRow>
-              <TableCell colSpan={3} className="text-center">
-                No employee roles found
+              <TableCell colSpan={4} className="text-center">
+                No items found
               </TableCell>
             </TableRow>
           )}
