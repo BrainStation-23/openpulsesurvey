@@ -23,10 +23,10 @@ export default function EmploymentTypeConfig() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (values: { name: string }) => {
+    mutationFn: async (values: { name: string; color_code?: string }) => {
       const { data, error } = await supabase
         .from('employment_types')
-        .insert([{ name: values.name }])
+        .insert([{ name: values.name, color_code: values.color_code }])
         .select()
         .single();
       
@@ -43,10 +43,10 @@ export default function EmploymentTypeConfig() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+    mutationFn: async ({ id, ...values }: { id: string; name: string; color_code?: string }) => {
       const { data, error } = await supabase
         .from('employment_types')
-        .update({ name })
+        .update({ name: values.name, color_code: values.color_code })
         .eq('id', id)
         .select()
         .single();
