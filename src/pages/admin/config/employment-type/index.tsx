@@ -1,4 +1,4 @@
-// ... Similar changes as employee-type/index.tsx, updating the query to include sorting
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,10 +13,16 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { EmploymentTypeForm } from "./components/EmploymentTypeForm";
-import { EmploymentTypeTable } from "./components/EmploymentTypeTable";
+import { ConfigTable } from "@/components/shared/config/ConfigTable";
+
+interface EmploymentType {
+  id: string;
+  name: string;
+  status: 'active' | 'inactive';
+}
 
 export default function EmploymentTypeConfig() {
-  const [selectedType, setSelectedType] = useState<any>(null);
+  const [selectedType, setSelectedType] = useState<EmploymentType | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const queryClient = useQueryClient();
@@ -154,7 +160,7 @@ export default function EmploymentTypeConfig() {
     }
   };
 
-  const handleEdit = (type: any) => {
+  const handleEdit = (type: EmploymentType) => {
     setSelectedType(type);
     setIsDialogOpen(true);
   };
@@ -197,14 +203,15 @@ export default function EmploymentTypeConfig() {
         </Dialog>
       </div>
 
-      <EmploymentTypeTable
-        employmentTypes={employmentTypes || []}
+      <ConfigTable<EmploymentType>
+        items={employmentTypes || []}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onToggleStatus={handleToggleStatus}
         isLoading={isLoading}
         sortOrder={sortOrder}
         onSort={handleSort}
+        itemName="Employment Type"
       />
     </div>
   );
