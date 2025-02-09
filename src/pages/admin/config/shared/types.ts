@@ -3,13 +3,14 @@ export interface ConfigItem {
   id: string;
   name: string;
   status: 'active' | 'inactive';
+  color_code?: string;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface ConfigFormProps {
-  onSubmit: (values: { name: string }) => void;
-  initialValues?: { name: string };
+  onSubmit: (values: { name: string; color_code?: string }) => void;
+  initialValues?: { name: string; color_code?: string };
   submitLabel?: string;
 }
 
@@ -29,8 +30,8 @@ export interface ConfigPageProps<T extends ConfigItem> {
   isLoading: boolean;
   sortOrder: 'asc' | 'desc';
   onSort: () => void;
-  onCreate: (values: { name: string }) => void;
-  onUpdate: (id: string, values: { name: string }) => void;
+  onCreate: (values: { name: string; color_code?: string }) => void;
+  onUpdate: (id: string, values: { name: string; color_code?: string }) => void;
   onDelete: (id: string) => void;
   onToggleStatus: (id: string, newStatus: 'active' | 'inactive') => void;
 }

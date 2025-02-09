@@ -16,6 +16,7 @@ import { ConfigFormProps } from "./types";
 
 const configFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  color_code: z.string().optional(),
 });
 
 export function ConfigForm({ 
@@ -27,6 +28,7 @@ export function ConfigForm({
     resolver: zodResolver(configFormSchema),
     defaultValues: initialValues || {
       name: "",
+      color_code: "#CBD5E1",
     },
   });
 
@@ -41,6 +43,31 @@ export function ConfigForm({
               <FormLabel>Name</FormLabel>
               <FormControl>
                 <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="color_code"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Color</FormLabel>
+              <FormControl>
+                <div className="flex gap-2 items-center">
+                  <Input 
+                    type="color" 
+                    {...field} 
+                    className="w-12 h-12 p-1 cursor-pointer"
+                  />
+                  <Input 
+                    type="text" 
+                    {...field} 
+                    className="flex-1"
+                    placeholder="#CBD5E1"
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>

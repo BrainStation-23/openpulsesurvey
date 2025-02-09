@@ -43,6 +43,7 @@ export function ConfigTable<T extends ConfigItem>({
                 <ArrowUpDown className="ml-2 h-4 w-4" />
               </Button>
             </TableHead>
+            <TableHead>Color</TableHead>
             <TableHead className="text-center">Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -51,6 +52,17 @@ export function ConfigTable<T extends ConfigItem>({
           {items?.map((item) => (
             <TableRow key={item.id}>
               <TableCell>{item.name}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-6 h-6 rounded border"
+                    style={{ backgroundColor: item.color_code || '#CBD5E1' }}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {item.color_code || '#CBD5E1'}
+                  </span>
+                </div>
+              </TableCell>
               <TableCell className="text-center">
                 <Badge variant={item.status === 'active' ? "success" : "secondary"}>
                   {item.status}
@@ -102,7 +114,7 @@ export function ConfigTable<T extends ConfigItem>({
           ))}
           {!isLoading && (!items || items.length === 0) && (
             <TableRow>
-              <TableCell colSpan={3} className="text-center">
+              <TableCell colSpan={4} className="text-center">
                 No items found
               </TableCell>
             </TableRow>
