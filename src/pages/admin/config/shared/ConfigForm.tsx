@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,26 +12,19 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ConfigFormProps } from "./types";
 
-const employeeRoleFormSchema = z.object({
+const configFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
 });
 
-type EmployeeRoleFormValues = z.infer<typeof employeeRoleFormSchema>;
-
-interface EmployeeRoleFormProps {
-  onSubmit: (values: EmployeeRoleFormValues) => void;
-  initialValues?: EmployeeRoleFormValues;
-  submitLabel?: string;
-}
-
-export function EmployeeRoleForm({ 
+export function ConfigForm({ 
   onSubmit, 
   initialValues,
-  submitLabel = "Create Employee Role" 
-}: EmployeeRoleFormProps) {
-  const form = useForm<EmployeeRoleFormValues>({
-    resolver: zodResolver(employeeRoleFormSchema),
+  submitLabel = "Create" 
+}: ConfigFormProps) {
+  const form = useForm<z.infer<typeof configFormSchema>>({
+    resolver: zodResolver(configFormSchema),
     defaultValues: initialValues || {
       name: "",
     },
