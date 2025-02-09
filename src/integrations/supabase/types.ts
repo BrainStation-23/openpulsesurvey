@@ -99,7 +99,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
-          status: Database["public"]["Enums"]["employee_role_status"]
+          status: Database["public"]["Enums"]["config_status"]
           updated_at: string
         }
         Insert: {
@@ -107,7 +107,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
-          status?: Database["public"]["Enums"]["employee_role_status"]
+          status?: Database["public"]["Enums"]["config_status"]
           updated_at?: string
         }
         Update: {
@@ -115,7 +115,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
-          status?: Database["public"]["Enums"]["employee_role_status"]
+          status?: Database["public"]["Enums"]["config_status"]
           updated_at?: string
         }
         Relationships: []
@@ -126,7 +126,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
-          status: Database["public"]["Enums"]["employee_type_status"]
+          status: Database["public"]["Enums"]["config_status"]
           updated_at: string
         }
         Insert: {
@@ -134,7 +134,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
-          status?: Database["public"]["Enums"]["employee_type_status"]
+          status?: Database["public"]["Enums"]["config_status"]
           updated_at?: string
         }
         Update: {
@@ -142,7 +142,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
-          status?: Database["public"]["Enums"]["employee_type_status"]
+          status?: Database["public"]["Enums"]["config_status"]
           updated_at?: string
         }
         Relationships: []
@@ -153,7 +153,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
-          status: Database["public"]["Enums"]["employment_type_status"]
+          status: Database["public"]["Enums"]["config_status"]
           updated_at: string
         }
         Insert: {
@@ -161,7 +161,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
-          status?: Database["public"]["Enums"]["employment_type_status"]
+          status?: Database["public"]["Enums"]["config_status"]
           updated_at?: string
         }
         Update: {
@@ -169,7 +169,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
-          status?: Database["public"]["Enums"]["employment_type_status"]
+          status?: Database["public"]["Enums"]["config_status"]
           updated_at?: string
         }
         Relationships: []
@@ -180,7 +180,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
-          status: Database["public"]["Enums"]["level_status"] | null
+          status: Database["public"]["Enums"]["config_status"] | null
           updated_at: string
         }
         Insert: {
@@ -188,7 +188,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
-          status?: Database["public"]["Enums"]["level_status"] | null
+          status?: Database["public"]["Enums"]["config_status"] | null
           updated_at?: string
         }
         Update: {
@@ -196,7 +196,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
-          status?: Database["public"]["Enums"]["level_status"] | null
+          status?: Database["public"]["Enums"]["config_status"] | null
           updated_at?: string
         }
         Relationships: []
@@ -1013,6 +1013,7 @@ export type Database = {
     Enums: {
       assignment_status: "pending" | "completed" | "expired"
       campaign_status: "draft" | "active" | "completed" | "archived"
+      config_status: "active" | "inactive"
       email_provider: "resend"
       employee_role_status: "active" | "inactive"
       employee_type_status: "active" | "inactive"
