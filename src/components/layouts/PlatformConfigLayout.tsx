@@ -20,14 +20,14 @@ const navigationItems = [
     path: "/admin/config/email",
   },
   {
-    title: "Level",
-    icon: Layers,
-    path: "/admin/config/level",
-  },
-  {
     title: "Location",
     icon: MapPin,
     path: "/admin/config/location",
+  },
+  {
+    title: "Level",
+    icon: Layers,
+    path: "/admin/config/level",
   },
   {
     title: "Employment Type",

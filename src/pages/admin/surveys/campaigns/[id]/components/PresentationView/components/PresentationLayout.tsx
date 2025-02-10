@@ -38,9 +38,9 @@ export function PresentationLayout({ children, progress, isFullscreen, className
       </div>
 
       {/* Main content */}
-      <div className="relative h-full overflow-hidden pt-16"> {/* Added pt-16 to account for the controls */}
+      <div className="relative h-full overflow-hidden pt-4"> {/* Added pt-16 to account for the controls */}
         <div className="h-full p-8">
-          <div className="relative max-w-6xl mx-auto h-full">
+          <div className="relative max-w-full mx-auto h-full">
             {content}
           </div>
         </div>
