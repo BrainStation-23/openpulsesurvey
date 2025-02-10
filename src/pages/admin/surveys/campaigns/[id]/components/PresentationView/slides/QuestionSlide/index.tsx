@@ -1,3 +1,4 @@
+
 import { SlideProps } from "../../types";
 import { ComparisonDimension } from "../../types/comparison";
 import { QuestionSlideLayout } from "./QuestionSlideLayout";
@@ -9,6 +10,7 @@ import { useQuestionData } from "./useQuestionData";
 import { usePresentationResponses } from "../../hooks/usePresentationResponses";
 import { ComparisonLayout } from "../../components/ComparisonLayout";
 import { BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
+import { BooleanComparison } from "../../../ReportsTab/components/comparisons/BooleanComparison";
 
 interface QuestionSlideProps extends SlideProps {
   questionName: string;
@@ -41,7 +43,7 @@ export function QuestionSlide({
     return titles[dim] || "";
   };
 
-  if (!processedData) return null;
+  if (!processedData && !data?.responses) return null;
 
   return (
     <QuestionSlideLayout
@@ -67,11 +69,20 @@ export function QuestionSlide({
         </div>
       ) : (
         <ComparisonLayout title={getDimensionTitle(slideType)}>
-          <ComparisonView 
-            data={processedData}
-            isNps={isNps}
-            dimensionTitle={getDimensionTitle(slideType)}
-          />
+          {questionType === "boolean" ? (
+            <BooleanComparison 
+              responses={data.responses} 
+              questionName={questionName}
+              dimension={slideType}
+              layout="grid"
+            />
+          ) : (
+            <ComparisonView 
+              data={processedData}
+              isNps={isNps}
+              dimensionTitle={getDimensionTitle(slideType)}
+            />
+          )}
         </ComparisonLayout>
       )}
     </QuestionSlideLayout>
