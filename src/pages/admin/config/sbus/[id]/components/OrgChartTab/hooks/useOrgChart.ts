@@ -5,8 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Edge } from '@xyflow/react';
 import { HierarchyData, UserNode, nodeDefaults } from '../types';
 
-const VERTICAL_SPACING = 120;
+const VERTICAL_SPACING = 180; // Increased from 120 to account for node height
 const HORIZONTAL_SPACING = 400;
+const NODE_HEIGHT = 140; // Approximate height of a node card
 
 export const useOrgChart = (sbuId: string | undefined) => {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
@@ -163,9 +164,12 @@ export const useOrgChart = (sbuId: string | undefined) => {
 
         directReports.forEach((node, index) => {
           if (!processedNodes.has(node.id)) {
+            // Calculate Y position based on parent node's position plus node height and spacing
+            const yPosition = parentNode.position.y + NODE_HEIGHT + VERTICAL_SPACING;
+            
             node.position = {
               x: currentX + index * HORIZONTAL_SPACING,
-              y: level * VERTICAL_SPACING,
+              y: yPosition,
             };
             node.data.hasChildren = !!nodesByManager[node.id]?.length;
             newNodes.push(node);
@@ -189,7 +193,8 @@ export const useOrgChart = (sbuId: string | undefined) => {
       positionNodes(data.sbu.head.id, 1, 400, headNode);
 
       if (orphanedNodes.length > 0) {
-        const orphanedY = Math.max(...newNodes.map((n) => n.position.y)) + VERTICAL_SPACING * 2;
+        const maxY = Math.max(...newNodes.map((n) => n.position.y));
+        const orphanedY = maxY + NODE_HEIGHT + VERTICAL_SPACING;
         orphanedNodes.forEach((node, index) => {
           if (!processedNodes.has(node.id)) {
             node.position = {

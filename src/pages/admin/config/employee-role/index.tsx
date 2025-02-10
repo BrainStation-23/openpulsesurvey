@@ -2,13 +2,12 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { ConfigPage } from "../shared/ConfigPage";
 
 export default function EmployeeRoleConfig() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const { data: employeeRoles, isLoading } = useQuery({
     queryKey: ['employee-roles', sortOrder],
@@ -24,10 +23,10 @@ export default function EmployeeRoleConfig() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (values: { name: string }) => {
+    mutationFn: async (values: { name: string; color_code?: string }) => {
       const { data, error } = await supabase
         .from('employee_roles')
-        .insert([{ name: values.name }])
+        .insert([{ name: values.name, color_code: values.color_code }])
         .select()
         .single();
       
@@ -36,25 +35,18 @@ export default function EmployeeRoleConfig() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employee-roles'] });
-      toast({
-        title: "Success",
-        description: "Employee role created successfully",
-      });
+      toast.success("Employee role created successfully");
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to create employee role",
-        variant: "destructive",
-      });
+      toast.error("Failed to create employee role");
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+    mutationFn: async ({ id, ...values }: { id: string; name: string; color_code?: string }) => {
       const { data, error } = await supabase
         .from('employee_roles')
-        .update({ name })
+        .update({ name: values.name, color_code: values.color_code })
         .eq('id', id)
         .select()
         .single();
@@ -64,17 +56,10 @@ export default function EmployeeRoleConfig() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employee-roles'] });
-      toast({
-        title: "Success",
-        description: "Employee role updated successfully",
-      });
+      toast.success("Employee role updated successfully");
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update employee role",
-        variant: "destructive",
-      });
+      toast.error("Failed to update employee role");
     },
   });
 
@@ -89,17 +74,10 @@ export default function EmployeeRoleConfig() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employee-roles'] });
-      toast({
-        title: "Success",
-        description: "Employee role deleted successfully",
-      });
+      toast.success("Employee role deleted successfully");
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to delete employee role",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete employee role");
     },
   });
 
@@ -117,17 +95,10 @@ export default function EmployeeRoleConfig() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employee-roles'] });
-      toast({
-        title: "Success",
-        description: "Employee role status updated successfully",
-      });
+      toast.success("Employee role status updated successfully");
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update employee role status",
-        variant: "destructive",
-      });
+      toast.error("Failed to update employee role status");
     },
   });
 
