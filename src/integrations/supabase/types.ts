@@ -737,6 +737,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_sbus_sbu_id_fkey"
+            columns: ["sbu_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_sbus"
+            referencedColumns: ["sbu_id"]
+          },
+          {
             foreignKeyName: "user_sbus_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -945,6 +952,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      top_performing_sbus: {
+        Row: {
+          average_score: number | null
+          rank: number | null
+          sbu_id: string | null
+          sbu_name: string | null
+          total_ratings: number | null
+          total_respondents: number | null
+        }
+        Relationships: []
       }
       top_performing_surveys: {
         Row: {
