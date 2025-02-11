@@ -10,7 +10,7 @@ type TopSBU = {
   sbu_name: string;
   total_respondents: number;
   total_ratings: number;
-  average_score: number;
+  average_score: number | null;
   rank: number;
 };
 
@@ -83,7 +83,7 @@ export function TopSBUsTable() {
                 <TableCell className="text-right">{sbu.total_respondents}</TableCell>
                 <TableCell className="text-right">{sbu.total_ratings}</TableCell>
                 <TableCell className="text-right font-medium">
-                  {sbu.average_score.toFixed(1)}%
+                  {sbu.average_score !== null ? `${sbu.average_score.toFixed(1)}%` : 'N/A'}
                 </TableCell>
               </TableRow>
             ))}
