@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -30,13 +31,33 @@ export default function CampaignDetailsPage() {
   });
 
   const { data: assignments, isLoading: isLoadingAssignments } = useQuery({
-    queryKey: ["campaign-assignments", id],
+    queryKey: ["campaign-assignments", id, selectedInstanceId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("survey_assignments")
-        .select(`
+      let query = supabase.rpc('get_assignment_instance_status', {
+        p_assignment_id: 'assignment.id',
+        p_instance_id: selectedInstanceId
+      }).from("survey_assignments").select(`
+        id,
+        status,
+        due_date,
+        user:profiles!survey_assignments_user_id_fkey (
           id,
-          status,
+          email,
+          first_name,
+          last_name,
+          user_sbus (
+            is_primary,
+            sbu:sbus (
+              id,
+              name
+            )
+          )
+        )
+      `).eq("campaign_id", id);
+
+      if (selectedInstanceId) {
+        query = query.select(`
+          id,
           due_date,
           user:profiles!survey_assignments_user_id_fkey (
             id,
@@ -50,13 +71,17 @@ export default function CampaignDetailsPage() {
                 name
               )
             )
-          )
-        `)
-        .eq("campaign_id", id);
+          ),
+          status:get_assignment_instance_status(id, '${selectedInstanceId}')
+        `);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data;
     },
+    enabled: !!id,
   });
 
   if (!id) return null;
@@ -90,6 +115,7 @@ export default function CampaignDetailsPage() {
             isLoading={isLoadingAssignments}
             campaignId={id}
             surveyId={campaign?.survey_id}
+            selectedInstanceId={selectedInstanceId}
           />
         </TabPanel>
         {(

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -9,13 +10,15 @@ interface AssignmentInstanceListProps {
   isLoading?: boolean;
   campaignId?: string;
   surveyId?: string;
+  selectedInstanceId?: string;
 }
 
 export function AssignmentInstanceList({ 
   assignments, 
   isLoading,
   campaignId,
-  surveyId
+  surveyId,
+  selectedInstanceId
 }: AssignmentInstanceListProps) {
   if (isLoading) {
     return <div>Loading assignments...</div>;

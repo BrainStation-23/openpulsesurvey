@@ -992,6 +992,13 @@ export type Database = {
       }
     }
     Functions: {
+      get_assignment_instance_status: {
+        Args: {
+          p_assignment_id: string
+          p_instance_id: string
+        }
+        Returns: Database["public"]["Enums"]["assignment_status"]
+      }
       is_admin: {
         Args: {
           user_uid: string
