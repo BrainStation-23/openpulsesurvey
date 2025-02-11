@@ -1,3 +1,4 @@
+
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { ResponseTrendChart } from "@/components/admin/dashboard/analytics/Respo
 import { DepartmentCompletionChart } from "@/components/admin/dashboard/analytics/DepartmentCompletionChart";
 import { TopSurveysTable } from "@/components/admin/dashboard/analytics/TopSurveysTable";
 import { TopManagersTable } from "@/components/admin/dashboard/analytics/TopManagersTable";
+import { TopSBUsTable } from "@/components/admin/dashboard/analytics/TopSBUsTable";
 import { ManagersNeedingImprovement } from "@/components/admin/dashboard/analytics/ManagersNeedingImprovement";
 import { DemographicBreakdown } from "@/components/admin/dashboard/analytics/DemographicBreakdown";
 import { UpcomingSurveyDeadlines } from "@/components/admin/dashboard/analytics/UpcomingSurveyDeadlines";
@@ -59,6 +61,9 @@ export default function AdminDashboard() {
         <TabsContent value="performance" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-1">
             <TopManagersTable />
+          </div>
+          <div className="grid gap-6 md:grid-cols-1">
+            <TopSBUsTable />
           </div>
           <div className="grid gap-6 md:grid-cols-1">
             <TopSurveysTable />

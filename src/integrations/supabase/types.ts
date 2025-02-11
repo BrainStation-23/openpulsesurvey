@@ -946,6 +946,25 @@ export type Database = {
           },
         ]
       }
+      top_performing_sbus: {
+        Row: {
+          average_score: number | null
+          rank: number | null
+          sbu_id: string | null
+          sbu_name: string | null
+          total_ratings: number | null
+          total_respondents: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sbus_sbu_id_fkey"
+            columns: ["sbu_id"]
+            isOneToOne: false
+            referencedRelation: "sbus"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       top_performing_surveys: {
         Row: {
           campaign_id: string | null
