@@ -1,4 +1,3 @@
-
 import { SlideProps } from "../../types";
 import { ComparisonDimension } from "../../types/comparison";
 import { QuestionSlideLayout } from "./QuestionSlideLayout";
@@ -39,6 +38,9 @@ export function QuestionSlide({
       gender: "Response Distribution by Gender",
       location: "Response Distribution by Location",
       employment_type: "Response Distribution by Employment Type",
+      level: "Response Distribution by Level",
+      employee_type: "Response Distribution by Employee Type",
+      employee_role: "Response Distribution by Employee Role",
       none: "No Comparison"
     };
     return titles[dim] || "";

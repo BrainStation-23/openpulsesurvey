@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -13,7 +12,15 @@ import { PresentationLayout } from "./components/PresentationLayout";
 import { PresentationControls } from "./components/PresentationControls";
 import { CampaignData, SurveyJsonData } from "./types";
 
-const COMPARISON_DIMENSIONS: ComparisonDimension[] = ['sbu', 'gender', 'location', 'employment_type'];
+const COMPARISON_DIMENSIONS: ComparisonDimension[] = [
+  'sbu', 
+  'gender', 
+  'location', 
+  'employment_type',
+  'level',
+  'employee_type',
+  'employee_role'
+];
 
 export default function PresentationView() {
   const { id } = useParams();
