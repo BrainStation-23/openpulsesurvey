@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ProcessedData, ProcessedResponse, Question } from "../types/responses";
@@ -56,6 +57,18 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
               id,
               name
             ),
+            level:levels (
+              id,
+              name
+            ),
+            employee_type:employee_types (
+              id,
+              name
+            ),
+            employee_role:employee_roles (
+              id,
+              name
+            ),
             user_sbus:user_sbus (
               is_primary,
               sbu:sbus (
@@ -91,6 +104,7 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
             question: question.title,
             answer: answer,
             questionType: question.type,
+            rateCount: question.rateCount
           };
         });
 
@@ -110,6 +124,9 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
             location: response.user.location,
             sbu: primarySbu?.sbu || null,
             employment_type: response.user.employment_type,
+            level: response.user.level,
+            employee_type: response.user.employee_type,
+            employee_role: response.user.employee_role,
           },
           submitted_at: response.submitted_at,
           answers,
