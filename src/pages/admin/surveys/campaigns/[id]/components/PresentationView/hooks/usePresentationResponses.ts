@@ -34,7 +34,7 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
         name: q.name,
         title: q.title,
         type: q.type,
-        rateCount: q.rateMax === 10 ? 10 : q.rateMax // Add rateCount based on rateMax
+        rateCount: q.rateMax === 10 ? 10 : q.rateMax 
       })) || [];
 
       // Build the query for responses with extended user metadata
