@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
@@ -127,6 +128,15 @@ function processComparisonData(
         break;
       case "employment_type":
         dimensionValue = response.respondent.employment_type?.name || "Unknown";
+        break;
+      case "level":
+        dimensionValue = response.respondent.level?.name || "Unknown";
+        break;
+      case "employee_type":
+        dimensionValue = response.respondent.employee_type?.name || "Unknown";
+        break;
+      case "employee_role":
+        dimensionValue = response.respondent.employee_role?.name || "Unknown";
         break;
     }
 
