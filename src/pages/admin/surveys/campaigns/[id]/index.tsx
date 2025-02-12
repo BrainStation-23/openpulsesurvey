@@ -33,30 +33,38 @@ export default function CampaignDetailsPage() {
   const { data: assignments, isLoading: isLoadingAssignments } = useQuery({
     queryKey: ["campaign-assignments", id, selectedInstanceId],
     queryFn: async () => {
-      let query = supabase.rpc('get_assignment_instance_status', {
-        p_assignment_id: 'assignment.id',
-        p_instance_id: selectedInstanceId
-      }).from("survey_assignments").select(`
-        id,
-        status,
-        due_date,
-        user:profiles!survey_assignments_user_id_fkey (
-          id,
-          email,
-          first_name,
-          last_name,
-          user_sbus (
-            is_primary,
-            sbu:sbus (
+      if (!selectedInstanceId) {
+        // If no instance is selected, return regular assignments
+        const { data, error } = await supabase
+          .from("survey_assignments")
+          .select(`
+            id,
+            status,
+            due_date,
+            user:profiles!survey_assignments_user_id_fkey (
               id,
-              name
+              email,
+              first_name,
+              last_name,
+              user_sbus (
+                is_primary,
+                sbu:sbus (
+                  id,
+                  name
+                )
+              )
             )
-          )
-        )
-      `).eq("campaign_id", id);
+          `)
+          .eq("campaign_id", id);
 
-      if (selectedInstanceId) {
-        query = query.select(`
+        if (error) throw error;
+        return data;
+      }
+
+      // If instance is selected, get assignments with instance-specific status
+      const { data: assignmentsData, error: assignmentsError } = await supabase
+        .from("survey_assignments")
+        .select(`
           id,
           due_date,
           user:profiles!survey_assignments_user_id_fkey (
@@ -71,15 +79,29 @@ export default function CampaignDetailsPage() {
                 name
               )
             )
-          ),
-          status:get_assignment_instance_status(id, '${selectedInstanceId}')
-        `);
-      }
+          )
+        `)
+        .eq("campaign_id", id);
 
-      const { data, error } = await query;
+      if (assignmentsError) throw assignmentsError;
 
-      if (error) throw error;
-      return data;
+      // Get status for each assignment in the selected instance
+      const assignmentsWithStatus = await Promise.all(
+        (assignmentsData || []).map(async (assignment) => {
+          const { data: statusData } = await supabase
+            .rpc('get_assignment_instance_status', {
+              p_assignment_id: assignment.id,
+              p_instance_id: selectedInstanceId
+            });
+
+          return {
+            ...assignment,
+            status: statusData
+          };
+        })
+      );
+
+      return assignmentsWithStatus;
     },
     enabled: !!id,
   });
