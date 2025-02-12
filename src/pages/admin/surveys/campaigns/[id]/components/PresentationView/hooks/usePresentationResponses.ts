@@ -49,23 +49,23 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
             last_name,
             email,
             gender,
-            location:locations (
+            location:locations!profiles_location_id_fkey (
               id,
               name
             ),
-            employment_type:employment_types (
+            employment_type:employment_types!profiles_employment_type_id_fkey (
               id,
               name
             ),
-            level:levels (
+            level:levels!profiles_level_id_fkey (
               id,
               name
             ),
-            employee_type:employee_types (
+            employee_type:employee_types!profiles_employee_type_id_fkey (
               id,
               name
             ),
-            employee_role:employee_roles (
+            employee_role:employee_roles!profiles_employee_role_id_fkey (
               id,
               name
             ),
