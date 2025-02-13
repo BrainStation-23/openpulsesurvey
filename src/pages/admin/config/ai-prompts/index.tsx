@@ -2,8 +2,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ConfigPage } from "../shared/ConfigPage";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { AIPromptsTable } from "./components/AIPromptsTable";
+import { AIPromptDialog } from "./components/AIPromptDialog";
 
 interface AIPrompt {
   id: string;
@@ -18,6 +21,8 @@ interface AIPrompt {
 
 export default function AIPromptsConfig() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedPrompt, setSelectedPrompt] = useState<AIPrompt | undefined>();
 
   const { data: prompts, isLoading, refetch } = useQuery({
     queryKey: ['ai-prompts'],
@@ -32,53 +37,56 @@ export default function AIPromptsConfig() {
     },
   });
 
-  const handleCreate = async (values: { name: string; color_code?: string }) => {
+  const handleSubmit = async (values: { 
+    name: string; 
+    category: AIPrompt['category']; 
+    prompt_text: string;
+    color_code?: string;
+  }) => {
     try {
-      const { error } = await supabase
-        .from('analysis_prompts')
-        .insert({
-          name: values.name,
-          color_code: values.color_code,
-          prompt_text: "Enter your prompt text here...", // Default value for required field
-          category: 'general_analysis', // Default value for required field
-          status: 'active'
+      if (selectedPrompt) {
+        const { error } = await supabase
+          .from('analysis_prompts')
+          .update({
+            name: values.name,
+            category: values.category,
+            prompt_text: values.prompt_text,
+            color_code: values.color_code,
+          })
+          .eq('id', selectedPrompt.id);
+
+        if (error) throw error;
+        toast({
+          title: "Success",
+          description: "AI Prompt updated successfully",
         });
+      } else {
+        const { error } = await supabase
+          .from('analysis_prompts')
+          .insert({
+            name: values.name,
+            category: values.category,
+            prompt_text: values.prompt_text,
+            color_code: values.color_code,
+            status: 'active'
+          });
 
-      if (error) throw error;
-      toast({
-        title: "Success",
-        description: "AI Prompt created successfully",
-      });
+        if (error) throw error;
+        toast({
+          title: "Success",
+          description: "AI Prompt created successfully",
+        });
+      }
+      
+      setDialogOpen(false);
+      setSelectedPrompt(undefined);
       refetch();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create AI Prompt",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUpdate = async (id: string, values: { name: string; color_code?: string }) => {
-    try {
-      const { error } = await supabase
-        .from('analysis_prompts')
-        .update({
-          name: values.name,
-          color_code: values.color_code,
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-      toast({
-        title: "Success",
-        description: "AI Prompt updated successfully",
-      });
-      refetch();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update AI Prompt",
+        description: selectedPrompt 
+          ? "Failed to update AI Prompt" 
+          : "Failed to create AI Prompt",
         variant: "destructive",
       });
     }
@@ -129,16 +137,37 @@ export default function AIPromptsConfig() {
   };
 
   return (
-    <ConfigPage
-      title="AI Prompts"
-      items={prompts || []}
-      isLoading={isLoading}
-      sortOrder={sortOrder}
-      onSort={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-      onCreate={handleCreate}
-      onUpdate={handleUpdate}
-      onDelete={handleDelete}
-      onToggleStatus={handleToggleStatus}
-    />
+    <div className="space-y-4 p-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">AI Prompts</h1>
+        <Button onClick={() => {
+          setSelectedPrompt(undefined);
+          setDialogOpen(true);
+        }}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Prompt
+        </Button>
+      </div>
+      
+      <AIPromptsTable
+        items={prompts || []}
+        isLoading={isLoading}
+        sortOrder={sortOrder}
+        onSort={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+        onEdit={(prompt) => {
+          setSelectedPrompt(prompt);
+          setDialogOpen(true);
+        }}
+        onDelete={handleDelete}
+        onToggleStatus={handleToggleStatus}
+      />
+
+      <AIPromptDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSubmit={handleSubmit}
+        initialValues={selectedPrompt}
+      />
+    </div>
   );
 }
