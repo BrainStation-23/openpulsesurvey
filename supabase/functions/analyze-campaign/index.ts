@@ -9,17 +9,40 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204
+    });
   }
 
   try {
+    console.log("Function called with request:", {
+      method: req.method,
+      headers: Object.fromEntries(req.headers.entries())
+    });
+
     const { campaignId, instanceId, promptId } = await req.json();
-    const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') || '');
+    console.log("Received parameters:", { campaignId, instanceId, promptId });
+
+    // Validate required parameters
+    if (!campaignId || !promptId) {
+      throw new Error('Missing required parameters: campaignId and promptId are required');
+    }
+
+    // Validate Gemini API key
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) {
+      throw new Error('GEMINI_API_KEY not configured');
+    }
+
+    const genAI = new GoogleGenerativeAI(geminiApiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
     // Get the prompt template
-    const { data: promptData } = await fetch(
+    console.log("Fetching prompt data...");
+    const { data: promptData, error: promptError } = await fetch(
       `${Deno.env.get('SUPABASE_URL')}/rest/v1/analysis_prompts?id=eq.${promptId}&select=*`,
       {
         headers: {
@@ -29,12 +52,14 @@ serve(async (req) => {
       }
     ).then(res => res.json());
 
-    if (!promptData?.[0]) {
-      throw new Error('Prompt not found');
+    if (promptError || !promptData?.[0]) {
+      console.error("Error fetching prompt:", promptError);
+      throw new Error('Prompt not found or error fetching prompt');
     }
 
     // Fetch campaign data
-    const { data: campaignData } = await fetch(
+    console.log("Fetching campaign data...");
+    const { data: campaignData, error: campaignError } = await fetch(
       `${Deno.env.get('SUPABASE_URL')}/rest/v1/rpc/get_campaign_analysis_data`,
       {
         method: 'POST',
@@ -50,6 +75,11 @@ serve(async (req) => {
       }
     ).then(res => res.json());
 
+    if (campaignError) {
+      console.error("Error fetching campaign data:", campaignError);
+      throw new Error('Error fetching campaign data');
+    }
+
     // Prepare the context for the AI
     const context = `
       Campaign Information:
@@ -59,11 +89,13 @@ serve(async (req) => {
       ${promptData[0].prompt_text}
     `;
 
+    console.log("Generating content with Gemini...");
     // Generate the analysis
     const result = await model.generateContent(context);
     const response = result.response;
     const formattedText = response.text().replace(/\n/g, '<br>');
 
+    console.log("Analysis generated successfully");
     return new Response(
       JSON.stringify({ 
         content: formattedText,
@@ -84,7 +116,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in analyze-campaign function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack
+      }),
       { 
         status: 500,
         headers: { 
