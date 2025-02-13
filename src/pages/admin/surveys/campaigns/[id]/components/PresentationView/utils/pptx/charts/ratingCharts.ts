@@ -2,6 +2,17 @@
 import pptxgen from "pptxgenjs";
 import { THEME } from "../theme";
 
+const calculateMedian = (ratings: number[]) => {
+  if (ratings.length === 0) return 0;
+  const sorted = [...ratings].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  
+  if (sorted.length % 2 === 0) {
+    return (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+  return sorted[middle];
+};
+
 export const addRatingChart = (
   slide: pptxgen.Slide,
   answers: number[],
@@ -61,35 +72,76 @@ export const addRatingChart = (
       barGrouping: "stacked"
     });
   } else {
-    const data = Array.from({ length: 5 }, (_, i) => {
-      const labels: string[] = [`${i + 1} Star`];
-      return {
-        name: `${i + 1} Star`,
-        labels,
-        values: [validAnswers.filter(r => r === i + 1).length]
-      };
+    const unsatisfied = validAnswers.filter(r => r <= 2).length;
+    const neutral = validAnswers.filter(r => r === 3).length;
+    const satisfied = validAnswers.filter(r => r >= 4).length;
+    const total = validAnswers.length;
+    const median = calculateMedian(validAnswers);
+    const average = validAnswers.reduce((a, b) => a + b, 0) / total;
+    const satisfactionRate = Math.round((satisfied / total) * 100);
+
+    // Add metrics at the top
+    slide.addText([
+      { text: "Satisfaction Rate: ", options: { bold: true } },
+      { text: `${satisfactionRate}%`, options: { color: "#22c55e" } },
+      { text: "    Median Score: ", options: { bold: true } },
+      { text: `${median.toFixed(1)}`, options: { color: "#3b82f6" } },
+      { text: "    Average Score: ", options: { bold: true } },
+      { text: `${average.toFixed(1)}`, options: { color: "#8b5cf6" } },
+    ], {
+      x: 0.5,
+      y: 1,
+      w: "90%",
+      fontSize: 16,
+      color: THEME.text.primary,
     });
+
+    const data = [
+      {
+        name: "Unsatisfied",
+        labels: ["Distribution"],
+        values: [(unsatisfied / total) * 100]
+      },
+      {
+        name: "Neutral",
+        labels: ["Distribution"],
+        values: [(neutral / total) * 100]
+      },
+      {
+        name: "Satisfied",
+        labels: ["Distribution"],
+        values: [(satisfied / total) * 100]
+      }
+    ];
 
     slide.addChart("bar", data, {
       x: 1,
-      y: 1.5,
+      y: 2,
       w: 8,
       h: 3.5,
-      barDir: "col",
-      chartColors: data.map((_, index) => THEME.chart.colors[index % THEME.chart.colors.length]),
-      showLegend: false,
-      dataLabelFormatCode: '0',
-      catAxisTitle: "Rating",
-      valAxisTitle: "Number of Responses",
+      barDir: "bar",
+      chartColors: ["#ef4444", "#eab308", "#22c55e"],
+      showLegend: true,
+      legendPos: 'b',
+      dataLabelFormatCode: '0"%"',
+      barGrouping: "stacked"
     });
 
-    const average = validAnswers.reduce((a, b) => a + b, 0) / validAnswers.length;
-    slide.addText(`Average Rating: ${average.toFixed(1)}`, {
+    // Add response counts below
+    slide.addText([
+      { text: "Total Responses: ", options: { bold: true } },
+      { text: `${total}\n` },
+      { text: "Unsatisfied: ", options: { bold: true, color: "#ef4444" } },
+      { text: `${unsatisfied} (${Math.round((unsatisfied / total) * 100)}%)\n` },
+      { text: "Neutral: ", options: { bold: true, color: "#eab308" } },
+      { text: `${neutral} (${Math.round((neutral / total) * 100)}%)\n` },
+      { text: "Satisfied: ", options: { bold: true, color: "#22c55e" } },
+      { text: `${satisfied} (${Math.round((satisfied / total) * 100)}%)` },
+    ], {
       x: 0.5,
       y: 5.8,
       w: "90%",
       fontSize: 12,
-      bold: true,
       color: THEME.text.primary,
     });
   }
@@ -154,30 +206,54 @@ export const addRatingComparison = (
       valAxisMaxVal: 100,
     });
   } else {
-    // Create data for each rating (1-5)
-    const ratingData = Array.from({ length: 5 }, (_, rating) => ({
-      name: `${rating + 1} Star`,
+    // Create data for satisfaction categories
+    const unsatisfiedData = {
+      name: "Unsatisfied",
       labels: groups,
       values: groups.map(group => {
         const answers = groupedData.get(group) || [];
         const validAnswers = answers.filter((a: number) => typeof a === "number");
-        return validAnswers.filter((r: number) => r === rating + 1).length;
+        const unsatisfied = validAnswers.filter((r: number) => r <= 2).length;
+        return (unsatisfied / validAnswers.length) * 100;
       })
-    }));
+    };
 
-    slide.addChart("bar", ratingData, {
+    const neutralData = {
+      name: "Neutral",
+      labels: groups,
+      values: groups.map(group => {
+        const answers = groupedData.get(group) || [];
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const neutral = validAnswers.filter((r: number) => r === 3).length;
+        return (neutral / validAnswers.length) * 100;
+      })
+    };
+
+    const satisfiedData = {
+      name: "Satisfied",
+      labels: groups,
+      values: groups.map(group => {
+        const answers = groupedData.get(group) || [];
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const satisfied = validAnswers.filter((r: number) => r >= 4).length;
+        return (satisfied / validAnswers.length) * 100;
+      })
+    };
+
+    slide.addChart("bar", [unsatisfiedData, neutralData, satisfiedData], {
       x: 0.5,
       y: 1.5,
       w: 9,
       h: 4,
       barDir: "col",
       barGrouping: "clustered",
-      chartColors: ratingData.map((_, index) => THEME.chart.colors[index % THEME.chart.colors.length]),
+      chartColors: ["#ef4444", "#eab308", "#22c55e"],
       showLegend: true,
       legendPos: 'b',
-      dataLabelFormatCode: '0',
+      dataLabelFormatCode: '0"%"',
       catAxisTitle: dimension,
-      valAxisTitle: "Number of Responses",
+      valAxisTitle: "Distribution (%)",
+      valAxisMaxVal: 100,
     });
   }
 };
