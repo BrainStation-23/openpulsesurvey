@@ -41,8 +41,8 @@ serve(async (req) => {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
     // Get the prompt template
-    console.log("Fetching prompt data...");
-    const { data: promptData, error: promptError } = await fetch(
+    console.log("Fetching prompt data for promptId:", promptId);
+    const promptResponse = await fetch(
       `${Deno.env.get('SUPABASE_URL')}/rest/v1/analysis_prompts?id=eq.${promptId}&select=*`,
       {
         headers: {
@@ -50,16 +50,22 @@ serve(async (req) => {
           'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
         }
       }
-    ).then(res => res.json());
+    );
 
-    if (promptError || !promptData?.[0]) {
-      console.error("Error fetching prompt:", promptError);
-      throw new Error('Prompt not found or error fetching prompt');
+    if (!promptResponse.ok) {
+      console.error("Prompt fetch failed:", await promptResponse.text());
+      throw new Error(`Failed to fetch prompt: ${promptResponse.statusText}`);
+    }
+
+    const promptData = await promptResponse.json();
+    if (!promptData?.[0]) {
+      console.error("No prompt found for id:", promptId);
+      throw new Error(`No prompt found with id: ${promptId}`);
     }
 
     // Fetch campaign data
     console.log("Fetching campaign data...");
-    const { data: campaignData, error: campaignError } = await fetch(
+    const campaignResponse = await fetch(
       `${Deno.env.get('SUPABASE_URL')}/rest/v1/rpc/get_campaign_analysis_data`,
       {
         method: 'POST',
@@ -73,12 +79,14 @@ serve(async (req) => {
           p_instance_id: instanceId
         })
       }
-    ).then(res => res.json());
+    );
 
-    if (campaignError) {
-      console.error("Error fetching campaign data:", campaignError);
-      throw new Error('Error fetching campaign data');
+    if (!campaignResponse.ok) {
+      console.error("Campaign data fetch failed:", await campaignResponse.text());
+      throw new Error(`Failed to fetch campaign data: ${campaignResponse.statusText}`);
     }
+
+    const campaignData = await campaignResponse.json();
 
     // Prepare the context for the AI
     const context = `
@@ -118,7 +126,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: error.stack
+        details: error.stack,
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500,
