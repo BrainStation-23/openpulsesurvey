@@ -10,9 +10,9 @@ import { ComparisonView } from "./ComparisonView";
 import { useQuestionData } from "./useQuestionData";
 import { usePresentationResponses } from "../../hooks/usePresentationResponses";
 import { ComparisonLayout } from "../../components/ComparisonLayout";
-import { BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
 import { BooleanComparison } from "../../../ReportsTab/components/comparisons/BooleanComparison";
 import { TextComparison } from "../../../ReportsTab/components/comparisons/TextComparison";
+import { BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
 
 interface QuestionSlideProps extends SlideProps {
   questionName: string;
@@ -21,18 +21,17 @@ interface QuestionSlideProps extends SlideProps {
   slideType: ComparisonDimension;
 }
 
-function QuestionSlideComponent({ 
+const QuestionSlideComponent = ({ 
   campaign, 
   isActive, 
   questionName, 
   questionTitle, 
   questionType,
   slideType = 'main'
-}: QuestionSlideProps) {
+}: QuestionSlideProps) => {
+  // Always fetch data regardless of isActive to prevent hook count changes
   const { data } = usePresentationResponses(campaign.id, campaign.instance?.id);
-  
-  // Only process data if the slide is active
-  const processedData = isActive ? useQuestionData(data, questionName, questionType, slideType) : null;
+  const processedData = useQuestionData(data, questionName, questionType, slideType);
   const question = data?.questions.find(q => q.name === questionName);
   const isNps = question?.type === 'rating' && question?.rateCount === 10;
 
@@ -108,7 +107,7 @@ function QuestionSlideComponent({
       )}
     </QuestionSlideLayout>
   );
-}
+};
 
 // Memoize the component to prevent unnecessary re-renders
 export const QuestionSlide = memo(QuestionSlideComponent);

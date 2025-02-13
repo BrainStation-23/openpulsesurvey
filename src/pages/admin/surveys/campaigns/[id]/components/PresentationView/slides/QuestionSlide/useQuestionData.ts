@@ -6,7 +6,7 @@ import { ComparisonDimension } from "../../types/comparison";
 type ProcessedResult = BooleanResponseData | RatingResponseData | SatisfactionData | TextResponseData | any[];
 
 export function useQuestionData(
-  data: ProcessedData | undefined,
+  data: ProcessedData | undefined | null,
   questionName: string,
   questionType: string,
   slideType: ComparisonDimension
@@ -49,6 +49,7 @@ export function useQuestionData(
             );
             
             const calculateMedian = (ratings: number[]) => {
+              if (ratings.length === 0) return 0;
               const sorted = [...ratings].sort((a, b) => a - b);
               const middle = Math.floor(sorted.length / 2);
               
