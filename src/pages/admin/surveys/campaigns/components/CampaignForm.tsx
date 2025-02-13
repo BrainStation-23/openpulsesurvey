@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -19,32 +18,10 @@ const campaignSchema = z.object({
   }),
   is_recurring: z.boolean().default(false),
   recurring_frequency: z.string().optional(),
-  recurring_ends_at: z.date().optional()
-    .superRefine((date, ctx) => {
-      const parentData = ctx.parent as { is_recurring: boolean };
-      const isRecurring = parentData.is_recurring;
-      
-      if (isRecurring && !date) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Campaign end date is required for recurring campaigns"
-        });
-      }
-    }),
+  recurring_ends_at: z.date().optional(),
   instance_duration_days: z.number().optional(),
   instance_end_time: z.string().optional(),
-  ends_at: z.date().optional()
-    .superRefine((date, ctx) => {
-      const parentData = ctx.parent as { is_recurring: boolean };
-      const isRecurring = parentData.is_recurring;
-      
-      if (!isRecurring && !date) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "End date is required for non-recurring campaigns"
-        });
-      }
-    }),
+  ends_at: z.date().optional(),
   status: z.string().default("draft"),
   anonymous: z.boolean().default(false),
 });
@@ -85,24 +62,9 @@ export function CampaignForm({
     },
   });
 
-  const validateCurrentStep = async () => {
-    // Define which fields should be validated for each step
-    const stepFields: Record<number, (keyof CampaignFormData)[]> = {
-      1: ['name', 'description', 'survey_id', 'anonymous'],
-      2: ['starts_at', 'is_recurring', 'recurring_frequency', 'recurring_ends_at', 'instance_duration_days', 'instance_end_time', 'ends_at'],
-      3: [] // Review step doesn't need validation
-    };
-
-    const currentFields = stepFields[currentStep];
-    if (!currentFields) return true;
-
-    const result = await form.trigger(currentFields);
-    return result;
-  };
-
   const handleNext = async () => {
     if (currentStep < 3) {
-      const isValid = await validateCurrentStep();
+      const isValid = await form.trigger();
       if (isValid) {
         onStepComplete(currentStep);
       }
