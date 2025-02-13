@@ -229,15 +229,11 @@ const addQuestionChart = async (
       const data = [{
         name: "Responses",
         labels: ["Yes", "No"],
-        values: [trueCount, falseCount],
-        percentages: [
-          (trueCount / total) * 100,
-          (falseCount / total) * 100
-        ]
+        values: [trueCount, falseCount]
       }];
 
       // Add donut chart
-      slide.addChart(pptxgen.ChartType.doughnut, data, {
+      slide.addChart(pptx.ChartType.doughnut, data, {
         x: 1,
         y: 1.5,
         w: 8,
@@ -304,7 +300,7 @@ const addQuestionChart = async (
           ]
         }];
 
-        slide.addChart(pptxgen.ChartType.bar, data, {
+        slide.addChart(pptx.ChartType.bar, data, {
           x: 0.5,
           y: 2.5,
           w: 9,
@@ -325,7 +321,7 @@ const addQuestionChart = async (
           values: [validAnswers.filter(r => r === i + 1).length]
         }));
 
-        slide.addChart(pptxgen.ChartType.bar, data, {
+        slide.addChart(pptx.ChartType.bar, data, {
           x: 0.5,
           y: 1.5,
           w: 9,
@@ -377,7 +373,7 @@ const addQuestionChart = async (
         .slice(0, 10);
 
       // Add bar chart for top words
-      slide.addChart(pptxgen.ChartType.bar, topWords, {
+      slide.addChart(pptx.ChartType.bar, topWords, {
         x: 0.5,
         y: 1.5,
         w: 9,
@@ -461,11 +457,12 @@ const addComparisonChart = async (
         const total = answers.length;
         return {
           name: group,
+          labels: ["Yes"], // Fixed: Changed to string array
           values: [(trueCount / total) * 100]
         };
       });
 
-      slide.addChart(pptxgen.ChartType.bar, chartData, {
+      slide.addChart(pptx.ChartType.bar, chartData, {
         x: 0.5,
         y: 2,
         w: 9,
@@ -496,7 +493,7 @@ const addComparisonChart = async (
           };
         });
 
-        slide.addChart(pptxgen.ChartType.bar, chartData, {
+        slide.addChart(pptx.ChartType.bar, chartData, {
           x: 0.5,
           y: 2,
           w: 9,
@@ -520,7 +517,7 @@ const addComparisonChart = async (
           };
         });
 
-        slide.addChart(pptxgen.ChartType.bar, chartData, {
+        slide.addChart(pptx.ChartType.bar, chartData, {
           x: 0.5,
           y: 2,
           w: 9,
