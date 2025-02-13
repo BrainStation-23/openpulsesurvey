@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -18,10 +19,28 @@ const campaignSchema = z.object({
   }),
   is_recurring: z.boolean().default(false),
   recurring_frequency: z.string().optional(),
-  recurring_ends_at: z.date().optional(),
+  recurring_ends_at: z.date().optional()
+    .refine(
+      (date, ctx) => {
+        if (ctx.parent.is_recurring && !date) {
+          return false;
+        }
+        return true;
+      },
+      { message: "Campaign end date is required for recurring campaigns" }
+    ),
   instance_duration_days: z.number().optional(),
   instance_end_time: z.string().optional(),
-  ends_at: z.date().optional(),
+  ends_at: z.date().optional()
+    .refine(
+      (date, ctx) => {
+        if (!ctx.parent.is_recurring && !date) {
+          return false;
+        }
+        return true;
+      },
+      { message: "End date is required for non-recurring campaigns" }
+    ),
   status: z.string().default("draft"),
   anonymous: z.boolean().default(false),
 });
