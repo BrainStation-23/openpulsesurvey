@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Brain, PieChart, Users, ClipboardList, Activity, FileBarChart, Lock } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useEffect, useState } from "react";
 
 export function TabPanel({ value, children }: { value: string; children: React.ReactNode }) {
   return (
@@ -20,7 +21,12 @@ interface CampaignTabsProps {
 
 export function CampaignTabs({ children, isAnonymous, status }: CampaignTabsProps) {
   const isDraft = status === 'draft';
-  const defaultTab = isDraft ? "assignments" : "overview";
+  const [currentTab, setCurrentTab] = useState<string>(isDraft ? "assignments" : "overview");
+
+  // Ensure tab is set correctly when status changes
+  useEffect(() => {
+    setCurrentTab(isDraft ? "assignments" : "overview");
+  }, [isDraft]);
 
   // Define disabled tabs in draft mode
   const disabledTabs = isDraft ? ["overview", "responses", "activity", "reports", "analyze"] : [];
@@ -64,7 +70,7 @@ export function CampaignTabs({ children, isAnonymous, status }: CampaignTabsProp
         </Alert>
       )}
       
-      <Tabs defaultValue={defaultTab} className="space-y-4">
+      <Tabs value={currentTab} defaultValue={currentTab} onValueChange={setCurrentTab} className="space-y-4">
         <TabsList>
           {renderTabTrigger("overview", "Overview", <PieChart className="h-4 w-4" />)}
           {renderTabTrigger("assignments", "Assignments", <Users className="h-4 w-4" />)}
