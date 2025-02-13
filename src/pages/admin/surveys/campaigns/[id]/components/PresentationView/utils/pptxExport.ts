@@ -369,7 +369,11 @@ const addQuestionChart = async (
 
       // Convert to array and sort by frequency
       const topWords = Object.entries(wordFrequency)
-        .map(([text, value]) => ({ name: text, values: [value] }))
+        .map(([text, value]) => ({
+          name: text,
+          labels: [text], // Added labels property as string array
+          values: [value]
+        }))
         .sort((a, b) => b.values[0] - a.values[0])
         .slice(0, 10);
 
