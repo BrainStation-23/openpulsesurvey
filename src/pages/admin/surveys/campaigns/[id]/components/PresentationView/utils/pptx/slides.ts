@@ -61,9 +61,10 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
     color: THEME.text.primary,
   });
 
+  const labels: string[] = ["Completed", "Pending"];
   const completionData = [{
     name: "Completion",
-    labels: ["Completed", "Pending"] as string[],
+    labels,
     values: [campaign.completion_rate || 0, 100 - (campaign.completion_rate || 0)]
   }];
 
