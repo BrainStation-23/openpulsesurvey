@@ -33,15 +33,23 @@ export const addRatingChart = (
     });
 
     // Add stacked bar chart
-    const data = [{
-      name: "Distribution",
-      labels: ["Detractors", "Passives", "Promoters"],
-      values: [
-        (detractors / total) * 100,
-        (passives / total) * 100,
-        (promoters / total) * 100
-      ]
-    }];
+    const data = [
+      {
+        name: "Detractors",
+        labels: ["Distribution"],
+        values: [(detractors / total) * 100]
+      },
+      {
+        name: "Passives",
+        labels: ["Distribution"],
+        values: [(passives / total) * 100]
+      },
+      {
+        name: "Promoters",
+        labels: ["Distribution"],
+        values: [(promoters / total) * 100]
+      }
+    ];
 
     slide.addChart(pptxgen.ChartType.bar, data, {
       x: 0.5,
