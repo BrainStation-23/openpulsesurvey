@@ -61,8 +61,7 @@ export const addRatingChart = (
       showLegend: true,
       legendPos: 'b',
       dataLabelFormatCode: '0"%"',
-      barGrouping: "stacked",
-      invertedColors: true,
+      barGrouping: "stacked"
     });
   } else {
     // Regular rating chart (1-5)
