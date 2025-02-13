@@ -1,6 +1,5 @@
 
 import pptxgen from "pptxgenjs";
-import { ProcessedData } from "../../../types/responses";
 import { THEME } from "../theme";
 
 export const addBooleanChart = (
@@ -11,7 +10,6 @@ export const addBooleanChart = (
   const falseCount = answers.filter(a => a === false).length;
   const total = trueCount + falseCount;
 
-  // Ensure labels are explicitly typed as string array
   const labels: string[] = ["Yes", "No"];
   const data = [{
     name: "Responses",
@@ -19,32 +17,31 @@ export const addBooleanChart = (
     values: [trueCount, falseCount]
   }];
 
-  // Add donut chart
+  // Reduced size and centered positioning
   slide.addChart("doughnut", data, {
-    x: 1,
+    x: 2,
     y: 1.5,
-    w: 8,
-    h: 5,
-    chartColors: [THEME.chart.colors[0], THEME.chart.colors[1]],
+    w: 6,
+    h: 4,
+    chartColors: [THEME.primary, THEME.secondary], // Using distinct colors
     showLegend: true,
     legendPos: 'b',
     dataLabelFormatCode: '0"%"',
     title: "Response Distribution"
   });
 
-  // Add summary text
   slide.addText([
     { text: "Total Responses: ", options: { bold: true } },
     { text: `${total}` },
-    { text: "\nYes: ", options: { bold: true, color: THEME.chart.colors[0] } },
+    { text: "\nYes: ", options: { bold: true, color: THEME.primary } },
     { text: `${trueCount} (${Math.round((trueCount / total) * 100)}%)` },
-    { text: "\nNo: ", options: { bold: true, color: THEME.chart.colors[1] } },
+    { text: "\nNo: ", options: { bold: true, color: THEME.secondary } },
     { text: `${falseCount} (${Math.round((falseCount / total) * 100)}%)` },
   ], {
     x: 0.5,
-    y: 6.5,
+    y: 5.8,
     w: "90%",
-    fontSize: 14,
+    fontSize: 12,
     color: THEME.text.primary,
   });
 };
@@ -65,13 +62,14 @@ export const addBooleanComparison = (
     };
   });
 
+  // Reduced size for comparison charts
   slide.addChart("bar", chartData, {
-    x: 0.5,
+    x: 1,
     y: 2,
-    w: 9,
-    h: 4,
+    w: 8,
+    h: 3.5,
     barDir: "col",
-    chartColors: [THEME.chart.colors[0]],
+    chartColors: [THEME.chart.colors[0], THEME.chart.colors[1], THEME.chart.colors[2], THEME.chart.colors[3]],
     showLegend: false,
     dataLabelFormatCode: '0"%"',
     catAxisTitle: dimension,

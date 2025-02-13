@@ -32,21 +32,20 @@ export const addTextChart = (
     .sort((a, b) => b.values[0] - a.values[0])
     .slice(0, 10);
 
-  // Add bar chart for top words
+  // Optimized dimensions and gradient colors
   slide.addChart("bar", topWords, {
-    x: 0.5,
+    x: 1,
     y: 1.5,
-    w: 9,
-    h: 4,
+    w: 8,
+    h: 3.5,
     barDir: "col",
-    chartColors: [THEME.chart.colors[0]],
+    chartColors: topWords.map((_, index) => THEME.chart.colors[index % THEME.chart.colors.length]),
     showLegend: false,
     dataLabelFormatCode: '0',
     catAxisTitle: "Words",
     valAxisTitle: "Frequency",
   });
 
-  // Add total responses info
   slide.addText([
     { text: "Total Responses: ", options: { bold: true } },
     { text: `${answers.length}` },
@@ -54,9 +53,9 @@ export const addTextChart = (
     { text: `${Object.keys(wordFrequency).length}` },
   ], {
     x: 0.5,
-    y: 6,
+    y: 5.8,
     w: "90%",
-    fontSize: 14,
+    fontSize: 12,
     color: THEME.text.primary,
   });
 };

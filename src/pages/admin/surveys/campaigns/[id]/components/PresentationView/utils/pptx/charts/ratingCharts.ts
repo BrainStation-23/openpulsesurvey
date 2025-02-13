@@ -12,7 +12,6 @@ export const addRatingChart = (
   );
   
   if (isNps) {
-    // NPS Chart
     const detractors = validAnswers.filter(r => r <= 6).length;
     const passives = validAnswers.filter(r => r > 6 && r <= 8).length;
     const promoters = validAnswers.filter(r => r > 8).length;
@@ -22,17 +21,15 @@ export const addRatingChart = (
       ((promoters - detractors) / total) * 100
     );
 
-    // Add NPS score
     slide.addText(`NPS Score: ${npsScore}`, {
       x: 0.5,
       y: 1.5,
       w: "90%",
-      fontSize: 32,
+      fontSize: 28,
       bold: true,
       color: npsScore >= 0 ? THEME.chart.colors[0] : THEME.chart.colors[1],
     });
 
-    // Add stacked bar chart
     const data = [
       {
         name: "Detractors",
@@ -52,9 +49,9 @@ export const addRatingChart = (
     ];
 
     slide.addChart("bar", data, {
-      x: 0.5,
+      x: 1,
       y: 2.5,
-      w: 9,
+      w: 8,
       h: 3,
       barDir: "bar",
       chartColors: [THEME.chart.colors[1], THEME.chart.colors[2], THEME.chart.colors[0]],
@@ -64,7 +61,6 @@ export const addRatingChart = (
       barGrouping: "stacked"
     });
   } else {
-    // Regular rating chart (1-5)
     const data = Array.from({ length: 5 }, (_, i) => {
       const labels: string[] = [`${i + 1} Star`];
       return {
@@ -75,25 +71,24 @@ export const addRatingChart = (
     });
 
     slide.addChart("bar", data, {
-      x: 0.5,
+      x: 1,
       y: 1.5,
-      w: 9,
-      h: 4,
+      w: 8,
+      h: 3.5,
       barDir: "col",
-      chartColors: [THEME.chart.colors[0]],
+      chartColors: data.map((_, index) => THEME.chart.colors[index % THEME.chart.colors.length]),
       showLegend: false,
       dataLabelFormatCode: '0',
       catAxisTitle: "Rating",
       valAxisTitle: "Number of Responses",
     });
 
-    // Add average rating
     const average = validAnswers.reduce((a, b) => a + b, 0) / validAnswers.length;
     slide.addText(`Average Rating: ${average.toFixed(1)}`, {
       x: 0.5,
-      y: 6,
+      y: 5.8,
       w: "90%",
-      fontSize: 16,
+      fontSize: 12,
       bold: true,
       color: THEME.text.primary,
     });
@@ -123,12 +118,12 @@ export const addRatingComparison = (
     });
 
     slide.addChart("bar", chartData, {
-      x: 0.5,
+      x: 1,
       y: 2,
-      w: 9,
-      h: 4,
+      w: 8,
+      h: 3,
       barDir: "col",
-      chartColors: [THEME.chart.colors[0]],
+      chartColors: chartData.map((_, index) => THEME.chart.colors[index % THEME.chart.colors.length]),
       showLegend: false,
       dataLabelFormatCode: '0',
       catAxisTitle: dimension,
@@ -148,12 +143,12 @@ export const addRatingComparison = (
     });
 
     slide.addChart("bar", chartData, {
-      x: 0.5,
+      x: 1,
       y: 2,
-      w: 9,
-      h: 4,
+      w: 8,
+      h: 3,
       barDir: "col",
-      chartColors: [THEME.chart.colors[0]],
+      chartColors: chartData.map((_, index) => THEME.chart.colors[index % THEME.chart.colors.length]),
       showLegend: false,
       dataLabelFormatCode: '0.0',
       catAxisTitle: dimension,

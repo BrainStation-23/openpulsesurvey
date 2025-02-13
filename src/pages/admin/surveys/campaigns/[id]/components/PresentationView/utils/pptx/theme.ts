@@ -12,7 +12,18 @@ export const THEME = {
     light: "#8E9196"
   },
   chart: {
-    colors: ["#9b87f5", "#7E69AB", "#6E59A5", "#D946EF"]
+    colors: [
+      "#9b87f5", // Primary Purple
+      "#F97316", // Bright Orange
+      "#0EA5E9", // Ocean Blue
+      "#7E69AB", // Secondary Purple
+      "#22C55E", // Green
+      "#EAB308", // Yellow
+      "#EC4899", // Pink
+      "#6366F1", // Indigo
+      "#14B8A6", // Teal
+      "#8B5CF6"  // Violet
+    ]
   }
 };
 
