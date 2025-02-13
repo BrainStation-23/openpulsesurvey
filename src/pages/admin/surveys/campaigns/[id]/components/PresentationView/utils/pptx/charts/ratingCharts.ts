@@ -101,58 +101,83 @@ export const addRatingComparison = (
   dimension: string,
   isNps: boolean
 ) => {
+  const groups = Array.from(groupedData.keys());
+
   if (isNps) {
-    const chartData = Array.from(groupedData.entries()).map(([group, answers]) => {
-      const validAnswers = answers.filter((a: number) => typeof a === "number");
-      const detractors = validAnswers.filter((r: number) => r <= 6).length;
-      const promoters = validAnswers.filter((r: number) => r > 8).length;
-      const total = validAnswers.length;
-      const npsScore = ((promoters - detractors) / total) * 100;
-      const labels: string[] = [group];
+    // Create data for detractors, passives, and promoters
+    const detractorsData = {
+      name: "Detractors",
+      labels: groups,
+      values: groups.map(group => {
+        const answers = groupedData.get(group) || [];
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const detractors = validAnswers.filter((r: number) => r <= 6).length;
+        return (detractors / validAnswers.length) * 100;
+      })
+    };
 
-      return {
-        name: group,
-        labels,
-        values: [npsScore]
-      };
-    });
+    const passivesData = {
+      name: "Passives",
+      labels: groups,
+      values: groups.map(group => {
+        const answers = groupedData.get(group) || [];
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const passives = validAnswers.filter((r: number) => r > 6 && r <= 8).length;
+        return (passives / validAnswers.length) * 100;
+      })
+    };
 
-    slide.addChart("bar", chartData, {
-      x: 1,
-      y: 2,
-      w: 8,
-      h: 3,
+    const promotersData = {
+      name: "Promoters",
+      labels: groups,
+      values: groups.map(group => {
+        const answers = groupedData.get(group) || [];
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const promoters = validAnswers.filter((r: number) => r > 8).length;
+        return (promoters / validAnswers.length) * 100;
+      })
+    };
+
+    slide.addChart("bar", [detractorsData, passivesData, promotersData], {
+      x: 0.5,
+      y: 1.5,
+      w: 9,
+      h: 4,
       barDir: "col",
-      chartColors: chartData.map((_, index) => THEME.chart.colors[index % THEME.chart.colors.length]),
-      showLegend: false,
-      dataLabelFormatCode: '0',
+      barGrouping: "clustered",
+      chartColors: [THEME.chart.colors[1], THEME.chart.colors[2], THEME.chart.colors[0]],
+      showLegend: true,
+      legendPos: 'b',
+      dataLabelFormatCode: '0"%"',
       catAxisTitle: dimension,
-      valAxisTitle: "NPS Score",
+      valAxisTitle: "Distribution (%)",
+      valAxisMaxVal: 100,
     });
   } else {
-    const chartData = Array.from(groupedData.entries()).map(([group, answers]) => {
-      const validAnswers = answers.filter((a: number) => typeof a === "number");
-      const average = validAnswers.reduce((a: number, b: number) => a + b, 0) / validAnswers.length;
-      const labels: string[] = [group];
+    // Create data for each rating (1-5)
+    const ratingData = Array.from({ length: 5 }, (_, rating) => ({
+      name: `${rating + 1} Star`,
+      labels: groups,
+      values: groups.map(group => {
+        const answers = groupedData.get(group) || [];
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        return validAnswers.filter((r: number) => r === rating + 1).length;
+      })
+    }));
 
-      return {
-        name: group,
-        labels,
-        values: [average]
-      };
-    });
-
-    slide.addChart("bar", chartData, {
-      x: 1,
-      y: 2,
-      w: 8,
-      h: 3,
+    slide.addChart("bar", ratingData, {
+      x: 0.5,
+      y: 1.5,
+      w: 9,
+      h: 4,
       barDir: "col",
-      chartColors: chartData.map((_, index) => THEME.chart.colors[index % THEME.chart.colors.length]),
-      showLegend: false,
-      dataLabelFormatCode: '0.0',
+      barGrouping: "clustered",
+      chartColors: ratingData.map((_, index) => THEME.chart.colors[index % THEME.chart.colors.length]),
+      showLegend: true,
+      legendPos: 'b',
+      dataLabelFormatCode: '0',
       catAxisTitle: dimension,
-      valAxisTitle: "Average Rating",
+      valAxisTitle: "Number of Responses",
     });
   }
 };

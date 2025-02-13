@@ -17,13 +17,12 @@ export const addBooleanChart = (
     values: [trueCount, falseCount]
   }];
 
-  // Reduced size and centered positioning
   slide.addChart("doughnut", data, {
     x: 2,
     y: 1.5,
     w: 6,
     h: 4,
-    chartColors: [THEME.primary, THEME.secondary], // Using distinct colors
+    chartColors: [THEME.chart.colors[0], THEME.chart.colors[1]],
     showLegend: true,
     legendPos: 'b',
     dataLabelFormatCode: '0"%"',
@@ -33,9 +32,9 @@ export const addBooleanChart = (
   slide.addText([
     { text: "Total Responses: ", options: { bold: true } },
     { text: `${total}` },
-    { text: "\nYes: ", options: { bold: true, color: THEME.primary } },
+    { text: "\nYes: ", options: { bold: true, color: THEME.chart.colors[0] } },
     { text: `${trueCount} (${Math.round((trueCount / total) * 100)}%)` },
-    { text: "\nNo: ", options: { bold: true, color: THEME.secondary } },
+    { text: "\nNo: ", options: { bold: true, color: THEME.chart.colors[1] } },
     { text: `${falseCount} (${Math.round((falseCount / total) * 100)}%)` },
   ], {
     x: 0.5,
@@ -51,28 +50,43 @@ export const addBooleanComparison = (
   groupedData: Map<string, any[]>,
   dimension: string
 ) => {
-  const chartData = Array.from(groupedData.entries()).map(([group, answers]) => {
-    const trueCount = answers.filter((a: boolean) => a === true).length;
-    const total = answers.length;
-    const labels: string[] = [group];
-    return {
-      name: group,
-      labels,
-      values: [(trueCount / total) * 100]
-    };
-  });
+  // Extract unique group names
+  const groups = Array.from(groupedData.keys());
+  
+  // Calculate percentages for Yes and No for each group
+  const yesData = {
+    name: "Yes",
+    labels: groups,
+    values: groups.map(group => {
+      const answers = groupedData.get(group) || [];
+      const trueCount = answers.filter((a: boolean) => a === true).length;
+      return (trueCount / answers.length) * 100;
+    })
+  };
 
-  // Reduced size for comparison charts
-  slide.addChart("bar", chartData, {
-    x: 1,
-    y: 2,
-    w: 8,
-    h: 3.5,
+  const noData = {
+    name: "No",
+    labels: groups,
+    values: groups.map(group => {
+      const answers = groupedData.get(group) || [];
+      const falseCount = answers.filter((a: boolean) => a === false).length;
+      return (falseCount / answers.length) * 100;
+    })
+  };
+
+  slide.addChart("bar", [yesData, noData], {
+    x: 0.5,
+    y: 1.5,
+    w: 9,
+    h: 4,
     barDir: "col",
-    chartColors: [THEME.chart.colors[0], THEME.chart.colors[1], THEME.chart.colors[2], THEME.chart.colors[3]],
-    showLegend: false,
+    barGrouping: "clustered",
+    chartColors: [THEME.chart.colors[0], THEME.chart.colors[1]], // Yes in purple, No in orange
+    showLegend: true,
+    legendPos: 'b',
     dataLabelFormatCode: '0"%"',
     catAxisTitle: dimension,
-    valAxisTitle: "Percentage Responding Yes",
+    valAxisTitle: "Response Distribution (%)",
+    valAxisMaxVal: 100,
   });
 };
