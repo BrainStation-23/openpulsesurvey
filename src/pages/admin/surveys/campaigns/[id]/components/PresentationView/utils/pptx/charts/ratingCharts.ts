@@ -1,17 +1,8 @@
 
 import pptxgen from "pptxgenjs";
 import { THEME } from "../theme";
-
-const calculateMedian = (ratings: number[]) => {
-  if (ratings.length === 0) return 0;
-  const sorted = [...ratings].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  
-  if (sorted.length % 2 === 0) {
-    return (sorted[middle - 1] + sorted[middle]) / 2;
-  }
-  return sorted[middle];
-};
+import { calculateMedian } from "./helpers/mediaCalculations";
+import { processNpsData, processSatisfactionData } from "./helpers/dataProcessing";
 
 export const addRatingChart = (
   slide: pptxgen.Slide,
@@ -23,14 +14,7 @@ export const addRatingChart = (
   );
   
   if (isNps) {
-    const detractors = validAnswers.filter(r => r <= 6).length;
-    const passives = validAnswers.filter(r => r > 6 && r <= 8).length;
-    const promoters = validAnswers.filter(r => r > 8).length;
-    const total = validAnswers.length;
-
-    const npsScore = Math.round(
-      ((promoters - detractors) / total) * 100
-    );
+    const { detractors, passives, promoters, total, npsScore } = processNpsData(validAnswers);
 
     slide.addText(`NPS Score: ${npsScore}`, {
       x: 0.5,
@@ -72,13 +56,9 @@ export const addRatingChart = (
       barGrouping: "stacked"
     });
   } else {
-    const unsatisfied = validAnswers.filter(r => r <= 2).length;
-    const neutral = validAnswers.filter(r => r === 3).length;
-    const satisfied = validAnswers.filter(r => r >= 4).length;
-    const total = validAnswers.length;
     const median = calculateMedian(validAnswers);
-    const average = validAnswers.reduce((a, b) => a + b, 0) / total;
-    const satisfactionRate = Math.round((satisfied / total) * 100);
+    const average = validAnswers.reduce((a, b) => a + b, 0) / validAnswers.length;
+    const { unsatisfied, neutral, satisfied, total, satisfactionRate } = processSatisfactionData(validAnswers);
 
     // Add metrics at the top with more space
     slide.addText([
