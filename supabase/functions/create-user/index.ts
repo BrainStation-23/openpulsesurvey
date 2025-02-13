@@ -1,6 +1,7 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import { corsHeaders } from '../_shared/cors.ts'
-import { randomBytes } from 'crypto'
+import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
 
 interface CreateUserPayload {
   email: string
@@ -116,9 +117,14 @@ async function createSingleUser(payload: CreateUserPayload) {
 
   try {
     // Create auth user
+    const generatedPassword = Array.from(crypto.getRandomValues(new Uint8Array(9)))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+      .slice(0, 12);
+
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email: payload.email,
-      password: payload.password || randomBytes(12).toString('base64').slice(0, 12),
+      password: payload.password || generatedPassword,
       email_confirm: true,
     });
 
