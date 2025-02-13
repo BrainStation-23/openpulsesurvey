@@ -1,3 +1,4 @@
+
 import pptxgen from "pptxgenjs";
 import { ProcessedData } from "../../types/responses";
 import { THEME } from "./theme";
@@ -18,9 +19,11 @@ export const addQuestionChart = async (
       const falseCount = answers.filter(a => a === false).length;
       const total = trueCount + falseCount;
 
+      // Ensure labels are explicitly typed as string array
+      const labels: string[] = ["Yes", "No"];
       const data = [{
         name: "Responses",
-        labels: ["Yes", "No"] as string[],
+        labels,
         values: [trueCount, falseCount]
       }];
 
@@ -246,15 +249,16 @@ export const addComparisonChart = async (
     groupedData.get(groupKey).push(answer);
   });
 
-  // Process data based on question type
   switch (question.type) {
     case "boolean": {
       const chartData = Array.from(groupedData.entries()).map(([group, answers]) => {
         const trueCount = answers.filter((a: boolean) => a === true).length;
         const total = answers.length;
+        // Ensure labels is explicitly typed as string array
+        const labels: string[] = [group];
         return {
           name: group,
-          labels: [group], // Changed from ["Yes"] to [group] to match chart data structure
+          labels,
           values: [(trueCount / total) * 100]
         };
       });
