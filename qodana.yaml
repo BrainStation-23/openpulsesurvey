@@ -1,3 +1,4 @@
+
 version: "1.0"
 linter: jetbrains/qodana-js:2024.3
 profile:
@@ -15,3 +16,5 @@ exclude:
       - src/lib
       - src/vite-env.d.ts
       - src/integrations
+failThreshold: 0
+bootstrap: npm ci
