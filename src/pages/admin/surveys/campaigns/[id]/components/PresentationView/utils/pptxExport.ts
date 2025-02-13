@@ -233,7 +233,7 @@ const addQuestionChart = async (
       }];
 
       // Add donut chart
-      slide.addChart(pptx.ChartType.doughnut, data, {
+      slide.addChart(pptxgen.ChartType.doughnut, data, {
         x: 1,
         y: 1.5,
         w: 8,
@@ -300,7 +300,7 @@ const addQuestionChart = async (
           ]
         }];
 
-        slide.addChart(pptx.ChartType.bar, data, {
+        slide.addChart(pptxgen.ChartType.bar, data, {
           x: 0.5,
           y: 2.5,
           w: 9,
@@ -318,10 +318,11 @@ const addQuestionChart = async (
         // Regular rating chart (1-5)
         const data = Array.from({ length: 5 }, (_, i) => ({
           name: `${i + 1} Star`,
+          labels: [`${i + 1} Star`],
           values: [validAnswers.filter(r => r === i + 1).length]
         }));
 
-        slide.addChart(pptx.ChartType.bar, data, {
+        slide.addChart(pptxgen.ChartType.bar, data, {
           x: 0.5,
           y: 1.5,
           w: 9,
@@ -373,7 +374,7 @@ const addQuestionChart = async (
         .slice(0, 10);
 
       // Add bar chart for top words
-      slide.addChart(pptx.ChartType.bar, topWords, {
+      slide.addChart(pptxgen.ChartType.bar, topWords, {
         x: 0.5,
         y: 1.5,
         w: 9,
@@ -462,7 +463,7 @@ const addComparisonChart = async (
         };
       });
 
-      slide.addChart(pptx.ChartType.bar, chartData, {
+      slide.addChart(pptxgen.ChartType.bar, chartData, {
         x: 0.5,
         y: 2,
         w: 9,
@@ -493,7 +494,7 @@ const addComparisonChart = async (
           };
         });
 
-        slide.addChart(pptx.ChartType.bar, chartData, {
+        slide.addChart(pptxgen.ChartType.bar, chartData, {
           x: 0.5,
           y: 2,
           w: 9,
@@ -517,7 +518,7 @@ const addComparisonChart = async (
           };
         });
 
-        slide.addChart(pptx.ChartType.bar, chartData, {
+        slide.addChart(pptxgen.ChartType.bar, chartData, {
           x: 0.5,
           y: 2,
           w: 9,
