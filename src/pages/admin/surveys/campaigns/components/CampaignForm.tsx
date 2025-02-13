@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -45,6 +46,11 @@ export function CampaignForm({
   onStepBack,
 }: CampaignFormProps) {
   const [isReadyToProceed, setIsReadyToProceed] = useState(false);
+  
+  // Set default end dates to today
+  const today = new Date();
+  const defaultEndDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 17, 0, 0); // 5:00 PM today
+
   const form = useForm<CampaignFormData>({
     resolver: zodResolver(campaignSchema),
     defaultValues: {
@@ -54,8 +60,10 @@ export function CampaignForm({
       starts_at: new Date(),
       is_recurring: false,
       recurring_frequency: undefined,
+      recurring_ends_at: defaultEndDate,
       instance_duration_days: 7,
       instance_end_time: "17:00",
+      ends_at: defaultEndDate,
       status: "draft",
       anonymous: false,
       ...defaultValues,
