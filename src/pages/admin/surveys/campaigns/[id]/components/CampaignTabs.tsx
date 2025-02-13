@@ -1,6 +1,9 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, PieChart, Users, ClipboardList, Activity, FileBarChart } from "lucide-react";
+import { Brain, PieChart, Users, ClipboardList, Activity, FileBarChart, Lock } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useEffect, useState } from "react";
 
 export function TabPanel({ value, children }: { value: string; children: React.ReactNode }) {
   return (
@@ -13,38 +16,71 @@ export function TabPanel({ value, children }: { value: string; children: React.R
 interface CampaignTabsProps {
   children: React.ReactNode;
   isAnonymous?: boolean;
+  status?: string;
 }
 
-export function CampaignTabs({ children, isAnonymous }: CampaignTabsProps) {
+export function CampaignTabs({ children, isAnonymous, status }: CampaignTabsProps) {
+  const isDraft = status === 'draft';
+  const [currentTab, setCurrentTab] = useState<string>(isDraft ? "assignments" : "overview");
+
+  // Ensure tab is set correctly when status changes
+  useEffect(() => {
+    setCurrentTab(isDraft ? "assignments" : "overview");
+  }, [isDraft]);
+
+  // Define disabled tabs in draft mode
+  const disabledTabs = isDraft ? ["overview", "responses", "activity", "reports", "analyze"] : [];
+
+  const renderTabTrigger = (value: string, label: string, icon: React.ReactNode) => {
+    const isDisabled = disabledTabs.includes(value);
+
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <TabsTrigger 
+                value={value} 
+                className={`gap-2 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isDisabled}
+              >
+                {icon}
+                {label}
+                {isDisabled && <Lock className="h-3 w-3 ml-1" />}
+              </TabsTrigger>
+            </div>
+          </TooltipTrigger>
+          {isDisabled && (
+            <TooltipContent>
+              <p>This feature is only available after publishing the campaign</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
   return (
-    <Tabs defaultValue="overview" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="overview" className="gap-2">
-          <PieChart className="h-4 w-4" />
-          Overview
-        </TabsTrigger>
-        <TabsTrigger value="assignments" className="gap-2">
-          <Users className="h-4 w-4" />
-          Assignments
-        </TabsTrigger>
-        {<TabsTrigger value="responses" className="gap-2">
-          <ClipboardList className="h-4 w-4" />
-          Responses
-        </TabsTrigger>}
-        <TabsTrigger value="activity" className="gap-2">
-          <Activity className="h-4 w-4" />
-          Activity
-        </TabsTrigger>
-        <TabsTrigger value="reports" className="gap-2">
-          <FileBarChart className="h-4 w-4" />
-          Reports
-        </TabsTrigger>
-        <TabsTrigger value="analyze" className="gap-2">
-          <Brain className="h-4 w-4" />
-          AI-nalyze
-        </TabsTrigger>
-      </TabsList>
-      {children}
-    </Tabs>
+    <div className="space-y-4">
+      {isDraft && (
+        <Alert>
+          <AlertDescription>
+            This campaign is in draft mode. Only the Assignments tab is available. Publish the campaign to access all features.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <Tabs value={currentTab} defaultValue={currentTab} onValueChange={setCurrentTab} className="space-y-4">
+        <TabsList>
+          {renderTabTrigger("overview", "Overview", <PieChart className="h-4 w-4" />)}
+          {renderTabTrigger("assignments", "Assignments", <Users className="h-4 w-4" />)}
+          {renderTabTrigger("responses", "Responses", <ClipboardList className="h-4 w-4" />)}
+          {renderTabTrigger("activity", "Activity", <Activity className="h-4 w-4" />)}
+          {renderTabTrigger("reports", "Reports", <FileBarChart className="h-4 w-4" />)}
+          {renderTabTrigger("analyze", "AI-nalyze", <Brain className="h-4 w-4" />)}
+        </TabsList>
+        {children}
+      </Tabs>
+    </div>
   );
 }

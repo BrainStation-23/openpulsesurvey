@@ -109,6 +109,8 @@ export default function CampaignDetailsPage() {
 
   if (!id) return null;
 
+  const showInstanceSelector = campaign?.status !== 'draft';
+
   return (
     <div className="space-y-6">
       <CampaignHeader 
@@ -117,15 +119,20 @@ export default function CampaignDetailsPage() {
         selectedInstanceId={selectedInstanceId}
       />
 
-      <div className="flex justify-end">
-        <InstanceSelector
-          campaignId={id}
-          selectedInstanceId={selectedInstanceId}
-          onInstanceSelect={setSelectedInstanceId}
-        />
-      </div>
+      {showInstanceSelector && (
+        <div className="flex justify-end">
+          <InstanceSelector
+            campaignId={id}
+            selectedInstanceId={selectedInstanceId}
+            onInstanceSelect={setSelectedInstanceId}
+          />
+        </div>
+      )}
 
-      <CampaignTabs isAnonymous={campaign?.anonymous}>
+      <CampaignTabs 
+        isAnonymous={campaign?.anonymous}
+        status={campaign?.status}
+      >
         <TabPanel value="overview">
           <OverviewTab 
             campaignId={id} 
