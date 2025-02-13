@@ -1,30 +1,28 @@
 
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Check, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PromptSelectorProps {
   onPromptSelect: (promptData: { id: string, text: string }) => void;
   selectedPromptId?: string;
 }
 
+interface Prompt {
+  id: string;
+  name: string;
+  category: string;
+  prompt_text: string;
+  status: 'active';
+}
+
 export function PromptSelector({ onPromptSelect, selectedPromptId }: PromptSelectorProps) {
-  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const { data: prompts, isLoading } = useQuery({
     queryKey: ['analysis-prompts'],
@@ -36,62 +34,92 @@ export function PromptSelector({ onPromptSelect, selectedPromptId }: PromptSelec
         .order('name');
       
       if (error) throw error;
-      return data || []; // Ensure we always return an array, even if empty
+      return data as Prompt[];
     },
   });
 
-  const selectedPrompt = prompts?.find(prompt => prompt.id === selectedPromptId);
+  const categories = Array.from(
+    new Set(prompts?.map(prompt => prompt.category) || [])
+  );
+
+  const filteredPrompts = prompts?.filter(prompt => {
+    const matchesSearch = prompt.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         prompt.prompt_text.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !selectedCategory || prompt.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   if (isLoading) {
     return (
-      <Button variant="outline" className="w-[350px] justify-between" disabled>
-        Loading prompts...
-      </Button>
+      <div className="w-full space-y-4">
+        <Input
+          disabled
+          className="w-full"
+          placeholder="Loading prompts..."
+        />
+      </div>
     );
   }
 
-  // Ensure prompts is an array
-  const availablePrompts = Array.isArray(prompts) ? prompts : [];
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-[350px] justify-between"
-        >
-          {selectedPrompt ? selectedPrompt.name : "Select an analysis type..."}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[350px] p-0">
-        <Command>
-          <CommandInput placeholder="Search analysis types..." />
-          <CommandEmpty>No analysis type found.</CommandEmpty>
-          <CommandGroup>
-            {availablePrompts.map((prompt) => (
-              <CommandItem
-                key={prompt.id}
-                value={prompt.name}
-                onSelect={() => {
-                  onPromptSelect({ id: prompt.id, text: prompt.prompt_text });
-                  setOpen(false);
-                }}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    selectedPromptId === prompt.id ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                {prompt.name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <div className="w-full space-y-4">
+      <div className="relative">
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search prompts..."
+          className="w-full pl-9"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {categories.map((category) => (
+          <Badge
+            key={category}
+            variant={selectedCategory === category ? "default" : "outline"}
+            className="cursor-pointer"
+            onClick={() => setSelectedCategory(
+              selectedCategory === category ? null : category
+            )}
+          >
+            {category.replace(/_/g, ' ')}
+          </Badge>
+        ))}
+      </div>
+
+      <div className="border rounded-md divide-y">
+        {filteredPrompts?.map((prompt) => (
+          <div
+            key={prompt.id}
+            className={cn(
+              "p-4 cursor-pointer hover:bg-muted transition-colors",
+              selectedPromptId === prompt.id && "bg-muted"
+            )}
+            onClick={() => onPromptSelect({ 
+              id: prompt.id, 
+              text: prompt.prompt_text 
+            })}
+          >
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <div className="font-medium">{prompt.name}</div>
+                <div className="text-sm text-muted-foreground line-clamp-2">
+                  {prompt.prompt_text}
+                </div>
+              </div>
+              {selectedPromptId === prompt.id && (
+                <Check className="h-4 w-4 shrink-0" />
+              )}
+            </div>
+          </div>
+        ))}
+        {filteredPrompts?.length === 0 && (
+          <div className="p-4 text-center text-muted-foreground">
+            No prompts found
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
