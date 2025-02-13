@@ -21,9 +21,8 @@ const campaignSchema = z.object({
   recurring_frequency: z.string().optional(),
   recurring_ends_at: z.date().optional()
     .superRefine((date, ctx) => {
-      // Navigate up two levels to get to the root object
-      const parentPath = ctx.path.slice(0, -2);
-      const isRecurring = parentPath.length === 0 ? false : true;
+      const formData = ctx.path.reduce((acc, key) => (acc as any)?.[key], ctx.input as Record<string, any>);
+      const isRecurring = formData?.is_recurring;
       
       if (isRecurring && !date) {
         ctx.addIssue({
@@ -36,9 +35,8 @@ const campaignSchema = z.object({
   instance_end_time: z.string().optional(),
   ends_at: z.date().optional()
     .superRefine((date, ctx) => {
-      // Navigate up two levels to get to the root object
-      const parentPath = ctx.path.slice(0, -2);
-      const isRecurring = parentPath.length === 0 ? false : true;
+      const formData = ctx.path.reduce((acc, key) => (acc as any)?.[key], ctx.input as Record<string, any>);
+      const isRecurring = formData?.is_recurring;
       
       if (!isRecurring && !date) {
         ctx.addIssue({
@@ -87,9 +85,24 @@ export function CampaignForm({
     },
   });
 
+  const validateCurrentStep = async () => {
+    // Define which fields should be validated for each step
+    const stepFields: Record<number, (keyof CampaignFormData)[]> = {
+      1: ['name', 'description', 'survey_id', 'anonymous'],
+      2: ['starts_at', 'is_recurring', 'recurring_frequency', 'recurring_ends_at', 'instance_duration_days', 'instance_end_time', 'ends_at'],
+      3: [] // Review step doesn't need validation
+    };
+
+    const currentFields = stepFields[currentStep];
+    if (!currentFields) return true;
+
+    const result = await form.trigger(currentFields);
+    return result;
+  };
+
   const handleNext = async () => {
     if (currentStep < 3) {
-      const isValid = await form.trigger();
+      const isValid = await validateCurrentStep();
       if (isValid) {
         onStepComplete(currentStep);
       }
