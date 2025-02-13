@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -64,12 +64,29 @@ export function AIPromptDialog({
 }: AIPromptDialogProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialValues || {
+    defaultValues: {
       name: "",
       category: "general_analysis",
       prompt_text: "",
     },
   });
+
+  // Reset form with initial values when dialog opens or initialValues change
+  useEffect(() => {
+    if (initialValues) {
+      form.reset({
+        name: initialValues.name,
+        category: initialValues.category,
+        prompt_text: initialValues.prompt_text,
+      });
+    } else {
+      form.reset({
+        name: "",
+        category: "general_analysis",
+        prompt_text: "",
+      });
+    }
+  }, [form, initialValues, open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,7 +117,7 @@ export function AIPromptDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category" />
