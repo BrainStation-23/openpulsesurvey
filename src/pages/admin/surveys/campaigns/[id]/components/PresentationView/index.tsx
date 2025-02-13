@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ComparisonDimension } from "./types/comparison";
 import { TitleSlide } from "./slides/TitleSlide";
-import { CompletionRateSlide } from "./slides/CompletionRateSlide";
 import { ResponseDistributionSlide } from "./slides/ResponseDistributionSlide";
 import { ResponseTrendsSlide } from "./slides/ResponseTrendsSlide";
 import { QuestionSlide } from "./slides/QuestionSlide";
@@ -13,7 +12,15 @@ import { PresentationLayout } from "./components/PresentationLayout";
 import { PresentationControls } from "./components/PresentationControls";
 import { CampaignData, SurveyJsonData } from "./types";
 
-const COMPARISON_DIMENSIONS: ComparisonDimension[] = ['sbu', 'gender', 'location', 'employment_type'];
+const COMPARISON_DIMENSIONS: ComparisonDimension[] = [
+  'sbu', 
+  'gender', 
+  'location', 
+  'employment_type',
+  'level',
+  'employee_type',
+  'employee_role'
+];
 
 export default function PresentationView() {
   const { id } = useParams();
@@ -97,7 +104,7 @@ export default function PresentationView() {
     (page) => page.elements || []
   );
 
-  const totalSlides = 4 + (surveyQuestions.length * (1 + COMPARISON_DIMENSIONS.length));
+  const totalSlides = 3 + (surveyQuestions.length * (1 + COMPARISON_DIMENSIONS.length));
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -140,7 +147,7 @@ export default function PresentationView() {
 
   const renderQuestionSlides = () => {
     return surveyQuestions.map((question, index) => {
-      const baseSlideIndex = 4 + (index * (1 + COMPARISON_DIMENSIONS.length));
+      const baseSlideIndex = 3 + (index * (1 + COMPARISON_DIMENSIONS.length));
       
       const slides = [(
         <QuestionSlide
@@ -193,9 +200,8 @@ export default function PresentationView() {
       />
       
       <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
-      <CompletionRateSlide campaign={campaign} isActive={currentSlide === 1} />
-      <ResponseDistributionSlide campaign={campaign} isActive={currentSlide === 2} />
-      <ResponseTrendsSlide campaign={campaign} isActive={currentSlide === 3} />
+      <ResponseDistributionSlide campaign={campaign} isActive={currentSlide === 1} />
+      <ResponseTrendsSlide campaign={campaign} isActive={currentSlide === 2} />
       {renderQuestionSlides()}
     </PresentationLayout>
   );

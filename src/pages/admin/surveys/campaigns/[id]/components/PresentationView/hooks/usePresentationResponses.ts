@@ -1,12 +1,13 @@
+
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProcessedData, ProcessedResponse, Question } from "../types/responses";
 
 export function usePresentationResponses(campaignId: string, instanceId?: string) {
-  return useQuery<ProcessedData>({
+  const { data: rawData, ...rest } = useQuery({
     queryKey: ["presentation-responses", campaignId, instanceId],
     queryFn: async () => {
-      // First get the survey details and its questions
       const { data: campaign } = await supabase
         .from("survey_campaigns")
         .select(`
@@ -23,18 +24,16 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
         throw new Error("Survey not found");
       }
 
-      const surveyData = typeof campaign.survey.json_data === 'string' 
-        ? JSON.parse(campaign.survey.json_data)
-        : campaign.survey.json_data;
-
-      const surveyQuestions = surveyData.pages?.flatMap(
-        (page: any) => page.elements || []
-      ).map((q: any) => ({
-        name: q.name,
-        title: q.title,
-        type: q.type,
-        rateCount: q.rateMax === 10 ? 10 : q.rateMax // Add rateCount based on rateMax
-      })) || [];
+      // Safely parse survey data
+      let surveyData;
+      try {
+        surveyData = typeof campaign.survey.json_data === 'string' 
+          ? JSON.parse(campaign.survey.json_data)
+          : campaign.survey.json_data;
+      } catch (error) {
+        console.error("Error parsing survey data:", error);
+        surveyData = { pages: [] };
+      }
 
       // Build the query for responses with extended user metadata
       let query = supabase
@@ -48,11 +47,23 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
             last_name,
             email,
             gender,
-            location:locations (
+            location:locations!profiles_location_id_fkey (
               id,
               name
             ),
-            employment_type:employment_types (
+            employment_type:employment_types!profiles_employment_type_id_fkey (
+              id,
+              name
+            ),
+            level:levels!profiles_level_id_fkey (
+              id,
+              name
+            ),
+            employee_type:employee_types!profiles_employee_type_id_fkey (
+              id,
+              name
+            ),
+            employee_role:employee_roles!profiles_employee_role_id_fkey (
               id,
               name
             ),
@@ -72,54 +83,77 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
       }
 
       const { data: responses } = await query;
+      return { responses, surveyData };
+    },
+  });
 
-      if (!responses) {
-        return {
-          questions: surveyQuestions,
-          responses: [],
-        };
-      }
+  const processedData = useMemo(() => {
+    if (!rawData) return null;
+    
+    const { responses, surveyData } = rawData;
+    
+    // Safely access survey questions with fallback
+    const surveyQuestions = (surveyData?.pages || []).flatMap(
+      (page: any) => page.elements || []
+    ).map((q: any) => ({
+      name: q.name || '',
+      title: q.title || '',
+      type: q.type || 'text',
+      rateCount: q.rateMax === 10 ? 10 : q.rateMax || 5
+    })) || [];
 
-      // Process each response
-      const processedResponses: ProcessedResponse[] = responses.map((response) => {
-        const answers: Record<string, any> = {};
+    if (!responses) {
+      return {
+        questions: surveyQuestions,
+        responses: [],
+      };
+    }
 
-        // Map each question to its answer
-        surveyQuestions.forEach((question: Question) => {
-          const answer = response.response_data[question.name];
-          answers[question.name] = {
-            question: question.title,
-            answer: answer,
-            questionType: question.type,
-          };
-        });
+    // Process each response
+    const processedResponses: ProcessedResponse[] = responses.map((response) => {
+      const answers: Record<string, any> = {};
 
-        // Find primary SBU
-        const primarySbu = response.user.user_sbus?.find(
-          (us: any) => us.is_primary && us.sbu
-        );
-
-        return {
-          id: response.id,
-          respondent: {
-            name: `${response.user.first_name || ""} ${
-              response.user.last_name || ""
-            }`.trim(),
-            email: response.user.email,
-            gender: response.user.gender,
-            location: response.user.location,
-            sbu: primarySbu?.sbu || null,
-            employment_type: response.user.employment_type,
-          },
-          submitted_at: response.submitted_at,
-          answers,
+      // Map each question to its answer with null checks
+      surveyQuestions.forEach((question: Question) => {
+        const answer = response?.response_data?.[question.name];
+        answers[question.name] = {
+          question: question.title,
+          answer: answer,
+          questionType: question.type,
+          rateCount: question.rateCount
         };
       });
 
+      // Find primary SBU with null checks
+      const primarySbu = response.user?.user_sbus?.find(
+        (us: any) => us.is_primary && us.sbu
+      );
+
       return {
-        questions: surveyQuestions,
-        responses: processedResponses,
+        id: response.id,
+        respondent: {
+          name: `${response.user?.first_name || ""} ${
+            response.user?.last_name || ""
+          }`.trim(),
+          email: response.user?.email,
+          gender: response.user?.gender,
+          location: response.user?.location,
+          sbu: primarySbu?.sbu || null,
+          employment_type: response.user?.employment_type,
+          level: response.user?.level,
+          employee_type: response.user?.employee_type,
+          employee_role: response.user?.employee_role,
+        },
+        submitted_at: response.submitted_at,
+        answers,
       };
-    },
-  });
+    });
+
+    return {
+      questions: surveyQuestions,
+      responses: processedResponses,
+    };
+  }, [rawData]);
+
+  return { data: processedData, ...rest };
 }

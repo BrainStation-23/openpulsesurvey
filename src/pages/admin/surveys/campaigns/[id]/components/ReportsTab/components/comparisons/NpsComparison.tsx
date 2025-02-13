@@ -1,12 +1,14 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
 import { NpsChart } from "../../charts/NpsChart";
 import type { ProcessedResponse } from "../../hooks/useResponseProcessing";
+import { ComparisonDimension } from "../../types/comparison";
 
 interface NpsComparisonProps {
   responses: ProcessedResponse[];
   questionName: string;
-  dimension: "sbu" | "gender" | "location" | "employment_type" | "none";
+  dimension: ComparisonDimension;
   isNps: boolean;
   layout?: 'grid' | 'vertical';
 }
@@ -36,7 +38,10 @@ export function NpsComparison({
       sbu: "By Department",
       gender: "By Gender",
       location: "By Location",
-      employment_type: "By Employment Type"
+      employment_type: "By Employment Type",
+      level: "By Level",
+      employee_type: "By Employee Type",
+      employee_role: "By Employee Role"
     };
     return titles[dim] || dim;
   };
@@ -64,6 +69,15 @@ export function NpsComparison({
             break;
           case "employment_type":
             dimensionValue = response.respondent.employment_type?.name || "Unknown";
+            break;
+          case "level":
+            dimensionValue = response.respondent.level?.name || "Unknown";
+            break;
+          case "employee_type":
+            dimensionValue = response.respondent.employee_type?.name || "Unknown";
+            break;
+          case "employee_role":
+            dimensionValue = response.respondent.employee_role?.name || "Unknown";
             break;
         }
 
@@ -104,6 +118,15 @@ export function NpsComparison({
           break;
         case "employment_type":
           dimensionValue = response.respondent.employment_type?.name || "Unknown";
+          break;
+        case "level":
+          dimensionValue = response.respondent.level?.name || "Unknown";
+          break;
+        case "employee_type":
+          dimensionValue = response.respondent.employee_type?.name || "Unknown";
+          break;
+        case "employee_role":
+          dimensionValue = response.respondent.employee_role?.name || "Unknown";
           break;
       }
 

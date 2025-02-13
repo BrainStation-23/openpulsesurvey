@@ -1,3 +1,4 @@
+
 export interface BooleanResponseData {
   yes: number;
   no: number;
@@ -51,12 +52,25 @@ export interface ProcessedResponse {
       id: string;
       name: string;
     } | null;
+    level: {
+      id: string;
+      name: string;
+    } | null;
+    employee_type: {
+      id: string;
+      name: string;
+    } | null;
+    employee_role: {
+      id: string;
+      name: string;
+    } | null;
   };
   submitted_at: string;
   answers: Record<string, {
     question: string;
     answer: any;
     questionType: string;
+    rateCount?: number;
   }>;
 }
 

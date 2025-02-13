@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { ProcessedResponse } from "../../hooks/useResponseProcessing";
 import { ComparisonDimension } from "../../types/comparison";
@@ -36,6 +37,17 @@ export function TextComparison({
         case "employment_type":
           groupKey = response.respondent.employment_type?.name || "Not Specified";
           break;
+        case "level":
+          groupKey = response.respondent.level?.name || "Not Specified";
+          break;
+        case "employee_type":
+          groupKey = response.respondent.employee_type?.name || "Not Specified";
+          break;
+        case "employee_role":
+          groupKey = response.respondent.employee_role?.name || "Not Specified";
+          break;
+        default:
+          groupKey = "All Responses";
       }
 
       if (!groupedData[groupKey]) {
@@ -55,29 +67,47 @@ export function TextComparison({
       }
     });
 
-    return Object.entries(groupedData).map(([group, wordFreq]) => ({
-      group,
-      words: Object.entries(wordFreq)
-        .map(([text, value]) => ({ text, value }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 30),
-    }));
+    return Object.entries(groupedData)
+      .filter(([_, wordFreq]) => Object.keys(wordFreq).length > 0)
+      .map(([group, wordFreq]) => ({
+        group,
+        words: Object.entries(wordFreq)
+          .map(([text, value]) => ({ text, value }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 30),
+      }));
   };
 
   const groupedWords = processData();
 
+  if (groupedWords.length === 0) {
+    return (
+      <Card className="p-6">
+        <div className="text-center text-muted-foreground">
+          No text responses available for comparison
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <div className={
       layout === 'grid' 
-        ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-4' 
+        ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' 
         : 'space-y-4'
     }>
       {groupedWords.map(({ group, words }) => (
         <Card key={group} className="p-6">
           <h3 className="mb-4 text-lg font-semibold">{group}</h3>
-          <div className="h-[280px]">
-            <WordCloud words={words} />
-          </div>
+          {words.length > 0 ? (
+            <div className="h-[280px]">
+              <WordCloud words={words} />
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground">
+              No responses in this group
+            </div>
+          )}
         </Card>
       ))}
     </div>

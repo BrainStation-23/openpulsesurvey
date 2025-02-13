@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -23,6 +24,18 @@ export interface ProcessedResponse {
       name: string;
     } | null;
     employment_type: {
+      id: string;
+      name: string;
+    } | null;
+    level: {
+      id: string;
+      name: string;
+    } | null;
+    employee_type: {
+      id: string;
+      name: string;
+    } | null;
+    employee_role: {
       id: string;
       name: string;
     } | null;
@@ -92,6 +105,18 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
               id,
               name
             ),
+            level:levels (
+              id,
+              name
+            ),
+            employee_type:employee_types (
+              id,
+              name
+            ),
+            employee_role:employee_roles (
+              id,
+              name
+            ),
             user_sbus:user_sbus (
               is_primary,
               sbu:sbus (
@@ -147,6 +172,9 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             location: response.user.location,
             sbu: primarySbu?.sbu || null,
             employment_type: response.user.employment_type,
+            level: response.user.level,
+            employee_type: response.user.employee_type,
+            employee_role: response.user.employee_role,
           },
           submitted_at: response.submitted_at,
           answers,

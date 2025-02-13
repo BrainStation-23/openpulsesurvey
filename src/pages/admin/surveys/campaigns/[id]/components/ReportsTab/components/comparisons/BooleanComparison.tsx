@@ -38,6 +38,15 @@ export function BooleanComparison({
         case "employment_type":
           groupKey = response.respondent.employment_type?.name || "Not Specified";
           break;
+        case "level":
+          groupKey = response.respondent.level?.name || "Not Specified";
+          break;
+        case "employee_type":
+          groupKey = response.respondent.employee_type?.name || "Not Specified";
+          break;
+        case "employee_role":
+          groupKey = response.respondent.employee_role?.name || "Not Specified";
+          break;
       }
 
       if (!groupedData[groupKey]) {

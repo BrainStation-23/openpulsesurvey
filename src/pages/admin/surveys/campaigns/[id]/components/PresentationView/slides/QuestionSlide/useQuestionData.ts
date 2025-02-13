@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
@@ -5,7 +6,7 @@ import { ComparisonDimension } from "../../types/comparison";
 type ProcessedResult = BooleanResponseData | RatingResponseData | SatisfactionData | TextResponseData | any[];
 
 export function useQuestionData(
-  data: ProcessedData | undefined,
+  data: ProcessedData | undefined | null,
   questionName: string,
   questionType: string,
   slideType: ComparisonDimension
@@ -48,6 +49,7 @@ export function useQuestionData(
             );
             
             const calculateMedian = (ratings: number[]) => {
+              if (ratings.length === 0) return 0;
               const sorted = [...ratings].sort((a, b) => a - b);
               const middle = Math.floor(sorted.length / 2);
               
@@ -127,6 +129,15 @@ function processComparisonData(
         break;
       case "employment_type":
         dimensionValue = response.respondent.employment_type?.name || "Unknown";
+        break;
+      case "level":
+        dimensionValue = response.respondent.level?.name || "Unknown";
+        break;
+      case "employee_type":
+        dimensionValue = response.respondent.employee_type?.name || "Unknown";
+        break;
+      case "employee_role":
+        dimensionValue = response.respondent.employee_role?.name || "Unknown";
         break;
     }
 

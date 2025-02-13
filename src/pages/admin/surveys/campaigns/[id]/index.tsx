@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -30,13 +31,41 @@ export default function CampaignDetailsPage() {
   });
 
   const { data: assignments, isLoading: isLoadingAssignments } = useQuery({
-    queryKey: ["campaign-assignments", id],
+    queryKey: ["campaign-assignments", id, selectedInstanceId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!selectedInstanceId) {
+        // If no instance is selected, return regular assignments
+        const { data, error } = await supabase
+          .from("survey_assignments")
+          .select(`
+            id,
+            status,
+            due_date,
+            user:profiles!survey_assignments_user_id_fkey (
+              id,
+              email,
+              first_name,
+              last_name,
+              user_sbus (
+                is_primary,
+                sbu:sbus (
+                  id,
+                  name
+                )
+              )
+            )
+          `)
+          .eq("campaign_id", id);
+
+        if (error) throw error;
+        return data;
+      }
+
+      // If instance is selected, get assignments with instance-specific status
+      const { data: assignmentsData, error: assignmentsError } = await supabase
         .from("survey_assignments")
         .select(`
           id,
-          status,
           due_date,
           user:profiles!survey_assignments_user_id_fkey (
             id,
@@ -54,9 +83,27 @@ export default function CampaignDetailsPage() {
         `)
         .eq("campaign_id", id);
 
-      if (error) throw error;
-      return data;
+      if (assignmentsError) throw assignmentsError;
+
+      // Get status for each assignment in the selected instance
+      const assignmentsWithStatus = await Promise.all(
+        (assignmentsData || []).map(async (assignment) => {
+          const { data: statusData } = await supabase
+            .rpc('get_assignment_instance_status', {
+              p_assignment_id: assignment.id,
+              p_instance_id: selectedInstanceId
+            });
+
+          return {
+            ...assignment,
+            status: statusData
+          };
+        })
+      );
+
+      return assignmentsWithStatus;
     },
+    enabled: !!id,
   });
 
   if (!id) return null;
@@ -90,6 +137,7 @@ export default function CampaignDetailsPage() {
             isLoading={isLoadingAssignments}
             campaignId={id}
             surveyId={campaign?.survey_id}
+            selectedInstanceId={selectedInstanceId}
           />
         </TabPanel>
         {(

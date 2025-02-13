@@ -1,3 +1,4 @@
+
 import {
   Select,
   SelectContent,
@@ -26,6 +27,9 @@ export function ComparisonSelector({ value, onChange }: ComparisonSelectorProps)
           <SelectItem value="gender">Gender</SelectItem>
           <SelectItem value="location">Location</SelectItem>
           <SelectItem value="employment_type">Employment Type</SelectItem>
+          <SelectItem value="level">Level</SelectItem>
+          <SelectItem value="employee_type">Employee Type</SelectItem>
+          <SelectItem value="employee_role">Employee Role</SelectItem>
         </SelectContent>
       </Select>
     </div>
