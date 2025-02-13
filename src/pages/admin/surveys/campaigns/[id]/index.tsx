@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +10,7 @@ import { ResponsesTab } from "./components/ResponsesTab";
 import { ActivityTab } from "./components/ActivityTab";
 import { InstanceSelector } from "./components/InstanceSelector";
 import { ReportsTab } from "./components/ReportsTab";
+import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
@@ -154,6 +154,12 @@ export default function CampaignDetailsPage() {
         <TabPanel value="reports">
           <ReportsTab 
             campaignId={id} 
+            instanceId={selectedInstanceId}
+          />
+        </TabPanel>
+        <TabPanel value="analyze">
+          <AIAnalyzeTab
+            campaignId={id}
             instanceId={selectedInstanceId}
           />
         </TabPanel>

@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      analysis_prompts: {
+        Row: {
+          category: Database["public"]["Enums"]["prompt_category"]
+          created_at: string
+          id: string
+          name: string
+          prompt_text: string
+          status: Database["public"]["Enums"]["prompt_status"]
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["prompt_category"]
+          created_at?: string
+          id?: string
+          name: string
+          prompt_text: string
+          status?: Database["public"]["Enums"]["prompt_status"]
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["prompt_category"]
+          created_at?: string
+          id?: string
+          name?: string
+          prompt_text?: string
+          status?: Database["public"]["Enums"]["prompt_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       campaign_instances: {
         Row: {
           campaign_id: string
@@ -1048,6 +1078,13 @@ export type Database = {
       instance_status: "upcoming" | "active" | "completed"
       level_status: "active" | "inactive"
       profile_status: "active" | "disabled"
+      prompt_category:
+        | "general_analysis"
+        | "demographic_insights"
+        | "response_patterns"
+        | "improvement_suggestions"
+        | "action_items"
+      prompt_status: "active" | "inactive"
       recurring_frequency:
         | "one_time"
         | "daily"
