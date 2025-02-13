@@ -27,8 +27,13 @@ export function AnalysisViewer({ content, isLoading }: AnalysisViewerProps) {
       <CardContent className="p-6">
         <ScrollArea className="h-[500px] w-full pr-4">
           <div 
-            className="prose prose-slate max-w-none"
-            dangerouslySetInnerHTML={{ __html: content }}
+            className="prose prose-slate max-w-none dark:prose-invert"
+            dangerouslySetInnerHTML={{ 
+              __html: content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                           .replace(/\*(.*?)\*/g, '<li>$1</li>')
+                           .replace(/<br><br>/g, '</p><p>')
+                           .replace(/<br>/g, '<br/>')
+            }}
           />
         </ScrollArea>
       </CardContent>
