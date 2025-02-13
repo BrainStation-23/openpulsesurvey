@@ -1029,6 +1029,13 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["assignment_status"]
       }
+      get_campaign_analysis_data: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+        }
+        Returns: Json
+      }
       is_admin: {
         Args: {
           user_uid: string
