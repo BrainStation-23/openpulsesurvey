@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ConfigPage } from "../shared/ConfigPage";
+import { toast } from "@/components/ui/use-toast";
 
 interface AIPrompt {
   id: string;
@@ -31,50 +32,100 @@ export default function AIPromptsConfig() {
     },
   });
 
-  const handleCreate = async (values: { name: string }) => {
-    const { error } = await supabase
-      .from('analysis_prompts')
-      .insert([
-        {
+  const handleCreate = async (values: { name: string; color_code?: string }) => {
+    try {
+      const { error } = await supabase
+        .from('analysis_prompts')
+        .insert({
           name: values.name,
-          prompt_text: '',
-          status: 'active',
-          category: 'general_analysis', // Set a default category
-        },
-      ]);
+          color_code: values.color_code,
+          prompt_text: "Enter your prompt text here...", // Default value for required field
+          category: 'general_analysis', // Default value for required field
+          status: 'active'
+        });
 
-    if (error) throw error;
-    refetch();
+      if (error) throw error;
+      toast({
+        title: "Success",
+        description: "AI Prompt created successfully",
+      });
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create AI Prompt",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleUpdate = async (id: string, values: { name: string }) => {
-    const { error } = await supabase
-      .from('analysis_prompts')
-      .update({ name: values.name })
-      .eq('id', id);
+  const handleUpdate = async (id: string, values: { name: string; color_code?: string }) => {
+    try {
+      const { error } = await supabase
+        .from('analysis_prompts')
+        .update({
+          name: values.name,
+          color_code: values.color_code,
+        })
+        .eq('id', id);
 
-    if (error) throw error;
-    refetch();
+      if (error) throw error;
+      toast({
+        title: "Success",
+        description: "AI Prompt updated successfully",
+      });
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update AI Prompt",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('analysis_prompts')
-      .delete()
-      .eq('id', id);
+    try {
+      const { error } = await supabase
+        .from('analysis_prompts')
+        .delete()
+        .eq('id', id);
 
-    if (error) throw error;
-    refetch();
+      if (error) throw error;
+      toast({
+        title: "Success",
+        description: "AI Prompt deleted successfully",
+      });
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete AI Prompt",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleToggleStatus = async (id: string, newStatus: 'active' | 'inactive') => {
-    const { error } = await supabase
-      .from('analysis_prompts')
-      .update({ status: newStatus })
-      .eq('id', id);
+    try {
+      const { error } = await supabase
+        .from('analysis_prompts')
+        .update({ status: newStatus })
+        .eq('id', id);
 
-    if (error) throw error;
-    refetch();
+      if (error) throw error;
+      toast({
+        title: "Success",
+        description: "AI Prompt status updated successfully",
+      });
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update AI Prompt status",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
