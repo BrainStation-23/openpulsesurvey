@@ -37,8 +37,8 @@ export const addTextChart = (
     slide.addText(word.text, {
       x,
       y,
-      w: "auto",
-      h: "auto",
+      w: 2,  // Fixed width of 2 inches
+      h: 0.5,  // Fixed height of 0.5 inches
       fontSize: word.size,
       color: COLORS[index % COLORS.length],
       bold: word.value > (processedWords[0].value / 2), // Bold if frequency is > 50% of max
