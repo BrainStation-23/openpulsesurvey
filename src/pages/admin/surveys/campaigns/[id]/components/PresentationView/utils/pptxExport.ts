@@ -462,7 +462,7 @@ const addComparisonChart = async (
         const total = answers.length;
         return {
           name: group,
-          labels: ["Yes"], // Fixed: Changed to string array
+          labels: [group], // Changed from ["Yes"] to [group] to match chart data structure
           values: [(trueCount / total) * 100]
         };
       });
