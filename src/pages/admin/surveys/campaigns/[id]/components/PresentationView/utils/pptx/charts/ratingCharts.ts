@@ -80,7 +80,7 @@ export const addRatingChart = (
     const average = validAnswers.reduce((a, b) => a + b, 0) / total;
     const satisfactionRate = Math.round((satisfied / total) * 100);
 
-    // Add metrics at the top
+    // Add metrics at the top with more space
     slide.addText([
       { text: "Satisfaction Rate: ", options: { bold: true } },
       { text: `${satisfactionRate}%`, options: { color: "#22c55e" } },
@@ -90,7 +90,7 @@ export const addRatingChart = (
       { text: `${average.toFixed(1)}`, options: { color: "#8b5cf6" } },
     ], {
       x: 0.5,
-      y: 1,
+      y: 0.5,
       w: "90%",
       fontSize: 16,
       color: THEME.text.primary,
@@ -114,11 +114,12 @@ export const addRatingChart = (
       }
     ];
 
+    // Adjusted chart size and position
     slide.addChart("bar", data, {
       x: 1,
-      y: 2,
-      w: 8,
-      h: 3.5,
+      y: 1.5,
+      w: 7,
+      h: 3,
       barDir: "bar",
       chartColors: ["#ef4444", "#eab308", "#22c55e"],
       showLegend: true,
@@ -127,7 +128,7 @@ export const addRatingChart = (
       barGrouping: "stacked"
     });
 
-    // Add response counts below
+    // Adjusted position of response counts
     slide.addText([
       { text: "Total Responses: ", options: { bold: true } },
       { text: `${total}\n` },
@@ -139,7 +140,7 @@ export const addRatingChart = (
       { text: `${satisfied} (${Math.round((satisfied / total) * 100)}%)` },
     ], {
       x: 0.5,
-      y: 5.8,
+      y: 4.8,
       w: "90%",
       fontSize: 12,
       color: THEME.text.primary,
@@ -193,7 +194,7 @@ export const addRatingComparison = (
     slide.addChart("bar", [detractorsData, passivesData, promotersData], {
       x: 0.5,
       y: 1.5,
-      w: 9,
+      w: 8,
       h: 4,
       barDir: "col",
       barGrouping: "clustered",
@@ -240,11 +241,12 @@ export const addRatingComparison = (
       })
     };
 
+    // Adjusted comparison chart size and position
     slide.addChart("bar", [unsatisfiedData, neutralData, satisfiedData], {
       x: 0.5,
       y: 1.5,
-      w: 9,
-      h: 4,
+      w: 8,
+      h: 3.5,
       barDir: "col",
       barGrouping: "clustered",
       chartColors: ["#ef4444", "#eab308", "#22c55e"],
