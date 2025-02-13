@@ -1,10 +1,11 @@
+
 import { useEffect, useState } from "react";
-import Editor from "@monaco-editor/react";
 import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
 import { LayeredDarkPanelless } from "survey-core/themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
 import "survey-core/defaultV2.min.css";
 
 interface SurveyBuilderProps {
@@ -31,8 +32,18 @@ export function SurveyBuilder({ onSubmit, defaultValue }: SurveyBuilderProps) {
     }
   }, [jsonContent]);
 
-  const handleEditorChange = (value: string = "") => {
-    setJsonContent(value);
+  const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setJsonContent(e.target.value);
+  };
+
+  const formatJson = () => {
+    try {
+      const parsed = JSON.parse(jsonContent);
+      setJsonContent(JSON.stringify(parsed, null, 2));
+      setError(null);
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
 
   const handleSave = () => {
@@ -72,17 +83,21 @@ export function SurveyBuilder({ onSubmit, defaultValue }: SurveyBuilderProps) {
       </div>
 
       <div className={cn("min-h-[500px]", isPreviewMode ? "hidden" : "block")}>
-        <Editor
-          height="500px"
-          defaultLanguage="json"
-          value={jsonContent}
-          onChange={handleEditorChange}
-          options={{
-            minimap: { enabled: false },
-            formatOnPaste: true,
-            formatOnType: true,
-          }}
-        />
+        <div className="flex flex-col gap-4">
+          <Textarea
+            value={jsonContent}
+            onChange={handleEditorChange}
+            className="min-h-[500px] font-mono text-sm"
+            placeholder="Paste your survey JSON here..."
+          />
+          <Button 
+            variant="secondary" 
+            onClick={formatJson}
+            className="w-fit"
+          >
+            Format JSON
+          </Button>
+        </div>
       </div>
 
       <div className={cn("min-h-[500px]", !isPreviewMode ? "hidden" : "block")}>
