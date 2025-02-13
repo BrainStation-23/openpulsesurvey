@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { Database, Mail, Layers, MapPin, Briefcase, UserRound, Shield } from "lucide-react";
+import { Database, Mail, Layers, MapPin, Briefcase, UserRound, Shield, BrainCircuit } from "lucide-react";
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -43,6 +43,11 @@ const navigationItems = [
     title: "Employee Role",
     icon: Shield,
     path: "/admin/config/employee-role",
+  },
+  {
+    title: "AI Prompts",
+    icon: BrainCircuit,
+    path: "/admin/config/ai-prompts",
   },
 ];
 

@@ -12,23 +12,27 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { ConfigFormProps } from "./types";
 
 const configFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   color_code: z.string().optional(),
+  prompt_text: z.string().optional(),
 });
 
 export function ConfigForm({ 
   onSubmit, 
   initialValues,
-  submitLabel = "Create" 
+  submitLabel = "Create",
+  showPromptField = false
 }: ConfigFormProps) {
   const form = useForm<z.infer<typeof configFormSchema>>({
     resolver: zodResolver(configFormSchema),
     defaultValues: initialValues || {
       name: "",
       color_code: "#CBD5E1",
+      prompt_text: "",
     },
   });
 
@@ -48,6 +52,27 @@ export function ConfigForm({
             </FormItem>
           )}
         />
+        
+        {showPromptField && (
+          <FormField
+            control={form.control}
+            name="prompt_text"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Prompt Text</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    {...field} 
+                    placeholder="Enter the AI prompt text..."
+                    className="min-h-[100px]"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         <FormField
           control={form.control}
           name="color_code"
