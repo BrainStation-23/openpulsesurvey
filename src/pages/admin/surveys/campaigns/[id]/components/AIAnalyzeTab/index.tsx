@@ -86,12 +86,13 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <PromptSelector
-            onPromptSelect={setSelectedPrompt}
-            selectedPromptId={selectedPrompt?.id}
-          />
+      <div className="space-y-4">
+        <PromptSelector
+          onPromptSelect={setSelectedPrompt}
+          selectedPromptId={selectedPrompt?.id}
+        />
+        
+        <div className="flex justify-end gap-3">
           <Button
             onClick={async () => {
               const result = await handleAnalyze();
@@ -102,13 +103,14 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
             <Brain className="mr-2 h-4 w-4" />
             {isAnalyzing ? "Analyzing..." : "Analyze"}
           </Button>
+          
+          {analysis?.content && (
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="mr-2 h-4 w-4" />
+              Export Analysis
+            </Button>
+          )}
         </div>
-        {analysis?.content && (
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            Export Analysis
-          </Button>
-        )}
       </div>
 
       <AnalysisViewer
