@@ -53,7 +53,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           p_campaign_id: campaignId,
-          p_instance_id: instanceId
+          p_instance_id: instanceId || null
         })
       }
     );
@@ -64,6 +64,7 @@ serve(async (req) => {
     }
 
     const campaignData = await campaignResponse.json();
+    console.log("Campaign data fetched successfully");
 
     // Prepare the context for the AI
     const context = `

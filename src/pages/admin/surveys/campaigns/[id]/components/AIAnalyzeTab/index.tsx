@@ -40,6 +40,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
       return analysisResult;
     },
     enabled: !!selectedPrompt?.id,
+    retry: false, // Disable retries
   });
 
   const handleAnalyze = async () => {
