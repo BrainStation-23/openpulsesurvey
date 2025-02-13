@@ -18,9 +18,9 @@ export const addRatingChart = (
 
     slide.addText(`NPS Score: ${npsScore}`, {
       x: 0.5,
-      y: 1.5,
+      y: 2.0,
       w: "90%",
-      fontSize: 28,
+      fontSize: 24,
       bold: true,
       color: npsScore >= 0 ? THEME.chart.colors[0] : THEME.chart.colors[1],
     });
@@ -45,9 +45,9 @@ export const addRatingChart = (
 
     slide.addChart("bar", data, {
       x: 1,
-      y: 2.5,
-      w: 8,
-      h: 3,
+      y: 2.8,
+      w: 7,
+      h: 1.5,
       barDir: "bar",
       chartColors: [THEME.chart.colors[1], THEME.chart.colors[2], THEME.chart.colors[0]],
       showLegend: true,
@@ -60,7 +60,7 @@ export const addRatingChart = (
     const average = validAnswers.reduce((a, b) => a + b, 0) / validAnswers.length;
     const { unsatisfied, neutral, satisfied, total, satisfactionRate } = processSatisfactionData(validAnswers);
 
-    // Add metrics at the top with more space
+    // Add metrics below question
     slide.addText([
       { text: "Satisfaction Rate: ", options: { bold: true } },
       { text: `${satisfactionRate}%`, options: { color: "#22c55e" } },
@@ -70,7 +70,7 @@ export const addRatingChart = (
       { text: `${average.toFixed(1)}`, options: { color: "#8b5cf6" } },
     ], {
       x: 0.5,
-      y: 0.5,
+      y: 2.0,
       w: "90%",
       fontSize: 16,
       color: THEME.text.primary,
@@ -94,12 +94,12 @@ export const addRatingChart = (
       }
     ];
 
-    // Adjusted chart size and position
+    // Reduced chart height and adjusted position
     slide.addChart("bar", data, {
       x: 1,
-      y: 1.5,
+      y: 2.8,
       w: 7,
-      h: 3,
+      h: 1.5,
       barDir: "bar",
       chartColors: ["#ef4444", "#eab308", "#22c55e"],
       showLegend: true,
@@ -108,7 +108,7 @@ export const addRatingChart = (
       barGrouping: "stacked"
     });
 
-    // Adjusted position of response counts
+    // Adjusted position of response counts to be closer to the chart
     slide.addText([
       { text: "Total Responses: ", options: { bold: true } },
       { text: `${total}\n` },
@@ -120,7 +120,7 @@ export const addRatingChart = (
       { text: `${satisfied} (${Math.round((satisfied / total) * 100)}%)` },
     ], {
       x: 0.5,
-      y: 4.8,
+      y: 4.5,
       w: "90%",
       fontSize: 12,
       color: THEME.text.primary,

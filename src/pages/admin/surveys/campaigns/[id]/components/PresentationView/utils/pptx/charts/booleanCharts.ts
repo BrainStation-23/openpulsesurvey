@@ -19,9 +19,9 @@ export const addBooleanChart = (
 
   slide.addChart("doughnut", data, {
     x: 2,
-    y: 1.5,
-    w: 6,
-    h: 4,
+    y: 2.5,
+    w: 4,  // Reduced width
+    h: 2,  // Reduced height
     chartColors: [THEME.chart.colors[0], THEME.chart.colors[1]],
     showLegend: true,
     legendPos: 'b',
@@ -38,7 +38,7 @@ export const addBooleanChart = (
     { text: `${falseCount} (${Math.round((falseCount / total) * 100)}%)` },
   ], {
     x: 0.5,
-    y: 5.8,
+    y: 4.8,
     w: "90%",
     fontSize: 12,
     color: THEME.text.primary,
