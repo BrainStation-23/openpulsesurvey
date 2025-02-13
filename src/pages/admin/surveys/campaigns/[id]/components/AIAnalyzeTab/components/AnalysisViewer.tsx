@@ -7,6 +7,16 @@ interface AnalysisViewerProps {
   isLoading: boolean;
 }
 
+function sanitizeMarkdown(text: string): string {
+  // Replace double <br><br> with double newlines for paragraph breaks
+  let sanitized = text.replace(/<br><br>/g, '\n\n');
+  // Replace single <br> with newlines
+  sanitized = sanitized.replace(/<br>/g, '\n');
+  // Ensure proper spacing for list items
+  sanitized = sanitized.replace(/\n\*/g, '\n\n*');
+  return sanitized;
+}
+
 export function AnalysisViewer({ content, isLoading }: AnalysisViewerProps) {
   if (isLoading) {
     return (
@@ -22,11 +32,13 @@ export function AnalysisViewer({ content, isLoading }: AnalysisViewerProps) {
     );
   }
 
+  const sanitizedContent = sanitizeMarkdown(content);
+
   return (
     <Card>
       <CardContent className="p-6">
         <div className="prose prose-slate max-w-none dark:prose-invert">
-          <ReactMarkdown>{content}</ReactMarkdown>
+          <ReactMarkdown>{sanitizedContent}</ReactMarkdown>
         </div>
       </CardContent>
     </Card>
