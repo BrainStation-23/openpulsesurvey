@@ -33,7 +33,7 @@ export const addTextChart = (
     .slice(0, 10);
 
   // Add bar chart for top words
-  slide.addChart(pptxgen.ChartType.bar, topWords, {
+  slide.addChart("bar", topWords, {
     x: 0.5,
     y: 1.5,
     w: 9,
