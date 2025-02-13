@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +13,6 @@ interface AIPrompt {
   status: 'active' | 'inactive';
   prompt_text: string;
   category: 'general_analysis' | 'demographic_insights' | 'response_patterns' | 'improvement_suggestions' | 'action_items';
-  color_code?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -41,7 +39,6 @@ export default function AIPromptsConfig() {
     name: string; 
     category: AIPrompt['category']; 
     prompt_text: string;
-    color_code?: string;
   }) => {
     try {
       if (selectedPrompt) {
@@ -51,7 +48,6 @@ export default function AIPromptsConfig() {
             name: values.name,
             category: values.category,
             prompt_text: values.prompt_text,
-            color_code: values.color_code,
           })
           .eq('id', selectedPrompt.id);
 
@@ -67,7 +63,6 @@ export default function AIPromptsConfig() {
             name: values.name,
             category: values.category,
             prompt_text: values.prompt_text,
-            color_code: values.color_code,
             status: 'active'
           });
 

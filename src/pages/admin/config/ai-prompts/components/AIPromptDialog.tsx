@@ -39,7 +39,6 @@ const formSchema = z.object({
     'action_items'
   ]),
   prompt_text: z.string().min(1, "Prompt text is required"),
-  color_code: z.string().optional(),
 });
 
 interface AIPrompt {
@@ -48,7 +47,6 @@ interface AIPrompt {
   status: 'active' | 'inactive';
   prompt_text: string;
   category: 'general_analysis' | 'demographic_insights' | 'response_patterns' | 'improvement_suggestions' | 'action_items';
-  color_code?: string;
 }
 
 interface AIPromptDialogProps {
@@ -70,7 +68,6 @@ export function AIPromptDialog({
       name: "",
       category: "general_analysis",
       prompt_text: "",
-      color_code: "#CBD5E1"
     },
   });
 
@@ -129,19 +126,6 @@ export function AIPromptDialog({
                   <FormLabel>Prompt Text</FormLabel>
                   <FormControl>
                     <Textarea {...field} rows={5} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="color_code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Color</FormLabel>
-                  <FormControl>
-                    <Input type="color" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

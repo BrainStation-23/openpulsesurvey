@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Power, Pencil, Trash2, ArrowUpDown } from "lucide-react";
 import {
@@ -29,7 +28,6 @@ interface AIPrompt {
   status: 'active' | 'inactive';
   prompt_text: string;
   category: 'general_analysis' | 'demographic_insights' | 'response_patterns' | 'improvement_suggestions' | 'action_items';
-  color_code?: string;
 }
 
 interface AIPromptsTableProps {
