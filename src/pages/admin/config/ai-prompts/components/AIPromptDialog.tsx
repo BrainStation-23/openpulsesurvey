@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -21,13 +23,26 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
+
+const categories = [
+  { value: 'general_analysis', label: 'General Analysis' },
+  { value: 'demographic_insights', label: 'Demographic Insights' },
+  { value: 'response_patterns', label: 'Response Patterns' },
+  { value: 'improvement_suggestions', label: 'Improvement Suggestions' },
+  { value: 'action_items', label: 'Action Items' },
+] as const;
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -62,6 +77,8 @@ export function AIPromptDialog({
   onSubmit,
   initialValues 
 }: AIPromptDialogProps) {
+  const [commandOpen, setCommandOpen] = useState(false);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -117,20 +134,55 @@ export function AIPromptDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="general_analysis">General Analysis</SelectItem>
-                      <SelectItem value="demographic_insights">Demographic Insights</SelectItem>
-                      <SelectItem value="response_patterns">Response Patterns</SelectItem>
-                      <SelectItem value="improvement_suggestions">Improvement Suggestions</SelectItem>
-                      <SelectItem value="action_items">Action Items</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Popover open={commandOpen} onOpenChange={setCommandOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? categories.find(
+                                (category) => category.value === field.value
+                              )?.label
+                            : "Select category"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search categories..." />
+                        <CommandEmpty>No category found.</CommandEmpty>
+                        <CommandGroup>
+                          {categories.map((category) => (
+                            <CommandItem
+                              key={category.value}
+                              value={category.value}
+                              onSelect={() => {
+                                form.setValue("category", category.value);
+                                setCommandOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  category.value === field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {category.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
