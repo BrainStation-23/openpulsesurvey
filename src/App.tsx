@@ -38,6 +38,7 @@ import CampaignsPage from "./pages/admin/surveys/campaigns";
 import CampaignFormPage from "./pages/admin/surveys/campaigns/CampaignFormPage";
 import CampaignDetailsPage from "./pages/admin/surveys/campaigns/[id]";
 import PresentationView from "./pages/admin/surveys/campaigns/[id]/components/PresentationView/index";
+import PlatformConfigLayout from "./components/layouts/PlatformConfigLayout";
 import SBUsConfig from "./pages/admin/config/sbus";
 import SBUDetails from "./pages/admin/config/sbus/[id]";
 import EmailConfig from "./pages/admin/config/email";
@@ -92,7 +93,7 @@ const App = () => (
             <Route path="surveys/campaigns/create" element={<CampaignFormPage />} />
             <Route path="surveys/campaigns/:id" element={<CampaignDetailsPage />} />
             <Route path="surveys/campaigns/:id/present" element={<PresentationView />} />
-            <Route path="config" element={<AdminConfig />}>
+            <Route path="config" element={<PlatformConfigLayout />}>
               <Route index element={<AdminConfig />} />
               <Route path="sbus" element={<SBUsConfig />} />
               <Route path="sbus/:id" element={<SBUDetails />} />
