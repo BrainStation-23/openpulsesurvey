@@ -36,15 +36,22 @@ export function PromptSelector({ onPromptSelect, selectedPromptId }: PromptSelec
         .order('name');
       
       if (error) throw error;
-      return data;
+      return data || []; // Ensure we always return an array, even if empty
     },
   });
 
   const selectedPrompt = prompts?.find(prompt => prompt.id === selectedPromptId);
 
   if (isLoading) {
-    return <div>Loading prompts...</div>;
+    return (
+      <Button variant="outline" className="w-[350px] justify-between" disabled>
+        Loading prompts...
+      </Button>
+    );
   }
+
+  // Ensure prompts is an array
+  const availablePrompts = Array.isArray(prompts) ? prompts : [];
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -64,7 +71,7 @@ export function PromptSelector({ onPromptSelect, selectedPromptId }: PromptSelec
           <CommandInput placeholder="Search analysis types..." />
           <CommandEmpty>No analysis type found.</CommandEmpty>
           <CommandGroup>
-            {prompts?.map((prompt) => (
+            {availablePrompts.map((prompt) => (
               <CommandItem
                 key={prompt.id}
                 value={prompt.name}
