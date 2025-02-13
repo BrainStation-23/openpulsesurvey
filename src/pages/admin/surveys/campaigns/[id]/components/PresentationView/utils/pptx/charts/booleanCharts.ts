@@ -20,7 +20,7 @@ export const addBooleanChart = (
   }];
 
   // Add donut chart
-  slide.addChart(pptxgen.ChartType.doughnut, data, {
+  slide.addChart("doughnut", data, {
     x: 1,
     y: 1.5,
     w: 8,
@@ -65,7 +65,7 @@ export const addBooleanComparison = (
     };
   });
 
-  slide.addChart(pptxgen.ChartType.bar, chartData, {
+  slide.addChart("bar", chartData, {
     x: 0.5,
     y: 2,
     w: 9,
