@@ -9,6 +9,7 @@ interface AIPrompt {
   name: string;
   status: 'active' | 'inactive';
   prompt_text: string;
+  category: 'general_analysis' | 'demographic_insights' | 'response_patterns' | 'improvement_suggestions' | 'action_items';
   color_code?: string;
   created_at?: string;
   updated_at?: string;
@@ -38,6 +39,7 @@ export default function AIPromptsConfig() {
           name: values.name,
           prompt_text: '',
           status: 'active',
+          category: 'general_analysis', // Set a default category
         },
       ]);
 

@@ -1,9 +1,11 @@
+
 export interface ConfigItem {
   id: string;
   name: string;
   status: 'active' | 'inactive';
   color_code?: string;
   prompt_text?: string;
+  category?: 'general_analysis' | 'demographic_insights' | 'response_patterns' | 'improvement_suggestions' | 'action_items';
   created_at?: string;
   updated_at?: string;
 }
@@ -13,11 +15,13 @@ export interface ConfigFormProps {
     name: string; 
     color_code?: string;
     prompt_text?: string;
+    category?: 'general_analysis' | 'demographic_insights' | 'response_patterns' | 'improvement_suggestions' | 'action_items';
   }) => void;
   initialValues?: { 
     name: string; 
     color_code?: string;
     prompt_text?: string;
+    category?: 'general_analysis' | 'demographic_insights' | 'response_patterns' | 'improvement_suggestions' | 'action_items';
   };
   submitLabel?: string;
   showPromptField?: boolean;
