@@ -129,7 +129,7 @@ export default function AIPromptsConfig() {
   };
 
   return (
-    <ConfigPage<AIPrompt>
+    <ConfigPage
       title="AI Prompts"
       items={prompts || []}
       isLoading={isLoading}
