@@ -228,7 +228,7 @@ const addQuestionChart = async (
 
       const data = [{
         name: "Responses",
-        labels: ["Yes", "No"],
+        labels: ["Yes", "No"] as string[],
         values: [trueCount, falseCount]
       }];
 
