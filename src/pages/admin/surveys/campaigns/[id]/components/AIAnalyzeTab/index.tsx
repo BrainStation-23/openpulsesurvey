@@ -20,38 +20,51 @@ interface SelectedPrompt {
 
 export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
   const [selectedPrompt, setSelectedPrompt] = useState<SelectedPrompt>();
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
-  
-  const { data: analysis, isLoading, refetch } = useQuery({
-    queryKey: ['campaign-analysis', campaignId, instanceId, selectedPrompt?.id],
-    queryFn: async () => {
-      if (!selectedPrompt?.id) return null;
 
+  // Fetch campaign data
+  const { data: campaignData } = useQuery({
+    queryKey: ['campaign-analysis-data', campaignId, instanceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_campaign_analysis_data', {
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId || null
+        });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+  
+  const handleAnalyze = async () => {
+    if (!selectedPrompt?.id || !campaignData) return;
+    
+    try {
+      setIsAnalyzing(true);
       const { data: analysisResult, error } = await supabase.functions.invoke('analyze-campaign', {
         body: {
           campaignId,
           instanceId,
           promptId: selectedPrompt.id,
           promptText: selectedPrompt.text,
+          campaignData
         },
       });
 
       if (error) throw error;
       return analysisResult;
-    },
-    enabled: !!selectedPrompt?.id,
-    retry: false, // Disable retries
-  });
-
-  const handleAnalyze = async () => {
-    try {
-      await refetch();
+      
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
         description: error.message || "Failed to generate analysis",
       });
+      return null;
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -69,6 +82,8 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
     window.URL.revokeObjectURL(url);
   };
 
+  const [analysis, setAnalysis] = useState<{ content: string } | null>(null);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -78,11 +93,14 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
             selectedPromptId={selectedPrompt?.id}
           />
           <Button
-            onClick={handleAnalyze}
-            disabled={!selectedPrompt?.id || isLoading}
+            onClick={async () => {
+              const result = await handleAnalyze();
+              if (result) setAnalysis(result);
+            }}
+            disabled={!selectedPrompt?.id || isAnalyzing}
           >
             <Brain className="mr-2 h-4 w-4" />
-            {isLoading ? "Analyzing..." : "Analyze"}
+            {isAnalyzing ? "Analyzing..." : "Analyze"}
           </Button>
         </div>
         {analysis?.content && (
@@ -95,7 +113,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
 
       <AnalysisViewer
         content={analysis?.content || "Select a prompt and click Analyze to generate insights."}
-        isLoading={isLoading}
+        isLoading={isAnalyzing}
       />
     </div>
   );

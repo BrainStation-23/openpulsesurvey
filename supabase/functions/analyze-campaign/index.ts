@@ -18,17 +18,12 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Function called with request:", {
-      method: req.method,
-      headers: Object.fromEntries(req.headers.entries())
-    });
-
-    const { campaignId, instanceId, promptId, promptText } = await req.json();
+    const { campaignId, instanceId, promptId, promptText, campaignData } = await req.json();
     console.log("Received parameters:", { campaignId, instanceId, promptId });
 
     // Validate required parameters
-    if (!campaignId || !promptId || !promptText) {
-      throw new Error('Missing required parameters: campaignId, promptId, and promptText are required');
+    if (!campaignId || !promptId || !promptText || !campaignData) {
+      throw new Error('Missing required parameters');
     }
 
     // Validate Gemini API key
@@ -39,32 +34,6 @@ serve(async (req) => {
 
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
-    // Fetch campaign data
-    console.log("Fetching campaign data...");
-    const campaignResponse = await fetch(
-      `${Deno.env.get('SUPABASE_URL')}/rest/v1/rpc/get_campaign_analysis_data`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
-        },
-        body: JSON.stringify({
-          p_campaign_id: campaignId,
-          p_instance_id: instanceId || null
-        })
-      }
-    );
-
-    if (!campaignResponse.ok) {
-      console.error("Campaign data fetch failed:", await campaignResponse.text());
-      throw new Error(`Failed to fetch campaign data: ${campaignResponse.statusText}`);
-    }
-
-    const campaignData = await campaignResponse.json();
-    console.log("Campaign data fetched successfully");
 
     // Prepare the context for the AI
     const context = `
