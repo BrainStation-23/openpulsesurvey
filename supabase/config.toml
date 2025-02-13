@@ -1,3 +1,4 @@
+
 project_id = "iqpgjxbqoeioqlfzosvu"
 
 [api]
@@ -25,10 +26,13 @@ enabled = true
 [realtime]
 enabled = true
 
-[[functions]]
+[functions]
 [functions.toggle-user-status]
 verify_jwt = true
 
-[[functions]]
 [functions.delete-user]
 verify_jwt = true
+
+[functions.analyze-campaign]
+verify_jwt = true
+
