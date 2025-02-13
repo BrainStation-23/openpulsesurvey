@@ -1,3 +1,5 @@
+
+import { memo } from "react";
 import { SlideProps } from "../../types";
 import { ComparisonDimension } from "../../types/comparison";
 import { QuestionSlideLayout } from "./QuestionSlideLayout";
@@ -19,7 +21,7 @@ interface QuestionSlideProps extends SlideProps {
   slideType: ComparisonDimension;
 }
 
-export function QuestionSlide({ 
+function QuestionSlideComponent({ 
   campaign, 
   isActive, 
   questionName, 
@@ -28,9 +30,16 @@ export function QuestionSlide({
   slideType = 'main'
 }: QuestionSlideProps) {
   const { data } = usePresentationResponses(campaign.id, campaign.instance?.id);
-  const processedData = useQuestionData(data, questionName, questionType, slideType);
+  
+  // Only process data if the slide is active
+  const processedData = isActive ? useQuestionData(data, questionName, questionType, slideType) : null;
   const question = data?.questions.find(q => q.name === questionName);
   const isNps = question?.type === 'rating' && question?.rateCount === 10;
+
+  // Don't render anything if the slide is not active
+  if (!isActive) {
+    return null;
+  }
 
   const getDimensionTitle = (dim: string) => {
     const titles: Record<string, string> = {
@@ -100,3 +109,6 @@ export function QuestionSlide({
     </QuestionSlideLayout>
   );
 }
+
+// Memoize the component to prevent unnecessary re-renders
+export const QuestionSlide = memo(QuestionSlideComponent);
