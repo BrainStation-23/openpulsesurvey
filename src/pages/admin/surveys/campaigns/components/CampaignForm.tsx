@@ -21,8 +21,8 @@ const campaignSchema = z.object({
   recurring_frequency: z.string().optional(),
   recurring_ends_at: z.date().optional()
     .superRefine((date, ctx) => {
-      const data = ctx.path.reduce((acc: any, key) => acc?.[key], ctx.getData());
-      const isRecurring = data?.is_recurring;
+      const formData = ctx.path.reduce((acc, key) => (acc as any)?.[key], ctx.input as Record<string, any>);
+      const isRecurring = formData?.is_recurring;
       
       if (isRecurring && !date) {
         ctx.addIssue({
@@ -35,8 +35,8 @@ const campaignSchema = z.object({
   instance_end_time: z.string().optional(),
   ends_at: z.date().optional()
     .superRefine((date, ctx) => {
-      const data = ctx.path.reduce((acc: any, key) => acc?.[key], ctx.getData());
-      const isRecurring = data?.is_recurring;
+      const formData = ctx.path.reduce((acc, key) => (acc as any)?.[key], ctx.input as Record<string, any>);
+      const isRecurring = formData?.is_recurring;
       
       if (!isRecurring && !date) {
         ctx.addIssue({
