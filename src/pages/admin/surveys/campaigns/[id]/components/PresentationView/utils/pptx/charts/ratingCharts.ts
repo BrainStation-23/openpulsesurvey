@@ -51,7 +51,7 @@ export const addRatingChart = (
       }
     ];
 
-    slide.addChart(pptxgen.ChartType.bar, data, {
+    slide.addChart("bar", data, {
       x: 0.5,
       y: 2.5,
       w: 9,
@@ -74,7 +74,7 @@ export const addRatingChart = (
       };
     });
 
-    slide.addChart(pptxgen.ChartType.bar, data, {
+    slide.addChart("bar", data, {
       x: 0.5,
       y: 1.5,
       w: 9,
@@ -122,7 +122,7 @@ export const addRatingComparison = (
       };
     });
 
-    slide.addChart(pptxgen.ChartType.bar, chartData, {
+    slide.addChart("bar", chartData, {
       x: 0.5,
       y: 2,
       w: 9,
@@ -147,7 +147,7 @@ export const addRatingComparison = (
       };
     });
 
-    slide.addChart(pptxgen.ChartType.bar, chartData, {
+    slide.addChart("bar", chartData, {
       x: 0.5,
       y: 2,
       w: 9,
