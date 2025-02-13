@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -91,4 +92,25 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Add Tailwind Typography styles for the analysis viewer */
+.prose {
+  @apply text-base leading-7;
+}
+
+.prose p {
+  @apply my-4;
+}
+
+.prose strong {
+  @apply text-foreground font-semibold;
+}
+
+.prose li {
+  @apply ml-6 list-disc my-1;
+}
+
+.prose br {
+  @apply block content-[''] my-2;
 }

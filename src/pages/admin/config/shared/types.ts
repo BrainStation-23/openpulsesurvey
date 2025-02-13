@@ -4,14 +4,27 @@ export interface ConfigItem {
   name: string;
   status: 'active' | 'inactive';
   color_code?: string;
+  prompt_text?: string;
+  category?: 'general_analysis' | 'demographic_insights' | 'response_patterns' | 'improvement_suggestions' | 'action_items';
   created_at?: string;
   updated_at?: string;
 }
 
 export interface ConfigFormProps {
-  onSubmit: (values: { name: string; color_code?: string }) => void;
-  initialValues?: { name: string; color_code?: string };
+  onSubmit: (values: { 
+    name: string; 
+    color_code?: string;
+    prompt_text?: string;
+    category?: 'general_analysis' | 'demographic_insights' | 'response_patterns' | 'improvement_suggestions' | 'action_items';
+  }) => void;
+  initialValues?: { 
+    name: string; 
+    color_code?: string;
+    prompt_text?: string;
+    category?: 'general_analysis' | 'demographic_insights' | 'response_patterns' | 'improvement_suggestions' | 'action_items';
+  };
   submitLabel?: string;
+  showPromptField?: boolean;
 }
 
 export interface ConfigTableProps<T extends ConfigItem> {
