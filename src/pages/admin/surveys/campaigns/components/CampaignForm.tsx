@@ -21,7 +21,10 @@ const campaignSchema = z.object({
   recurring_frequency: z.string().optional(),
   recurring_ends_at: z.date().optional()
     .superRefine((date, ctx) => {
-      if (ctx.parent.is_recurring && !date) {
+      const data = ctx.path.reduce((acc: any, key) => acc?.[key], ctx.getData());
+      const isRecurring = data?.is_recurring;
+      
+      if (isRecurring && !date) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Campaign end date is required for recurring campaigns"
@@ -32,7 +35,10 @@ const campaignSchema = z.object({
   instance_end_time: z.string().optional(),
   ends_at: z.date().optional()
     .superRefine((date, ctx) => {
-      if (!ctx.parent.is_recurring && !date) {
+      const data = ctx.path.reduce((acc: any, key) => acc?.[key], ctx.getData());
+      const isRecurring = data?.is_recurring;
+      
+      if (!isRecurring && !date) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "End date is required for non-recurring campaigns"
