@@ -1,8 +1,10 @@
+
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, Maximize, Minimize } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { exportToPptx } from "../utils/pptxExport";
 import { CampaignData } from "../types";
+import { usePresentationResponses } from "../hooks/usePresentationResponses";
+import { useToast } from "@/hooks/use-toast";
 
 interface PresentationControlsProps {
   onBack: () => void;
@@ -29,11 +31,31 @@ export function PresentationControls({
   totalSlides,
   campaign,
 }: PresentationControlsProps) {
+  const { toast } = useToast();
+  const { data: processedData } = usePresentationResponses(campaign.id, campaign.instance?.id);
+
   const handleDownload = async () => {
     try {
-      await exportToPptx(campaign);
+      if (!processedData) {
+        toast({
+          title: "Cannot export presentation",
+          description: "Please wait for the data to load",
+          variant: "destructive",
+        });
+        return;
+      }
+      await exportToPptx(campaign, processedData);
+      toast({
+        title: "Success",
+        description: "Presentation has been exported successfully",
+      });
     } catch (error) {
       console.error("Error exporting presentation:", error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting the presentation",
+        variant: "destructive",
+      });
     }
   };
 
