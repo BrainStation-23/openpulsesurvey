@@ -33,10 +33,9 @@ export const addRatingChart = (
     });
 
     // Add stacked bar chart
-    const labels: string[] = ["Distribution"];
     const data = [{
       name: "Distribution",
-      labels,
+      labels: ["Detractors", "Passives", "Promoters"],
       values: [
         (detractors / total) * 100,
         (passives / total) * 100,
