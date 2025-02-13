@@ -13,27 +13,33 @@ interface AIAnalyzeTabProps {
   instanceId?: string;
 }
 
+interface SelectedPrompt {
+  id: string;
+  text: string;
+}
+
 export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
-  const [selectedPromptId, setSelectedPromptId] = useState<string>();
+  const [selectedPrompt, setSelectedPrompt] = useState<SelectedPrompt>();
   const { toast } = useToast();
   
   const { data: analysis, isLoading, refetch } = useQuery({
-    queryKey: ['campaign-analysis', campaignId, instanceId, selectedPromptId],
+    queryKey: ['campaign-analysis', campaignId, instanceId, selectedPrompt?.id],
     queryFn: async () => {
-      if (!selectedPromptId) return null;
+      if (!selectedPrompt?.id) return null;
 
       const { data: analysisResult, error } = await supabase.functions.invoke('analyze-campaign', {
         body: {
           campaignId,
           instanceId,
-          promptId: selectedPromptId,
+          promptId: selectedPrompt.id,
+          promptText: selectedPrompt.text,
         },
       });
 
       if (error) throw error;
       return analysisResult;
     },
-    enabled: !!selectedPromptId,
+    enabled: !!selectedPrompt?.id,
   });
 
   const handleAnalyze = async () => {
@@ -67,12 +73,12 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <PromptSelector
-            onPromptSelect={setSelectedPromptId}
-            selectedPromptId={selectedPromptId}
+            onPromptSelect={setSelectedPrompt}
+            selectedPromptId={selectedPrompt?.id}
           />
           <Button
             onClick={handleAnalyze}
-            disabled={!selectedPromptId || isLoading}
+            disabled={!selectedPrompt?.id || isLoading}
           >
             <Brain className="mr-2 h-4 w-4" />
             {isLoading ? "Analyzing..." : "Analyze"}

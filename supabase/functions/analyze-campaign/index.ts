@@ -23,12 +23,12 @@ serve(async (req) => {
       headers: Object.fromEntries(req.headers.entries())
     });
 
-    const { campaignId, instanceId, promptId } = await req.json();
+    const { campaignId, instanceId, promptId, promptText } = await req.json();
     console.log("Received parameters:", { campaignId, instanceId, promptId });
 
     // Validate required parameters
-    if (!campaignId || !promptId) {
-      throw new Error('Missing required parameters: campaignId and promptId are required');
+    if (!campaignId || !promptId || !promptText) {
+      throw new Error('Missing required parameters: campaignId, promptId, and promptText are required');
     }
 
     // Validate Gemini API key
@@ -39,29 +39,6 @@ serve(async (req) => {
 
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
-    // Get the prompt template
-    console.log("Fetching prompt data for promptId:", promptId);
-    const promptResponse = await fetch(
-      `${Deno.env.get('SUPABASE_URL')}/rest/v1/analysis_prompts?id=eq.${promptId}&select=*`,
-      {
-        headers: {
-          'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
-        }
-      }
-    );
-
-    if (!promptResponse.ok) {
-      console.error("Prompt fetch failed:", await promptResponse.text());
-      throw new Error(`Failed to fetch prompt: ${promptResponse.statusText}`);
-    }
-
-    const promptData = await promptResponse.json();
-    if (!promptData?.[0]) {
-      console.error("No prompt found for id:", promptId);
-      throw new Error(`No prompt found with id: ${promptId}`);
-    }
 
     // Fetch campaign data
     console.log("Fetching campaign data...");
@@ -94,7 +71,7 @@ serve(async (req) => {
       ${JSON.stringify(campaignData, null, 2)}
 
       Please analyze this data and provide insights based on the following prompt:
-      ${promptData[0].prompt_text}
+      ${promptText}
     `;
 
     console.log("Generating content with Gemini...");
