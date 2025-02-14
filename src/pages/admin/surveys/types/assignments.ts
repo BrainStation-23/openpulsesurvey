@@ -3,8 +3,6 @@ import { Database } from "@/integrations/supabase/types";
 
 export type ResponseStatus = "assigned" | "in_progress" | "submitted" | "expired";
 
-export type AssignmentStatus = ResponseStatus;
-
 export type SurveyAssignment = {
   id: string;
   survey_id: string;

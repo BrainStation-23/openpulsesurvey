@@ -1,16 +1,18 @@
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 import DueDateInfo from "./components/DueDateInfo";
+import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 
 type Assignment = {
   id: string;
   survey_id: string;
   user_id: string;
   due_date: string | null;
-  status: Database["public"]["Enums"]["assignment_status"] | null;
+  status: ResponseStatus | null;
   created_by: string;
   created_at: string | null;
   updated_at: string | null;
@@ -59,12 +61,14 @@ interface SurveyCardProps {
   onSelect: (id: string) => void;
 }
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: ResponseStatus | null) => {
   switch (status) {
-    case "completed":
+    case "submitted":
       return "success";
     case "expired":
       return "destructive";
+    case "in_progress":
+      return "warning";
     default:
       return "secondary";
   }
@@ -83,14 +87,14 @@ export default function SurveyCard({ assignment, onSelect }: SurveyCardProps) {
   const daysRemaining = effectiveDueDate ? getDaysRemaining(effectiveDueDate) : null;
   const isOverdue = daysRemaining !== null && daysRemaining < 0;
   const isDueSoon = daysRemaining !== null && daysRemaining <= 3 && daysRemaining > 0;
-  const isPending = assignment.status === 'pending';
+  const isNotSubmitted = assignment.status !== "submitted";
 
   return (
     <Card 
       className={cn(
         "cursor-pointer hover:bg-accent/50 transition-colors",
-        isPending && isOverdue && "border-destructive",
-        isPending && isDueSoon && "border-yellow-500"
+        isNotSubmitted && isOverdue && "border-destructive",
+        isNotSubmitted && isDueSoon && "border-yellow-500"
       )}
       onClick={() => onSelect(assignment.id)}
     >
@@ -99,7 +103,7 @@ export default function SurveyCard({ assignment, onSelect }: SurveyCardProps) {
           <div className="space-y-1">
             <CardTitle className="text-lg flex items-center gap-2">
               {assignment.campaign?.name || assignment.survey.name}
-              {isPending && (isOverdue || isDueSoon) && (
+              {isNotSubmitted && (isOverdue || isDueSoon) && (
                 <AlertCircle 
                   className={cn(
                     "h-5 w-5",
@@ -114,8 +118,8 @@ export default function SurveyCard({ assignment, onSelect }: SurveyCardProps) {
               </p>
             )}
           </div>
-          <Badge variant={getStatusColor(assignment.status || "pending")}>
-            {assignment.status}
+          <Badge variant={getStatusColor(assignment.status)}>
+            {assignment.status || "assigned"}
           </Badge>
         </div>
       </CardHeader>
@@ -125,7 +129,7 @@ export default function SurveyCard({ assignment, onSelect }: SurveyCardProps) {
           daysRemaining={daysRemaining}
           isOverdue={isOverdue}
           isDueSoon={isDueSoon}
-          isPending={isPending}
+          isPending={isNotSubmitted}
         />
       </CardContent>
     </Card>

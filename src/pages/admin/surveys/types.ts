@@ -1,3 +1,4 @@
+
 export type SurveyStatus = 'draft' | 'published' | 'archived';
 
 export type Survey = {
@@ -33,7 +34,7 @@ export type Campaign = {
 
 export type Assignment = {
   id: string;
-  status: "pending" | "completed" | "expired";
+  status: ResponseStatus;
   due_date: string | null;
   user: {
     id: string;
