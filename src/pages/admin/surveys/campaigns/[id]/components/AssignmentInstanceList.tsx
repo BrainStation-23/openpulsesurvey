@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { SurveyAssignment, ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 import { AssignCampaignUsers } from "./AssignCampaignUsers";
@@ -103,18 +102,23 @@ export function AssignmentInstanceList({
 
   const sendReminderMutation = useMutation({
     mutationFn: async (assignmentIds: string[]) => {
-      const { error } = await supabase.functions.invoke("send-survey-reminder", {
-        body: { assignmentIds, instanceId: selectedInstanceId },
+      const { error } = await supabase.functions.invoke("send-campaign-instance-reminder", {
+        body: { 
+          assignmentIds, 
+          instanceId: selectedInstanceId,
+          campaignId 
+        },
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Reminder sent successfully");
+      toast.success("Reminders sent successfully");
       queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
       setSelectedAssignments([]);
     },
-    onError: () => {
-      toast.error("Failed to send reminder");
+    onError: (error) => {
+      console.error("Error sending reminders:", error);
+      toast.error("Failed to send reminders");
     },
   });
 
