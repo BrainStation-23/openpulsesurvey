@@ -58,7 +58,7 @@ export default function CampaignDetailsPage() {
             user_sbus (
               id,
               is_primary,
-              sbus (
+              sbus:sbus (
                 id,
                 name
               )
@@ -71,10 +71,17 @@ export default function CampaignDetailsPage() {
 
       if (error) throw error;
 
-      // Transform the data to include the status with the correct type
+      // Transform the data to include the status and correct user_sbus structure
       return data?.map(assignment => ({
         ...assignment,
-        status: 'assigned' as ResponseStatus // Explicitly type the status
+        status: 'assigned' as ResponseStatus,
+        user: {
+          ...assignment.user,
+          user_sbus: assignment.user.user_sbus.map(userSbu => ({
+            is_primary: userSbu.is_primary,
+            sbu: userSbu.sbus // Rename sbus to sbu to match the expected type
+          }))
+        }
       })) || [];
     },
   });
@@ -117,8 +124,8 @@ export default function CampaignDetailsPage() {
 
         <TabPanel value="responses">
           <ResponsesList
-            campaign={campaign.id}
-            instance={selectedInstanceId}
+            campaignId={campaign.id}
+            instanceId={selectedInstanceId}
             isAnonymous={campaign.anonymous}
           />
         </TabPanel>
