@@ -29,6 +29,13 @@ export default function CampaignDetailsPage() {
             name,
             description,
             json_data
+          ),
+          instances:campaign_instances!campaign_instances_campaign_id_fkey(
+            id,
+            starts_at,
+            ends_at,
+            period_number,
+            status
           )
         `)
         .eq("id", id)
@@ -54,19 +61,19 @@ export default function CampaignDetailsPage() {
           updated_at,
           public_access_token,
           last_reminder_sent,
-          responses:survey_responses!inner (
+          responses:survey_responses(
             status,
             campaign_instance_id
           ),
-          user:profiles!survey_assignments_user_id_fkey (
+          user:profiles!survey_assignments_user_id_fkey(
             id,
             email,
             first_name,
             last_name,
-            user_sbus (
+            user_sbus(
               id,
               is_primary,
-              sbus:sbus (
+              sbus:sbus(
                 id,
                 name
               )
@@ -75,9 +82,11 @@ export default function CampaignDetailsPage() {
         `)
         .eq("campaign_id", id);
 
-      // If an instance is selected, filter responses by instance
       if (selectedInstanceId) {
-        query.eq('responses.campaign_instance_id', selectedInstanceId);
+        // Using in() with an array for proper filtering
+        query.or(
+          `and(responses.campaign_instance_id.eq.${selectedInstanceId},responses.status.neq.null),and(responses.status.is.null)`
+        );
       }
 
       const { data, error } = await query;
@@ -85,6 +94,23 @@ export default function CampaignDetailsPage() {
       if (error) throw error;
 
       return (data as unknown as Array<any>)?.map(assignment => {
+        // Find the relevant response for the selected instance
+        const instanceResponse = assignment.responses?.find(
+          (response: any) => !selectedInstanceId || response.campaign_instance_id === selectedInstanceId
+        );
+
+        // Determine the status based on instance and response
+        let status: ResponseStatus = 'assigned';
+        if (instanceResponse) {
+          status = instanceResponse.status as ResponseStatus;
+        } else if (selectedInstanceId) {
+          // Check if instance has expired
+          const instance = campaign?.instances?.find((i: any) => i.id === selectedInstanceId);
+          if (instance && new Date(instance.ends_at) < new Date()) {
+            status = 'expired';
+          }
+        }
+
         return {
           id: assignment.id,
           survey_id: assignment.survey_id,
@@ -95,7 +121,7 @@ export default function CampaignDetailsPage() {
           updated_at: assignment.updated_at,
           public_access_token: assignment.public_access_token,
           last_reminder_sent: assignment.last_reminder_sent,
-          status: (assignment.responses?.[0]?.status || 'assigned') as ResponseStatus,
+          status,
           user: {
             id: assignment.user.id,
             email: assignment.user.email,
@@ -106,9 +132,9 @@ export default function CampaignDetailsPage() {
               sbu: userSbu.sbus
             }))
           },
-          response: assignment.responses?.[0] ? {
-            status: assignment.responses[0].status,
-            campaign_instance_id: assignment.responses[0].campaign_instance_id
+          response: instanceResponse ? {
+            status: instanceResponse.status,
+            campaign_instance_id: instanceResponse.campaign_instance_id
           } : undefined
         } as SurveyAssignment;
       }) || [];
@@ -142,7 +168,10 @@ export default function CampaignDetailsPage() {
 
       <CampaignTabs isAnonymous={campaign.anonymous} status={campaign.status}>
         <TabPanel value="overview">
-          <OverviewTab campaignId={campaign.id} />
+          <OverviewTab 
+            campaignId={campaign.id} 
+            selectedInstanceId={selectedInstanceId}
+          />
         </TabPanel>
 
         <TabPanel value="assignments">

@@ -1101,7 +1101,17 @@ export type Database = {
           last_reminder_sent: string
           status: string
           user_details: Json
-          response_data: Json
+          response: Json
+        }[]
+      }
+      get_campaign_instance_status_distribution: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+        }
+        Returns: {
+          status: string
+          count: number
         }[]
       }
       get_instance_assignment_status: {

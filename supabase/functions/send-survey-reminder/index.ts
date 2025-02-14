@@ -13,11 +13,8 @@ const corsHeaders = {
 };
 
 interface ReminderRequest {
-  assignmentId: string;
-  surveyName: string;
-  recipientEmail: string;
-  recipientName: string;
-  publicAccessToken: string;
+  instanceId: string;
+  campaignId: string;
   frontendUrl: string;
 }
 
@@ -30,19 +27,16 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log("Starting reminder process...");
     
-    // Validate environment variables
     if (!RESEND_API_KEY) {
-      console.error("RESEND_API_KEY is not set");
       throw new Error("RESEND_API_KEY is not configured");
     }
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error("Supabase credentials are not set");
       throw new Error("Supabase credentials are not configured");
     }
 
-    const reminderRequest: ReminderRequest = await req.json();
-    console.log("Reminder request:", JSON.stringify(reminderRequest));
+    const { instanceId, campaignId, frontendUrl }: ReminderRequest = await req.json();
+    console.log("Reminder request:", { instanceId, campaignId, frontendUrl });
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -50,10 +44,10 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: emailConfig, error: configError } = await supabase
       .from('email_config')
       .select('*')
-      .single();
+      .maybeSingle();
 
     if (configError) {
-      console.error("Error fetching email config:", configError);
+      console.error("Email config error:", configError);
       throw new Error("Failed to fetch email configuration");
     }
 
@@ -61,130 +55,175 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("No email configuration found");
     }
 
-    // Get assignment and active instance information
-    const { data: assignmentData, error: assignmentError } = await supabase
+    // Get instance details
+    const { data: instance, error: instanceError } = await supabase
+      .from('campaign_instances')
+      .select('*')
+      .eq('id', instanceId)
+      .single();
+
+    if (instanceError) {
+      console.error("Instance error:", instanceError);
+      throw new Error("Failed to fetch instance details");
+    }
+
+    if (!instance) {
+      throw new Error("Instance not found");
+    }
+
+    // Get pending assignments with user and survey details using a LEFT JOIN approach
+    // Note: Using the specific foreign key as indicated in the error message
+    const { data: assignments, error: assignmentsError } = await supabase
       .from('survey_assignments')
       .select(`
         id,
+        public_access_token,
         last_reminder_sent,
-        campaign:survey_campaigns (
-          instances:campaign_instances (
-            id,
-            ends_at,
-            status
-          )
+        user:profiles!survey_assignments_user_id_fkey (
+          email,
+          first_name,
+          last_name
+        ),
+        survey:surveys (
+          name
         )
       `)
-      .eq('id', reminderRequest.assignmentId)
-      .single();
+      .eq('campaign_id', campaignId)
+      .is('last_reminder_sent', null);
 
-    if (assignmentError) {
-      console.error("Error fetching assignment:", assignmentError);
-      throw new Error("Failed to fetch assignment data");
+    if (assignmentsError) {
+      console.error("Assignments error:", assignmentsError);
+      throw new Error("Failed to fetch assignments");
     }
 
-    // Find the active instance
-    const activeInstance = assignmentData.campaign.instances.find(
-      (instance: any) => instance.status === 'active'
+    // Filter out assignments that already have responses for this instance
+    const { data: responses } = await supabase
+      .from('survey_responses')
+      .select('assignment_id')
+      .eq('campaign_instance_id', instanceId)
+      .eq('status', 'submitted');
+
+    const submittedAssignmentIds = new Set(responses?.map(r => r.assignment_id) || []);
+    const pendingAssignments = assignments?.filter(a => !submittedAssignmentIds.has(a.id)) || [];
+
+    if (!pendingAssignments.length) {
+      return new Response(
+        JSON.stringify({ 
+          message: "No pending assignments found",
+          successCount: 0,
+          failureCount: 0,
+          skippedCount: 0
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    }
+
+    let successCount = 0;
+    let failureCount = 0;
+    let skippedCount = 0;
+
+    // Send reminders to pending users
+    const results = await Promise.allSettled(
+      pendingAssignments.map(async (assignment) => {
+        try {
+          // Check cooldown period
+          if (assignment.last_reminder_sent) {
+            const lastSent = new Date(assignment.last_reminder_sent);
+            const hoursSinceLastReminder = (Date.now() - lastSent.getTime()) / (1000 * 60 * 60);
+            
+            if (hoursSinceLastReminder < 24) {
+              skippedCount++;
+              return;
+            }
+          }
+
+          const recipientName = `${assignment.user.first_name || ''} ${assignment.user.last_name || ''}`.trim() || 'Participant';
+          const publicAccessUrl = `${frontendUrl}/public/survey/${assignment.public_access_token}`;
+
+          // Format deadline date and time
+          const deadline = new Date(instance.ends_at);
+          const formattedDeadline = deadline.toLocaleString('en-US', {
+            dateStyle: 'full',
+            timeStyle: 'short'
+          });
+
+          // Calculate time remaining
+          const now = new Date();
+          const hoursRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60));
+          const daysRemaining = Math.ceil(hoursRemaining / 24);
+          
+          const urgencyMessage = daysRemaining <= 1
+            ? `⚠️ This survey must be completed within the next ${hoursRemaining} hours.`
+            : `You have ${daysRemaining} days to complete this survey.`;
+
+          console.log("Sending reminder to:", assignment.user.email);
+
+          const response = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${RESEND_API_KEY}`,
+            },
+            body: JSON.stringify({
+              from: `${emailConfig.from_name} <${emailConfig.from_email}>`,
+              to: [assignment.user.email],
+              subject: `Deadline Reminder: ${assignment.survey.name} Due ${formattedDeadline}`,
+              html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2>Hello ${recipientName},</h2>
+                  <p>This is a reminder about your pending survey: <strong>${assignment.survey.name}</strong></p>
+                  <div style="background-color: #f8f9fa; border-left: 4px solid #2563eb; padding: 1rem; margin: 1rem 0;">
+                    <p style="margin: 0; color: #1e40af;"><strong>DEADLINE: ${formattedDeadline}</strong></p>
+                    <p style="margin-top: 0.5rem; color: #4b5563;">${urgencyMessage}</p>
+                  </div>
+                  <p>Please complete the survey by clicking the link below:</p>
+                  <p><a href="${publicAccessUrl}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Complete Survey</a></p>
+                  <p style="color: #666; font-size: 14px;">If the button doesn't work, you can copy and paste this link into your browser:</p>
+                  <p style="color: #666; font-size: 14px;">${publicAccessUrl}</p>
+                  <p>Thank you for your participation!</p>
+                </div>
+              `,
+            }),
+          });
+
+          if (!response.ok) {
+            const responseData = await response.json();
+            console.error("Email send error:", responseData);
+            throw new Error(`Failed to send email to ${assignment.user.email}: ${responseData.message}`);
+          }
+
+          // Update last_reminder_sent timestamp
+          const { error: updateError } = await supabase
+            .from('survey_assignments')
+            .update({ last_reminder_sent: new Date().toISOString() })
+            .eq('id', assignment.id);
+
+          if (updateError) {
+            console.error("Update error:", updateError);
+            throw new Error("Failed to update reminder timestamp");
+          }
+
+          successCount++;
+          console.log("Successfully sent reminder to:", assignment.user.email);
+        } catch (error) {
+          console.error(`Error processing assignment ${assignment.id}:`, error);
+          failureCount++;
+        }
+      })
     );
 
-    if (!activeInstance) {
-      throw new Error("No active instance found for this campaign");
-    }
-
-    // Check if a reminder was sent in the last 24 hours
-    if (assignmentData.last_reminder_sent) {
-      const lastSent = new Date(assignmentData.last_reminder_sent);
-      const hoursSinceLastReminder = (Date.now() - lastSent.getTime()) / (1000 * 60 * 60);
-      
-      if (hoursSinceLastReminder < 24) {
-        return new Response(
-          JSON.stringify({ 
-            error: "A reminder was already sent in the last 24 hours" 
-          }),
-          { 
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
-          }
-        );
-      }
-    }
-
-    // Generate the public access URL using the provided frontend URL
-    const publicAccessUrl = `${reminderRequest.frontendUrl}/public/survey/${reminderRequest.publicAccessToken}`;
-
-    // Format deadline date and time
-    const deadline = new Date(activeInstance.ends_at);
-    const formattedDeadline = deadline.toLocaleString('en-US', {
-      dateStyle: 'full',
-      timeStyle: 'short'
-    });
-
-    // Calculate time remaining
-    const now = new Date();
-    const hoursRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60));
-    const daysRemaining = Math.ceil(hoursRemaining / 24);
-    
-    let urgencyMessage = "";
-    if (daysRemaining <= 1) {
-      urgencyMessage = `⚠️ This survey must be completed within the next ${hoursRemaining} hours.`;
-    } else {
-      urgencyMessage = `You have ${daysRemaining} days to complete this survey.`;
-    }
-
-    // Send reminder email using Resend
-    console.log("Sending email via Resend...");
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: `${emailConfig.from_name} <${emailConfig.from_email}>`,
-        to: [reminderRequest.recipientEmail],
-        subject: `Deadline Reminder: ${reminderRequest.surveyName} Due ${formattedDeadline}`,
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Hello ${reminderRequest.recipientName},</h2>
-            <p>This is a reminder about your pending survey: <strong>${reminderRequest.surveyName}</strong></p>
-            <div style="background-color: #f8f9fa; border-left: 4px solid #2563eb; padding: 1rem; margin: 1rem 0;">
-              <p style="margin: 0; color: #1e40af;"><strong>DEADLINE: ${formattedDeadline}</strong></p>
-              <p style="margin-top: 0.5rem; color: #4b5563;">${urgencyMessage}</p>
-            </div>
-            <p>Please complete the survey by clicking the link below:</p>
-            <p><a href="${publicAccessUrl}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Complete Survey</a></p>
-            <p style="color: #666; font-size: 14px;">If the button doesn't work, you can copy and paste this link into your browser:</p>
-            <p style="color: #666; font-size: 14px;">${publicAccessUrl}</p>
-            <p>Thank you for your participation!</p>
-          </div>
-        `,
-      }),
-    });
-
-    console.log("Resend API response status:", res.status);
-    const resendResponse = await res.json();
-    console.log("Resend API response:", JSON.stringify(resendResponse));
-
-    if (!res.ok) {
-      throw new Error(`Resend API error: ${JSON.stringify(resendResponse)}`);
-    }
-
-    // Update last_reminder_sent timestamp
-    const { error: updateError } = await supabase
-      .from('survey_assignments')
-      .update({ last_reminder_sent: new Date().toISOString() })
-      .eq('id', reminderRequest.assignmentId);
-
-    if (updateError) {
-      console.error("Error updating last_reminder_sent:", updateError);
-      throw updateError;
-    }
-
     return new Response(
-      JSON.stringify({ message: "Reminder sent successfully" }),
+      JSON.stringify({ 
+        message: `Processed ${pendingAssignments.length} assignments`,
+        successCount,
+        failureCount,
+        skippedCount,
+      }),
       { 
-        status: 200,
+        status: failureCount > 0 ? 500 : 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
@@ -194,7 +233,10 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         error: "Failed to send email reminder",
-        details: error.message 
+        details: error.message,
+        successCount: 0,
+        failureCount: 1,
+        skippedCount: 0
       }),
       { 
         status: 500,

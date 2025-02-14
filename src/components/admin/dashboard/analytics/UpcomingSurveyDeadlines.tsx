@@ -37,80 +37,23 @@ export function UpcomingSurveyDeadlines() {
 
   const sendReminderMutation = useMutation({
     mutationFn: async ({ instanceId, campaignId }: { instanceId: string; campaignId: string }) => {
-      // Get all assignments for this campaign that don't have a submitted response for this instance
-      const { data: assignments, error: assignmentsError } = await supabase
-        .from("survey_assignments")
-        .select(`
-          id,
-          public_access_token,
-          user:profiles!survey_assignments_user_id_fkey (
-            email,
-            first_name,
-            last_name
-          ),
-          survey:surveys (
-            name
-          )
-        `)
-        .eq("campaign_id", campaignId)
-        .not("id", "in", (
-          supabase
-            .from("survey_responses")
-            .select("assignment_id")
-            .eq("campaign_instance_id", instanceId)
-            .eq("status", "submitted")
-        ));
+      const { data, error } = await supabase.functions.invoke("send-survey-reminder", {
+        body: {
+          instanceId,
+          campaignId,
+          frontendUrl: window.location.origin
+        },
+      });
 
-      if (assignmentsError) throw assignmentsError;
-      if (!assignments?.length) {
-        throw new Error("No pending assignments found");
-      }
-
-      // Get instance end date
-      const { data: instance, error: instanceError } = await supabase
-        .from("campaign_instances")
-        .select("ends_at")
-        .eq("id", instanceId)
-        .single();
-
-      if (instanceError) throw instanceError;
-      if (!instance) throw new Error("Instance not found");
-
-      // Send reminders to pending users
-      const results = await Promise.allSettled(
-        assignments.map(async (assignment) => {
-          const response = await supabase.functions.invoke("send-survey-reminder", {
-            body: {
-              assignmentId: assignment.id,
-              surveyName: assignment.survey.name,
-              dueDate: instance.ends_at,
-              recipientEmail: assignment.user.email,
-              recipientName: `${assignment.user.first_name || ''} ${assignment.user.last_name || ''}`.trim() || 'Participant',
-              publicAccessToken: assignment.public_access_token,
-              frontendUrl: window.location.origin,
-            },
-          });
-
-          if (response.error) {
-            throw new Error(response.error.message);
-          }
-
-          return response;
-        })
-      );
-
-      // Count successes and failures
-      const successCount = results.filter(r => r.status === "fulfilled").length;
-      const failureCount = results.filter(r => r.status === "rejected").length;
-
-      return { successCount, failureCount, totalCount: assignments.length };
+      if (error) throw error;
+      return data;
     },
     onSuccess: (result) => {
       toast({
         title: "Reminders Sent",
-        description: `Successfully sent ${result.successCount} out of ${result.totalCount} reminders.${
-          result.failureCount > 0 ? ` ${result.failureCount} failed.` : ''
-        }`,
+        description: `Successfully sent ${result.successCount} reminders. ${
+          result.failureCount > 0 ? `${result.failureCount} failed.` : ''
+        } ${result.skippedCount > 0 ? `${result.skippedCount} skipped (recently reminded).` : ''}`,
         variant: result.failureCount > 0 ? "destructive" : "default",
       });
       queryClient.invalidateQueries({ queryKey: ["upcoming-deadlines"] });
