@@ -12,7 +12,7 @@ interface UpcomingDeadline {
   id: string;
   survey_name: string;
   campaign_name: string | null;
-  due_date: string;
+  ends_at: string;
   total_assignments: number;
   pending_responses: number;
 }
@@ -27,7 +27,7 @@ export function UpcomingSurveyDeadlines() {
       const { data, error } = await supabase
         .from("upcoming_survey_deadlines")
         .select("*")
-        .order("due_date", { ascending: true });
+        .order("ends_at", { ascending: true });
       
       if (error) throw error;
       return data || [];
@@ -49,6 +49,9 @@ export function UpcomingSurveyDeadlines() {
           ),
           survey:surveys (
             name
+          ),
+          campaign:survey_campaigns (
+            ends_at
           )
         `)
         .eq("campaign_id", instanceId);
@@ -93,7 +96,7 @@ export function UpcomingSurveyDeadlines() {
             body: {
               assignmentId: assignment.id,
               surveyName: assignment.survey.name,
-              dueDate: assignment.due_date,
+              dueDate: assignment.campaign.ends_at,
               recipientEmail: assignment.user.email,
               recipientName: `${assignment.user.first_name || ''} ${assignment.user.last_name || ''}`.trim() || 'Participant',
               publicAccessToken: assignment.public_access_token,
@@ -123,7 +126,6 @@ export function UpcomingSurveyDeadlines() {
         }`,
         variant: result.failureCount > 0 ? "destructive" : "default",
       });
-      // Refresh the deadlines data
       queryClient.invalidateQueries({ queryKey: ["upcoming-deadlines"] });
     },
     onError: (error: Error) => {
@@ -135,13 +137,13 @@ export function UpcomingSurveyDeadlines() {
     }
   });
 
-  const getUrgencyColor = (dueDate: string) => {
+  const getUrgencyColor = (endDate: string) => {
     const now = new Date();
-    const due = new Date(dueDate);
+    const end = new Date(endDate);
     const threeDaysFromNow = addDays(now, 3);
 
-    if (isBefore(due, now)) return "text-red-500";
-    if (isBefore(due, threeDaysFromNow)) return "text-amber-500";
+    if (isBefore(end, now)) return "text-red-500";
+    if (isBefore(end, threeDaysFromNow)) return "text-amber-500";
     return "text-green-500";
   };
 
@@ -159,7 +161,7 @@ export function UpcomingSurveyDeadlines() {
         <div className="space-y-4">
           {deadlines?.map((deadline) => {
             const completionRate = ((deadline.total_assignments - deadline.pending_responses) / deadline.total_assignments) * 100;
-            const urgencyColor = getUrgencyColor(deadline.due_date);
+            const urgencyColor = getUrgencyColor(deadline.ends_at);
 
             return (
               <div key={deadline.id} className="space-y-2">
@@ -186,7 +188,7 @@ export function UpcomingSurveyDeadlines() {
                 <div className="flex items-center gap-2">
                   <Clock className={`h-4 w-4 ${urgencyColor}`} />
                   <span className="text-sm">
-                    Due {format(new Date(deadline.due_date), "MMM d, yyyy")}
+                    Due {format(new Date(deadline.ends_at), "MMM d, yyyy")}
                   </span>
                 </div>
 

@@ -21,24 +21,17 @@ export type Campaign = {
   updated_at: string;
 };
 
-export type SurveyAssignment = {
+export type Assignment = {
   id: string;
   survey_id: string;
   campaign_id: string | null;
   user_id: string;
+  status: ResponseStatus;
   created_by: string;
   created_at: string;
   updated_at: string;
-  status?: ResponseStatus;
-};
-
-export type Assignment = {
-  id: string;
-  status: ResponseStatus;
   public_access_token: string;
   last_reminder_sent?: string | null;
-  campaign_id: string | null;
-  survey_id: string;
   campaign?: Campaign;
   survey?: Survey;
   user: {
