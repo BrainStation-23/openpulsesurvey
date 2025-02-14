@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -71,36 +70,27 @@ export default function MySurveysList() {
       const { data, error } = await supabase
         .from("survey_assignments")
         .select(`
-          *,
-          survey:surveys (
-            id,
-            name,
-            description,
-            status,
-            created_at,
-            created_by,
-            json_data,
-            tags,
-            updated_at
+          id,
+          public_access_token,
+          last_reminder_sent,
+          campaign_id,
+          survey_id,
+          responses:survey_responses!inner (
+            status
           ),
-          campaign:survey_campaigns (
+          user:profiles!survey_assignments_user_id_fkey (
             id,
-            name,
-            description,
-            completion_rate,
-            status,
-            campaign_type,
-            created_at,
-            created_by,
-            ends_at,
-            is_recurring,
-            recurring_days,
-            recurring_ends_at,
-            recurring_frequency,
-            starts_at,
-            instance_duration_days,
-            instance_end_time,
-            updated_at
+            email,
+            first_name,
+            last_name,
+            user_sbus (
+              id,
+              is_primary,
+              sbus:sbus (
+                id,
+                name
+              )
+            )
           )
         `)
         .eq("user_id", (await supabase.auth.getUser()).data.user?.id)
@@ -108,43 +98,19 @@ export default function MySurveysList() {
 
       if (error) throw error;
 
-      // For each assignment, get the status and active instance
-      const assignmentsWithStatus = await Promise.all(
-        data.map(async (assignment) => {
-          // Get active instance if it's a campaign assignment
-          if (assignment.campaign_id) {
-            const { data: instances, error: instanceError } = await supabase
-              .from("campaign_instances")
-              .select("*")
-              .eq("campaign_id", assignment.campaign_id)
-              .eq("status", "active")
-              .maybeSingle();
-
-            if (instanceError) throw instanceError;
-            
-            if (instances) {
-              // Get status using the instance
-              const { data: status } = await supabase
-                .rpc('get_instance_assignment_status', {
-                  p_assignment_id: assignment.id,
-                  p_instance_id: instances.id
-                });
-
-              return {
-                ...assignment,
-                status: status as ResponseStatus,
-                active_instance: instances
-              };
-            }
-          }
-          return {
-            ...assignment,
-            status: 'pending' as ResponseStatus
-          };
-        })
-      );
-
-      return assignmentsWithStatus as (SurveyAssignment & { status: ResponseStatus })[];
+      // Transform the data to include the status and correct user_sbus structure
+      return data?.map(assignment => ({
+        ...assignment,
+        // Use the response status if available, otherwise default to 'assigned'
+        status: (assignment.responses?.[0]?.status || 'assigned') as ResponseStatus,
+        user: {
+          ...assignment.user,
+          user_sbus: assignment.user.user_sbus.map(userSbu => ({
+            is_primary: userSbu.is_primary,
+            sbu: userSbu.sbus // Rename sbus to sbu to match the expected type
+          }))
+        }
+      })) || [];
     },
   });
 

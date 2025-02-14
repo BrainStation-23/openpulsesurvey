@@ -7,11 +7,9 @@ export type SurveyAssignment = {
   id: string;
   survey_id: string;
   user_id: string;
-  due_date: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
-  is_recurring: boolean | null;
   recurring_frequency: Database["public"]["Enums"]["recurring_frequency"] | null;
   recurring_ends_at: string | null;
   recurring_days: number[] | null;
@@ -21,7 +19,6 @@ export type SurveyAssignment = {
 export type Assignment = {
   id: string;
   status: ResponseStatus;
-  due_date: string | null;
   public_access_token: string;
   last_reminder_sent?: string | null;
   user: {

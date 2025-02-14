@@ -41,7 +41,6 @@ export function UpcomingSurveyDeadlines() {
         .from("survey_assignments")
         .select(`
           id,
-          due_date,
           public_access_token,
           user:profiles!survey_assignments_user_id_fkey (
             email,
@@ -88,6 +87,8 @@ export function UpcomingSurveyDeadlines() {
       // Send reminders to pending users
       const results = await Promise.allSettled(
         pendingAssignments.map(async (assignment) => {
+          if (!assignment) return;
+          
           const response = await supabase.functions.invoke("send-survey-reminder", {
             body: {
               assignmentId: assignment.id,
