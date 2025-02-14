@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,15 +27,19 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
       const query = supabase
         .from("survey_responses")
         .select(`
-          *,
+          id,
+          status,
+          created_at,
+          updated_at,
+          campaign_instance_id,
           user:profiles!survey_responses_user_id_fkey (
             id,
             first_name,
             last_name,
             email,
-            user_sbus (
+            user_sbus!user_sbus_user_id_fkey (
               is_primary,
-              sbu (
+              sbu:sbus!user_sbus_sbu_id_fkey (
                 id,
                 name
               )
@@ -69,7 +74,7 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as Response[];
+      return data as unknown as Response[];
     },
   });
 

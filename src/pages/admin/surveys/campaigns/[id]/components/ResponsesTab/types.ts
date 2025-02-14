@@ -1,6 +1,19 @@
-import type { Database } from "@/integrations/supabase/types";
 
-export type Response = Database["public"]["Tables"]["survey_responses"]["Row"] & {
+export type SortOption = "date" | "name";
+export type SortDirection = "asc" | "desc";
+
+export type FilterOptions = {
+  search: string;
+  sortBy: SortOption;
+  sortDirection: SortDirection;
+};
+
+export interface Response {
+  id: string;
+  status: "assigned" | "in_progress" | "submitted" | "expired";
+  created_at: string;
+  updated_at: string;
+  campaign_instance_id: string | null;
   user: {
     id: string;
     first_name: string | null;
@@ -32,13 +45,4 @@ export type Response = Database["public"]["Tables"]["survey_responses"]["Row"] &
       anonymous: boolean;
     };
   };
-};
-
-export type SortOption = "date" | "name";
-export type SortDirection = "asc" | "desc";
-
-export type FilterOptions = {
-  search: string;
-  sortBy: SortOption;
-  sortDirection: SortDirection;
-};
+}
