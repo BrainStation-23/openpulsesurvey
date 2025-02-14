@@ -72,13 +72,14 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Get pending assignments with user and survey details using a LEFT JOIN approach
+    // Note: Using the specific foreign key as indicated in the error message
     const { data: assignments, error: assignmentsError } = await supabase
       .from('survey_assignments')
       .select(`
         id,
         public_access_token,
         last_reminder_sent,
-        user:profiles (
+        user:profiles!survey_assignments_user_id_fkey (
           email,
           first_name,
           last_name
