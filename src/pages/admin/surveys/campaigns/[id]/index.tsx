@@ -47,10 +47,14 @@ export default function CampaignDetailsPage() {
         .from("survey_assignments")
         .select(`
           id,
+          survey_id,
+          campaign_id,
+          user_id,
+          created_by,
+          created_at,
+          updated_at,
           public_access_token,
           last_reminder_sent,
-          campaign_id,
-          survey_id,
           responses:survey_responses!inner (
             status,
             campaign_instance_id

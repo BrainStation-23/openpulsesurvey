@@ -62,12 +62,12 @@ export default function MySurveysList() {
           description: string | null;
           json_data: any;
         };
-        instance: {
+        instance: Array<{
           id: string;
           starts_at: string;
           ends_at: string;
           status: "upcoming" | "active" | "completed";
-        };
+        }>;
       };
 
       const { data, error } = await supabase
@@ -105,9 +105,12 @@ export default function MySurveysList() {
 
       if (error) throw error;
 
-      return (data as DbResponse[])?.map(assignment => {
+      return (data as unknown as DbResponse[]).map(assignment => {
+        // Get the active instance (should be only one due to our query filter)
+        const activeInstance = assignment.instance[0];
+        
         const status = determineStatus({
-          instance: assignment.instance,
+          instance: activeInstance,
           response: assignment.responses?.[0]
         });
 
@@ -122,10 +125,10 @@ export default function MySurveysList() {
           public_access_token: assignment.public_access_token,
           last_reminder_sent: assignment.last_reminder_sent,
           instance: {
-            id: assignment.instance.id,
-            starts_at: assignment.instance.starts_at,
-            ends_at: assignment.instance.ends_at,
-            status: assignment.instance.status
+            id: activeInstance.id,
+            starts_at: activeInstance.starts_at,
+            ends_at: activeInstance.ends_at,
+            status: activeInstance.status
           },
           survey: assignment.survey,
           status,
@@ -139,7 +142,7 @@ export default function MySurveysList() {
         }
 
         return mappedAssignment;
-      }) as Assignment[];
+      });
     },
   });
 
