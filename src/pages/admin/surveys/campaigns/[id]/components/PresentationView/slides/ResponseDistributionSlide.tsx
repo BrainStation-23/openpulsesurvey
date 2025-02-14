@@ -4,17 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from "recharts";
 import { Card } from "@/components/ui/card";
 import { SlideWrapper } from "../components/SlideWrapper";
+import { CampaignData } from "../types";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 export function ResponseDistributionSlide({ 
   campaignId, 
   instanceId,
-  isActive
+  isActive,
+  campaign
 }: { 
   campaignId: string;
   instanceId?: string;
   isActive: boolean;
+  campaign: CampaignData;
 }) {
   const { data: distributionData } = useQuery({
     queryKey: ["response-distribution", campaignId, instanceId],
@@ -52,7 +55,7 @@ export function ResponseDistributionSlide({
   if (!distributionData?.length) return null;
 
   return (
-    <SlideWrapper isActive={isActive}>
+    <SlideWrapper isActive={isActive} campaign={campaign}>
       <Card className="w-full h-full flex items-center justify-center p-4">
         <ResponsiveContainer width="100%" height={400}>
           <PieChart>
