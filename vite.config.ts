@@ -1,9 +1,7 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-import type { Plugin } from 'vite';
 
 export default defineConfig(({ mode }) => ({
   server: {
@@ -19,17 +17,6 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
-    {
-      name: 'html-transform',
-      transformIndexHtml(html: string) {
-        return html.replace(
-          '<%- DEV_SCRIPT %>',
-          mode === 'development' 
-            ? '<script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>'
-            : ''
-        );
-      },
-    },
   ].filter(Boolean),
 
   resolve: {
@@ -49,4 +36,3 @@ export default defineConfig(({ mode }) => ({
     },
   },
 }));
-
