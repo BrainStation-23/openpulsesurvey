@@ -46,7 +46,7 @@ export const UserEmploymentDetails = ({
       <div className="grid grid-cols-[24px_100px_1fr] items-center gap-2 text-sm">
         <MapPin className="h-4 w-4 text-muted-foreground" />
         <span className="text-muted-foreground">Location:</span>
-        <span className="font-medium truncate">{user.location?.name || "N/A"}</span>
+        <span className="font-medium truncate">{user.location || "N/A"}</span>
       </div>
     </div>
   );
