@@ -201,7 +201,7 @@ export default function PresentationView() {
       />
       
       <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
-      <ResponseDistributionSlide campaignId={campaign.id} instanceId={instanceId || undefined} isActive={currentSlide === 1} />
+      <ResponseDistributionSlide campaignId={campaign.id} instanceId={instanceId || undefined} />
       <ResponseTrendsSlide campaign={campaign} isActive={currentSlide === 2} />
       {renderQuestionSlides()}
     </PresentationLayout>
