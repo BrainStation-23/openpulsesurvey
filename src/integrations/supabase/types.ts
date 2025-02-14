@@ -590,6 +590,7 @@ export type Database = {
           id: string
           response_data: Json
           state_data: Json | null
+          status: string
           submitted_at: string | null
           updated_at: string | null
           user_id: string
@@ -601,6 +602,7 @@ export type Database = {
           id?: string
           response_data: Json
           state_data?: Json | null
+          status?: string
           submitted_at?: string | null
           updated_at?: string | null
           user_id: string
@@ -612,6 +614,7 @@ export type Database = {
           id?: string
           response_data?: Json
           state_data?: Json | null
+          status?: string
           submitted_at?: string | null
           updated_at?: string | null
           user_id?: string
