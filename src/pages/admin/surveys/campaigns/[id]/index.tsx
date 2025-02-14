@@ -10,6 +10,7 @@ import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
 import { InstanceSelector } from "./components/InstanceSelector";
 import { useState } from "react";
+import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
@@ -70,10 +71,10 @@ export default function CampaignDetailsPage() {
 
       if (error) throw error;
 
-      // Transform the data to include the status
+      // Transform the data to include the status with the correct type
       return data?.map(assignment => ({
         ...assignment,
-        status: 'assigned' // Default status, you might want to calculate this based on your business logic
+        status: 'assigned' as ResponseStatus // Explicitly type the status
       })) || [];
     },
   });
@@ -116,9 +117,9 @@ export default function CampaignDetailsPage() {
 
         <TabPanel value="responses">
           <ResponsesList
-            campaign_id={campaign.id}
-            instance_id={selectedInstanceId}
-            is_anonymous={campaign.anonymous}
+            campaign={campaign.id}
+            instance={selectedInstanceId}
+            isAnonymous={campaign.anonymous}
           />
         </TabPanel>
 
