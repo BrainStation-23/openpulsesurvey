@@ -411,9 +411,7 @@ export type Database = {
           campaign_id: string | null
           created_at: string | null
           created_by: string
-          due_date: string | null
           id: string
-          is_organization_wide: boolean | null
           last_reminder_sent: string | null
           public_access_token: string | null
           survey_id: string
@@ -424,9 +422,7 @@ export type Database = {
           campaign_id?: string | null
           created_at?: string | null
           created_by: string
-          due_date?: string | null
           id?: string
-          is_organization_wide?: boolean | null
           last_reminder_sent?: string | null
           public_access_token?: string | null
           survey_id: string
@@ -437,9 +433,7 @@ export type Database = {
           campaign_id?: string | null
           created_at?: string | null
           created_by?: string
-          due_date?: string | null
           id?: string
-          is_organization_wide?: boolean | null
           last_reminder_sent?: string | null
           public_access_token?: string | null
           survey_id?: string
