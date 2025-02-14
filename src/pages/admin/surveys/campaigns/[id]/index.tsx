@@ -144,7 +144,7 @@ export default function CampaignDetailsPage() {
         <TabPanel value="overview">
           <OverviewTab 
             campaignId={campaign.id} 
-            selectedInstanceId={selectedInstanceId}  {/* Added selectedInstanceId prop */}
+            selectedInstanceId={selectedInstanceId}
           />
         </TabPanel>
 
