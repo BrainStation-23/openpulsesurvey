@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -5,20 +6,34 @@ export function usePendingSurveysCount() {
   return useQuery({
     queryKey: ["pending-surveys-count"],
     queryFn: async () => {
-      const { count, error } = await supabase
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) return 0;
+
+      const { data: assignments, error } = await supabase
         .from("survey_assignments")
         .select(`
-          *,
+          id,
           campaign:survey_campaigns!inner (
             status
           )
-        `, { count: 'exact', head: true })
-        .eq("status", "pending")
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id)
+        `)
+        .eq("user_id", user.data.user.id)
         .neq("campaign.status", "draft");
 
       if (error) throw error;
-      return count || 0;
+
+      // Get pending assignments count using our new function
+      const pendingCount = await Promise.all(
+        (assignments || []).map(async (assignment) => {
+          const { data: status } = await supabase
+            .rpc('get_assignment_status', {
+              p_assignment_id: assignment.id
+            });
+          return status === 'assigned' ? 1 : 0;
+        })
+      ).then(results => results.reduce((a, b) => a + b, 0));
+
+      return pendingCount;
     },
   });
 }

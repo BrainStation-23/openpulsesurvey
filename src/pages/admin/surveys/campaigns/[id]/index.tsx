@@ -34,35 +34,8 @@ export default function CampaignDetailsPage() {
   const { data: assignments, isLoading: isLoadingAssignments } = useQuery({
     queryKey: ["campaign-assignments", id, selectedInstanceId],
     queryFn: async () => {
-      if (!selectedInstanceId) {
-        // If no instance is selected, return regular assignments
-        const { data, error } = await supabase
-          .from("survey_assignments")
-          .select(`
-            id,
-            status,
-            due_date,
-            user:profiles!survey_assignments_user_id_fkey (
-              id,
-              email,
-              first_name,
-              last_name,
-              user_sbus (
-                is_primary,
-                sbu:sbus (
-                  id,
-                  name
-                )
-              )
-            )
-          `)
-          .eq("campaign_id", id);
+      if (!id) return [];
 
-        if (error) throw error;
-        return data;
-      }
-
-      // If instance is selected, get assignments with instance-specific status
       const { data: assignmentsData, error: assignmentsError } = await supabase
         .from("survey_assignments")
         .select(`
@@ -86,18 +59,18 @@ export default function CampaignDetailsPage() {
 
       if (assignmentsError) throw assignmentsError;
 
-      // Get status for each assignment in the selected instance
+      // Get status for each assignment using our new function
       const assignmentsWithStatus = await Promise.all(
         (assignmentsData || []).map(async (assignment) => {
-          const { data: statusData } = await supabase
-            .rpc('get_assignment_instance_status', {
+          const { data: status } = await supabase
+            .rpc('get_assignment_status', {
               p_assignment_id: assignment.id,
               p_instance_id: selectedInstanceId
             });
 
           return {
             ...assignment,
-            status: statusData
+            status
           };
         })
       );
