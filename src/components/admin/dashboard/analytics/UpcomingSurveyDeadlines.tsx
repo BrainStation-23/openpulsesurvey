@@ -30,24 +30,12 @@ export function UpcomingSurveyDeadlines() {
         .order("due_date", { ascending: true });
       
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
   const sendReminderMutation = useMutation({
     mutationFn: async ({ instanceId }: { instanceId: string }) => {
-      // First get the active instance for the campaign
-      const { data: instance, error: instanceError } = await supabase
-        .from("campaign_instances")
-        .select("id")
-        .eq("campaign_id", instanceId)
-        .eq("status", "active")
-        .single();
-
-      if (instanceError || !instance) {
-        throw new Error("No active instance found for this campaign");
-      }
-
       // Get all assignments for this campaign
       const { data: assignments, error: assignmentsError } = await supabase
         .from("survey_assignments")
@@ -74,6 +62,16 @@ export function UpcomingSurveyDeadlines() {
       // Filter for pending assignments using get_instance_assignment_status
       const pendingAssignments = await Promise.all(
         assignments.map(async (assignment) => {
+          // Get the active instance for this campaign
+          const { data: instance } = await supabase
+            .from("campaign_instances")
+            .select("id")
+            .eq("campaign_id", instanceId)
+            .eq("status", "active")
+            .single();
+
+          if (!instance) return null;
+
           const { data: status } = await supabase
             .rpc('get_instance_assignment_status', {
               p_assignment_id: assignment.id,

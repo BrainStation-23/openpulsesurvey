@@ -88,6 +88,13 @@ export type Database = {
             referencedRelation: "top_performing_surveys"
             referencedColumns: ["campaign_id"]
           },
+          {
+            foreignKeyName: "campaign_instances_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_survey_deadlines"
+            referencedColumns: ["id"]
+          },
         ]
       }
       email_config: {
@@ -455,6 +462,13 @@ export type Database = {
             referencedColumns: ["campaign_id"]
           },
           {
+            foreignKeyName: "survey_assignments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_survey_deadlines"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "survey_assignments_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -622,13 +636,6 @@ export type Database = {
             columns: ["assignment_id"]
             isOneToOne: false
             referencedRelation: "survey_assignments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "survey_responses_assignment_id_fkey"
-            columns: ["assignment_id"]
-            isOneToOne: false
-            referencedRelation: "upcoming_survey_deadlines"
             referencedColumns: ["id"]
           },
           {
@@ -1028,13 +1035,6 @@ export type Database = {
           p_instance_id: string
         }
         Returns: Database["public"]["Enums"]["assignment_status"]
-      }
-      get_assignment_status: {
-        Args: {
-          p_assignment_id: string
-          p_instance_id?: string
-        }
-        Returns: Database["public"]["Enums"]["response_status"]
       }
       get_campaign_analysis_data: {
         Args: {
