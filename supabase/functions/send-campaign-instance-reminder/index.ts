@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
@@ -16,6 +15,7 @@ interface CampaignInstanceReminderRequest {
   assignmentIds: string[];
   instanceId: string;
   campaignId: string;
+  baseUrl: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -43,6 +43,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!reminderRequest.assignmentIds?.length) {
       throw new Error("No assignment IDs provided");
+    }
+
+    if (!reminderRequest.baseUrl) {
+      throw new Error("Base URL is required");
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -133,8 +137,8 @@ const handler = async (req: Request): Promise<Response> => {
             urgencyMessage = `You have ${daysRemaining} days to complete this survey.`;
           }
 
-          // Generate the public access URL
-          const publicAccessUrl = `${new URL(req.url).origin}/public/survey/${assignment.public_access_token}`;
+          // Generate the public access URL using the provided base URL
+          const publicAccessUrl = `${reminderRequest.baseUrl}/public/survey/${assignment.public_access_token}`;
 
           const userDetails = assignment.user_details;
           const recipientName = `${userDetails.first_name || ''} ${userDetails.last_name || ''}`.trim() || 'User';

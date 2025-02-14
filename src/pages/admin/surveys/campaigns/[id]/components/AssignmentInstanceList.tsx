@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { SurveyAssignment, ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 import { AssignCampaignUsers } from "./AssignCampaignUsers";
@@ -56,7 +57,7 @@ export function AssignmentInstanceList({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const queryClient = useQueryClient();
 
-  // Fetch assignments using the new database function
+  // Fetch assignments using the database function
   const { data: assignments, isLoading } = useQuery({
     queryKey: ["campaign-assignments", campaignId, selectedInstanceId],
     queryFn: async () => {
@@ -89,7 +90,7 @@ export function AssignmentInstanceList({
 
   const copyPublicLinkMutation = useMutation({
     mutationFn: async (assignment: SurveyAssignment) => {
-      const publicLink = `${window.location.origin}/surveys/${assignment.public_access_token}`;
+      const publicLink = `${window.location.origin}/public/survey/${assignment.public_access_token}`;
       await navigator.clipboard.writeText(publicLink);
     },
     onSuccess: () => {
@@ -106,7 +107,8 @@ export function AssignmentInstanceList({
         body: { 
           assignmentIds, 
           instanceId: selectedInstanceId,
-          campaignId 
+          campaignId,
+          baseUrl: window.location.origin // Pass the frontend origin
         },
       });
       if (error) throw error;
