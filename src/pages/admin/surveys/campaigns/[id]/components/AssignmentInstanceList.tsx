@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { SurveyAssignment, ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 import { AssignCampaignUsers } from "./AssignCampaignUsers";
@@ -10,7 +11,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,9 +46,8 @@ const statusStyles = {
 };
 
 export function AssignmentInstanceList({
-  assignments: initialAssignments,
-  isLoading: isLoadingProp,
   campaignId,
+  isLoading: isLoadingProp,
   surveyId,
   selectedInstanceId,
 }: AssignmentInstanceListProps) {
@@ -86,7 +85,7 @@ export function AssignmentInstanceList({
     statusFilter === "all" ? true : assignment.status === statusFilter
   );
 
-  const REMINDER_COOLDOWN_HOURS = 24; // Configurable cooldown period
+  const REMINDER_COOLDOWN_HOURS = 24;
 
   const canSendReminder = (lastReminderSent: string | null) => {
     if (!lastReminderSent) return true;
@@ -116,22 +115,12 @@ export function AssignmentInstanceList({
   });
 
   const sendReminderMutation = useMutation({
-    mutationFn: async (assignmentIds: string[]) => {
-      const eligibleAssignments = assignments?.filter(
-        assignment => assignmentIds.includes(assignment.id) && 
-        canSendReminder(assignment.last_reminder_sent)
-      ) || [];
-
-      if (eligibleAssignments.length === 0) {
-        throw new Error("No eligible assignments to send reminders to");
-      }
-
-      const { error } = await supabase.functions.invoke("send-campaign-instance-reminder", {
+    mutationFn: async ({ instanceId, campaignId }: { instanceId?: string, campaignId: string }) => {
+      const { error } = await supabase.functions.invoke("send-survey-reminder", {
         body: { 
-          assignmentIds: eligibleAssignments.map(a => a.id), 
-          instanceId: selectedInstanceId,
+          instanceId, 
           campaignId,
-          baseUrl: window.location.origin
+          frontendUrl: window.location.origin
         },
       });
       if (error) throw error;
@@ -143,7 +132,7 @@ export function AssignmentInstanceList({
     },
     onError: (error) => {
       console.error("Error sending reminders:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to send reminders");
+      toast.error("Failed to send reminders");
     },
   });
 
@@ -281,7 +270,10 @@ export function AssignmentInstanceList({
                   <TooltipTrigger asChild>
                     <div>
                       <DropdownMenuItem
-                        onClick={() => sendReminderMutation.mutate([assignment.id])}
+                        onClick={() => sendReminderMutation.mutate({
+                          campaignId,
+                          instanceId: selectedInstanceId
+                        })}
                         disabled={!canSend || assignment.status === 'submitted'}
                         className="relative"
                       >
@@ -307,14 +299,6 @@ export function AssignmentInstanceList({
     },
   ];
 
-  const handleSelectionChange = (assignmentId: string, selected: boolean) => {
-    setSelectedAssignments(prev => 
-      selected 
-        ? [...prev, assignmentId]
-        : prev.filter(id => id !== assignmentId)
-    );
-  };
-
   const eligibleAssignmentsCount = selectedAssignments.filter(id => {
     const assignment = assignments?.find(a => a.id === id);
     return assignment && canSendReminder(assignment.last_reminder_sent);
@@ -331,7 +315,10 @@ export function AssignmentInstanceList({
                   <div>
                     <Button
                       size="sm"
-                      onClick={() => sendReminderMutation.mutate(selectedAssignments)}
+                      onClick={() => sendReminderMutation.mutate({
+                        campaignId,
+                        instanceId: selectedInstanceId
+                      })}
                       disabled={sendReminderMutation.isPending || eligibleAssignmentsCount === 0}
                     >
                       <Send className="mr-2 h-4 w-4" />
