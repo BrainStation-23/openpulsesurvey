@@ -43,7 +43,7 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
           assignment:survey_assignments!inner(
             id,
             campaign_id,
-            campaign:survey_campaigns(
+            campaign:survey_campaigns!survey_assignments_campaign_id_fkey(
               id,
               name,
               anonymous

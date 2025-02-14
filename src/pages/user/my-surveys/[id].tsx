@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Model } from "survey-core";
@@ -59,7 +60,7 @@ export default function UserSurveyResponsePage() {
             json_data,
             status
           ),
-          campaign:survey_campaigns (
+          campaign:survey_campaigns!survey_assignments_campaign_id_fkey (
             id,
             name
           )
