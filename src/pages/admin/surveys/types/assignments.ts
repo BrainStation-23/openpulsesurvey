@@ -10,15 +10,11 @@ export type Survey = {
   json_data: Record<string, any>;
 };
 
-export type Campaign = {
+export type Instance = {
   id: string;
-  name: string;
-  description: string | null;
   starts_at: string;
-  ends_at: string | null;
+  ends_at: string;
   status: string;
-  created_at: string;
-  updated_at: string;
 };
 
 export type Assignment = {
@@ -32,19 +28,11 @@ export type Assignment = {
   updated_at: string;
   public_access_token: string;
   last_reminder_sent: string | null;
-  campaign?: Campaign;
-  survey?: Survey;
-  user: {
-    id: string;
-    email: string;
-    first_name: string | null;
-    last_name: string | null;
-    user_sbus?: {
-      sbu: {
-        id: string;
-        name: string;
-      };
-      is_primary: boolean;
-    }[];
+  instance: Instance;
+  survey: Survey;
+  response?: {
+    status: ResponseStatus;
+    campaign_instance_id: string;
   };
 };
+

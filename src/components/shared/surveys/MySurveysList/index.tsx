@@ -8,8 +8,22 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
 import SurveyCard from "./SurveyCard";
 import SurveyFilters from "./components/SurveyFilters";
-import { Database } from "@/integrations/supabase/types";
 import { ResponseStatus, Assignment } from "@/pages/admin/surveys/types/assignments";
+
+function determineStatus(assignment: Assignment): ResponseStatus {
+  // If there's a response for this instance, use its status
+  if (assignment.response?.status) {
+    return assignment.response.status;
+  }
+  
+  // No response but instance ended
+  if (new Date(assignment.instance.ends_at) < new Date()) {
+    return 'expired';
+  }
+  
+  // Active instance, no response
+  return 'assigned';
+}
 
 export default function MySurveysList() {
   const navigate = useNavigate();
@@ -37,23 +51,9 @@ export default function MySurveysList() {
           updated_at,
           public_access_token,
           last_reminder_sent,
-          responses:survey_responses!inner (
+          responses:survey_responses (
             status,
             campaign_instance_id
-          ),
-          user:profiles!survey_assignments_user_id_fkey (
-            id,
-            email,
-            first_name,
-            last_name,
-            user_sbus (
-              id,
-              is_primary,
-              sbus:sbus (
-                id,
-                name
-              )
-            )
           ),
           survey:surveys (
             id,
@@ -61,13 +61,7 @@ export default function MySurveysList() {
             description,
             json_data
           ),
-          campaign:survey_campaigns (
-            id,
-            name,
-            description,
-            status
-          ),
-          active_instance:campaign_instances!inner (
+          instance:campaign_instances!inner (
             id,
             starts_at,
             ends_at,
@@ -75,37 +69,40 @@ export default function MySurveysList() {
           )
         `)
         .eq("user_id", userId)
-        .eq('active_instance.status', 'active')
+        .eq('instance.status', 'active')
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      return data?.map(assignment => ({
-        ...assignment,
-        id: assignment.id,
-        survey_id: assignment.survey_id,
-        campaign_id: assignment.campaign_id,
-        user_id: assignment.user_id,
-        created_by: assignment.created_by,
-        created_at: assignment.created_at,
-        updated_at: assignment.updated_at,
-        public_access_token: assignment.public_access_token,
-        last_reminder_sent: assignment.last_reminder_sent,
-        status: (assignment.responses?.[0]?.status || 'assigned') as ResponseStatus,
-        user: {
-          ...assignment.user,
-          user_sbus: assignment.user.user_sbus.map(userSbu => ({
-            is_primary: userSbu.is_primary,
-            sbu: userSbu.sbus
-          }))
-        },
-        campaign: assignment.campaign && {
-          ...assignment.campaign,
-          ends_at: assignment.active_instance?.ends_at,
-          starts_at: assignment.active_instance?.starts_at
-        },
-        survey: assignment.survey
-      })) as Assignment[];
+      return data?.map(assignment => {
+        const mappedAssignment: Assignment = {
+          id: assignment.id,
+          survey_id: assignment.survey_id,
+          campaign_id: assignment.campaign_id,
+          user_id: assignment.user_id,
+          created_by: assignment.created_by,
+          created_at: assignment.created_at,
+          updated_at: assignment.updated_at,
+          public_access_token: assignment.public_access_token,
+          last_reminder_sent: assignment.last_reminder_sent,
+          instance: assignment.instance,
+          survey: assignment.survey,
+          status: determineStatus({
+            ...assignment,
+            instance: assignment.instance,
+            response: assignment.responses?.[0]
+          } as Assignment),
+        };
+
+        if (assignment.responses?.[0]) {
+          mappedAssignment.response = {
+            status: assignment.responses[0].status,
+            campaign_instance_id: assignment.responses[0].campaign_instance_id
+          };
+        }
+
+        return mappedAssignment;
+      }) as Assignment[];
     },
   });
 
@@ -114,7 +111,7 @@ export default function MySurveysList() {
     if (assignments) {
       const now = new Date();
       assignments.forEach(assignment => {
-        const effectiveEndDate = assignment.campaign?.ends_at;
+        const effectiveEndDate = assignment.instance.ends_at;
         
         if (effectiveEndDate && assignment.status !== 'submitted') {
           const dueDate = new Date(effectiveEndDate);
@@ -123,14 +120,14 @@ export default function MySurveysList() {
           if (daysUntilDue <= 3 && daysUntilDue > 0) {
             toast({
               title: "Survey Due Soon",
-              description: `"${assignment.campaign?.name || assignment.survey?.name}" is due in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'}`,
+              description: `"${assignment.survey.name}" is due in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'}`,
               variant: "default",
             });
           }
           else if (daysUntilDue < 0 && assignment.status !== 'expired') {
             toast({
               title: "Survey Overdue",
-              description: `"${assignment.campaign?.name || assignment.survey?.name}" is overdue`,
+              description: `"${assignment.survey.name}" is overdue`,
               variant: "destructive",
             });
           }
@@ -156,10 +153,8 @@ export default function MySurveysList() {
 
   const filteredAssignments = assignments?.filter((assignment) => {
     const matchesSearch = 
-      assignment.campaign?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      assignment.survey?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      assignment.campaign?.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      assignment.survey?.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      assignment.survey.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      assignment.survey.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = 
       statusFilter === "all" || 
@@ -200,3 +195,4 @@ export default function MySurveysList() {
     </div>
   );
 }
+
