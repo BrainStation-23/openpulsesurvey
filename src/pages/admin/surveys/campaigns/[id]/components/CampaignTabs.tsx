@@ -1,6 +1,6 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, PieChart, Users, ClipboardList, Activity, FileBarChart, Lock } from "lucide-react";
+import { Brain, PieChart, Users, ClipboardList, FileBarChart, Lock } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useState } from "react";
@@ -29,7 +29,7 @@ export function CampaignTabs({ children, isAnonymous, status }: CampaignTabsProp
   }, [isDraft]);
 
   // Define disabled tabs in draft mode
-  const disabledTabs = isDraft ? ["overview", "responses", "activity", "reports", "analyze"] : [];
+  const disabledTabs = isDraft ? ["overview", "responses", "reports", "analyze"] : [];
 
   const renderTabTrigger = (value: string, label: string, icon: React.ReactNode) => {
     const isDisabled = disabledTabs.includes(value);
@@ -75,7 +75,6 @@ export function CampaignTabs({ children, isAnonymous, status }: CampaignTabsProp
           {renderTabTrigger("overview", "Overview", <PieChart className="h-4 w-4" />)}
           {renderTabTrigger("assignments", "Assignments", <Users className="h-4 w-4" />)}
           {renderTabTrigger("responses", "Responses", <ClipboardList className="h-4 w-4" />)}
-          {renderTabTrigger("activity", "Activity", <Activity className="h-4 w-4" />)}
           {renderTabTrigger("reports", "Reports", <FileBarChart className="h-4 w-4" />)}
           {renderTabTrigger("analyze", "AI-nalyze", <Brain className="h-4 w-4" />)}
         </TabsList>
