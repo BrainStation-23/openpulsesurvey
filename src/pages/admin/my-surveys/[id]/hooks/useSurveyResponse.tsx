@@ -172,11 +172,20 @@ export function useSurveyResponse({
     }
   };
 
+  const handleThemeChange = (theme: any) => {
+    if (survey) {
+      survey.applyTheme(theme);
+      // Force a re-render since the theme change doesn't trigger one automatically
+      setSurvey(new Model({ ...survey.toJSON() }));
+    }
+  };
+
   return {
     survey,
     lastSaved,
     showSubmitDialog,
     setShowSubmitDialog,
-    handleSubmitSurvey
+    handleSubmitSurvey,
+    handleThemeChange
   };
 }

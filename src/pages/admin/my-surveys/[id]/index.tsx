@@ -72,7 +72,8 @@ export default function UserSurveyResponsePage() {
     lastSaved,
     showSubmitDialog,
     setShowSubmitDialog,
-    handleSubmitSurvey
+    handleSubmitSurvey,
+    handleThemeChange
   } = useSurveyResponse({
     id: id!,
     surveyData: assignmentData?.assignment.survey?.json_data,
@@ -123,7 +124,7 @@ export default function UserSurveyResponsePage() {
       </div>
 
       <div className="flex justify-end">
-        <ThemeSwitcher onThemeChange={() => {}} />
+        <ThemeSwitcher onThemeChange={handleThemeChange} />
       </div>
       
       <div className="bg-card rounded-lg border p-6">

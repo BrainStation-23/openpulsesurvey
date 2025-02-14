@@ -15,30 +15,6 @@ import { useState, useEffect } from "react";
 
 import "survey-core/defaultV2.min.css";
 
-type SurveyAssignmentWithStatus = {
-  id: string;
-  survey_id: string;
-  user_id: string;
-  due_date: string | null;
-  created_by: string;
-  created_at: string | null;
-  updated_at: string | null;
-  is_organization_wide: boolean | null;
-  campaign_id: string | null;
-  status: ResponseStatus;
-  survey: {
-    id: string;
-    name: string;
-    description: string | null;
-    json_data: any;
-    status: string | null;
-  };
-  campaign?: {
-    id: string;
-    name: string;
-  };
-};
-
 export default function UserSurveyResponsePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -97,7 +73,7 @@ export default function UserSurveyResponsePage() {
     if (assignmentData?.survey?.json_data) {
       const surveyModel = new Model(assignmentData.survey.json_data);
       
-      surveyModel.applyTheme(LayeredDarkPanelless);
+      surveyModel.applyTheme(LayeredDarkPanelless); // Set initial theme
       
       if (assignmentData.status === "submitted") {
         surveyModel.mode = 'display';
@@ -106,6 +82,14 @@ export default function UserSurveyResponsePage() {
       setSurvey(surveyModel);
     }
   }, [assignmentData]);
+
+  const handleThemeChange = (theme: any) => {
+    if (survey) {
+      survey.applyTheme(theme);
+      // Force a re-render since the theme change doesn't trigger one automatically
+      setSurvey(new Model({ ...survey.toJSON() }));
+    }
+  };
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -150,7 +134,7 @@ export default function UserSurveyResponsePage() {
       </div>
 
       <div className="flex justify-end">
-        <ThemeSwitcher onThemeChange={() => {}} />
+        <ThemeSwitcher onThemeChange={handleThemeChange} />
       </div>
       
       <div className="bg-card rounded-lg border p-6">
