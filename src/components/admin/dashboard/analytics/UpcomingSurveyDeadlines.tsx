@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface UpcomingDeadline {
   id: string;
+  campaign_id: string;
   survey_name: string;
   campaign_name: string | null;
   ends_at: string;
@@ -35,8 +36,8 @@ export function UpcomingSurveyDeadlines() {
   });
 
   const sendReminderMutation = useMutation({
-    mutationFn: async ({ instanceId }: { instanceId: string }) => {
-      // Get all assignments for this campaign
+    mutationFn: async ({ instanceId, campaignId }: { instanceId: string; campaignId: string }) => {
+      // Get all assignments for this campaign that don't have a submitted response for this instance
       const { data: assignments, error: assignmentsError } = await supabase
         .from("survey_assignments")
         .select(`
@@ -49,54 +50,40 @@ export function UpcomingSurveyDeadlines() {
           ),
           survey:surveys (
             name
-          ),
-          campaign:survey_campaigns (
-            ends_at
           )
         `)
-        .eq("campaign_id", instanceId);
+        .eq("campaign_id", campaignId)
+        .not("id", "in", (
+          supabase
+            .from("survey_responses")
+            .select("assignment_id")
+            .eq("campaign_instance_id", instanceId)
+            .eq("status", "submitted")
+        ));
 
       if (assignmentsError) throw assignmentsError;
       if (!assignments?.length) {
-        throw new Error("No assignments found");
-      }
-
-      // Filter for pending assignments using get_instance_assignment_status
-      const pendingAssignments = await Promise.all(
-        assignments.map(async (assignment) => {
-          // Get the active instance for this campaign
-          const { data: instance } = await supabase
-            .from("campaign_instances")
-            .select("id")
-            .eq("campaign_id", instanceId)
-            .eq("status", "active")
-            .single();
-
-          if (!instance) return null;
-
-          const { data: status } = await supabase
-            .rpc('get_instance_assignment_status', {
-              p_assignment_id: assignment.id,
-              p_instance_id: instance.id
-            });
-          return status === 'pending' ? assignment : null;
-        })
-      ).then(results => results.filter(Boolean));
-
-      if (!pendingAssignments.length) {
         throw new Error("No pending assignments found");
       }
 
+      // Get instance end date
+      const { data: instance, error: instanceError } = await supabase
+        .from("campaign_instances")
+        .select("ends_at")
+        .eq("id", instanceId)
+        .single();
+
+      if (instanceError) throw instanceError;
+      if (!instance) throw new Error("Instance not found");
+
       // Send reminders to pending users
       const results = await Promise.allSettled(
-        pendingAssignments.map(async (assignment) => {
-          if (!assignment) return;
-          
+        assignments.map(async (assignment) => {
           const response = await supabase.functions.invoke("send-survey-reminder", {
             body: {
               assignmentId: assignment.id,
               surveyName: assignment.survey.name,
-              dueDate: assignment.campaign.ends_at,
+              dueDate: instance.ends_at,
               recipientEmail: assignment.user.email,
               recipientName: `${assignment.user.first_name || ''} ${assignment.user.last_name || ''}`.trim() || 'Participant',
               publicAccessToken: assignment.public_access_token,
@@ -116,7 +103,7 @@ export function UpcomingSurveyDeadlines() {
       const successCount = results.filter(r => r.status === "fulfilled").length;
       const failureCount = results.filter(r => r.status === "rejected").length;
 
-      return { successCount, failureCount, totalCount: pendingAssignments.length };
+      return { successCount, failureCount, totalCount: assignments.length };
     },
     onSuccess: (result) => {
       toast({
@@ -176,7 +163,8 @@ export function UpcomingSurveyDeadlines() {
                     variant="ghost"
                     size="sm"
                     onClick={() => sendReminderMutation.mutate({
-                      instanceId: deadline.id
+                      instanceId: deadline.id,
+                      campaignId: deadline.campaign_id
                     })}
                     disabled={sendReminderMutation.isPending || deadline.pending_responses === 0}
                   >

@@ -88,13 +88,6 @@ export type Database = {
             referencedRelation: "top_performing_surveys"
             referencedColumns: ["campaign_id"]
           },
-          {
-            foreignKeyName: "campaign_instances_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "upcoming_survey_deadlines"
-            referencedColumns: ["id"]
-          },
         ]
       }
       email_config: {
@@ -456,13 +449,6 @@ export type Database = {
             referencedColumns: ["campaign_id"]
           },
           {
-            foreignKeyName: "survey_assignments_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "upcoming_survey_deadlines"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "survey_assignments_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -645,6 +631,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "top_performing_surveys"
             referencedColumns: ["instance_id"]
+          },
+          {
+            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
+            columns: ["campaign_instance_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_survey_deadlines"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "survey_responses_user_id_fkey"
@@ -1012,14 +1005,30 @@ export type Database = {
       }
       upcoming_survey_deadlines: {
         Row: {
+          campaign_id: string | null
           campaign_name: string | null
-          due_date: string | null
+          ends_at: string | null
           id: string | null
           pending_responses: number | null
           survey_name: string | null
           total_assignments: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campaign_instances_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_instances_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
+        ]
       }
     }
     Functions: {
