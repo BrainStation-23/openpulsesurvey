@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CampaignTabs, TabPanel } from "./components/CampaignTabs";
 import { CampaignHeader } from "./components/CampaignHeader";
 import { AssignmentInstanceList } from "./components/AssignmentInstanceList";
-import { ResponsesList } from "./components/ResponsesList";
+import { ResponsesList } from "./components/ResponsesTab/ResponsesList";
 import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
 import { InstanceSelector } from "./components/InstanceSelector";
@@ -44,9 +44,10 @@ export default function CampaignDetailsPage() {
         .from("survey_assignments")
         .select(`
           id,
-          status,
-          last_reminder_sent,
           public_access_token,
+          last_reminder_sent,
+          campaign_id,
+          survey_id,
           user:profiles!survey_assignments_user_id_fkey (
             id,
             email,
@@ -67,7 +68,12 @@ export default function CampaignDetailsPage() {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data;
+
+      // Transform the data to include the status
+      return data?.map(assignment => ({
+        ...assignment,
+        status: 'assigned' // Default status, you might want to calculate this based on your business logic
+      })) || [];
     },
   });
 
@@ -81,7 +87,7 @@ export default function CampaignDetailsPage() {
 
   return (
     <div className="container max-w-7xl mx-auto py-6 space-y-6">
-      <CampaignHeader campaign={campaign} />
+      <CampaignHeader campaign={campaign} isLoading={isLoadingCampaign} />
       
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Campaign Details</h2>
@@ -94,7 +100,7 @@ export default function CampaignDetailsPage() {
 
       <CampaignTabs isAnonymous={campaign.anonymous} status={campaign.status}>
         <TabPanel value="overview">
-          <OverviewTab campaignId={campaign.id} instanceId={selectedInstanceId} />
+          <OverviewTab campaignId={campaign.id} />
         </TabPanel>
 
         <TabPanel value="assignments">
@@ -119,7 +125,6 @@ export default function CampaignDetailsPage() {
           <ReportsTab
             campaignId={campaign.id}
             instanceId={selectedInstanceId}
-            survey={campaign.survey}
           />
         </TabPanel>
 
