@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { SurveyAssignment, ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 import { AssignCampaignUsers } from "./AssignCampaignUsers";
@@ -57,7 +56,6 @@ export function AssignmentInstanceList({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const queryClient = useQueryClient();
 
-  // Fetch assignments using the database function
   const { data: assignments, isLoading } = useQuery({
     queryKey: ["campaign-assignments", campaignId, selectedInstanceId],
     queryFn: async () => {
@@ -88,6 +86,22 @@ export function AssignmentInstanceList({
     statusFilter === "all" ? true : assignment.status === statusFilter
   );
 
+  const REMINDER_COOLDOWN_HOURS = 24; // Configurable cooldown period
+
+  const canSendReminder = (lastReminderSent: string | null) => {
+    if (!lastReminderSent) return true;
+    const lastSent = new Date(lastReminderSent);
+    const now = new Date();
+    const hoursSinceLastReminder = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60);
+    return hoursSinceLastReminder >= REMINDER_COOLDOWN_HOURS;
+  };
+
+  const getNextReminderTime = (lastReminderSent: string) => {
+    const lastSent = new Date(lastReminderSent);
+    const nextAvailable = new Date(lastSent.getTime() + REMINDER_COOLDOWN_HOURS * 60 * 60 * 1000);
+    return nextAvailable.toLocaleString();
+  };
+
   const copyPublicLinkMutation = useMutation({
     mutationFn: async (assignment: SurveyAssignment) => {
       const publicLink = `${window.location.origin}/public/survey/${assignment.public_access_token}`;
@@ -103,12 +117,21 @@ export function AssignmentInstanceList({
 
   const sendReminderMutation = useMutation({
     mutationFn: async (assignmentIds: string[]) => {
+      const eligibleAssignments = assignments?.filter(
+        assignment => assignmentIds.includes(assignment.id) && 
+        canSendReminder(assignment.last_reminder_sent)
+      ) || [];
+
+      if (eligibleAssignments.length === 0) {
+        throw new Error("No eligible assignments to send reminders to");
+      }
+
       const { error } = await supabase.functions.invoke("send-campaign-instance-reminder", {
         body: { 
-          assignmentIds, 
+          assignmentIds: eligibleAssignments.map(a => a.id), 
           instanceId: selectedInstanceId,
           campaignId,
-          baseUrl: window.location.origin // Pass the frontend origin
+          baseUrl: window.location.origin
         },
       });
       if (error) throw error;
@@ -120,7 +143,7 @@ export function AssignmentInstanceList({
     },
     onError: (error) => {
       console.error("Error sending reminders:", error);
-      toast.error("Failed to send reminders");
+      toast.error(error instanceof Error ? error.message : "Failed to send reminders");
     },
   });
 
@@ -204,16 +227,40 @@ export function AssignmentInstanceList({
       accessorKey: "last_reminder",
       header: "Last Reminder",
       cell: ({ row }: any) => {
-        const lastReminder = row.original.last_reminder_sent
-          ? new Date(row.original.last_reminder_sent).toLocaleDateString()
-          : "Never";
-        return lastReminder;
+        const assignment = row.original;
+        const lastReminderSent = assignment.last_reminder_sent;
+        
+        if (!lastReminderSent) return "Never";
+
+        const canSend = canSendReminder(lastReminderSent);
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger className="text-left">
+                <span className={cn(
+                  "text-sm",
+                  !canSend && "text-yellow-600"
+                )}>
+                  {new Date(lastReminderSent).toLocaleDateString()}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {canSend 
+                  ? "Can send reminder now"
+                  : `Next reminder can be sent after ${getNextReminderTime(lastReminderSent)}`
+                }
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
       },
     },
     {
       id: "actions",
       cell: ({ row }: any) => {
         const assignment = row.original;
+        const canSend = canSendReminder(assignment.last_reminder_sent);
+        
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -229,13 +276,30 @@ export function AssignmentInstanceList({
                 <Copy className="mr-2 h-4 w-4" />
                 Copy Survey Link
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => sendReminderMutation.mutate([assignment.id])}
-                disabled={assignment.status === 'submitted'}
-              >
-                <Send className="mr-2 h-4 w-4" />
-                Send Reminder
-              </DropdownMenuItem>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <DropdownMenuItem
+                        onClick={() => sendReminderMutation.mutate([assignment.id])}
+                        disabled={!canSend || assignment.status === 'submitted'}
+                        className="relative"
+                      >
+                        <Send className="mr-2 h-4 w-4" />
+                        Send Reminder
+                      </DropdownMenuItem>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {assignment.status === 'submitted'
+                      ? "Cannot send reminder for submitted surveys"
+                      : !canSend
+                        ? `Next reminder can be sent after ${getNextReminderTime(assignment.last_reminder_sent)}`
+                        : "Send a reminder email"
+                    }
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -243,19 +307,46 @@ export function AssignmentInstanceList({
     },
   ];
 
+  const handleSelectionChange = (assignmentId: string, selected: boolean) => {
+    setSelectedAssignments(prev => 
+      selected 
+        ? [...prev, assignmentId]
+        : prev.filter(id => id !== assignmentId)
+    );
+  };
+
+  const eligibleAssignmentsCount = selectedAssignments.filter(id => {
+    const assignment = assignments?.find(a => a.id === id);
+    return assignment && canSendReminder(assignment.last_reminder_sent);
+  }).length;
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           {selectedAssignments.length > 0 && (
-            <Button
-              size="sm"
-              onClick={() => sendReminderMutation.mutate(selectedAssignments)}
-              disabled={sendReminderMutation.isPending}
-            >
-              <Send className="mr-2 h-4 w-4" />
-              Send Reminder ({selectedAssignments.length})
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Button
+                      size="sm"
+                      onClick={() => sendReminderMutation.mutate(selectedAssignments)}
+                      disabled={sendReminderMutation.isPending || eligibleAssignmentsCount === 0}
+                    >
+                      <Send className="mr-2 h-4 w-4" />
+                      Send Reminder ({eligibleAssignmentsCount}/{selectedAssignments.length})
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {eligibleAssignmentsCount === 0 
+                    ? "No selected assignments are eligible for reminders at this time"
+                    : `${eligibleAssignmentsCount} out of ${selectedAssignments.length} selected assignments can receive reminders`
+                  }
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">

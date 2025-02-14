@@ -18,6 +18,16 @@ interface CampaignInstanceReminderRequest {
   baseUrl: string;
 }
 
+const REMINDER_COOLDOWN_HOURS = 24;
+
+const canSendReminder = (lastReminderSent: string | null): boolean => {
+  if (!lastReminderSent) return true;
+  const lastSent = new Date(lastReminderSent);
+  const now = new Date();
+  const hoursSinceLastReminder = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60);
+  return hoursSinceLastReminder >= REMINDER_COOLDOWN_HOURS;
+};
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -50,6 +60,26 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Verify reminder cooldown for all assignments
+    const { data: assignments, error: assignmentError } = await supabase
+      .from('survey_assignments')
+      .select('id, last_reminder_sent')
+      .in('id', reminderRequest.assignmentIds);
+
+    if (assignmentError) {
+      console.error("Error fetching assignments for cooldown check:", assignmentError);
+      throw new Error("Failed to verify reminder eligibility");
+    }
+
+    const ineligibleAssignments = assignments.filter(
+      assignment => !canSendReminder(assignment.last_reminder_sent)
+    );
+
+    if (ineligibleAssignments.length > 0) {
+      console.warn("Some assignments are in cooldown:", ineligibleAssignments);
+      throw new Error(`${ineligibleAssignments.length} assignment(s) are in cooldown period`);
+    }
 
     // Get the email configuration
     const { data: emailConfig, error: configError } = await supabase
@@ -98,7 +128,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Process assignments using the RPC function
-    const { data: assignments, error: assignmentsError } = await supabase
+    const { data: detailedAssignments, error: assignmentsError } = await supabase
       .rpc('get_campaign_assignments', {
         p_campaign_id: reminderRequest.campaignId,
         p_instance_id: reminderRequest.instanceId
@@ -109,9 +139,11 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Failed to fetch assignments data");
     }
 
-    // Filter assignments to only those requested
-    const filteredAssignments = assignments.filter(
-      (assignment: any) => reminderRequest.assignmentIds.includes(assignment.id)
+    // Filter assignments to only those requested and eligible
+    const filteredAssignments = detailedAssignments.filter(
+      (assignment: any) => 
+        reminderRequest.assignmentIds.includes(assignment.id) &&
+        canSendReminder(assignment.last_reminder_sent)
     );
 
     // Format deadline date and time
