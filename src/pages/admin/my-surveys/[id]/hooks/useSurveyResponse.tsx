@@ -70,10 +70,6 @@ export function useSurveyResponse({
                 state_data: stateData,
                 status: 'in_progress' as ResponseStatus,
                 campaign_instance_id: campaignInstanceId,
-              }, {
-                onConflict: campaignInstanceId
-                  ? 'assignment_id,user_id,campaign_instance_id' 
-                  : 'assignment_id,user_id'
               });
 
             if (error) throw error;
@@ -88,25 +84,19 @@ export function useSurveyResponse({
             const userId = (await supabase.auth.getUser()).data.user?.id;
             if (!userId) throw new Error("User not authenticated");
 
-            const responseData = {
-              assignment_id: id,
-              user_id: userId,
-              response_data: sender.data,
-              status: 'in_progress' as ResponseStatus,
-              campaign_instance_id: campaignInstanceId,
-            };
-
             const { error } = await supabase
               .from("survey_responses")
-              .upsert(responseData, {
-                onConflict: campaignInstanceId
-                  ? 'assignment_id,user_id,campaign_instance_id' 
-                  : 'assignment_id,user_id'
+              .upsert({
+                assignment_id: id,
+                user_id: userId,
+                response_data: sender.data,
+                status: 'in_progress' as ResponseStatus,
+                campaign_instance_id: campaignInstanceId,
               });
 
             if (error) throw error;
             setLastSaved(new Date());
-            console.log("Saved response data:", responseData);
+            console.log("Saved response data");
           } catch (error) {
             console.error("Error saving response:", error);
             toast({
@@ -134,22 +124,16 @@ export function useSurveyResponse({
       if (!userId) throw new Error("User not authenticated");
 
       const now = new Date().toISOString();
-      const responseData = {
-        assignment_id: id,
-        user_id: userId,
-        response_data: survey.data,
-        status: 'submitted' as ResponseStatus,
-        submitted_at: now,
-        updated_at: now,
-        campaign_instance_id: campaignInstanceId,
-      };
-
       const { error: responseError } = await supabase
         .from("survey_responses")
-        .upsert(responseData, {
-          onConflict: campaignInstanceId
-            ? 'assignment_id,user_id,campaign_instance_id' 
-            : 'assignment_id,user_id'
+        .upsert({
+          assignment_id: id,
+          user_id: userId,
+          response_data: survey.data,
+          status: 'submitted' as ResponseStatus,
+          submitted_at: now,
+          updated_at: now,
+          campaign_instance_id: campaignInstanceId,
         });
 
       if (responseError) throw responseError;
