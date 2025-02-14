@@ -34,7 +34,7 @@ export default function CampaignDetailsPage() {
   const { data: assignments, isLoading: isLoadingAssignments } = useQuery({
     queryKey: ["campaign-assignments", id, selectedInstanceId],
     queryFn: async () => {
-      if (!id) return [];
+      if (!id || !selectedInstanceId) return [];
 
       const { data: assignmentsData, error: assignmentsError } = await supabase
         .from("survey_assignments")
@@ -59,11 +59,11 @@ export default function CampaignDetailsPage() {
 
       if (assignmentsError) throw assignmentsError;
 
-      // Get status for each assignment using our new function
+      // Get status for each assignment using get_instance_assignment_status
       const assignmentsWithStatus = await Promise.all(
         (assignmentsData || []).map(async (assignment) => {
           const { data: status } = await supabase
-            .rpc('get_assignment_status', {
+            .rpc('get_instance_assignment_status', {
               p_assignment_id: assignment.id,
               p_instance_id: selectedInstanceId
             });
@@ -77,7 +77,7 @@ export default function CampaignDetailsPage() {
 
       return assignmentsWithStatus;
     },
-    enabled: !!id,
+    enabled: !!id && !!selectedInstanceId,
   });
 
   if (!id) return null;

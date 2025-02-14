@@ -25,11 +25,22 @@ export function usePendingSurveysCount() {
       // Get pending assignments count - now including both assigned AND in_progress
       const pendingCount = await Promise.all(
         (assignments || []).map(async (assignment) => {
+          // Get the active instance for this assignment's campaign
+          const { data: instance } = await supabase
+            .from("campaign_instances")
+            .select("id")
+            .eq("campaign_id", assignment.campaign.id)
+            .eq("status", "active")
+            .single();
+            
+          if (!instance) return 0;
+
           const { data: status } = await supabase
-            .rpc('get_assignment_status', {
-              p_assignment_id: assignment.id
+            .rpc('get_instance_assignment_status', {
+              p_assignment_id: assignment.id,
+              p_instance_id: instance.id
             });
-          return (status === 'assigned' || status === 'in_progress') ? 1 : 0;
+          return (status === 'pending' || status === 'in_progress') ? 1 : 0;
         })
       ).then(results => results.reduce((a, b) => a + b, 0));
 
