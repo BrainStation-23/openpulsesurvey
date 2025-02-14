@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -63,7 +64,9 @@ export default function MySurveysList() {
             description,
             json_data
           ),
-          campaign:survey_campaigns!inner (
+          campaign:survey_campaigns!survey_assignments_campaign_id_fkey (
+            id,
+            name,
             instances:campaign_instances (
               id,
               starts_at,
@@ -72,44 +75,46 @@ export default function MySurveysList() {
             )
           )
         `)
-        .eq("user_id", userId)
-        .eq('campaign.instances.status', 'active');
+        .eq("user_id", userId);
 
       if (error) throw error;
 
-      return (data as any[]).map(assignment => {
-        // Get the active instance from the campaign's instances
-        const activeInstance = assignment.campaign.instances[0];
-        
-        const status = determineStatus({
-          instance: activeInstance,
-          response: assignment.responses?.[0]
-        });
+      // Filter assignments to only include those with active instances
+      return (data as any[])
+        .filter(assignment => assignment.campaign?.instances?.some((instance: any) => instance.status === 'active'))
+        .map(assignment => {
+          // Get the active instance
+          const activeInstance = assignment.campaign?.instances?.find((instance: any) => instance.status === 'active');
+          
+          const status = determineStatus({
+            instance: activeInstance,
+            response: assignment.responses?.[0]
+          });
 
-        const userSurvey: UserSurvey = {
-          id: assignment.id,
-          survey_id: assignment.survey_id,
-          campaign_id: assignment.campaign_id,
-          user_id: assignment.user_id,
-          created_by: assignment.created_by,
-          created_at: assignment.created_at,
-          updated_at: assignment.updated_at,
-          public_access_token: assignment.public_access_token,
-          last_reminder_sent: assignment.last_reminder_sent,
-          instance: activeInstance,
-          survey: assignment.survey,
-          status
-        };
-
-        if (assignment.responses?.[0]) {
-          userSurvey.response = {
-            status: assignment.responses[0].status,
-            campaign_instance_id: assignment.responses[0].campaign_instance_id
+          const userSurvey: UserSurvey = {
+            id: assignment.id,
+            survey_id: assignment.survey_id,
+            campaign_id: assignment.campaign_id,
+            user_id: assignment.user_id,
+            created_by: assignment.created_by,
+            created_at: assignment.created_at,
+            updated_at: assignment.updated_at,
+            public_access_token: assignment.public_access_token,
+            last_reminder_sent: assignment.last_reminder_sent,
+            instance: activeInstance,
+            survey: assignment.survey,
+            status
           };
-        }
 
-        return userSurvey;
-      });
+          if (assignment.responses?.[0]) {
+            userSurvey.response = {
+              status: assignment.responses[0].status,
+              campaign_instance_id: assignment.responses[0].campaign_instance_id
+            };
+          }
+
+          return userSurvey;
+        });
     },
   });
 
