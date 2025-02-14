@@ -409,7 +409,6 @@ export type Database = {
           is_organization_wide: boolean | null
           last_reminder_sent: string | null
           public_access_token: string | null
-          status: Database["public"]["Enums"]["assignment_status"] | null
           survey_id: string
           updated_at: string | null
           user_id: string
@@ -423,7 +422,6 @@ export type Database = {
           is_organization_wide?: boolean | null
           last_reminder_sent?: string | null
           public_access_token?: string | null
-          status?: Database["public"]["Enums"]["assignment_status"] | null
           survey_id: string
           updated_at?: string | null
           user_id: string
@@ -437,7 +435,6 @@ export type Database = {
           is_organization_wide?: boolean | null
           last_reminder_sent?: string | null
           public_access_token?: string | null
-          status?: Database["public"]["Enums"]["assignment_status"] | null
           survey_id?: string
           updated_at?: string | null
           user_id?: string
@@ -628,6 +625,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "survey_responses_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_survey_deadlines"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "survey_responses_campaign_instance_id_fkey"
             columns: ["campaign_instance_id"]
             isOneToOne: false
@@ -640,13 +644,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "top_performing_surveys"
             referencedColumns: ["instance_id"]
-          },
-          {
-            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
-            columns: ["campaign_instance_id"]
-            isOneToOne: false
-            referencedRelation: "upcoming_survey_deadlines"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "survey_responses_user_id_fkey"
@@ -1038,6 +1035,13 @@ export type Database = {
           p_instance_id: string
         }
         Returns: Json
+      }
+      get_instance_assignment_status: {
+        Args: {
+          p_assignment_id: string
+          p_instance_id: string
+        }
+        Returns: string
       }
       is_admin: {
         Args: {

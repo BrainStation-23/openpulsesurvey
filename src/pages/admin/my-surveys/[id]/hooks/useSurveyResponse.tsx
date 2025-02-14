@@ -11,7 +11,6 @@ interface UseSurveyResponseProps {
   id: string;
   surveyData: any;
   existingResponse: any;
-  assignmentStatus: string;
   campaignInstanceId: string | null;
 }
 
@@ -19,7 +18,6 @@ export function useSurveyResponse({
   id,
   surveyData,
   existingResponse,
-  assignmentStatus,
   campaignInstanceId,
 }: UseSurveyResponseProps) {
   const [survey, setSurvey] = useState<Model | null>(null);
@@ -46,7 +44,7 @@ export function useSurveyResponse({
         }
       }
 
-      if (existingResponse?.status === 'submitted' || assignmentStatus === 'completed') {
+      if (existingResponse?.status === 'submitted') {
         surveyModel.mode = 'display';
       } else {
         surveyModel.onCurrentPageChanged.add(async (sender) => {
@@ -123,7 +121,7 @@ export function useSurveyResponse({
 
       setSurvey(surveyModel);
     }
-  }, [id, surveyData, existingResponse, assignmentStatus, campaignInstanceId, toast]);
+  }, [id, surveyData, existingResponse, campaignInstanceId, toast]);
 
   const handleSubmitSurvey = async () => {
     if (!survey) return;
@@ -152,13 +150,6 @@ export function useSurveyResponse({
         });
 
       if (responseError) throw responseError;
-
-      const { error: assignmentError } = await supabase
-        .from("survey_assignments")
-        .update({ status: "completed" })
-        .eq("id", id);
-
-      if (assignmentError) throw assignmentError;
 
       toast({
         title: "Survey completed",
