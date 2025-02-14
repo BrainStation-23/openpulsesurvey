@@ -20,14 +20,23 @@ export default function MySurveysList() {
   const { data: assignments, isLoading } = useQuery({
     queryKey: ["my-survey-assignments"],
     queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+
+      if (!userId) throw new Error("No user found");
+
       const { data, error } = await supabase
         .from("survey_assignments")
         .select(`
           id,
+          survey_id,
+          campaign_id,
+          user_id,
+          created_by,
+          created_at,
+          updated_at,
           public_access_token,
           last_reminder_sent,
-          campaign_id,
-          survey_id,
           responses:survey_responses!inner (
             status
           ),
@@ -62,14 +71,16 @@ export default function MySurveysList() {
             updated_at
           )
         `)
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      return (data?.map(assignment => ({
+      return data?.map(assignment => ({
         ...assignment,
         status: (assignment.responses?.[0]?.status || 'assigned') as ResponseStatus,
+        due_date: assignment.campaign?.ends_at || null,
+        is_organization_wide: false,
         user: {
           ...assignment.user,
           user_sbus: assignment.user.user_sbus.map(userSbu => ({
@@ -77,7 +88,7 @@ export default function MySurveysList() {
             sbu: userSbu.sbus
           }))
         }
-      })) || []) as Assignment[];
+      })) as Assignment[];
     },
   });
 
