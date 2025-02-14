@@ -61,15 +61,21 @@ export function useSurveyResponse({
               lastUpdated: new Date().toISOString()
             } as SurveyStateData;
 
+            const responseData = {
+              assignment_id: id,
+              user_id: userId,
+              response_data: sender.data,
+              state_data: stateData,
+              status: 'in_progress' as ResponseStatus,
+              campaign_instance_id: campaignInstanceId,
+            };
+
+            console.log("Saving response with data:", responseData);
+
             const { error } = await supabase
               .from("survey_responses")
-              .upsert({
-                assignment_id: id,
-                user_id: userId,
-                response_data: sender.data,
-                state_data: stateData,
-                status: 'in_progress' as ResponseStatus,
-                campaign_instance_id: campaignInstanceId,
+              .upsert(responseData, {
+                onConflict: 'assignment_id,user_id'
               });
 
             if (error) throw error;
@@ -84,14 +90,20 @@ export function useSurveyResponse({
             const userId = (await supabase.auth.getUser()).data.user?.id;
             if (!userId) throw new Error("User not authenticated");
 
+            const responseData = {
+              assignment_id: id,
+              user_id: userId,
+              response_data: sender.data,
+              status: 'in_progress' as ResponseStatus,
+              campaign_instance_id: campaignInstanceId,
+            };
+
+            console.log("Saving response with data:", responseData);
+
             const { error } = await supabase
               .from("survey_responses")
-              .upsert({
-                assignment_id: id,
-                user_id: userId,
-                response_data: sender.data,
-                status: 'in_progress' as ResponseStatus,
-                campaign_instance_id: campaignInstanceId,
+              .upsert(responseData, {
+                onConflict: 'assignment_id,user_id'
               });
 
             if (error) throw error;
@@ -124,16 +136,22 @@ export function useSurveyResponse({
       if (!userId) throw new Error("User not authenticated");
 
       const now = new Date().toISOString();
+      const responseData = {
+        assignment_id: id,
+        user_id: userId,
+        response_data: survey.data,
+        status: 'submitted' as ResponseStatus,
+        submitted_at: now,
+        updated_at: now,
+        campaign_instance_id: campaignInstanceId,
+      };
+
+      console.log("Submitting response with data:", responseData);
+
       const { error: responseError } = await supabase
         .from("survey_responses")
-        .upsert({
-          assignment_id: id,
-          user_id: userId,
-          response_data: survey.data,
-          status: 'submitted' as ResponseStatus,
-          submitted_at: now,
-          updated_at: now,
-          campaign_instance_id: campaignInstanceId,
+        .upsert(responseData, {
+          onConflict: 'assignment_id,user_id'
         });
 
       if (responseError) throw responseError;
