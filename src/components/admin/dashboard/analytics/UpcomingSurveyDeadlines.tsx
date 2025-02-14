@@ -36,7 +36,7 @@ export function UpcomingSurveyDeadlines() {
 
   const sendReminderMutation = useMutation({
     mutationFn: async ({ instanceId }: { instanceId: string }) => {
-      // Get all pending assignments for this instance
+      // Get all assignments for this campaign
       const { data: assignments, error: assignmentsError } = await supabase
         .from("survey_assignments")
         .select(`
@@ -52,16 +52,32 @@ export function UpcomingSurveyDeadlines() {
             name
           )
         `)
-        .eq("status", "pending");
+        .eq("campaign_id", instanceId);
 
       if (assignmentsError) throw assignmentsError;
       if (!assignments?.length) {
+        throw new Error("No assignments found");
+      }
+
+      // Filter for pending assignments using get_assignment_status
+      const pendingAssignments = await Promise.all(
+        assignments.map(async (assignment) => {
+          const { data: status } = await supabase
+            .rpc('get_assignment_status', {
+              p_assignment_id: assignment.id
+            });
+          
+          return status === 'assigned' ? assignment : null;
+        })
+      ).then(results => results.filter(Boolean));
+
+      if (!pendingAssignments.length) {
         throw new Error("No pending assignments found");
       }
 
-      // Send reminders to all pending users
+      // Send reminders to pending users
       const results = await Promise.allSettled(
-        assignments.map(async (assignment) => {
+        pendingAssignments.map(async (assignment) => {
           const response = await supabase.functions.invoke("send-survey-reminder", {
             body: {
               assignmentId: assignment.id,
@@ -86,7 +102,7 @@ export function UpcomingSurveyDeadlines() {
       const successCount = results.filter(r => r.status === "fulfilled").length;
       const failureCount = results.filter(r => r.status === "rejected").length;
 
-      return { successCount, failureCount, totalCount: assignments.length };
+      return { successCount, failureCount, totalCount: pendingAssignments.length };
     },
     onSuccess: (result) => {
       toast({
