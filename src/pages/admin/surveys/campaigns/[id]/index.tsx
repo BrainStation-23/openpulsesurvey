@@ -29,13 +29,6 @@ export default function CampaignDetailsPage() {
             name,
             description,
             json_data
-          ),
-          instances:campaign_instances(
-            id,
-            starts_at,
-            ends_at,
-            period_number,
-            status
           )
         `)
         .eq("id", id)
@@ -49,7 +42,6 @@ export default function CampaignDetailsPage() {
   const { data: assignments, isLoading: isLoadingAssignments } = useQuery({
     queryKey: ["campaign-assignments", id, selectedInstanceId],
     queryFn: async () => {
-      // Start with the base query using LEFT JOIN
       const query = supabase
         .from("survey_assignments")
         .select(`
@@ -62,7 +54,7 @@ export default function CampaignDetailsPage() {
           updated_at,
           public_access_token,
           last_reminder_sent,
-          responses:survey_responses (
+          responses:survey_responses!inner (
             status,
             campaign_instance_id
           ),
@@ -85,7 +77,7 @@ export default function CampaignDetailsPage() {
 
       // If an instance is selected, filter responses by instance
       if (selectedInstanceId) {
-        query.or(`responses.campaign_instance_id.eq.${selectedInstanceId},and(responses.is.null)`);
+        query.eq('responses.campaign_instance_id', selectedInstanceId);
       }
 
       const { data, error } = await query;
@@ -93,23 +85,6 @@ export default function CampaignDetailsPage() {
       if (error) throw error;
 
       return (data as unknown as Array<any>)?.map(assignment => {
-        // Find the relevant response for the selected instance
-        const instanceResponse = assignment.responses?.find(
-          (response: any) => !selectedInstanceId || response.campaign_instance_id === selectedInstanceId
-        );
-
-        // Determine the status based on instance and response
-        let status: ResponseStatus = 'assigned';
-        if (instanceResponse) {
-          status = instanceResponse.status as ResponseStatus;
-        } else if (selectedInstanceId) {
-          // Check if instance has expired
-          const instance = campaign?.instances?.find((i: any) => i.id === selectedInstanceId);
-          if (instance && new Date(instance.ends_at) < new Date()) {
-            status = 'expired';
-          }
-        }
-
         return {
           id: assignment.id,
           survey_id: assignment.survey_id,
@@ -120,7 +95,7 @@ export default function CampaignDetailsPage() {
           updated_at: assignment.updated_at,
           public_access_token: assignment.public_access_token,
           last_reminder_sent: assignment.last_reminder_sent,
-          status,
+          status: (assignment.responses?.[0]?.status || 'assigned') as ResponseStatus,
           user: {
             id: assignment.user.id,
             email: assignment.user.email,
@@ -131,9 +106,9 @@ export default function CampaignDetailsPage() {
               sbu: userSbu.sbus
             }))
           },
-          response: instanceResponse ? {
-            status: instanceResponse.status,
-            campaign_instance_id: instanceResponse.campaign_instance_id
+          response: assignment.responses?.[0] ? {
+            status: assignment.responses[0].status,
+            campaign_instance_id: assignment.responses[0].campaign_instance_id
           } : undefined
         } as SurveyAssignment;
       }) || [];
