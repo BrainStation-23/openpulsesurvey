@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Assignment, ResponseStatus } from "@/pages/admin/surveys/types/assignments";
+import { SurveyAssignment, ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 import { AssignCampaignUsers } from "./AssignCampaignUsers";
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/tooltip";
 
 interface AssignmentInstanceListProps {
-  assignments: Assignment[];
+  assignments: SurveyAssignment[];
   isLoading: boolean;
   campaignId: string;
   surveyId?: string;
@@ -89,7 +89,7 @@ export function AssignmentInstanceList({
   );
 
   const copyPublicLinkMutation = useMutation({
-    mutationFn: async (assignment: Assignment) => {
+    mutationFn: async (assignment: SurveyAssignment) => {
       const publicLink = `${window.location.origin}/surveys/${assignment.public_access_token}`;
       await navigator.clipboard.writeText(publicLink);
     },
