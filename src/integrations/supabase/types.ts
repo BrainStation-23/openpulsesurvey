@@ -587,7 +587,6 @@ export type Database = {
           id: string
           response_data: Json
           state_data: Json | null
-          status: string
           submitted_at: string | null
           updated_at: string | null
           user_id: string
@@ -599,7 +598,6 @@ export type Database = {
           id?: string
           response_data: Json
           state_data?: Json | null
-          status?: string
           submitted_at?: string | null
           updated_at?: string | null
           user_id: string
@@ -611,7 +609,6 @@ export type Database = {
           id?: string
           response_data?: Json
           state_data?: Json | null
-          status?: string
           submitted_at?: string | null
           updated_at?: string | null
           user_id?: string
@@ -622,13 +619,6 @@ export type Database = {
             columns: ["assignment_id"]
             isOneToOne: false
             referencedRelation: "survey_assignments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "survey_responses_assignment_id_fkey"
-            columns: ["assignment_id"]
-            isOneToOne: false
-            referencedRelation: "upcoming_survey_deadlines"
             referencedColumns: ["id"]
           },
           {
@@ -1006,17 +996,6 @@ export type Database = {
           starts_at: string | null
           survey_name: string | null
           total_responses: number | null
-        }
-        Relationships: []
-      }
-      upcoming_survey_deadlines: {
-        Row: {
-          campaign_name: string | null
-          due_date: string | null
-          id: string | null
-          pending_responses: number | null
-          survey_name: string | null
-          total_assignments: number | null
         }
         Relationships: []
       }
