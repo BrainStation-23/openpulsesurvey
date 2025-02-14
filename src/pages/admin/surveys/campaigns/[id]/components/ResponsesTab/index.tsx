@@ -1,33 +1,32 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Response, FilterOptions } from "./types";
+import { ResponsesList } from "./ResponsesList";
+import { ResponsesFilters } from "./ResponsesFilters";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { ResponseGroup } from "./ResponseGroup";
-import { unparse } from "papaparse";
-import type { Response } from "./types";
+import { exportResponses } from "./utils/export";
 
 interface ResponsesTabProps {
+  campaignId: string;
   instanceId?: string;
 }
 
-export function ResponsesTab({ instanceId }: ResponsesTabProps) {
+export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
+  const [filters, setFilters] = useState<FilterOptions>({
+    search: "",
+    sortBy: "date",
+    sortDirection: "desc",
+  });
+
   const { data: responses, isLoading } = useQuery({
-    queryKey: ["campaign-responses", instanceId],
+    queryKey: ["responses", campaignId, instanceId, filters],
     queryFn: async () => {
-      console.log("Fetching responses for instance:", instanceId);
       const query = supabase
         .from("survey_responses")
         .select(`
-          id,
-          response_data,
-          state_data,
-          submitted_at,
-          created_at,
-          updated_at,
-          campaign_instance_id,
-          assignment_id,
-          user_id,
+          *,
           user:profiles!survey_responses_user_id_fkey (
             id,
             first_name,
@@ -35,14 +34,14 @@ export function ResponsesTab({ instanceId }: ResponsesTabProps) {
             email,
             user_sbus (
               is_primary,
-              sbu:sbus(
+              sbu (
                 id,
                 name
               )
             ),
-            user_supervisors!user_supervisors_user_id_fkey (
+            user_supervisors (
               is_primary,
-              supervisor:profiles!user_supervisors_supervisor_id_fkey(
+              supervisor:profiles!user_supervisors_supervisor_id_fkey (
                 id,
                 first_name,
                 last_name,
@@ -50,16 +49,18 @@ export function ResponsesTab({ instanceId }: ResponsesTabProps) {
               )
             )
           ),
-          assignment:survey_assignments!survey_responses_assignment_id_fkey (
+          assignment:survey_assignments (
             id,
             campaign_id,
-            campaign:survey_campaigns(
+            campaign:survey_campaigns (
               id,
-              anonymous,
-              name
+              name,
+              anonymous
             )
           )
-        `);
+        `)
+        .eq("assignment.campaign_id", campaignId)
+        .order("created_at", { ascending: filters.sortDirection === "asc" });
 
       if (instanceId) {
         query.eq("campaign_instance_id", instanceId);
@@ -67,66 +68,23 @@ export function ResponsesTab({ instanceId }: ResponsesTabProps) {
 
       const { data, error } = await query;
 
-      if (error) {
-        console.error("Error fetching responses:", error);
-        throw error;
-      }
-      console.log("Fetched responses:", data);
+      if (error) throw error;
       return data as Response[];
     },
-    enabled: !!instanceId,
   });
 
   const handleExport = () => {
-    if (!responses?.length) return;
-
-    const isAnonymous = responses[0].assignment.campaign.anonymous;
-    
-    const csvData = responses.map(response => {
-      const baseData = {
-        "Submission Date": response.submitted_at ? new Date(response.submitted_at).toLocaleString() : "Not submitted",
-        "Primary SBU": response.user.user_sbus.find(us => us.is_primary)?.sbu.name || "N/A",
-        "Primary Manager": (() => {
-          const primarySupervisor = response.user.user_supervisors.find(us => us.is_primary);
-          if (!primarySupervisor) return "N/A";
-          const { first_name, last_name } = primarySupervisor.supervisor;
-          const fullName = [first_name, last_name]
-            .filter(name => name && name.trim())
-            .join(" ")
-            .trim();
-          return fullName || "N/A";
-        })(),
-      };
-
-      // Add respondent info only if not anonymous
-      if (!isAnonymous) {
-        Object.assign(baseData, {
-          "Respondent Name": response.user.first_name && response.user.last_name
-            ? `${response.user.first_name} ${response.user.last_name}`
-            : "N/A",
-          "Respondent Email": response.user.email,
-        });
-      }
-
-      // Add response data
-      const responseData = response.response_data as Record<string, any>;
-      Object.entries(responseData).forEach(([key, value]) => {
-        baseData[key] = typeof value === 'object' ? JSON.stringify(value) : value;
-      });
-
-      return baseData;
-    });
-
-    const csv = unparse(csvData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const campaignName = responses[0].assignment.campaign.name.toLowerCase().replace(/\s+/g, '-');
-    
-    link.href = window.URL.createObjectURL(blob);
-    link.download = `${campaignName}-responses${instanceId ? `-period-${instanceId}` : ''}.csv`;
-    link.click();
-    window.URL.revokeObjectURL(link.href);
+    if (responses) {
+      exportResponses(responses);
+    }
   };
+
+  // Group responses by period number
+  const groupedResponses = responses?.reduce((acc: Record<number, Response[]>, response) => {
+    const periodNumber = response.campaign_instance_id ? 1 : 0; // Placeholder until we have period numbers
+    acc[periodNumber] = [...(acc[periodNumber] || []), response];
+    return acc;
+  }, {}) || {};
 
   if (isLoading) {
     return (
@@ -139,18 +97,15 @@ export function ResponsesTab({ instanceId }: ResponsesTabProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button
-          variant="outline"
-          onClick={handleExport}
-          disabled={!responses?.length}
-        >
-          <Download className="mr-2 h-4 w-4" />
-          Export Responses
+      <div className="flex items-center justify-between">
+        <ResponsesFilters filters={filters} onFiltersChange={setFilters} />
+        <Button variant="outline" onClick={handleExport} disabled={!responses?.length}>
+          <Download className="h-4 w-4 mr-2" />
+          Export
         </Button>
       </div>
 
-      <ResponseGroup responses={responses || []} />
+      <ResponsesList groupedResponses={groupedResponses} />
     </div>
   );
 }
