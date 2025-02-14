@@ -47,6 +47,7 @@ const handler = async (req: Request): Promise<Response> => {
       .maybeSingle();
 
     if (configError) {
+      console.error("Email config error:", configError);
       throw new Error("Failed to fetch email configuration");
     }
 
@@ -61,18 +62,23 @@ const handler = async (req: Request): Promise<Response> => {
       .eq('id', instanceId)
       .single();
 
-    if (instanceError || !instance) {
+    if (instanceError) {
+      console.error("Instance error:", instanceError);
       throw new Error("Failed to fetch instance details");
     }
 
-    // Get pending assignments with user and survey details
+    if (!instance) {
+      throw new Error("Instance not found");
+    }
+
+    // Get pending assignments with user and survey details using a LEFT JOIN approach
     const { data: assignments, error: assignmentsError } = await supabase
       .from('survey_assignments')
       .select(`
         id,
         public_access_token,
         last_reminder_sent,
-        user:profiles!survey_assignments_user_id_fkey (
+        user:profiles (
           email,
           first_name,
           last_name
@@ -82,22 +88,24 @@ const handler = async (req: Request): Promise<Response> => {
         )
       `)
       .eq('campaign_id', campaignId)
-      .not(
-        'id',
-        'in',
-        supabase
-          .from('survey_responses')
-          .select('assignment_id')
-          .eq('campaign_instance_id', instanceId)
-          .eq('status', 'submitted')
-          .then(response => response.data?.map(r => r.assignment_id) || [])
-      );
+      .is('last_reminder_sent', null);
 
     if (assignmentsError) {
+      console.error("Assignments error:", assignmentsError);
       throw new Error("Failed to fetch assignments");
     }
 
-    if (!assignments?.length) {
+    // Filter out assignments that already have responses for this instance
+    const { data: responses } = await supabase
+      .from('survey_responses')
+      .select('assignment_id')
+      .eq('campaign_instance_id', instanceId)
+      .eq('status', 'submitted');
+
+    const submittedAssignmentIds = new Set(responses?.map(r => r.assignment_id) || []);
+    const pendingAssignments = assignments?.filter(a => !submittedAssignmentIds.has(a.id)) || [];
+
+    if (!pendingAssignments.length) {
       return new Response(
         JSON.stringify({ 
           message: "No pending assignments found",
@@ -118,7 +126,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send reminders to pending users
     const results = await Promise.allSettled(
-      assignments.map(async (assignment) => {
+      pendingAssignments.map(async (assignment) => {
         try {
           // Check cooldown period
           if (assignment.last_reminder_sent) {
@@ -150,6 +158,8 @@ const handler = async (req: Request): Promise<Response> => {
             ? `⚠️ This survey must be completed within the next ${hoursRemaining} hours.`
             : `You have ${daysRemaining} days to complete this survey.`;
 
+          console.log("Sending reminder to:", assignment.user.email);
+
           const response = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
@@ -179,16 +189,24 @@ const handler = async (req: Request): Promise<Response> => {
           });
 
           if (!response.ok) {
-            throw new Error(`Failed to send email to ${assignment.user.email}`);
+            const responseData = await response.json();
+            console.error("Email send error:", responseData);
+            throw new Error(`Failed to send email to ${assignment.user.email}: ${responseData.message}`);
           }
 
           // Update last_reminder_sent timestamp
-          await supabase
+          const { error: updateError } = await supabase
             .from('survey_assignments')
             .update({ last_reminder_sent: new Date().toISOString() })
             .eq('id', assignment.id);
 
+          if (updateError) {
+            console.error("Update error:", updateError);
+            throw new Error("Failed to update reminder timestamp");
+          }
+
           successCount++;
+          console.log("Successfully sent reminder to:", assignment.user.email);
         } catch (error) {
           console.error(`Error processing assignment ${assignment.id}:`, error);
           failureCount++;
@@ -198,7 +216,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(
       JSON.stringify({ 
-        message: `Processed ${assignments.length} assignments`,
+        message: `Processed ${pendingAssignments.length} assignments`,
         successCount,
         failureCount,
         skippedCount,
