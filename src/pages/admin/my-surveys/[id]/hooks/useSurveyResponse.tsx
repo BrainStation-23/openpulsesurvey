@@ -66,7 +66,6 @@ export function useSurveyResponse({
                 state_data: stateData,
                 status: 'in_progress',
                 campaign_instance_id: campaignInstanceId,
-                submitted_at: null // Explicitly set to null for in_progress
               }, {
                 onConflict: campaignInstanceId
                   ? 'assignment_id,user_id,campaign_instance_id' 
@@ -89,7 +88,7 @@ export function useSurveyResponse({
               user_id: userId,
               response_data: sender.data,
               status: 'in_progress',
-              submitted_at: null, // Explicitly set to null for in_progress
+              submitted_at: null,
               updated_at: new Date().toISOString(),
               campaign_instance_id: campaignInstanceId,
             };
@@ -136,7 +135,7 @@ export function useSurveyResponse({
         user_id: userId,
         response_data: survey.data,
         status: 'submitted',
-        submitted_at: now, // Set submitted_at when status is 'submitted'
+        submitted_at: now,
         updated_at: now,
         campaign_instance_id: campaignInstanceId,
       };
