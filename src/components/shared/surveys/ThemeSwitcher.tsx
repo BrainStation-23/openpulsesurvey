@@ -9,6 +9,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DefaultLight,
+  DefaultDark,
+  ModernLight,
+  ModernDark,
+  ContrastLight,
+  ContrastDark,
+  PlainLight,
+  PlainDark,
+  SharpLight,
+  SharpDark,
+  SolidLight,
+  SolidDark,
+  LayeredLight,
+  LayeredDark,
+  BorderlessLight,
+  BorderlessDark,
+  DoubleBorderLight,
+  DoubleBorderDark,
+  DefaultLightPanelless,
+  DefaultDarkPanelless,
+  ModernLightPanelless,
+  ModernDarkPanelless,
+  ContrastLightPanelless,
+  ContrastDarkPanelless,
+  PlainLightPanelless,
+  PlainDarkPanelless,
+  SharpLightPanelless,
+  SharpDarkPanelless,
+  SolidLightPanelless,
+  SolidDarkPanelless,
+  LayeredLightPanelless,
+  LayeredDarkPanelless,
+  BorderlessLightPanelless,
+  BorderlessDarkPanelless,
+  DoubleBorderLightPanelless,
+  DoubleBorderDarkPanelless,
+} from "survey-core/themes";
 
 const BASE_THEMES = [
   "Default",
@@ -29,18 +67,66 @@ interface ThemeSwitcherProps {
   onThemeChange: (theme: any) => void;
 }
 
+const themeMap = {
+  // Light themes without panelless
+  DefaultLight,
+  ModernLight,
+  ContrastLight,
+  PlainLight,
+  SharpLight,
+  SolidLight,
+  LayeredLight,
+  BorderlessLight,
+  DoubleBorderLight,
+  // Dark themes without panelless
+  DefaultDark,
+  ModernDark,
+  ContrastDark,
+  PlainDark,
+  SharpDark,
+  SolidDark,
+  LayeredDark,
+  BorderlessDark,
+  DoubleBorderDark,
+  // Light themes with panelless
+  DefaultLightPanelless,
+  ModernLightPanelless,
+  ContrastLightPanelless,
+  PlainLightPanelless,
+  SharpLightPanelless,
+  SolidLightPanelless,
+  LayeredLightPanelless,
+  BorderlessLightPanelless,
+  DoubleBorderLightPanelless,
+  // Dark themes with panelless
+  DefaultDarkPanelless,
+  ModernDarkPanelless,
+  ContrastDarkPanelless,
+  PlainDarkPanelless,
+  SharpDarkPanelless,
+  SolidDarkPanelless,
+  LayeredDarkPanelless,
+  BorderlessDarkPanelless,
+  DoubleBorderDarkPanelless,
+};
+
 export function ThemeSwitcher({ onThemeChange }: ThemeSwitcherProps) {
   const [baseTheme, setBaseTheme] = useState<BaseTheme>("Default");
   const [isDark, setIsDark] = useState(true);
   const [isPanelless, setIsPanelless] = useState(true);
 
   useEffect(() => {
+    // Construct theme name based on current settings
     const themeName = `${baseTheme}${isDark ? 'Dark' : 'Light'}${isPanelless ? 'Panelless' : ''}`;
-    import(`survey-core/themes`).then((themes) => {
-      if (themes[themeName]) {
-        onThemeChange(themes[themeName]);
-      }
-    });
+    const theme = (themeMap as any)[themeName];
+    
+    if (theme) {
+      console.log("Applying theme:", themeName);
+      onThemeChange(theme);
+    } else {
+      console.warn(`Theme ${themeName} not found, falling back to DefaultDarkPanelless`);
+      onThemeChange(DefaultDarkPanelless);
+    }
   }, [baseTheme, isDark, isPanelless, onThemeChange]);
 
   return (
