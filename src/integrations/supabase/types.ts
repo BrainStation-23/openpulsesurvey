@@ -1104,6 +1104,16 @@ export type Database = {
           response_data: Json
         }[]
       }
+      get_campaign_instance_status_distribution: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+        }
+        Returns: {
+          status: string
+          count: number
+        }[]
+      }
       get_instance_assignment_status: {
         Args: {
           p_assignment_id: string

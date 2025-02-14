@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +27,8 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
       const { data: responses, error: responsesError } = await supabase
         .from("survey_responses")
         .select("assignment_id")
-        .eq("campaign_instance_id", selectedInstanceId);
+        .eq("campaign_instance_id", selectedInstanceId)
+        .eq("status", "submitted");
 
       if (responsesError) throw responsesError;
 
@@ -85,31 +87,21 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
     queryFn: async () => {
       if (!selectedInstanceId) return [];
 
-      // Get assignments
-      const { data: assignmentsData } = await supabase
-        .from("survey_assignments")
-        .select("id")
-        .eq("campaign_id", campaignId);
+      const { data, error } = await supabase
+        .rpc('get_campaign_instance_status_distribution', {
+          p_campaign_id: campaignId,
+          p_instance_id: selectedInstanceId
+        });
 
-      if (!assignmentsData) return [];
+      if (error) throw error;
 
-      // Get status for each assignment using get_instance_assignment_status
-      const statusCounts: Record<string, number> = {};
-
-      await Promise.all(
-        assignmentsData.map(async (assignment) => {
-          const { data: status } = await supabase
-            .rpc('get_instance_assignment_status', {
-              p_assignment_id: assignment.id,
-              p_instance_id: selectedInstanceId
-            });
-          statusCounts[status] = (statusCounts[status] || 0) + 1;
-        })
-      );
-
-      return Object.entries(statusCounts).map(([name, value]) => ({
-        name,
-        value,
+      // Ensure all status types have a value
+      const defaultStatuses = ['submitted', 'in_progress', 'expired', 'assigned'];
+      const statusMap = new Map(data.map(item => [item.status, item.count]));
+      
+      return defaultStatuses.map(status => ({
+        name: status.charAt(0).toUpperCase() + status.slice(1),
+        value: statusMap.get(status) || 0
       }));
     },
     enabled: !!selectedInstanceId,
