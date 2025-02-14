@@ -124,12 +124,10 @@ export function UserGrid({
           <UserCard
             key={user.id}
             user={user}
-            selected={selectedUsers.includes(user.id)}
-            onSelect={onSelectUser}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onRoleToggle={onRoleToggle}
-            onStatusToggle={onStatusToggle}
+            isUpdatingRole={selectedUsers.includes(user.id)}
+            isUpdatingStatus={selectedUsers.includes(user.id)}
+            onRoleToggle={(checked: boolean) => onRoleToggle(user.id, checked)}
+            onStatusToggle={(checked: boolean) => onStatusToggle(user.id, checked)}
           />
         ))}
       </div>

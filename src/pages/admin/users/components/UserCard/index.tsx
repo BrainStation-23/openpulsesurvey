@@ -1,10 +1,10 @@
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserHeader } from "./UserHeader";
 import { UserStatusBadges } from "./UserStatusBadges";
 import { UserStatusToggles } from "./UserStatusToggles";
 import { UserEmploymentDetails } from "./UserEmploymentDetails";
+import { UserAvatar } from "./UserAvatar";
 import { User } from "../../types";
 
 interface UserCardProps {
@@ -36,16 +36,11 @@ export function UserCard({
       <CardContent className="p-6">
         <div className="flex items-start gap-4">
           {/* Avatar Section */}
-          <Avatar className="h-16 w-16">
-            <AvatarImage
-              src={user.avatar_url || ""}
-              alt={`${user.first_name} ${user.last_name}`}
-            />
-            <AvatarFallback className="text-lg">
-              {user.first_name?.[0]}
-              {user.last_name?.[0]}
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar
+            profileImageUrl={user.profile_image_url}
+            firstName={user.first_name}
+            lastName={user.last_name}
+          />
 
           {/* Main Content Section */}
           <div className="flex-1 min-w-0 space-y-4">
