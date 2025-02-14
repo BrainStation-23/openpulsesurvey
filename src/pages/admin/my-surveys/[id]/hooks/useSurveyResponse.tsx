@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { Model } from "survey-core";
+import { LayeredDarkPanelless } from "survey-core/themes";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SurveyStateData, isSurveyStateData } from "@/types/survey";
