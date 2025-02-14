@@ -9,6 +9,7 @@ import { ResponsesList } from "./components/ResponsesTab/ResponsesList";
 import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
 import { InstanceSelector } from "./components/InstanceSelector";
+import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
 import { useState } from "react";
 import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 
@@ -145,7 +146,10 @@ export default function CampaignDetailsPage() {
         </TabPanel>
 
         <TabPanel value="analyze">
-          <div>AI Analysis content will go here</div>
+          <AIAnalyzeTab
+            campaignId={campaign.id}
+            instanceId={selectedInstanceId}
+          />
         </TabPanel>
       </CampaignTabs>
     </div>
