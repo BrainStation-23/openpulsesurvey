@@ -1,9 +1,10 @@
+
 import { memo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "../../types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { Loader, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -11,6 +12,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -18,8 +20,8 @@ import { cn } from "@/lib/utils";
 import { UserAvatar } from "./UserAvatar";
 import { UserHeader } from "./UserHeader";
 import { UserStatusBadges } from "./UserStatusBadges";
-import { UserStatusToggles } from "./UserStatusToggles";
 import { UserEmploymentDetails } from "./UserEmploymentDetails";
+import { Switch } from "@/components/ui/switch";
 
 interface UserCardProps {
   user: User;
@@ -50,7 +52,6 @@ export const UserCard = memo(function UserCard({
   const otherSbus = user.user_sbus?.filter(sbu => !sbu.is_primary).map(sbu => sbu.sbu.name);
 
   const getPrimaryManagerName = (supervisor: User['primary_supervisor']) => {
-
     if (supervisor === null || supervisor === undefined) return "N/A";
     const firstName = supervisor.first_name || "";
     const lastName = supervisor.last_name || "";
@@ -149,31 +150,17 @@ export const UserCard = memo(function UserCard({
           />
           <UserHeader user={user} />
         </div>
+        <UserStatusBadges isActive={isActive} isAdmin={isAdmin} />
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="grid gap-4">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <UserStatusBadges isActive={isActive} isAdmin={isAdmin} />
-            <UserStatusToggles
-              isAdmin={isAdmin}
-              isActive={isActive}
-              isUpdatingRole={isUpdatingRole}
-              isUpdatingStatus={isUpdatingStatus}
-              onRoleToggle={handleRoleToggle}
-              onStatusToggle={handleStatusToggle}
-            />
-          </div>
-
-          <Separator />
-          <UserEmploymentDetails
-            user={user}
-            primarySbu={primarySbu}
-            otherSbus={otherSbus}
-            primaryManagerName={getPrimaryManagerName(user.primary_supervisor)}
-          />
-
-        </div>
+        <Separator />
+        <UserEmploymentDetails
+          user={user}
+          primarySbu={primarySbu}
+          otherSbus={otherSbus}
+          primaryManagerName={getPrimaryManagerName(user.primary_supervisor)}
+        />
       </CardContent>
 
       <CardFooter className="justify-end">
@@ -188,7 +175,34 @@ export const UserCard = memo(function UserCard({
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[200px]">
+          <DropdownMenuContent align="end" className="w-56">
+            <div className="flex items-center justify-between p-2">
+              <span className="text-sm">Admin</span>
+              <div className="relative">
+                <Switch
+                  checked={isAdmin}
+                  onCheckedChange={handleRoleToggle}
+                  disabled={isUpdatingRole}
+                />
+                {isUpdatingRole && (
+                  <Loader className="absolute right-[-24px] top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin" />
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-2">
+              <span className="text-sm">Active</span>
+              <div className="relative">
+                <Switch
+                  checked={isActive}
+                  onCheckedChange={handleStatusToggle}
+                  disabled={isUpdatingStatus}
+                />
+                {isUpdatingStatus && (
+                  <Loader className="absolute right-[-24px] top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin" />
+                )}
+              </div>
+            </div>
+            <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={() => navigate(`/admin/users/${user.id}/edit`)}
               className="cursor-pointer"
