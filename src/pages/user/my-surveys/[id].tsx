@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
 import { SurveyStateData, isSurveyStateData } from "@/types/survey";
 import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import "survey-core/defaultV2.min.css";
 
@@ -95,13 +95,13 @@ export default function UserSurveyResponsePage() {
     }
   }, [assignmentData]);
 
-  const handleThemeChange = (theme: any) => {
+  const handleThemeChange = useCallback((theme: any) => {
     if (survey) {
       try {
         // Apply theme without recreating the model
         survey.applyTheme(theme);
-        // Force a re-render by updating the state reference
-        setSurvey(Object.assign(new Model(), survey));
+        // Just trigger a re-render without model recreation
+        setSurvey({ ...survey });
       } catch (error) {
         console.error("Error applying theme:", error);
         toast({
@@ -111,7 +111,7 @@ export default function UserSurveyResponsePage() {
         });
       }
     }
-  };
+  }, [survey, toast]);
 
   if (isLoading) {
     return <div>Loading...</div>;

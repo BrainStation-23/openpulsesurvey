@@ -105,20 +105,23 @@ export function ThemeSwitcher({ onThemeChange }: ThemeSwitcherProps) {
   const [baseTheme, setBaseTheme] = useState<BaseTheme>("Default");
   const [isDark, setIsDark] = useState(true);
   const [isPanelless, setIsPanelless] = useState(true);
+  const [currentThemeName, setCurrentThemeName] = useState<string>('DefaultDarkPanelless');
 
   useEffect(() => {
-    // Construct theme name based on current settings
-    const themeName = `${baseTheme}${isDark ? 'Dark' : 'Light'}${isPanelless ? 'Panelless' : ''}`;
-    const theme = (themeMap as any)[themeName];
+    const newThemeName = `${baseTheme}${isDark ? 'Dark' : 'Light'}${isPanelless ? 'Panelless' : ''}`;
     
-    if (theme) {
-      console.log("Applying theme:", themeName);
-      onThemeChange(theme);
-    } else {
-      console.warn(`Theme ${themeName} not found, falling back to DefaultDarkPanelless`);
-      onThemeChange(DefaultDarkPanelless);
+    // Only apply theme if it's different from current
+    if (newThemeName !== currentThemeName) {
+      const theme = (themeMap as any)[newThemeName];
+      if (theme) {
+        console.log("Applying new theme:", newThemeName);
+        onThemeChange(theme);
+        setCurrentThemeName(newThemeName);
+      } else {
+        console.warn(`Theme ${newThemeName} not found`);
+      }
     }
-  }, [baseTheme, isDark, isPanelless, onThemeChange]);
+  }, [baseTheme, isDark, isPanelless, currentThemeName]); // Remove onThemeChange from deps
 
   return (
     <div className="flex items-center gap-6">
