@@ -13,6 +13,8 @@ export interface Response {
   status: "assigned" | "in_progress" | "submitted" | "expired";
   created_at: string;
   updated_at: string;
+  submitted_at: string | null;
+  response_data: Record<string, any>;
   campaign_instance_id: string | null;
   user: {
     id: string;

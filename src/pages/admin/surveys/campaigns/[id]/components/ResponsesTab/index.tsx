@@ -31,6 +31,8 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
           status,
           created_at,
           updated_at,
+          submitted_at,
+          response_data,
           campaign_instance_id,
           user:profiles!survey_responses_user_id_fkey (
             id,
