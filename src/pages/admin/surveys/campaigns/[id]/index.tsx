@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CampaignTabs, TabPanel } from "./components/CampaignTabs";
 import { CampaignHeader } from "./components/CampaignHeader";
 import { AssignmentInstanceList } from "./components/AssignmentInstanceList";
-import { ResponsesList } from "./components/ResponsesTab/ResponsesList";
+import { ResponsesTab } from "./components/ResponsesTab";
 import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
 import { InstanceSelector } from "./components/InstanceSelector";
@@ -133,8 +133,9 @@ export default function CampaignDetailsPage() {
         </TabPanel>
 
         <TabPanel value="responses">
-          <ResponsesList
-            groupedResponses={{}}  // Pass the correct props according to ResponsesListProps
+          <ResponsesTab
+            campaignId={campaign.id}
+            instanceId={selectedInstanceId}
           />
         </TabPanel>
 
