@@ -93,7 +93,12 @@ export default function MySurveysList() {
           updated_at: assignment.updated_at,
           public_access_token: assignment.public_access_token,
           last_reminder_sent: assignment.last_reminder_sent,
-          instance: assignment.instance,
+          instance: {
+            id: assignment.instance.id,
+            starts_at: assignment.instance.starts_at,
+            ends_at: assignment.instance.ends_at,
+            status: assignment.instance.status
+          },
           survey: assignment.survey,
           status,
         };

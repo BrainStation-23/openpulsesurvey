@@ -34,4 +34,18 @@ export type Assignment = {
     status: ResponseStatus;
     campaign_instance_id: string;
   };
+  // Optional user field for campaign view
+  user?: {
+    id: string;
+    email: string;
+    first_name: string | null;
+    last_name: string | null;
+    user_sbus?: {
+      is_primary: boolean;
+      sbu: {
+        id: string;
+        name: string;
+      };
+    }[];
+  };
 };
