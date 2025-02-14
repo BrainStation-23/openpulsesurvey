@@ -12,6 +12,7 @@ import { ActivityTab } from "./components/ActivityTab";
 import { InstanceSelector } from "./components/InstanceSelector";
 import { ReportsTab } from "./components/ReportsTab";
 import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
+import { Assignment, ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
@@ -70,12 +71,12 @@ export default function CampaignDetailsPage() {
 
           return {
             ...assignment,
-            status
+            status: status as ResponseStatus
           };
         })
       );
 
-      return assignmentsWithStatus;
+      return assignmentsWithStatus as Assignment[];
     },
     enabled: !!id && !!selectedInstanceId,
   });

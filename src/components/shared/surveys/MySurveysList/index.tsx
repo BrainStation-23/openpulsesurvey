@@ -111,13 +111,6 @@ export default function MySurveysList() {
       // For each assignment, get the status and active instance
       const assignmentsWithStatus = await Promise.all(
         data.map(async (assignment) => {
-          // Get the status using our new function
-          const { data: status } = await supabase
-            .rpc('get_assignment_status', {
-              p_assignment_id: assignment.id,
-              p_instance_id: null
-            });
-
           // Get active instance if it's a campaign assignment
           if (assignment.campaign_id) {
             const { data: instances, error: instanceError } = await supabase
@@ -129,15 +122,24 @@ export default function MySurveysList() {
 
             if (instanceError) throw instanceError;
             
-            return {
-              ...assignment,
-              status,
-              active_instance: instances
-            };
+            if (instances) {
+              // Get status using the instance
+              const { data: status } = await supabase
+                .rpc('get_instance_assignment_status', {
+                  p_assignment_id: assignment.id,
+                  p_instance_id: instances.id
+                });
+
+              return {
+                ...assignment,
+                status: status as ResponseStatus,
+                active_instance: instances
+              };
+            }
           }
           return {
             ...assignment,
-            status
+            status: 'pending' as ResponseStatus
           };
         })
       );
