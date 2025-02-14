@@ -50,7 +50,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: emailConfig, error: configError } = await supabase
       .from('email_config')
       .select('*')
-      .single();
+      .maybeSingle();
 
     if (configError) {
       console.error("Error fetching email config:", configError);
@@ -64,53 +64,76 @@ const handler = async (req: Request): Promise<Response> => {
     // Process each assignment
     const results = await Promise.all(reminderRequest.assignmentIds.map(async (assignmentId) => {
       try {
-        // Get assignment and active instance information
-        const { data: assignmentData, error: assignmentError } = await supabase
+        console.log(`Fetching assignment data for ID: ${assignmentId}`);
+        
+        // First, get the basic assignment data
+        const { data: assignment, error: assignmentError } = await supabase
           .from('survey_assignments')
           .select(`
             id,
             last_reminder_sent,
-            survey:surveys(name),
-            user:profiles!survey_assignments_user_id_fkey(
-              email,
-              first_name,
-              last_name
-            ),
-            campaign:survey_campaigns!survey_assignments_campaign_id_fkey(
-              instances:campaign_instances(
-                id,
-                ends_at,
-                status
-              )
-            ),
-            public_access_token
+            public_access_token,
+            campaign_id,
+            survey_id
           `)
           .eq('id', assignmentId)
           .single();
 
         if (assignmentError) {
-          console.error("Error fetching assignment:", assignmentError);
-          throw new Error(`Failed to fetch assignment data for ID ${assignmentId}`);
+          console.error("Error fetching basic assignment:", assignmentError);
+          throw new Error(`Failed to fetch basic assignment data: ${assignmentError.message}`);
         }
 
-        if (!assignmentData) {
+        if (!assignment) {
           throw new Error(`Assignment not found for ID ${assignmentId}`);
         }
 
-        console.log("Assignment data:", JSON.stringify(assignmentData));
+        // Get user data
+        const { data: userData, error: userError } = await supabase
+          .from('profiles')
+          .select('email, first_name, last_name')
+          .eq('id', assignment.user_id)
+          .single();
 
-        // Find the active instance
-        const activeInstance = assignmentData.campaign.instances.find(
-          (instance: any) => instance.status === 'active'
-        );
+        if (userError) {
+          console.error("Error fetching user data:", userError);
+          throw new Error(`Failed to fetch user data: ${userError.message}`);
+        }
 
+        // Get survey data
+        const { data: surveyData, error: surveyError } = await supabase
+          .from('surveys')
+          .select('name')
+          .eq('id', assignment.survey_id)
+          .single();
+
+        if (surveyError) {
+          console.error("Error fetching survey:", surveyError);
+          throw new Error(`Failed to fetch survey data: ${surveyError.message}`);
+        }
+
+        // Get active instance
+        const { data: instances, error: instanceError } = await supabase
+          .from('campaign_instances')
+          .select('*')
+          .eq('campaign_id', assignment.campaign_id)
+          .eq('status', 'active')
+          .order('period_number', { ascending: false })
+          .limit(1);
+
+        if (instanceError) {
+          console.error("Error fetching instance:", instanceError);
+          throw new Error(`Failed to fetch instance data: ${instanceError.message}`);
+        }
+
+        const activeInstance = instances?.[0];
         if (!activeInstance) {
           throw new Error("No active instance found for this campaign");
         }
 
         // Check if a reminder was sent in the last 24 hours
-        if (assignmentData.last_reminder_sent) {
-          const lastSent = new Date(assignmentData.last_reminder_sent);
+        if (assignment.last_reminder_sent) {
+          const lastSent = new Date(assignment.last_reminder_sent);
           const hoursSinceLastReminder = (Date.now() - lastSent.getTime()) / (1000 * 60 * 60);
           
           if (hoursSinceLastReminder < 24) {
@@ -123,7 +146,7 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         // Generate the public access URL
-        const publicAccessUrl = `${new URL(req.url).origin}/public/survey/${assignmentData.public_access_token}`;
+        const publicAccessUrl = `${new URL(req.url).origin}/public/survey/${assignment.public_access_token}`;
 
         // Format deadline date and time
         const deadline = new Date(activeInstance.ends_at);
@@ -144,7 +167,7 @@ const handler = async (req: Request): Promise<Response> => {
           urgencyMessage = `You have ${daysRemaining} days to complete this survey.`;
         }
 
-        const recipientName = `${assignmentData.user.first_name || ''} ${assignmentData.user.last_name || ''}`.trim() || 'User';
+        const recipientName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'User';
 
         // Send reminder email using Resend
         console.log("Sending email via Resend...");
@@ -156,12 +179,12 @@ const handler = async (req: Request): Promise<Response> => {
           },
           body: JSON.stringify({
             from: `${emailConfig.from_name} <${emailConfig.from_email}>`,
-            to: [assignmentData.user.email],
-            subject: `Deadline Reminder: ${assignmentData.survey.name} Due ${formattedDeadline}`,
+            to: [userData.email],
+            subject: `Deadline Reminder: ${surveyData.name} Due ${formattedDeadline}`,
             html: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2>Hello ${recipientName},</h2>
-                <p>This is a reminder about your pending survey: <strong>${assignmentData.survey.name}</strong></p>
+                <p>This is a reminder about your pending survey: <strong>${surveyData.name}</strong></p>
                 <div style="background-color: #f8f9fa; border-left: 4px solid #2563eb; padding: 1rem; margin: 1rem 0;">
                   <p style="margin: 0; color: #1e40af;"><strong>DEADLINE: ${formattedDeadline}</strong></p>
                   <p style="margin-top: 0.5rem; color: #4b5563;">${urgencyMessage}</p>
