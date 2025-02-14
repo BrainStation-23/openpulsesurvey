@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,11 +8,20 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+interface UpcomingDeadline {
+  id: string;
+  survey_name: string;
+  campaign_name: string | null;
+  due_date: string;
+  total_assignments: number;
+  pending_responses: number;
+}
+
 export function UpcomingSurveyDeadlines() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const { data: deadlines, isLoading } = useQuery({
+  const { data: deadlines, isLoading } = useQuery<UpcomingDeadline[]>({
     queryKey: ["upcoming-deadlines"],
     queryFn: async () => {
       const { data, error } = await supabase
