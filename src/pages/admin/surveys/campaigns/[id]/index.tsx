@@ -29,6 +29,13 @@ export default function CampaignDetailsPage() {
             name,
             description,
             json_data
+          ),
+          instances:campaign_instances(
+            id,
+            starts_at,
+            ends_at,
+            period_number,
+            status
           )
         `)
         .eq("id", id)
