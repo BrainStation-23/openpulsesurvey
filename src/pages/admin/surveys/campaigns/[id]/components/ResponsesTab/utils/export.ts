@@ -3,22 +3,41 @@ import { Response } from "../types";
 import { unparse } from "papaparse";
 
 export function exportResponses(responses: Response[]) {
-  const data = responses.map(response => ({
-    'Response ID': response.id,
-    'Status': response.status,
-    'User': response.user.first_name && response.user.last_name ? 
-      `${response.user.first_name} ${response.user.last_name}` : 
-      'Anonymous',
-    'Email': response.user.email,
-    'Department': response.user.user_sbus.find(sbu => sbu.is_primary)?.sbu.name || 'N/A',
-    'Supervisor': response.user.user_supervisors.find(sup => sup.is_primary)?.supervisor.first_name 
-      ? `${response.user.user_supervisors.find(sup => sup.is_primary)?.supervisor.first_name} ${response.user.user_supervisors.find(sup => sup.is_primary)?.supervisor.last_name}`
-      : 'N/A',
-    'Created At': new Date(response.created_at).toLocaleString(),
-    'Updated At': new Date(response.updated_at).toLocaleString(),
-    'Submitted At': response.submitted_at ? new Date(response.submitted_at).toLocaleString() : 'N/A',
-    'Response Data': JSON.stringify(response.response_data),
-  }));
+  if (!responses.length) return;
+
+  // Get all possible questions from all responses to handle cases where questions might differ
+  const allQuestions = new Set<string>();
+  responses.forEach(response => {
+    Object.keys(response.response_data).forEach(question => {
+      allQuestions.add(question);
+    });
+  });
+
+  // Convert responses to CSV format
+  const data = responses.map(response => {
+    // Start with department and supervisor
+    const row: Record<string, any> = {
+      'Department': response.user.user_sbus.find(sbu => sbu.is_primary)?.sbu.name || 'N/A',
+      'Supervisor': response.user.user_supervisors.find(sup => sup.is_primary)?.supervisor.first_name 
+        ? `${response.user.user_supervisors.find(sup => sup.is_primary)?.supervisor.first_name} ${response.user.user_supervisors.find(sup => sup.is_primary)?.supervisor.last_name}`
+        : 'N/A',
+    };
+
+    // Add each question's response
+    allQuestions.forEach(question => {
+      const answer = response.response_data[question];
+      // Format the answer based on its type
+      if (typeof answer === 'boolean') {
+        row[question] = answer ? 'Yes' : 'No';
+      } else if (answer === null || answer === undefined) {
+        row[question] = 'N/A';
+      } else {
+        row[question] = answer;
+      }
+    });
+
+    return row;
+  });
 
   const csv = unparse(data, {
     quotes: true,
