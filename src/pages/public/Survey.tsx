@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -8,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
 
 import "survey-core/defaultV2.min.css";
 
@@ -156,6 +158,12 @@ export default function PublicSurveyPage() {
     );
   }
 
+  const handleThemeChange = (theme: any) => {
+    if (survey) {
+      survey.applyTheme(theme);
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -163,6 +171,9 @@ export default function PublicSurveyPage() {
         {assignmentData.assignment.survey.description && (
           <p className="text-muted-foreground mb-8">{assignmentData.assignment.survey.description}</p>
         )}
+        <div className="flex justify-end mb-6">
+          <ThemeSwitcher onThemeChange={handleThemeChange} />
+        </div>
         <div className="bg-card rounded-lg border p-6">
           {survey ? (
             <Survey model={survey} />
