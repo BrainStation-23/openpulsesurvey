@@ -48,6 +48,7 @@ export default function CampaignDetailsPage() {
           last_reminder_sent,
           campaign_id,
           survey_id,
+          due_date,
           user:profiles!survey_assignments_user_id_fkey (
             id,
             email,
@@ -56,7 +57,7 @@ export default function CampaignDetailsPage() {
             user_sbus (
               id,
               is_primary,
-              sbu (
+              sbus (
                 id,
                 name
               )
@@ -115,9 +116,9 @@ export default function CampaignDetailsPage() {
 
         <TabPanel value="responses">
           <ResponsesList
-            campaignId={campaign.id}
-            instanceId={selectedInstanceId}
-            isAnonymous={campaign.anonymous}
+            campaign_id={campaign.id}
+            instance_id={selectedInstanceId}
+            is_anonymous={campaign.anonymous}
           />
         </TabPanel>
 
