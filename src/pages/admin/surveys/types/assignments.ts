@@ -3,6 +3,8 @@ import { Database } from "@/integrations/supabase/types";
 
 export type ResponseStatus = "assigned" | "in_progress" | "submitted" | "expired";
 
+export type AssignmentStatus = ResponseStatus;
+
 export type SurveyAssignment = {
   id: string;
   survey_id: string;
@@ -15,6 +17,7 @@ export type SurveyAssignment = {
   recurring_frequency: Database["public"]["Enums"]["recurring_frequency"] | null;
   recurring_ends_at: string | null;
   recurring_days: number[] | null;
+  status?: ResponseStatus;
 };
 
 export type Assignment = {
@@ -32,25 +35,6 @@ export type Assignment = {
         name: string;
       };
       is_primary: boolean;
-    }[];
-  };
-};
-
-export type AssignmentWithStatus = {
-  id: string;
-  due_date: string | null;
-  status: ResponseStatus;
-  user: {
-    id: string;
-    email: string;
-    first_name: string | null;
-    last_name: string | null;
-    user_sbus?: {
-      is_primary: boolean;
-      sbu: {
-        id: string;
-        name: string;
-      };
     }[];
   };
 };

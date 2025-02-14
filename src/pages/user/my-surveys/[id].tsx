@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Model } from "survey-core";
@@ -10,9 +11,33 @@ import { supabase } from "@/integrations/supabase/client";
 import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
 import { SurveyStateData, isSurveyStateData } from "@/types/survey";
 import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import "survey-core/defaultV2.min.css";
+
+type SurveyAssignmentWithStatus = {
+  id: string;
+  survey_id: string;
+  user_id: string;
+  due_date: string | null;
+  created_by: string;
+  created_at: string | null;
+  updated_at: string | null;
+  is_organization_wide: boolean | null;
+  campaign_id: string | null;
+  status: ResponseStatus;
+  survey: {
+    id: string;
+    name: string;
+    description: string | null;
+    json_data: any;
+    status: string | null;
+  };
+  campaign?: {
+    id: string;
+    name: string;
+  };
+};
 
 export default function UserSurveyResponsePage() {
   const { id } = useParams();
@@ -55,43 +80,7 @@ export default function UserSurveyResponsePage() {
       return { 
         ...assignmentData, 
         status: assignmentStatus as ResponseStatus 
-      };
-    },
-  });
-
-  const { data: activeInstance } = useQuery({
-    queryKey: ["active-campaign-instance", assignment?.campaign_id],
-    enabled: !!assignment?.campaign_id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("campaign_instances")
-        .select("*")
-        .eq("campaign_id", assignment.campaign_id)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: existingResponse } = useQuery({
-    queryKey: ["survey-response", id, activeInstance?.id],
-    enabled: !!id,
-    queryFn: async () => {
-      const query = supabase
-        .from("survey_responses")
-        .select("*")
-        .eq("assignment_id", id);
-
-      if (activeInstance?.id) {
-        query.eq("campaign_instance_id", activeInstance.id);
-      }
-
-      const { data, error } = await query.maybeSingle();
-
-      if (error) throw error;
-      return data;
+      } as SurveyAssignmentWithStatus;
     },
   });
 
@@ -101,137 +90,13 @@ export default function UserSurveyResponsePage() {
       
       surveyModel.applyTheme(LayeredDarkPanelless);
       
-      if (existingResponse?.response_data) {
-        surveyModel.data = existingResponse.response_data;
-        surveyModel.start();
-        
-        // Restore last page from state_data if available
-        const stateData = existingResponse.state_data;
-        if (stateData && isSurveyStateData(stateData)) {
-          surveyModel.currentPageNo = stateData.lastPageNo;
-        } else {
-          surveyModel.currentPageNo = surveyModel.maxValidPageNo;
-        }
-      }
-
-      if (assignment.status === 'completed') {
+      if (assignment.status === "submitted") {
         surveyModel.mode = 'display';
-      } else {
-        // Save state when page changes
-        surveyModel.onCurrentPageChanged.add(async (sender) => {
-          try {
-            const userId = (await supabase.auth.getUser()).data.user?.id;
-            if (!userId) throw new Error("User not authenticated");
-
-            const stateData = {
-              lastPageNo: sender.currentPageNo,
-              lastUpdated: new Date().toISOString()
-            } as SurveyStateData;
-
-            const { error } = await supabase
-              .from("survey_responses")
-              .upsert({
-                assignment_id: id,
-                user_id: userId,
-                response_data: existingResponse?.response_data || {},
-                state_data: stateData,
-                campaign_instance_id: activeInstance?.id || null,
-              }, {
-                onConflict: activeInstance?.id 
-                  ? 'assignment_id,user_id,campaign_instance_id' 
-                  : 'assignment_id,user_id'
-              });
-
-            if (error) throw error;
-          } catch (error) {
-            console.error("Error saving page state:", error);
-          }
-        });
-
-        surveyModel.onValueChanged.add(async (sender, options) => {
-          try {
-            const userId = (await supabase.auth.getUser()).data.user?.id;
-            if (!userId) throw new Error("User not authenticated");
-
-            const responseData = {
-              assignment_id: id,
-              user_id: userId,
-              response_data: sender.data,
-              updated_at: new Date().toISOString(),
-              campaign_instance_id: activeInstance?.id || null,
-            };
-
-            const { error } = await supabase
-              .from("survey_responses")
-              .upsert(responseData, {
-                onConflict: activeInstance?.id 
-                  ? 'assignment_id,user_id,campaign_instance_id' 
-                  : 'assignment_id,user_id'
-              });
-
-            if (error) throw error;
-            setLastSaved(new Date());
-          } catch (error) {
-            console.error("Error saving response:", error);
-            toast({
-              title: "Error saving response",
-              description: "Your progress could not be saved. Please try again.",
-              variant: "destructive",
-            });
-          }
-        });
-
-        surveyModel.onComplete.add(async (sender) => {
-          try {
-            const userId = (await supabase.auth.getUser()).data.user?.id;
-            if (!userId) throw new Error("User not authenticated");
-
-            const responseData = {
-              assignment_id: id,
-              user_id: userId,
-              response_data: sender.data,
-              submitted_at: new Date().toISOString(),
-              campaign_instance_id: activeInstance?.id || null,
-            };
-
-            const { error: responseError } = await supabase
-              .from("survey_responses")
-              .upsert(responseData, {
-                onConflict: activeInstance?.id 
-                  ? 'assignment_id,user_id,campaign_instance_id' 
-                  : 'assignment_id,user_id'
-              });
-
-            if (responseError) throw responseError;
-
-            // Update assignment status
-            const { error: assignmentError } = await supabase
-              .from("survey_assignments")
-              .update({ status: "completed" })
-              .eq("id", id);
-
-            if (assignmentError) throw assignmentError;
-
-            toast({
-              title: "Survey completed",
-              description: "Your response has been submitted successfully.",
-            });
-
-            navigate("/user/my-surveys");
-          } catch (error) {
-            console.error("Error submitting response:", error);
-            toast({
-              title: "Error submitting response",
-              description: "Your response could not be submitted. Please try again.",
-              variant: "destructive",
-            });
-          }
-        });
       }
 
       setSurvey(surveyModel);
     }
-  }, [assignment, existingResponse, id, navigate, toast, activeInstance]);
+  }, [assignment]);
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -252,12 +117,6 @@ export default function UserSurveyResponsePage() {
       </div>
     );
   }
-
-  const handleThemeChange = (theme: any) => {
-    if (survey) {
-      survey.applyTheme(theme);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -282,7 +141,7 @@ export default function UserSurveyResponsePage() {
       </div>
 
       <div className="flex justify-end">
-        <ThemeSwitcher onThemeChange={handleThemeChange} />
+        <ThemeSwitcher onThemeChange={() => {}} />
       </div>
       
       <div className="bg-card rounded-lg border p-6">
