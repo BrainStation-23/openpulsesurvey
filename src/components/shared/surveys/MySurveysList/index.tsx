@@ -79,8 +79,6 @@ export default function MySurveysList() {
       return data?.map(assignment => ({
         ...assignment,
         status: (assignment.responses?.[0]?.status || 'assigned') as ResponseStatus,
-        due_date: assignment.campaign?.ends_at || null,
-        is_organization_wide: false,
         user: {
           ...assignment.user,
           user_sbus: assignment.user.user_sbus.map(userSbu => ({

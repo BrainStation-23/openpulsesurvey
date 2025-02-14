@@ -34,11 +34,9 @@ export type Campaign = {
   updated_at: string;
 };
 
-// Update Assignment type to use the base Assignment type
 export type Assignment = {
   id: string;
   status: ResponseStatus;
-  due_date: string | null;
   user: {
     id: string;
     email: string;

@@ -31,9 +31,7 @@ export type Assignment = {
   created_at: string;
   updated_at: string;
   public_access_token: string;
-  last_reminder_sent?: string | null;
-  due_date?: string | null;
-  is_organization_wide?: boolean;
+  last_reminder_sent: string | null;
   campaign?: Campaign;
   survey?: Survey;
   user: {
