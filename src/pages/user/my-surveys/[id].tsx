@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { SurveyStateData, isSurveyStateData } from "@/types/survey";
+import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
 
 import "survey-core/defaultV2.min.css";
 
@@ -241,6 +243,12 @@ export default function UserSurveyResponsePage() {
     );
   }
 
+  const handleThemeChange = (theme: any) => {
+    if (survey) {
+      survey.applyTheme(theme);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -261,6 +269,10 @@ export default function UserSurveyResponsePage() {
             Last saved: {lastSaved.toLocaleTimeString()}
           </p>
         )}
+      </div>
+
+      <div className="flex justify-end">
+        <ThemeSwitcher onThemeChange={handleThemeChange} />
       </div>
       
       <div className="bg-card rounded-lg border p-6">

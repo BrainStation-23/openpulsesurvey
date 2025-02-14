@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -10,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { SurveyStateData, isSurveyStateData } from "@/types/survey";
-import { ThemeSwitcher } from "./components/ThemeSwitcher";
+import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
 
 import "survey-core/defaultV2.min.css";
 
