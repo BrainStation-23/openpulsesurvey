@@ -1,17 +1,15 @@
 
-import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { CampaignHeader } from "./components/CampaignHeader";
 import { CampaignTabs, TabPanel } from "./components/CampaignTabs";
+import { CampaignHeader } from "./components/CampaignHeader";
 import { AssignmentInstanceList } from "./components/AssignmentInstanceList";
+import { ResponsesList } from "./components/ResponsesList";
 import { OverviewTab } from "./components/OverviewTab";
-import { ResponsesTab } from "./components/ResponsesTab";
-import { InstanceSelector } from "./components/InstanceSelector";
 import { ReportsTab } from "./components/ReportsTab";
-import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
-import { Assignment, ResponseStatus } from "@/pages/admin/surveys/types/assignments";
+import { InstanceSelector } from "./components/InstanceSelector";
+import { useState } from "react";
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
@@ -22,7 +20,15 @@ export default function CampaignDetailsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("survey_campaigns")
-        .select("*, anonymous")
+        .select(`
+          *,
+          survey:surveys(
+            id,
+            name,
+            description,
+            json_data
+          )
+        `)
         .eq("id", id)
         .single();
 
@@ -34,21 +40,22 @@ export default function CampaignDetailsPage() {
   const { data: assignments, isLoading: isLoadingAssignments } = useQuery({
     queryKey: ["campaign-assignments", id, selectedInstanceId],
     queryFn: async () => {
-      if (!id || !selectedInstanceId) return [];
-
-      const { data: assignmentsData, error: assignmentsError } = await supabase
+      const query = supabase
         .from("survey_assignments")
         .select(`
           id,
-          due_date,
+          status,
+          last_reminder_sent,
+          public_access_token,
           user:profiles!survey_assignments_user_id_fkey (
             id,
             email,
             first_name,
             last_name,
             user_sbus (
+              id,
               is_primary,
-              sbu:sbus (
+              sbu (
                 id,
                 name
               )
@@ -57,84 +64,67 @@ export default function CampaignDetailsPage() {
         `)
         .eq("campaign_id", id);
 
-      if (assignmentsError) throw assignmentsError;
+      const { data, error } = await query;
 
-      // Get status for each assignment using get_instance_assignment_status
-      const assignmentsWithStatus = await Promise.all(
-        (assignmentsData || []).map(async (assignment) => {
-          const { data: status } = await supabase
-            .rpc('get_instance_assignment_status', {
-              p_assignment_id: assignment.id,
-              p_instance_id: selectedInstanceId
-            });
-
-          return {
-            ...assignment,
-            status: status as ResponseStatus
-          };
-        })
-      );
-
-      return assignmentsWithStatus as Assignment[];
+      if (error) throw error;
+      return data;
     },
-    enabled: !!id && !!selectedInstanceId,
   });
 
-  if (!id) return null;
+  if (isLoadingCampaign) {
+    return <div>Loading...</div>;
+  }
 
-  const showInstanceSelector = campaign?.status !== 'draft';
+  if (!campaign) {
+    return <div>Campaign not found</div>;
+  }
 
   return (
-    <div className="space-y-6">
-      <CampaignHeader 
-        campaign={campaign} 
-        isLoading={isLoadingCampaign}
-        selectedInstanceId={selectedInstanceId}
-      />
+    <div className="container max-w-7xl mx-auto py-6 space-y-6">
+      <CampaignHeader campaign={campaign} />
+      
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Campaign Details</h2>
+        <InstanceSelector
+          campaignId={campaign.id}
+          selectedInstanceId={selectedInstanceId}
+          onInstanceSelect={setSelectedInstanceId}
+        />
+      </div>
 
-      {showInstanceSelector && (
-        <div className="flex justify-end">
-          <InstanceSelector
-            campaignId={id}
-            selectedInstanceId={selectedInstanceId}
-            onInstanceSelect={setSelectedInstanceId}
-          />
-        </div>
-      )}
-
-      <CampaignTabs 
-        isAnonymous={campaign?.anonymous}
-        status={campaign?.status}
-      >
+      <CampaignTabs isAnonymous={campaign.anonymous} status={campaign.status}>
         <TabPanel value="overview">
-          <OverviewTab 
-            campaignId={id} 
-            selectedInstanceId={selectedInstanceId}
-          />
+          <OverviewTab campaignId={campaign.id} instanceId={selectedInstanceId} />
         </TabPanel>
+
         <TabPanel value="assignments">
-          <AssignmentInstanceList 
+          <AssignmentInstanceList
             assignments={assignments || []}
             isLoading={isLoadingAssignments}
-            campaignId={id}
-            surveyId={campaign?.survey_id}
+            campaignId={campaign.id}
+            surveyId={campaign.survey_id}
             selectedInstanceId={selectedInstanceId}
           />
         </TabPanel>
+
         <TabPanel value="responses">
-          <ResponsesTab instanceId={selectedInstanceId} />
+          <ResponsesList
+            campaignId={campaign.id}
+            instanceId={selectedInstanceId}
+            isAnonymous={campaign.anonymous}
+          />
         </TabPanel>
+
         <TabPanel value="reports">
-          <ReportsTab 
-            campaignId={id} 
+          <ReportsTab
+            campaignId={campaign.id}
             instanceId={selectedInstanceId}
+            survey={campaign.survey}
           />
         </TabPanel>
+
         <TabPanel value="analyze">
-          <AIAnalyzeTab
-            campaignId={id}
-            instanceId={selectedInstanceId}
-          />
+          <div>AI Analysis content will go here</div>
         </TabPanel>
       </CampaignTabs>
     </div>
