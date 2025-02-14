@@ -12,8 +12,6 @@ import {
 import {
   DefaultLight,
   DefaultDark,
-  ModernLight,
-  ModernDark,
   ContrastLight,
   ContrastDark,
   PlainLight,
@@ -30,8 +28,6 @@ import {
   DoubleBorderDark,
   DefaultLightPanelless,
   DefaultDarkPanelless,
-  ModernLightPanelless,
-  ModernDarkPanelless,
   ContrastLightPanelless,
   ContrastDarkPanelless,
   PlainLightPanelless,
@@ -50,7 +46,6 @@ import {
 
 const BASE_THEMES = [
   "Default",
-  "Modern",
   "Layered",
   "Flat",
   "Borderless",
@@ -70,7 +65,6 @@ interface ThemeSwitcherProps {
 const themeMap = {
   // Light themes without panelless
   DefaultLight,
-  ModernLight,
   ContrastLight,
   PlainLight,
   SharpLight,
@@ -80,7 +74,6 @@ const themeMap = {
   DoubleBorderLight,
   // Dark themes without panelless
   DefaultDark,
-  ModernDark,
   ContrastDark,
   PlainDark,
   SharpDark,
@@ -90,7 +83,6 @@ const themeMap = {
   DoubleBorderDark,
   // Light themes with panelless
   DefaultLightPanelless,
-  ModernLightPanelless,
   ContrastLightPanelless,
   PlainLightPanelless,
   SharpLightPanelless,
@@ -100,7 +92,6 @@ const themeMap = {
   DoubleBorderLightPanelless,
   // Dark themes with panelless
   DefaultDarkPanelless,
-  ModernDarkPanelless,
   ContrastDarkPanelless,
   PlainDarkPanelless,
   SharpDarkPanelless,
