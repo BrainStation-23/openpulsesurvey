@@ -1,3 +1,4 @@
+
 import { SlideProps } from "../types";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -10,13 +11,24 @@ export function ResponseDistributionSlide({ campaign, isActive }: SlideProps) {
     queryFn: async () => {
       const { data: assignments } = await supabase
         .from("survey_assignments")
-        .select("status")
+        .select("id")
         .eq("campaign_id", campaign.id);
 
       if (!assignments) return [];
 
-      const counts = assignments.reduce((acc: Record<string, number>, curr) => {
-        const status = curr.status || "pending";
+      // Get status for each assignment
+      const assignmentStatuses = await Promise.all(
+        assignments.map(async (assignment) => {
+          const { data: status } = await supabase
+            .rpc('get_assignment_status', {
+              p_assignment_id: assignment.id
+            });
+          return status;
+        })
+      );
+
+      const counts = assignmentStatuses.reduce((acc: Record<string, number>, status) => {
+        status = status || "assigned";
         acc[status] = (acc[status] || 0) + 1;
         return acc;
       }, {});

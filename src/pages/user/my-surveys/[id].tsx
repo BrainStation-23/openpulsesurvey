@@ -1,5 +1,3 @@
-
-import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Model } from "survey-core";
@@ -9,8 +7,10 @@ import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { SurveyStateData, isSurveyStateData } from "@/types/survey";
 import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
+import { SurveyStateData, isSurveyStateData } from "@/types/survey";
+import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
+import { useState } from "react";
 
 import "survey-core/defaultV2.min.css";
 
@@ -21,10 +21,10 @@ export default function UserSurveyResponsePage() {
   const [survey, setSurvey] = useState<Model | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  const { data: assignment, isLoading, error } = useQuery({
+  const { data: assignment, isLoading } = useQuery({
     queryKey: ["survey-assignment", id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: assignmentData, error } = await supabase
         .from("survey_assignments")
         .select(`
           *,
@@ -44,8 +44,18 @@ export default function UserSurveyResponsePage() {
         .maybeSingle();
 
       if (error) throw error;
-      if (!data) throw new Error("Survey assignment not found");
-      return data;
+      if (!assignmentData) throw new Error("Survey assignment not found");
+
+      // Get the assignment status
+      const { data: assignmentStatus } = await supabase
+        .rpc('get_assignment_status', {
+          p_assignment_id: assignmentData.id
+        });
+
+      return { 
+        ...assignmentData, 
+        status: assignmentStatus as ResponseStatus 
+      };
     },
   });
 
@@ -227,7 +237,7 @@ export default function UserSurveyResponsePage() {
     return <div>Loading...</div>;
   }
 
-  if (error || !assignment) {
+  if (!assignment) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">Survey not found or you don't have access to it.</p>
