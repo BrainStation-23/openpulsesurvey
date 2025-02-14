@@ -1,42 +1,62 @@
 
 import { Response } from "../types";
+import { supabase } from "@/integrations/supabase/client";
 import { unparse } from "papaparse";
 
-export function exportResponses(responses: Response[]) {
+export async function exportResponses(responses: Response[]) {
   if (!responses.length) return;
 
-  // Get all possible questions from all responses to handle cases where questions might differ
+  const campaignId = responses[0].assignment.campaign_id;
+  const instanceId = responses[0].campaign_instance_id;
+
+  // Get the formatted data from our database function
+  const { data: exportData, error } = await supabase
+    .rpc('get_survey_responses_for_export', {
+      p_campaign_id: campaignId,
+      p_instance_id: instanceId
+    });
+
+  if (error) {
+    console.error('Error fetching export data:', error);
+    return;
+  }
+
+  // Get all possible questions from all responses
   const allQuestions = new Set<string>();
-  responses.forEach(response => {
-    Object.keys(response.response_data).forEach(question => {
+  exportData.forEach(row => {
+    Object.keys(row.response_data).forEach(question => {
       allQuestions.add(question);
     });
   });
 
   // Convert responses to CSV format
-  const data = responses.map(response => {
-    // Start with department and supervisor
-    const row: Record<string, any> = {
-      'Department': response.user.user_sbus.find(sbu => sbu.is_primary)?.sbu.name || 'N/A',
-      'Supervisor': response.user.user_supervisors.find(sup => sup.is_primary)?.supervisor.first_name 
-        ? `${response.user.user_supervisors.find(sup => sup.is_primary)?.supervisor.first_name} ${response.user.user_supervisors.find(sup => sup.is_primary)?.supervisor.last_name}`
-        : 'N/A',
+  const data = exportData.map(row => {
+    // Start with metadata columns
+    const csvRow: Record<string, any> = {
+      'Department': row.department,
+      'Supervisor': row.supervisor,
+      'Respondent': row.user_name,
+      'Email': row.user_email,
+      'Status': row.status,
+      'Created': new Date(row.created_at).toLocaleString(),
+      'Updated': new Date(row.updated_at).toLocaleString(),
+      'Submitted': row.submitted_at ? new Date(row.submitted_at).toLocaleString() : 'N/A',
     };
 
     // Add each question's response
     allQuestions.forEach(question => {
-      const answer = response.response_data[question];
+      const answer = row.response_data[question];
       // Format the answer based on its type
       if (typeof answer === 'boolean') {
-        row[question] = answer ? 'Yes' : 'No';
+        csvRow[question] = answer ? 'Yes' : 'No';
       } else if (answer === null || answer === undefined) {
-        row[question] = 'N/A';
+        csvRow[question] = 'N/A';
       } else {
-        row[question] = answer;
+        csvRow[question] = answer;
       }
     });
 
-    return row;
+    return csvRow;
   });
 
   const csv = unparse(data, {

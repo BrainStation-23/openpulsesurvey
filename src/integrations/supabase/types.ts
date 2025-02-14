@@ -1050,6 +1050,23 @@ export type Database = {
         }
         Returns: string
       }
+      get_survey_responses_for_export: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+        }
+        Returns: {
+          department: string
+          supervisor: string
+          response_data: Json
+          user_name: string
+          user_email: string
+          status: string
+          created_at: string
+          updated_at: string
+          submitted_at: string
+        }[]
+      }
       is_admin: {
         Args: {
           user_uid: string

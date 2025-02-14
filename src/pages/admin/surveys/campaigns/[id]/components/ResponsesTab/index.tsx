@@ -8,6 +8,7 @@ import { ResponsesFilters } from "./ResponsesFilters";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { exportResponses } from "./utils/export";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ResponsesTabProps {
   campaignId: string;
@@ -15,6 +16,8 @@ interface ResponsesTabProps {
 }
 
 export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
+  const { toast } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({
     search: "",
     sortBy: "date",
@@ -79,9 +82,25 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
     },
   });
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (responses) {
-      exportResponses(responses);
+      try {
+        setIsExporting(true);
+        await exportResponses(responses);
+        toast({
+          title: "Export successful",
+          description: "Your survey responses have been exported to CSV.",
+        });
+      } catch (error) {
+        console.error('Export error:', error);
+        toast({
+          title: "Export failed",
+          description: "There was an error exporting the survey responses.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsExporting(false);
+      }
     }
   };
 
@@ -106,9 +125,13 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <ResponsesFilters filters={filters} onFiltersChange={setFilters} />
-        <Button variant="outline" onClick={handleExport} disabled={!responses?.length}>
+        <Button 
+          variant="outline" 
+          onClick={handleExport} 
+          disabled={!responses?.length || isExporting}
+        >
           <Download className="h-4 w-4 mr-2" />
-          Export
+          {isExporting ? "Exporting..." : "Export"}
         </Button>
       </div>
 
