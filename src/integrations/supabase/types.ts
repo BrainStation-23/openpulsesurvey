@@ -1043,6 +1043,22 @@ export type Database = {
         }
         Returns: Json
       }
+      get_campaign_assignments: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+        }
+        Returns: {
+          id: string
+          user_id: string
+          campaign_id: string
+          public_access_token: string
+          last_reminder_sent: string
+          status: string
+          user_details: Json
+          response_data: Json
+        }[]
+      }
       get_instance_assignment_status: {
         Args: {
           p_assignment_id: string

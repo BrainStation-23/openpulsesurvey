@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Assignment } from "@/pages/admin/surveys/types/assignments";
+import { Assignment, ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 import { AssignCampaignUsers } from "./AssignCampaignUsers";
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Send, MoreHorizontal, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -47,8 +47,8 @@ const statusStyles = {
 };
 
 export function AssignmentInstanceList({
-  assignments,
-  isLoading,
+  assignments: initialAssignments,
+  isLoading: isLoadingProp,
   campaignId,
   surveyId,
   selectedInstanceId,
@@ -57,7 +57,34 @@ export function AssignmentInstanceList({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const queryClient = useQueryClient();
 
-  const filteredAssignments = assignments.filter(assignment => 
+  // Fetch assignments using the new database function
+  const { data: assignments, isLoading } = useQuery({
+    queryKey: ["campaign-assignments", campaignId, selectedInstanceId],
+    queryFn: async () => {
+      console.log("Fetching assignments with params:", { campaignId, selectedInstanceId });
+      const { data, error } = await supabase
+        .rpc('get_campaign_assignments', {
+          p_campaign_id: campaignId,
+          p_instance_id: selectedInstanceId
+        });
+
+      if (error) {
+        console.error("Error fetching assignments:", error);
+        throw error;
+      }
+
+      console.log("Fetched assignments:", data);
+
+      return data.map((assignment: any) => ({
+        ...assignment,
+        status: assignment.status as ResponseStatus,
+        user: assignment.user_details
+      }));
+    },
+    enabled: !!campaignId,
+  });
+
+  const filteredAssignments = (assignments || []).filter(assignment => 
     statusFilter === "all" ? true : assignment.status === statusFilter
   );
 
@@ -138,17 +165,18 @@ export function AssignmentInstanceList({
       header: "User",
       cell: ({ row }: any) => {
         const assignment = row.original;
+        const user = assignment.user;
         return (
           <div className="flex items-center gap-2">
             <div>
               <div className="font-medium flex items-center gap-2">
-                {assignment.user.first_name} {assignment.user.last_name}
+                {user.first_name} {user.last_name}
                 <Badge className={cn("text-xs", statusStyles[assignment.status])}>
                   {assignment.status.replace(/_/g, " ")}
                 </Badge>
               </div>
               <div className="text-sm text-muted-foreground">
-                {assignment.user.email}
+                {user.email}
               </div>
             </div>
           </div>
@@ -159,7 +187,8 @@ export function AssignmentInstanceList({
       accessorKey: "sbu",
       header: "SBU",
       cell: ({ row }: any) => {
-        const primarySbu = row.original.user.user_sbus?.find(
+        const user = row.original.user;
+        const primarySbu = user.user_sbus?.find(
           (sbu: any) => sbu.is_primary
         )?.sbu.name;
         return primarySbu || "N/A";
@@ -196,6 +225,7 @@ export function AssignmentInstanceList({
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => sendReminderMutation.mutate([assignment.id])}
+                disabled={assignment.status === 'submitted'}
               >
                 <Send className="mr-2 h-4 w-4" />
                 Send Reminder
