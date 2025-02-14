@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { AssignCampaignUsers } from "./AssignCampaignUsers";
-import type { Assignment } from "@/pages/admin/surveys/types";
+import type { Assignment, ResponseStatus } from "@/pages/admin/surveys/types";
 
 interface AssignmentInstanceListProps {
   assignments: Assignment[];
@@ -24,14 +24,16 @@ export function AssignmentInstanceList({
     return <div>Loading assignments...</div>;
   }
 
-  const getStatusColor = (status: Assignment["status"]) => {
+  const getStatusColor = (status: ResponseStatus) => {
     switch (status) {
-      case "completed":
+      case "submitted":
         return "bg-green-500";
       case "expired":
         return "bg-red-500";
-      default:
+      case "in_progress":
         return "bg-yellow-500";
+      default:
+        return "bg-gray-500";
     }
   };
 
