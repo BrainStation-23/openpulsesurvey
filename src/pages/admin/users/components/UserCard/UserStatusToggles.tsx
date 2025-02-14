@@ -1,4 +1,3 @@
-
 import { Switch } from "@/components/ui/switch";
 import { Loader } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,7 +20,7 @@ export const UserStatusToggles = ({
   onStatusToggle,
 }: UserStatusTogglesProps) => {
   return (
-    <div className="flex flex-col gap-2 items-end">
+    <div className="flex items-center gap-4 shrink-0">
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground whitespace-nowrap">Admin</span>
         <div className="relative">
@@ -30,7 +29,7 @@ export const UserStatusToggles = ({
             onCheckedChange={onRoleToggle}
             disabled={isUpdatingRole}
             className={cn(
-              "transition-opacity duration-200",
+              "transition-opacity duration-200 hover:opacity-80",
               isUpdatingRole && "opacity-50"
             )}
           />
@@ -47,7 +46,7 @@ export const UserStatusToggles = ({
             onCheckedChange={onStatusToggle}
             disabled={isUpdatingStatus}
             className={cn(
-              "transition-opacity duration-200",
+              "transition-opacity duration-200 hover:opacity-80",
               isUpdatingStatus && "opacity-50"
             )}
           />
