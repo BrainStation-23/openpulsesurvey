@@ -1,18 +1,25 @@
 
-import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
 import { LayeredDarkPanelless } from "survey-core/themes";
+import { ArrowLeft } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { SurveyStateData, isSurveyStateData } from "@/types/survey";
 import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
-import { SurveyHeader } from "./components/SurveyHeader";
-import { SubmitDialog } from "./components/SubmitDialog";
 import { useSurveyResponse } from "./hooks/useSurveyResponse";
+import { SubmitDialog } from "./components/SubmitDialog";
 
 import "survey-core/defaultV2.min.css";
 
-export default function SurveyResponsePage() {
+export default function UserSurveyResponsePage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const { data: assignment, isLoading } = useQuery({
     queryKey: ["survey-assignment", id],
@@ -34,47 +41,12 @@ export default function SurveyResponsePage() {
           )
         `)
         .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: activeInstance } = useQuery({
-    queryKey: ["active-campaign-instance", assignment?.campaign_id],
-    enabled: !!assignment?.campaign_id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("campaign_instances")
-        .select("*")
-        .eq("campaign_id", assignment.campaign_id)
-        .eq("status", "active")
         .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error("Survey assignment not found");
       return data;
     },
-  });
-
-  const { data: existingResponse } = useQuery({
-    queryKey: ["survey-response", id, activeInstance?.id],
-    queryFn: async () => {
-      const query = supabase
-        .from("survey_responses")
-        .select("*")
-        .eq("assignment_id", id);
-
-      if (activeInstance?.id) {
-        query.eq("campaign_instance_id", activeInstance.id);
-      }
-
-      const { data, error } = await query.maybeSingle();
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!id,
   });
 
   const {
@@ -86,34 +58,64 @@ export default function SurveyResponsePage() {
   } = useSurveyResponse({
     id: id!,
     surveyData: assignment?.survey?.json_data,
-    existingResponse,
-    assignmentStatus: assignment?.status,
-    campaignInstanceId: activeInstance?.id || null,
+    existingResponse: null,
+    campaignInstanceId: null,
   });
 
-  if (isLoading || !survey) {
+  if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  const handleThemeChange = (theme: any) => {
-    if (survey) {
-      survey.applyTheme(theme);
-    }
-  };
+  if (!assignment) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Survey not found or you don't have access to it.</p>
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/user/my-surveys")}
+          className="mt-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to My Surveys
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <SurveyHeader 
-        title={assignment.campaign?.name || assignment.survey.name}
-        lastSaved={lastSaved}
-      />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/user/my-surveys")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-2xl font-bold">
+            {assignment.campaign?.name || assignment.survey.name}
+          </h1>
+        </div>
+        {lastSaved && (
+          <p className="text-sm text-muted-foreground">
+            Last saved: {lastSaved.toLocaleTimeString()}
+          </p>
+        )}
+      </div>
 
       <div className="flex justify-end">
-        <ThemeSwitcher onThemeChange={handleThemeChange} />
+        <ThemeSwitcher onThemeChange={() => {}} />
       </div>
       
       <div className="bg-card rounded-lg border p-6">
-        <Survey model={survey} />
+        {survey ? (
+          <Survey model={survey} />
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            Unable to load survey. Please try again later.
+          </div>
+        )}
       </div>
 
       <SubmitDialog

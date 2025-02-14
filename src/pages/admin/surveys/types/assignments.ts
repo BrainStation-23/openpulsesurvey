@@ -1,7 +1,7 @@
 
 import { Database } from "@/integrations/supabase/types";
 
-export type ResponseStatus = Database["public"]["Enums"]["response_status"];
+export type ResponseStatus = "assigned" | "in_progress" | "submitted" | "expired";
 
 export type SurveyAssignment = {
   id: string;

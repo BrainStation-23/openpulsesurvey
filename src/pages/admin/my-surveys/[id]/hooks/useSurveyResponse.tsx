@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SurveyStateData, isSurveyStateData } from "@/types/survey";
 import { useNavigate } from "react-router-dom";
+import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 
 interface UseSurveyResponseProps {
   id: string;
@@ -64,7 +65,7 @@ export function useSurveyResponse({
                 user_id: userId,
                 response_data: sender.data,
                 state_data: stateData,
-                status: 'in_progress',
+                status: 'in_progress' as ResponseStatus,
                 campaign_instance_id: campaignInstanceId,
               }, {
                 onConflict: campaignInstanceId
@@ -87,9 +88,7 @@ export function useSurveyResponse({
               assignment_id: id,
               user_id: userId,
               response_data: sender.data,
-              status: 'in_progress',
-              submitted_at: null,
-              updated_at: new Date().toISOString(),
+              status: 'in_progress' as ResponseStatus,
               campaign_instance_id: campaignInstanceId,
             };
 
@@ -134,7 +133,7 @@ export function useSurveyResponse({
         assignment_id: id,
         user_id: userId,
         response_data: survey.data,
-        status: 'submitted',
+        status: 'submitted' as ResponseStatus,
         submitted_at: now,
         updated_at: now,
         campaign_instance_id: campaignInstanceId,
