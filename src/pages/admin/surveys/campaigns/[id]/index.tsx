@@ -59,6 +59,18 @@ export default function CampaignDetailsPage() {
             status,
             campaign_instance_id
           ),
+          survey:surveys (
+            id,
+            name,
+            description,
+            json_data
+          ),
+          instance:campaign_instances!inner (
+            id,
+            starts_at,
+            ends_at,
+            status
+          ),
           user:profiles!survey_assignments_user_id_fkey (
             id,
             email,
@@ -85,17 +97,48 @@ export default function CampaignDetailsPage() {
 
       if (error) throw error;
 
-      return (data?.map(assignment => ({
-        ...assignment,
-        status: (assignment.responses?.[0]?.status || 'assigned') as ResponseStatus,
-        user: {
-          ...assignment.user,
-          user_sbus: assignment.user.user_sbus.map(userSbu => ({
-            is_primary: userSbu.is_primary,
-            sbu: userSbu.sbus
-          }))
-        }
-      })) || []) as Assignment[];
+      return (data as unknown as Array<any>)?.map(assignment => {
+        // Get the active instance
+        const activeInstance = assignment.instance[0];
+
+        return {
+          id: assignment.id,
+          survey_id: assignment.survey_id,
+          campaign_id: assignment.campaign_id,
+          user_id: assignment.user_id,
+          created_by: assignment.created_by,
+          created_at: assignment.created_at,
+          updated_at: assignment.updated_at,
+          public_access_token: assignment.public_access_token,
+          last_reminder_sent: assignment.last_reminder_sent,
+          status: (assignment.responses?.[0]?.status || 'assigned') as ResponseStatus,
+          // Add the required instance property
+          instance: {
+            id: activeInstance.id,
+            starts_at: activeInstance.starts_at,
+            ends_at: activeInstance.ends_at,
+            status: activeInstance.status
+          },
+          // Add the required survey property
+          survey: assignment.survey,
+          // Map user data as before
+          user: {
+            id: assignment.user.id,
+            email: assignment.user.email,
+            first_name: assignment.user.first_name,
+            last_name: assignment.user.last_name,
+            user_sbus: assignment.user.user_sbus.map((userSbu: any) => ({
+              is_primary: userSbu.is_primary,
+              sbu: userSbu.sbus
+            }))
+          },
+          // Add response if it exists
+          response: assignment.responses?.[0] ? {
+            status: assignment.responses[0].status,
+            campaign_instance_id: assignment.responses[0].campaign_instance_id
+          } : undefined
+        } as Assignment;
+      }) || [];
     },
   });
 
