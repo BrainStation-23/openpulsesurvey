@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { StatisticsSection } from "./components/StatisticsSection";
 import { ChartsSection } from "./components/ChartsSection";
+import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 
 interface OverviewTabProps {
   campaignId: string;
@@ -17,7 +18,7 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
 
       const { data: assignments, error: assignmentsError } = await supabase
         .from("survey_assignments")
-        .select("id, status")
+        .select("id")
         .eq("campaign_id", campaignId);
 
       if (assignmentsError) throw assignmentsError;
@@ -82,42 +83,36 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
   const { data: statusData } = useQuery({
     queryKey: ["instance-status-distribution", selectedInstanceId],
     queryFn: async () => {
-      const query = supabase
+      if (!selectedInstanceId) return [];
+
+      // Get assignments
+      const { data: assignmentsData } = await supabase
         .from("survey_assignments")
-        .select("status, id")
+        .select("id")
         .eq("campaign_id", campaignId);
 
-      const { data, error } = await query;
-      if (error) throw error;
+      if (!assignmentsData) return [];
 
-      if (selectedInstanceId) {
-        const { data: responses } = await supabase
-          .from("survey_responses")
-          .select("assignment_id")
-          .eq("campaign_instance_id", selectedInstanceId);
+      // Get status for each assignment using get_instance_assignment_status
+      const statusCounts: Record<string, number> = {};
 
-        const completedAssignmentIds = new Set(responses?.map(r => r.assignment_id));
+      await Promise.all(
+        assignmentsData.map(async (assignment) => {
+          const { data: status } = await supabase
+            .rpc('get_instance_assignment_status', {
+              p_assignment_id: assignment.id,
+              p_instance_id: selectedInstanceId
+            });
+          statusCounts[status] = (statusCounts[status] || 0) + 1;
+        })
+      );
 
-        data.forEach(assignment => {
-          if (completedAssignmentIds.has(assignment.id)) {
-            assignment.status = 'completed';
-          } else {
-            assignment.status = 'pending';
-          }
-        });
-      }
-
-      const distribution = data.reduce((acc: Record<string, number>, assignment) => {
-        const status = assignment.status || "pending";
-        acc[status] = (acc[status] || 0) + 1;
-        return acc;
-      }, {});
-
-      return Object.entries(distribution).map(([name, value]) => ({
+      return Object.entries(statusCounts).map(([name, value]) => ({
         name,
         value,
       }));
     },
+    enabled: !!selectedInstanceId,
   });
 
   return (

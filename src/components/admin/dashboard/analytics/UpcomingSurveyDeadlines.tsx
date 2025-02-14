@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,31 +8,40 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+interface UpcomingDeadline {
+  id: string;
+  campaign_id: string;
+  survey_name: string;
+  campaign_name: string | null;
+  ends_at: string;
+  total_assignments: number;
+  pending_responses: number;
+}
+
 export function UpcomingSurveyDeadlines() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const { data: deadlines, isLoading } = useQuery({
+  const { data: deadlines, isLoading } = useQuery<UpcomingDeadline[]>({
     queryKey: ["upcoming-deadlines"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("upcoming_survey_deadlines")
         .select("*")
-        .order("due_date", { ascending: true });
+        .order("ends_at", { ascending: true });
       
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
   const sendReminderMutation = useMutation({
-    mutationFn: async ({ instanceId }: { instanceId: string }) => {
-      // Get all pending assignments for this instance
+    mutationFn: async ({ instanceId, campaignId }: { instanceId: string; campaignId: string }) => {
+      // Get all assignments for this campaign that don't have a submitted response for this instance
       const { data: assignments, error: assignmentsError } = await supabase
         .from("survey_assignments")
         .select(`
           id,
-          due_date,
           public_access_token,
           user:profiles!survey_assignments_user_id_fkey (
             email,
@@ -42,21 +52,38 @@ export function UpcomingSurveyDeadlines() {
             name
           )
         `)
-        .eq("status", "pending");
+        .eq("campaign_id", campaignId)
+        .not("id", "in", (
+          supabase
+            .from("survey_responses")
+            .select("assignment_id")
+            .eq("campaign_instance_id", instanceId)
+            .eq("status", "submitted")
+        ));
 
       if (assignmentsError) throw assignmentsError;
       if (!assignments?.length) {
         throw new Error("No pending assignments found");
       }
 
-      // Send reminders to all pending users
+      // Get instance end date
+      const { data: instance, error: instanceError } = await supabase
+        .from("campaign_instances")
+        .select("ends_at")
+        .eq("id", instanceId)
+        .single();
+
+      if (instanceError) throw instanceError;
+      if (!instance) throw new Error("Instance not found");
+
+      // Send reminders to pending users
       const results = await Promise.allSettled(
         assignments.map(async (assignment) => {
           const response = await supabase.functions.invoke("send-survey-reminder", {
             body: {
               assignmentId: assignment.id,
               surveyName: assignment.survey.name,
-              dueDate: assignment.due_date,
+              dueDate: instance.ends_at,
               recipientEmail: assignment.user.email,
               recipientName: `${assignment.user.first_name || ''} ${assignment.user.last_name || ''}`.trim() || 'Participant',
               publicAccessToken: assignment.public_access_token,
@@ -86,7 +113,6 @@ export function UpcomingSurveyDeadlines() {
         }`,
         variant: result.failureCount > 0 ? "destructive" : "default",
       });
-      // Refresh the deadlines data
       queryClient.invalidateQueries({ queryKey: ["upcoming-deadlines"] });
     },
     onError: (error: Error) => {
@@ -98,13 +124,13 @@ export function UpcomingSurveyDeadlines() {
     }
   });
 
-  const getUrgencyColor = (dueDate: string) => {
+  const getUrgencyColor = (endDate: string) => {
     const now = new Date();
-    const due = new Date(dueDate);
+    const end = new Date(endDate);
     const threeDaysFromNow = addDays(now, 3);
 
-    if (isBefore(due, now)) return "text-red-500";
-    if (isBefore(due, threeDaysFromNow)) return "text-amber-500";
+    if (isBefore(end, now)) return "text-red-500";
+    if (isBefore(end, threeDaysFromNow)) return "text-amber-500";
     return "text-green-500";
   };
 
@@ -122,7 +148,7 @@ export function UpcomingSurveyDeadlines() {
         <div className="space-y-4">
           {deadlines?.map((deadline) => {
             const completionRate = ((deadline.total_assignments - deadline.pending_responses) / deadline.total_assignments) * 100;
-            const urgencyColor = getUrgencyColor(deadline.due_date);
+            const urgencyColor = getUrgencyColor(deadline.ends_at);
 
             return (
               <div key={deadline.id} className="space-y-2">
@@ -137,7 +163,8 @@ export function UpcomingSurveyDeadlines() {
                     variant="ghost"
                     size="sm"
                     onClick={() => sendReminderMutation.mutate({
-                      instanceId: deadline.id
+                      instanceId: deadline.id,
+                      campaignId: deadline.campaign_id
                     })}
                     disabled={sendReminderMutation.isPending || deadline.pending_responses === 0}
                   >
@@ -149,7 +176,7 @@ export function UpcomingSurveyDeadlines() {
                 <div className="flex items-center gap-2">
                   <Clock className={`h-4 w-4 ${urgencyColor}`} />
                   <span className="text-sm">
-                    Due {format(new Date(deadline.due_date), "MMM d, yyyy")}
+                    Due {format(new Date(deadline.ends_at), "MMM d, yyyy")}
                   </span>
                 </div>
 

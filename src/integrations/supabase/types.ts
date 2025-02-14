@@ -88,6 +88,20 @@ export type Database = {
             referencedRelation: "top_performing_surveys"
             referencedColumns: ["campaign_id"]
           },
+          {
+            foreignKeyName: "fk_campaign_instances_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_campaign_instances_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
         ]
       }
       email_config: {
@@ -404,12 +418,9 @@ export type Database = {
           campaign_id: string | null
           created_at: string | null
           created_by: string
-          due_date: string | null
           id: string
-          is_organization_wide: boolean | null
           last_reminder_sent: string | null
           public_access_token: string | null
-          status: Database["public"]["Enums"]["assignment_status"] | null
           survey_id: string
           updated_at: string | null
           user_id: string
@@ -418,12 +429,9 @@ export type Database = {
           campaign_id?: string | null
           created_at?: string | null
           created_by: string
-          due_date?: string | null
           id?: string
-          is_organization_wide?: boolean | null
           last_reminder_sent?: string | null
           public_access_token?: string | null
-          status?: Database["public"]["Enums"]["assignment_status"] | null
           survey_id: string
           updated_at?: string | null
           user_id: string
@@ -432,17 +440,28 @@ export type Database = {
           campaign_id?: string | null
           created_at?: string | null
           created_by?: string
-          due_date?: string | null
           id?: string
-          is_organization_wide?: boolean | null
           last_reminder_sent?: string | null
           public_access_token?: string | null
-          status?: Database["public"]["Enums"]["assignment_status"] | null
           survey_id?: string
           updated_at?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_survey_assignments_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_survey_assignments_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
           {
             foreignKeyName: "survey_assignments_campaign_id_fkey"
             columns: ["campaign_id"]
@@ -590,6 +609,7 @@ export type Database = {
           id: string
           response_data: Json
           state_data: Json | null
+          status: Database["public"]["Enums"]["response_status"]
           submitted_at: string | null
           updated_at: string | null
           user_id: string
@@ -601,6 +621,7 @@ export type Database = {
           id?: string
           response_data: Json
           state_data?: Json | null
+          status?: Database["public"]["Enums"]["response_status"]
           submitted_at?: string | null
           updated_at?: string | null
           user_id: string
@@ -612,6 +633,7 @@ export type Database = {
           id?: string
           response_data?: Json
           state_data?: Json | null
+          status?: Database["public"]["Enums"]["response_status"]
           submitted_at?: string | null
           updated_at?: string | null
           user_id?: string
@@ -1011,14 +1033,44 @@ export type Database = {
       }
       upcoming_survey_deadlines: {
         Row: {
+          campaign_id: string | null
           campaign_name: string | null
-          due_date: string | null
+          ends_at: string | null
           id: string | null
           pending_responses: number | null
           survey_name: string | null
           total_assignments: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campaign_instances_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_instances_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
+          {
+            foreignKeyName: "fk_campaign_instances_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_campaign_instances_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
+        ]
       }
     }
     Functions: {
@@ -1035,6 +1087,46 @@ export type Database = {
           p_instance_id: string
         }
         Returns: Json
+      }
+      get_campaign_assignments: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+        }
+        Returns: {
+          id: string
+          user_id: string
+          campaign_id: string
+          public_access_token: string
+          last_reminder_sent: string
+          status: string
+          user_details: Json
+          response_data: Json
+        }[]
+      }
+      get_instance_assignment_status: {
+        Args: {
+          p_assignment_id: string
+          p_instance_id: string
+        }
+        Returns: string
+      }
+      get_survey_responses_for_export: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+        }
+        Returns: {
+          department: string
+          supervisor: string
+          response_data: Json
+          user_name: string
+          user_email: string
+          status: string
+          created_at: string
+          updated_at: string
+          submitted_at: string
+        }[]
       }
       is_admin: {
         Args: {
@@ -1099,6 +1191,7 @@ export type Database = {
         | "monthly"
         | "quarterly"
         | "yearly"
+      response_status: "assigned" | "in_progress" | "submitted" | "expired"
       survey_status: "draft" | "published" | "archived"
       user_role: "admin" | "user"
     }

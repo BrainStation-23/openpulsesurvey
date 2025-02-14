@@ -1,48 +1,19 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+
+import { Response } from "./types";
 import { ResponseGroup } from "./ResponseGroup";
-import type { Response } from "./types";
 
 interface ResponsesListProps {
-  groupedResponses: Record<number, Response[]>;
+  responses: Response[];
 }
 
-export function ResponsesList({ groupedResponses }: ResponsesListProps) {
-  if (!groupedResponses || Object.keys(groupedResponses).length === 0) {
+export function ResponsesList({ responses }: ResponsesListProps) {
+  if (!responses.length) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        No responses found for this campaign instance.
+        No responses found for this period.
       </div>
     );
   }
 
-  const instances = Object.keys(groupedResponses)
-    .map(Number)
-    .sort((a, b) => b - a); // Sort in descending order
-
-  return (
-    <Accordion type="single" collapsible className="w-full">
-      {instances.map((instanceNumber) => (
-        <AccordionItem key={instanceNumber} value={String(instanceNumber)}>
-          <AccordionTrigger className="hover:no-underline">
-            <div className="flex items-center gap-4">
-              <span className="font-semibold">
-                Period {instanceNumber}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                ({groupedResponses[instanceNumber].length} responses)
-              </span>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <ResponseGroup responses={groupedResponses[instanceNumber]} />
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-    </Accordion>
-  );
+  return <ResponseGroup responses={responses} />;
 }

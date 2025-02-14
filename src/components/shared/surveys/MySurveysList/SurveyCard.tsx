@@ -1,72 +1,26 @@
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { UserSurvey } from "@/pages/admin/surveys/types/user-surveys";
 import { AlertCircle } from "lucide-react";
-import { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 import DueDateInfo from "./components/DueDateInfo";
 
-type Assignment = {
-  id: string;
-  survey_id: string;
-  user_id: string;
-  due_date: string | null;
-  status: Database["public"]["Enums"]["assignment_status"] | null;
-  created_by: string;
-  created_at: string | null;
-  updated_at: string | null;
-  is_organization_wide: boolean | null;
-  campaign_id: string | null;
-  survey: {
-    id: string;
-    name: string;
-    description: string | null;
-    status: Database["public"]["Enums"]["survey_status"] | null;
-    created_at: string;
-    created_by: string;
-    json_data: Database["public"]["Tables"]["surveys"]["Row"]["json_data"];
-    tags: string[] | null;
-    updated_at: string;
-  };
-  campaign?: {
-    id: string;
-    name: string;
-    description: string | null;
-    completion_rate: number | null;
-    status: string;
-    campaign_type: string;
-    created_at: string;
-    created_by: string;
-    ends_at: string | null;
-    is_recurring: boolean | null;
-    recurring_days: number[] | null;
-    recurring_ends_at: string | null;
-    recurring_frequency: string | null;
-    starts_at: string;
-    instance_duration_days: number | null;
-    instance_end_time: string | null;
-    updated_at: string;
-  };
-  active_instance?: {
-    id: string;
-    starts_at: string;
-    ends_at: string;
-    status: string;
-  } | null;
-};
-
 interface SurveyCardProps {
-  assignment: Assignment;
+  survey: UserSurvey;
   onSelect: (id: string) => void;
 }
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: UserSurvey["status"]) => {
   switch (status) {
-    case "completed":
+    case "submitted":
       return "success";
     case "expired":
       return "destructive";
-    default:
+    case "in_progress":
       return "secondary";
+    default:
+      return "default";
   }
 };
 
@@ -78,28 +32,27 @@ const getDaysRemaining = (dueDate: string) => {
   return diffDays;
 };
 
-export default function SurveyCard({ assignment, onSelect }: SurveyCardProps) {
-  const effectiveDueDate = assignment.active_instance?.ends_at || assignment.due_date;
-  const daysRemaining = effectiveDueDate ? getDaysRemaining(effectiveDueDate) : null;
-  const isOverdue = daysRemaining !== null && daysRemaining < 0;
-  const isDueSoon = daysRemaining !== null && daysRemaining <= 3 && daysRemaining > 0;
-  const isPending = assignment.status === 'pending';
+export default function SurveyCard({ survey, onSelect }: SurveyCardProps) {
+  const daysRemaining = getDaysRemaining(survey.instance.ends_at);
+  const isOverdue = daysRemaining < 0;
+  const isDueSoon = daysRemaining <= 3 && daysRemaining > 0;
+  const isNotSubmitted = survey.status !== "submitted";
 
   return (
     <Card 
       className={cn(
         "cursor-pointer hover:bg-accent/50 transition-colors",
-        isPending && isOverdue && "border-destructive",
-        isPending && isDueSoon && "border-yellow-500"
+        isNotSubmitted && isOverdue && "border-destructive",
+        isNotSubmitted && isDueSoon && "border-yellow-500"
       )}
-      onClick={() => onSelect(assignment.id)}
+      onClick={() => onSelect(survey.id)}
     >
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <CardTitle className="text-lg flex items-center gap-2">
-              {assignment.campaign?.name || assignment.survey.name}
-              {isPending && (isOverdue || isDueSoon) && (
+              {survey.survey.name}
+              {isNotSubmitted && (isOverdue || isDueSoon) && (
                 <AlertCircle 
                   className={cn(
                     "h-5 w-5",
@@ -108,24 +61,24 @@ export default function SurveyCard({ assignment, onSelect }: SurveyCardProps) {
                 />
               )}
             </CardTitle>
-            {assignment.campaign?.description && (
+            {survey.survey.description && (
               <p className="text-sm text-muted-foreground">
-                {assignment.campaign.description}
+                {survey.survey.description}
               </p>
             )}
           </div>
-          <Badge variant={getStatusColor(assignment.status || "pending")}>
-            {assignment.status}
+          <Badge variant={getStatusColor(survey.status)}>
+            {survey.status}
           </Badge>
         </div>
       </CardHeader>
       <CardContent>
         <DueDateInfo
-          dueDate={effectiveDueDate}
+          dueDate={survey.instance.ends_at}
           daysRemaining={daysRemaining}
           isOverdue={isOverdue}
           isDueSoon={isDueSoon}
-          isPending={isPending}
+          isPending={isNotSubmitted}
         />
       </CardContent>
     </Card>

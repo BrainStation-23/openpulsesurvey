@@ -1,17 +1,17 @@
 
-import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { CampaignHeader } from "./components/CampaignHeader";
 import { CampaignTabs, TabPanel } from "./components/CampaignTabs";
+import { CampaignHeader } from "./components/CampaignHeader";
 import { AssignmentInstanceList } from "./components/AssignmentInstanceList";
-import { OverviewTab } from "./components/OverviewTab";
 import { ResponsesTab } from "./components/ResponsesTab";
-import { ActivityTab } from "./components/ActivityTab";
-import { InstanceSelector } from "./components/InstanceSelector";
+import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
+import { InstanceSelector } from "./components/InstanceSelector";
 import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
+import { useState } from "react";
+import { ResponseStatus, SurveyAssignment } from "@/pages/admin/surveys/types/assignments";
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
@@ -22,7 +22,15 @@ export default function CampaignDetailsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("survey_campaigns")
-        .select("*, anonymous")
+        .select(`
+          *,
+          survey:surveys(
+            id,
+            name,
+            description,
+            json_data
+          )
+        `)
         .eq("id", id)
         .single();
 
@@ -34,48 +42,31 @@ export default function CampaignDetailsPage() {
   const { data: assignments, isLoading: isLoadingAssignments } = useQuery({
     queryKey: ["campaign-assignments", id, selectedInstanceId],
     queryFn: async () => {
-      if (!selectedInstanceId) {
-        // If no instance is selected, return regular assignments
-        const { data, error } = await supabase
-          .from("survey_assignments")
-          .select(`
-            id,
-            status,
-            due_date,
-            user:profiles!survey_assignments_user_id_fkey (
-              id,
-              email,
-              first_name,
-              last_name,
-              user_sbus (
-                is_primary,
-                sbu:sbus (
-                  id,
-                  name
-                )
-              )
-            )
-          `)
-          .eq("campaign_id", id);
-
-        if (error) throw error;
-        return data;
-      }
-
-      // If instance is selected, get assignments with instance-specific status
-      const { data: assignmentsData, error: assignmentsError } = await supabase
+      const query = supabase
         .from("survey_assignments")
         .select(`
           id,
-          due_date,
+          survey_id,
+          campaign_id,
+          user_id,
+          created_by,
+          created_at,
+          updated_at,
+          public_access_token,
+          last_reminder_sent,
+          responses:survey_responses!inner (
+            status,
+            campaign_instance_id
+          ),
           user:profiles!survey_assignments_user_id_fkey (
             id,
             email,
             first_name,
             last_name,
             user_sbus (
+              id,
               is_primary,
-              sbu:sbus (
+              sbus:sbus (
                 id,
                 name
               )
@@ -84,90 +75,103 @@ export default function CampaignDetailsPage() {
         `)
         .eq("campaign_id", id);
 
-      if (assignmentsError) throw assignmentsError;
+      // If an instance is selected, filter responses by instance
+      if (selectedInstanceId) {
+        query.eq('responses.campaign_instance_id', selectedInstanceId);
+      }
 
-      // Get status for each assignment in the selected instance
-      const assignmentsWithStatus = await Promise.all(
-        (assignmentsData || []).map(async (assignment) => {
-          const { data: statusData } = await supabase
-            .rpc('get_assignment_instance_status', {
-              p_assignment_id: assignment.id,
-              p_instance_id: selectedInstanceId
-            });
+      const { data, error } = await query;
 
-          return {
-            ...assignment,
-            status: statusData
-          };
-        })
-      );
+      if (error) throw error;
 
-      return assignmentsWithStatus;
+      return (data as unknown as Array<any>)?.map(assignment => {
+        return {
+          id: assignment.id,
+          survey_id: assignment.survey_id,
+          campaign_id: assignment.campaign_id,
+          user_id: assignment.user_id,
+          created_by: assignment.created_by,
+          created_at: assignment.created_at,
+          updated_at: assignment.updated_at,
+          public_access_token: assignment.public_access_token,
+          last_reminder_sent: assignment.last_reminder_sent,
+          status: (assignment.responses?.[0]?.status || 'assigned') as ResponseStatus,
+          user: {
+            id: assignment.user.id,
+            email: assignment.user.email,
+            first_name: assignment.user.first_name,
+            last_name: assignment.user.last_name,
+            user_sbus: assignment.user.user_sbus.map((userSbu: any) => ({
+              is_primary: userSbu.is_primary,
+              sbu: userSbu.sbus
+            }))
+          },
+          response: assignment.responses?.[0] ? {
+            status: assignment.responses[0].status,
+            campaign_instance_id: assignment.responses[0].campaign_instance_id
+          } : undefined
+        } as SurveyAssignment;
+      }) || [];
     },
-    enabled: !!id,
   });
 
-  if (!id) return null;
+  if (isLoadingCampaign) {
+    return <div>Loading...</div>;
+  }
 
-  const showInstanceSelector = campaign?.status !== 'draft';
+  if (!campaign) {
+    return <div>Campaign not found</div>;
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="container max-w-7xl mx-auto py-6 space-y-6">
       <CampaignHeader 
         campaign={campaign} 
-        isLoading={isLoadingCampaign}
+        isLoading={isLoadingCampaign} 
         selectedInstanceId={selectedInstanceId}
       />
+      
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Campaign Details</h2>
+        <InstanceSelector
+          campaignId={campaign.id}
+          selectedInstanceId={selectedInstanceId}
+          onInstanceSelect={setSelectedInstanceId}
+        />
+      </div>
 
-      {showInstanceSelector && (
-        <div className="flex justify-end">
-          <InstanceSelector
-            campaignId={id}
-            selectedInstanceId={selectedInstanceId}
-            onInstanceSelect={setSelectedInstanceId}
-          />
-        </div>
-      )}
-
-      <CampaignTabs 
-        isAnonymous={campaign?.anonymous}
-        status={campaign?.status}
-      >
+      <CampaignTabs isAnonymous={campaign.anonymous} status={campaign.status}>
         <TabPanel value="overview">
-          <OverviewTab 
-            campaignId={id} 
-            selectedInstanceId={selectedInstanceId}
-          />
+          <OverviewTab campaignId={campaign.id} />
         </TabPanel>
+
         <TabPanel value="assignments">
-          <AssignmentInstanceList 
+          <AssignmentInstanceList
             assignments={assignments || []}
             isLoading={isLoadingAssignments}
-            campaignId={id}
-            surveyId={campaign?.survey_id}
+            campaignId={campaign.id}
+            surveyId={campaign.survey_id}
             selectedInstanceId={selectedInstanceId}
           />
         </TabPanel>
-        {(
-          <TabPanel value="responses">
-            <ResponsesTab instanceId={selectedInstanceId} />
-          </TabPanel>
-        )}
-        <TabPanel value="activity">
-          <ActivityTab 
-            campaignId={id}
-            selectedInstanceId={selectedInstanceId}
-          />
-        </TabPanel>
-        <TabPanel value="reports">
-          <ReportsTab 
-            campaignId={id} 
+
+        <TabPanel value="responses">
+          <ResponsesTab
+            campaignId={campaign.id}
             instanceId={selectedInstanceId}
           />
         </TabPanel>
+
+        <TabPanel value="reports">
+          <ReportsTab
+            campaignId={campaign.id}
+            instanceId={selectedInstanceId}
+          />
+        </TabPanel>
+
         <TabPanel value="analyze">
           <AIAnalyzeTab
-            campaignId={id}
+            campaignId={campaign.id}
             instanceId={selectedInstanceId}
           />
         </TabPanel>

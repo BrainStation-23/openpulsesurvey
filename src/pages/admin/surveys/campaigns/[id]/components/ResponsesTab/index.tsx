@@ -1,46 +1,67 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Response, FilterOptions } from "./types";
+import { ResponsesList } from "./ResponsesList";
+import { ResponsesFilters } from "./ResponsesFilters";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { ResponseGroup } from "./ResponseGroup";
-import { unparse } from "papaparse";
-import type { Response } from "./types";
+import { exportResponses } from "./utils/export";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ResponsesTabProps {
+  campaignId: string;
   instanceId?: string;
 }
 
-export function ResponsesTab({ instanceId }: ResponsesTabProps) {
+export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
+  const { toast } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
+  const [filters, setFilters] = useState<FilterOptions>({
+    search: "",
+    sortBy: "date",
+    sortDirection: "desc",
+  });
+
   const { data: responses, isLoading } = useQuery({
-    queryKey: ["campaign-responses", instanceId],
+    queryKey: ["responses", campaignId, instanceId, filters],
     queryFn: async () => {
-      console.log("Fetching responses for instance:", instanceId);
+      // If no instanceId is provided, return empty array
+      if (!instanceId) return [];
+
       const query = supabase
         .from("survey_responses")
         .select(`
           id,
-          response_data,
-          state_data,
-          submitted_at,
+          status,
           created_at,
           updated_at,
+          submitted_at,
+          response_data,
           campaign_instance_id,
-          assignment_id,
-          user_id,
-          user:profiles!survey_responses_user_id_fkey (
+          assignment:survey_assignments!inner(
+            id,
+            campaign_id,
+            campaign:survey_campaigns!survey_assignments_campaign_id_fkey(
+              id,
+              name,
+              anonymous
+            )
+          ),
+          user:profiles!inner(
             id,
             first_name,
             last_name,
             email,
-            user_sbus (
+            user_sbus(
               is_primary,
               sbu:sbus(
                 id,
                 name
               )
             ),
-            user_supervisors!user_supervisors_user_id_fkey (
+            user_supervisors!user_supervisors_user_id_fkey(
               is_primary,
               supervisor:profiles!user_supervisors_supervisor_id_fkey(
                 id,
@@ -49,83 +70,38 @@ export function ResponsesTab({ instanceId }: ResponsesTabProps) {
                 email
               )
             )
-          ),
-          assignment:survey_assignments!survey_responses_assignment_id_fkey (
-            id,
-            campaign_id,
-            campaign:survey_campaigns(
-              id,
-              anonymous,
-              name
-            )
-          )
-        `);
-
-      if (instanceId) {
-        query.eq("campaign_instance_id", instanceId);
-      }
+          )`)
+        .eq('assignment.campaign_id', campaignId)
+        .eq('campaign_instance_id', instanceId)
+        .order('created_at', { ascending: filters.sortDirection === "asc" });
 
       const { data, error } = await query;
+      if (error) throw error;
 
-      if (error) {
-        console.error("Error fetching responses:", error);
-        throw error;
-      }
-      console.log("Fetched responses:", data);
       return data as Response[];
     },
-    enabled: !!instanceId,
   });
 
-  const handleExport = () => {
-    if (!responses?.length) return;
-
-    const isAnonymous = responses[0].assignment.campaign.anonymous;
-    
-    const csvData = responses.map(response => {
-      const baseData = {
-        "Submission Date": response.submitted_at ? new Date(response.submitted_at).toLocaleString() : "Not submitted",
-        "Primary SBU": response.user.user_sbus.find(us => us.is_primary)?.sbu.name || "N/A",
-        "Primary Manager": (() => {
-          const primarySupervisor = response.user.user_supervisors.find(us => us.is_primary);
-          if (!primarySupervisor) return "N/A";
-          const { first_name, last_name } = primarySupervisor.supervisor;
-          const fullName = [first_name, last_name]
-            .filter(name => name && name.trim())
-            .join(" ")
-            .trim();
-          return fullName || "N/A";
-        })(),
-      };
-
-      // Add respondent info only if not anonymous
-      if (!isAnonymous) {
-        Object.assign(baseData, {
-          "Respondent Name": response.user.first_name && response.user.last_name
-            ? `${response.user.first_name} ${response.user.last_name}`
-            : "N/A",
-          "Respondent Email": response.user.email,
+  const handleExport = async () => {
+    if (responses) {
+      try {
+        setIsExporting(true);
+        await exportResponses(responses);
+        toast({
+          title: "Export successful",
+          description: "Your survey responses have been exported to CSV.",
         });
+      } catch (error) {
+        console.error('Export error:', error);
+        toast({
+          title: "Export failed",
+          description: "There was an error exporting the survey responses.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsExporting(false);
       }
-
-      // Add response data
-      const responseData = response.response_data as Record<string, any>;
-      Object.entries(responseData).forEach(([key, value]) => {
-        baseData[key] = typeof value === 'object' ? JSON.stringify(value) : value;
-      });
-
-      return baseData;
-    });
-
-    const csv = unparse(csvData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const campaignName = responses[0].assignment.campaign.name.toLowerCase().replace(/\s+/g, '-');
-    
-    link.href = window.URL.createObjectURL(blob);
-    link.download = `${campaignName}-responses${instanceId ? `-period-${instanceId}` : ''}.csv`;
-    link.click();
-    window.URL.revokeObjectURL(link.href);
+    }
   };
 
   if (isLoading) {
@@ -137,20 +113,29 @@ export function ResponsesTab({ instanceId }: ResponsesTabProps) {
     );
   }
 
+  if (!instanceId) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Please select a period to view responses.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button
-          variant="outline"
-          onClick={handleExport}
-          disabled={!responses?.length}
+      <div className="flex items-center justify-between">
+        <ResponsesFilters filters={filters} onFiltersChange={setFilters} />
+        <Button 
+          variant="outline" 
+          onClick={handleExport} 
+          disabled={!responses?.length || isExporting}
         >
-          <Download className="mr-2 h-4 w-4" />
-          Export Responses
+          <Download className="h-4 w-4 mr-2" />
+          {isExporting ? "Exporting..." : "Export"}
         </Button>
       </div>
 
-      <ResponseGroup responses={responses || []} />
+      <ResponsesList responses={responses || []} />
     </div>
   );
 }

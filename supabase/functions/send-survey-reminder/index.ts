@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
@@ -14,7 +15,6 @@ const corsHeaders = {
 interface ReminderRequest {
   assignmentId: string;
   surveyName: string;
-  dueDate: string | null;
   recipientEmail: string;
   recipientName: string;
   publicAccessToken: string;
@@ -61,17 +61,40 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("No email configuration found");
     }
 
-    // Check if a reminder was sent in the last 24 hours
-    const { data: assignment } = await supabase
+    // Get assignment and active instance information
+    const { data: assignmentData, error: assignmentError } = await supabase
       .from('survey_assignments')
-      .select('last_reminder_sent')
+      .select(`
+        id,
+        last_reminder_sent,
+        campaign:survey_campaigns (
+          instances:campaign_instances (
+            id,
+            ends_at,
+            status
+          )
+        )
+      `)
       .eq('id', reminderRequest.assignmentId)
       .single();
 
-    console.log("Assignment data:", JSON.stringify(assignment));
+    if (assignmentError) {
+      console.error("Error fetching assignment:", assignmentError);
+      throw new Error("Failed to fetch assignment data");
+    }
 
-    if (assignment?.last_reminder_sent) {
-      const lastSent = new Date(assignment.last_reminder_sent);
+    // Find the active instance
+    const activeInstance = assignmentData.campaign.instances.find(
+      (instance: any) => instance.status === 'active'
+    );
+
+    if (!activeInstance) {
+      throw new Error("No active instance found for this campaign");
+    }
+
+    // Check if a reminder was sent in the last 24 hours
+    if (assignmentData.last_reminder_sent) {
+      const lastSent = new Date(assignmentData.last_reminder_sent);
       const hoursSinceLastReminder = (Date.now() - lastSent.getTime()) / (1000 * 60 * 60);
       
       if (hoursSinceLastReminder < 24) {
@@ -90,12 +113,27 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate the public access URL using the provided frontend URL
     const publicAccessUrl = `${reminderRequest.frontendUrl}/public/survey/${reminderRequest.publicAccessToken}`;
 
+    // Format deadline date and time
+    const deadline = new Date(activeInstance.ends_at);
+    const formattedDeadline = deadline.toLocaleString('en-US', {
+      dateStyle: 'full',
+      timeStyle: 'short'
+    });
+
+    // Calculate time remaining
+    const now = new Date();
+    const hoursRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60));
+    const daysRemaining = Math.ceil(hoursRemaining / 24);
+    
+    let urgencyMessage = "";
+    if (daysRemaining <= 1) {
+      urgencyMessage = `⚠️ This survey must be completed within the next ${hoursRemaining} hours.`;
+    } else {
+      urgencyMessage = `You have ${daysRemaining} days to complete this survey.`;
+    }
+
     // Send reminder email using Resend
     console.log("Sending email via Resend...");
-    const dueDateText = reminderRequest.dueDate 
-      ? `This survey is due by ${new Date(reminderRequest.dueDate).toLocaleDateString()}.` 
-      : "Please complete this survey at your earliest convenience.";
-
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -105,13 +143,16 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         from: `${emailConfig.from_name} <${emailConfig.from_email}>`,
         to: [reminderRequest.recipientEmail],
-        subject: `Reminder: ${reminderRequest.surveyName} Survey Pending`,
+        subject: `Deadline Reminder: ${reminderRequest.surveyName} Due ${formattedDeadline}`,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>Hello ${reminderRequest.recipientName},</h2>
-            <p>This is a friendly reminder that you have a pending survey to complete: <strong>${reminderRequest.surveyName}</strong></p>
-            <p>${dueDateText}</p>
-            <p>You can complete the survey by clicking the link below:</p>
+            <p>This is a reminder about your pending survey: <strong>${reminderRequest.surveyName}</strong></p>
+            <div style="background-color: #f8f9fa; border-left: 4px solid #2563eb; padding: 1rem; margin: 1rem 0;">
+              <p style="margin: 0; color: #1e40af;"><strong>DEADLINE: ${formattedDeadline}</strong></p>
+              <p style="margin-top: 0.5rem; color: #4b5563;">${urgencyMessage}</p>
+            </div>
+            <p>Please complete the survey by clicking the link below:</p>
             <p><a href="${publicAccessUrl}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Complete Survey</a></p>
             <p style="color: #666; font-size: 14px;">If the button doesn't work, you can copy and paste this link into your browser:</p>
             <p style="color: #666; font-size: 14px;">${publicAccessUrl}</p>

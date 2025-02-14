@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -7,56 +8,25 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
 import SurveyCard from "./SurveyCard";
 import SurveyFilters from "./components/SurveyFilters";
-import { Database } from "@/integrations/supabase/types";
+import { ResponseStatus, UserSurvey } from "@/pages/admin/surveys/types/user-surveys";
 
-type Assignment = {
-  id: string;
-  survey_id: string;
-  user_id: string;
-  due_date: string | null;
-  status: Database["public"]["Enums"]["assignment_status"] | null;
-  created_by: string;
-  created_at: string | null;
-  updated_at: string | null;
-  is_organization_wide: boolean | null;
-  campaign_id: string | null;
-  survey: {
-    id: string;
-    name: string;
-    description: string | null;
-    status: Database["public"]["Enums"]["survey_status"] | null;
-    created_at: string;
-    created_by: string;
-    json_data: Database["public"]["Tables"]["surveys"]["Row"]["json_data"];
-    tags: string[] | null;
-    updated_at: string;
-  };
-  campaign?: {
-    id: string;
-    name: string;
-    description: string | null;
-    completion_rate: number | null;
-    status: string;
-    campaign_type: string;
-    created_at: string;
-    created_by: string;
-    ends_at: string | null;
-    is_recurring: boolean | null;
-    recurring_days: number[] | null;
-    recurring_ends_at: string | null;
-    recurring_frequency: string | null;
-    starts_at: string;
-    instance_duration_days: number | null;
-    instance_end_time: string | null;
-    updated_at: string;
-  };
-  active_instance?: {
-    id: string;
-    starts_at: string;
-    ends_at: string;
-    status: string;
-  } | null;
-};
+function determineStatus(survey: Partial<UserSurvey> & { 
+  instance: UserSurvey["instance"],
+  response?: UserSurvey["response"]
+}): ResponseStatus {
+  // If there's a response for this instance, use its status
+  if (survey.response?.status) {
+    return survey.response.status;
+  }
+  
+  // No response but instance ended
+  if (new Date(survey.instance.ends_at) < new Date()) {
+    return 'expired';
+  }
+  
+  // Active instance, no response
+  return 'assigned';
+}
 
 export default function MySurveysList() {
   const navigate = useNavigate();
@@ -64,104 +34,124 @@ export default function MySurveysList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   
-  const { data: assignments, isLoading } = useQuery({
+  const { data: userSurveys, isLoading } = useQuery({
     queryKey: ["my-survey-assignments"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+
+      if (!userId) throw new Error("No user found");
+
+      // First, get the active campaign instances
+      const { data: activeInstances, error: instanceError } = await supabase
+        .from('campaign_instances')
+        .select('id, campaign_id, starts_at, ends_at, status')
+        .eq('status', 'active');
+
+      if (instanceError) throw instanceError;
+
+      // Then get assignments with their related data
+      const { data: assignments, error: assignmentError } = await supabase
         .from("survey_assignments")
         .select(`
-          *,
+          id,
+          survey_id,
+          campaign_id,
+          user_id,
+          created_by,
+          created_at,
+          updated_at,
+          public_access_token,
+          last_reminder_sent,
+          responses:survey_responses (
+            status,
+            campaign_instance_id
+          ),
           survey:surveys (
             id,
             name,
             description,
-            status,
-            created_at,
-            created_by,
-            json_data,
-            tags,
-            updated_at
+            json_data
           ),
-          campaign:survey_campaigns (
+          campaign:survey_campaigns!survey_assignments_campaign_id_fkey (
             id,
-            name,
-            description,
-            completion_rate,
-            status,
-            campaign_type,
-            created_at,
-            created_by,
-            ends_at,
-            is_recurring,
-            recurring_days,
-            recurring_ends_at,
-            recurring_frequency,
-            starts_at,
-            instance_duration_days,
-            instance_end_time,
-            updated_at
+            name
           )
         `)
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id)
-        .order("created_at", { ascending: false });
+        .eq("user_id", userId)
+        .in('campaign_id', activeInstances.map(instance => instance.campaign_id));
 
-      if (error) throw error;
+      if (assignmentError) throw assignmentError;
 
-      // For each assignment with a campaign, fetch the active instance
-      const assignmentsWithInstances = await Promise.all(
-        data.map(async (assignment) => {
-          if (assignment.campaign_id) {
-            const { data: instances, error: instanceError } = await supabase
-              .from("campaign_instances")
-              .select("*")
-              .eq("campaign_id", assignment.campaign_id)
-              .eq("status", "active")
-              .maybeSingle();
+      // Map the data to include active instances
+      return assignments.map(assignment => {
+        const activeInstance = activeInstances.find(
+          instance => instance.campaign_id === assignment.campaign_id
+        );
+        
+        if (!activeInstance) return null;
 
-            if (instanceError) throw instanceError;
-            
-            return {
-              ...assignment,
-              active_instance: instances
-            };
-          }
-          return assignment;
-        })
-      );
+        const status = determineStatus({
+          instance: activeInstance,
+          response: assignment.responses?.[0]
+        });
 
-      return assignmentsWithInstances as Assignment[];
+        const userSurvey: UserSurvey = {
+          id: assignment.id,
+          survey_id: assignment.survey_id,
+          campaign_id: assignment.campaign_id,
+          user_id: assignment.user_id,
+          created_by: assignment.created_by,
+          created_at: assignment.created_at,
+          updated_at: assignment.updated_at,
+          public_access_token: assignment.public_access_token,
+          last_reminder_sent: assignment.last_reminder_sent,
+          instance: activeInstance,
+          survey: assignment.survey,
+          status
+        };
+
+        if (assignment.responses?.[0]) {
+          userSurvey.response = {
+            status: assignment.responses[0].status,
+            campaign_instance_id: assignment.responses[0].campaign_instance_id
+          };
+        }
+
+        return userSurvey;
+      }).filter(Boolean) as UserSurvey[]; // Filter out null values and cast to UserSurvey[]
     },
   });
 
   // Check for due dates and show notifications
   useEffect(() => {
-    if (assignments) {
+    if (userSurveys) {
       const now = new Date();
-      assignments.forEach(assignment => {
-        const effectiveDueDate = assignment.active_instance?.ends_at || assignment.due_date;
+      userSurveys.forEach(survey => {
+        const effectiveEndDate = survey.instance.ends_at;
         
-        if (effectiveDueDate && assignment.status !== 'completed') {
-          const dueDate = new Date(effectiveDueDate);
+        if (effectiveEndDate && survey.status !== 'submitted') {
+          const dueDate = new Date(effectiveEndDate);
           const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
           
           if (daysUntilDue <= 3 && daysUntilDue > 0) {
             toast({
               title: "Survey Due Soon",
-              description: `"${assignment.campaign?.name || assignment.survey.name}" is due in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'}`,
+              description: `"${survey.survey.name}" is due in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'}`,
               variant: "default",
             });
           }
-          else if (daysUntilDue < 0 && assignment.status !== 'expired') {
+          else if (daysUntilDue < 0 && survey.status !== 'expired') {
             toast({
               title: "Survey Overdue",
-              description: `"${assignment.campaign?.name || assignment.survey.name}" is overdue`,
+              description: `"${survey.survey.name}" is overdue`,
               variant: "destructive",
             });
           }
         }
       });
     }
-  }, [assignments, toast]);
+  }, [userSurveys, toast]);
 
   const handleSelectSurvey = async (id: string) => {
     // Check if user is admin
@@ -178,21 +168,14 @@ export default function MySurveysList() {
     }
   };
 
-  const filteredAssignments = assignments?.filter((assignment) => {
-    // Filter out assignments with draft campaigns
-    if (assignment.campaign?.status === 'draft') {
-      return false;
-    }
-
+  const filteredSurveys = userSurveys?.filter((survey) => {
     const matchesSearch = 
-      assignment.campaign?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      assignment.survey.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      assignment.campaign?.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      assignment.survey.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      survey.survey.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (survey.survey.description?.toLowerCase() || '').includes(searchQuery.toLowerCase());
 
     const matchesStatus = 
       statusFilter === "all" || 
-      assignment.status === statusFilter;
+      survey.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -212,14 +195,14 @@ export default function MySurveysList() {
 
       <ScrollArea className="h-[calc(100vh-14rem)]">
         <div className="space-y-4 p-4">
-          {filteredAssignments?.map((assignment) => (
+          {filteredSurveys?.map((survey) => (
             <SurveyCard
-              key={assignment.id}
-              assignment={assignment}
+              key={survey.id}
+              survey={survey}
               onSelect={handleSelectSurvey}
             />
           ))}
-          {filteredAssignments?.length === 0 && (
+          {filteredSurveys?.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               No surveys found matching your criteria
             </div>
