@@ -142,7 +142,10 @@ export default function CampaignDetailsPage() {
 
       <CampaignTabs isAnonymous={campaign.anonymous} status={campaign.status}>
         <TabPanel value="overview">
-          <OverviewTab campaignId={campaign.id} />
+          <OverviewTab 
+            campaignId={campaign.id} 
+            selectedInstanceId={selectedInstanceId}  {/* Added selectedInstanceId prop */}
+          />
         </TabPanel>
 
         <TabPanel value="assignments">
