@@ -34,49 +34,49 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
           submitted_at,
           response_data,
           campaign_instance_id,
-          user:profiles!survey_responses_user_id_fkey (
+          assignment:survey_assignments!inner(
+            id,
+            campaign_id,
+            campaign:survey_campaigns(
+              id,
+              name,
+              anonymous
+            )
+          ),
+          user:profiles!inner(
             id,
             first_name,
             last_name,
             email,
-            user_sbus!user_sbus_user_id_fkey (
+            user_sbus(
               is_primary,
-              sbu:sbus!user_sbus_sbu_id_fkey (
+              sbu:sbus(
                 id,
                 name
               )
             ),
-            user_supervisors (
+            user_supervisors(
               is_primary,
-              supervisor:profiles!user_supervisors_supervisor_id_fkey (
+              supervisor:profiles(
                 id,
                 first_name,
                 last_name,
                 email
               )
             )
-          ),
-          assignment:survey_assignments (
-            id,
-            campaign_id,
-            campaign:survey_campaigns (
-              id,
-              name,
-              anonymous
-            )
-          )
-        `)
-        .eq("assignment.campaign_id", campaignId)
-        .order("created_at", { ascending: filters.sortDirection === "asc" });
+          )`
+        )
+        .eq('assignment.campaign_id', campaignId)
+        .order('created_at', { ascending: filters.sortDirection === "asc" });
 
       if (instanceId) {
-        query.eq("campaign_instance_id", instanceId);
+        query.eq('campaign_instance_id', instanceId);
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
-      return data as unknown as Response[];
+
+      return data as Response[];
     },
   });
 
@@ -88,7 +88,7 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
 
   // Group responses by period number
   const groupedResponses = responses?.reduce((acc: Record<number, Response[]>, response) => {
-    const periodNumber = response.campaign_instance_id ? 1 : 0; // Placeholder until we have period numbers
+    const periodNumber = response.campaign_instance_id ? 1 : 0;
     acc[periodNumber] = [...(acc[periodNumber] || []), response];
     return acc;
   }, {}) || {};
