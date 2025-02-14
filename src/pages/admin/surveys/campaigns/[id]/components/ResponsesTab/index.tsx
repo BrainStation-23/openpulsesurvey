@@ -24,6 +24,9 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
   const { data: responses, isLoading } = useQuery({
     queryKey: ["responses", campaignId, instanceId, filters],
     queryFn: async () => {
+      // If no instanceId is provided, return empty array
+      if (!instanceId) return [];
+
       const query = supabase
         .from("survey_responses")
         .select(`
@@ -64,14 +67,10 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
                 email
               )
             )
-          )`
-        )
+          )`)
         .eq('assignment.campaign_id', campaignId)
+        .eq('campaign_instance_id', instanceId)
         .order('created_at', { ascending: filters.sortDirection === "asc" });
-
-      if (instanceId) {
-        query.eq('campaign_instance_id', instanceId);
-      }
 
       const { data, error } = await query;
       if (error) throw error;
@@ -86,18 +85,19 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
     }
   };
 
-  // Group responses by period number
-  const groupedResponses = responses?.reduce((acc: Record<number, Response[]>, response) => {
-    const periodNumber = response.campaign_instance_id ? 1 : 0;
-    acc[periodNumber] = [...(acc[periodNumber] || []), response];
-    return acc;
-  }, {}) || {};
-
   if (isLoading) {
     return (
       <div className="space-y-4">
         <div className="h-12 w-full animate-pulse bg-muted rounded" />
         <div className="h-32 w-full animate-pulse bg-muted rounded" />
+      </div>
+    );
+  }
+
+  if (!instanceId) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Please select a period to view responses.
       </div>
     );
   }
@@ -112,7 +112,7 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
         </Button>
       </div>
 
-      <ResponsesList groupedResponses={groupedResponses} />
+      <ResponsesList responses={responses || []} />
     </div>
   );
 }
