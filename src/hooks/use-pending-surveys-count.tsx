@@ -22,14 +22,14 @@ export function usePendingSurveysCount() {
 
       if (error) throw error;
 
-      // Get pending assignments count using our new function
+      // Get pending assignments count - now including both assigned AND in_progress
       const pendingCount = await Promise.all(
         (assignments || []).map(async (assignment) => {
           const { data: status } = await supabase
             .rpc('get_assignment_status', {
               p_assignment_id: assignment.id
             });
-          return status === 'assigned' ? 1 : 0;
+          return (status === 'assigned' || status === 'in_progress') ? 1 : 0;
         })
       ).then(results => results.reduce((a, b) => a + b, 0));
 

@@ -21,10 +21,13 @@ export default function UserSurveyResponsePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { data: assignment, isLoading } = useQuery({
-    queryKey: ["survey-assignment", id],
+  const { data: assignmentData, isLoading } = useQuery({
+    queryKey: ["survey-assignment-with-response", id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) throw new Error("User not authenticated");
+
+      const { data: assignment, error: assignmentError } = await supabase
         .from("survey_assignments")
         .select(`
           *,
@@ -43,9 +46,24 @@ export default function UserSurveyResponsePage() {
         .eq("id", id)
         .maybeSingle();
 
-      if (error) throw error;
-      if (!data) throw new Error("Survey assignment not found");
-      return data;
+      if (assignmentError) throw assignmentError;
+      if (!assignment) throw new Error("Survey assignment not found");
+
+      // Fetch the latest response for this assignment
+      const { data: response, error: responseError } = await supabase
+        .from("survey_responses")
+        .select("*")
+        .eq("assignment_id", assignment.id)
+        .eq("user_id", user.data.user.id)
+        .order("updated_at", { ascending: false })
+        .maybeSingle();
+
+      if (responseError) throw responseError;
+
+      return {
+        assignment,
+        existingResponse: response
+      };
     },
   });
 
@@ -57,22 +75,22 @@ export default function UserSurveyResponsePage() {
     handleSubmitSurvey
   } = useSurveyResponse({
     id: id!,
-    surveyData: assignment?.survey?.json_data,
-    existingResponse: null,
-    campaignInstanceId: null,
+    surveyData: assignmentData?.assignment.survey?.json_data,
+    existingResponse: assignmentData?.existingResponse,
+    campaignInstanceId: assignmentData?.assignment.campaign_id || null,
   });
 
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  if (!assignment) {
+  if (!assignmentData?.assignment) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">Survey not found or you don't have access to it.</p>
         <Button
           variant="ghost"
-          onClick={() => navigate("/user/my-surveys")}
+          onClick={() => navigate("/admin/my-surveys")}
           className="mt-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -89,12 +107,12 @@ export default function UserSurveyResponsePage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/user/my-surveys")}
+            onClick={() => navigate("/admin/my-surveys")}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-2xl font-bold">
-            {assignment.campaign?.name || assignment.survey.name}
+            {assignmentData.assignment.campaign?.name || assignmentData.assignment.survey.name}
           </h1>
         </div>
         {lastSaved && (

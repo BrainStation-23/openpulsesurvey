@@ -30,24 +30,27 @@ export function useSurveyResponse({
   useEffect(() => {
     if (surveyData) {
       const surveyModel = new Model(surveyData);
-      
       surveyModel.applyTheme(LayeredDarkPanelless);
-      
+
+      // If there's an existing response, load it
       if (existingResponse?.response_data) {
+        console.log("Loading existing response data:", existingResponse.response_data);
         surveyModel.data = existingResponse.response_data;
         surveyModel.start();
         
+        // Restore the last page from state data
         const stateData = existingResponse.state_data;
         if (stateData && isSurveyStateData(stateData)) {
+          console.log("Restoring to page:", stateData.lastPageNo);
           surveyModel.currentPageNo = stateData.lastPageNo;
-        } else {
-          surveyModel.currentPageNo = surveyModel.maxValidPageNo;
         }
       }
 
+      // If the response is submitted, make it read-only
       if (existingResponse?.status === 'submitted') {
         surveyModel.mode = 'display';
       } else {
+        // Add autosave for non-submitted surveys
         surveyModel.onCurrentPageChanged.add(async (sender) => {
           try {
             const userId = (await supabase.auth.getUser()).data.user?.id;
@@ -74,6 +77,7 @@ export function useSurveyResponse({
               });
 
             if (error) throw error;
+            console.log("Saved page state:", stateData);
           } catch (error) {
             console.error("Error saving page state:", error);
           }
@@ -102,6 +106,7 @@ export function useSurveyResponse({
 
             if (error) throw error;
             setLastSaved(new Date());
+            console.log("Saved response data:", responseData);
           } catch (error) {
             console.error("Error saving response:", error);
             toast({
