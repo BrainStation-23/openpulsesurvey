@@ -9,30 +9,29 @@ export function usePendingSurveysCount() {
       const user = await supabase.auth.getUser();
       if (!user.data.user) return 0;
 
-      const { data: assignments, error } = await supabase
+      // First, get all active campaign instances
+      const { data: activeInstances, error: instancesError } = await supabase
+        .from("campaign_instances")
+        .select("id, campaign_id")
+        .eq("status", "active");
+
+      if (instancesError) throw instancesError;
+      if (!activeInstances?.length) return 0;
+
+      // Get all assignments for the user
+      const { data: assignments, error: assignmentsError } = await supabase
         .from("survey_assignments")
-        .select(`
-          id,
-          campaign:survey_campaigns!inner (
-            status
-          )
-        `)
+        .select("id, campaign_id")
         .eq("user_id", user.data.user.id)
-        .neq("campaign.status", "draft");
+        .in("campaign_id", activeInstances.map(i => i.campaign_id));
 
-      if (error) throw error;
+      if (assignmentsError) throw assignmentsError;
+      if (!assignments?.length) return 0;
 
-      // Get pending assignments count - now including both assigned AND in_progress
+      // For each assignment, check status using the active instance
       const pendingCount = await Promise.all(
-        (assignments || []).map(async (assignment) => {
-          // Get the active instance for this assignment's campaign
-          const { data: instance } = await supabase
-            .from("campaign_instances")
-            .select("id")
-            .eq("campaign_id", assignment.campaign.id)
-            .eq("status", "active")
-            .single();
-            
+        assignments.map(async (assignment) => {
+          const instance = activeInstances.find(i => i.campaign_id === assignment.campaign_id);
           if (!instance) return 0;
 
           const { data: status } = await supabase

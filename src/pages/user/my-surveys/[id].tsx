@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Model } from "survey-core";
@@ -46,7 +45,7 @@ export default function UserSurveyResponsePage() {
   const [survey, setSurvey] = useState<Model | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  const { data: assignment, isLoading } = useQuery({
+  const { data: assignmentData, isLoading } = useQuery({
     queryKey: ["survey-assignment", id],
     queryFn: async () => {
       const { data: assignmentData, error } = await supabase
@@ -71,38 +70,47 @@ export default function UserSurveyResponsePage() {
       if (error) throw error;
       if (!assignmentData) throw new Error("Survey assignment not found");
 
-      // Get the assignment status
+      // Get the active instance for this assignment's campaign
+      const { data: instance } = await supabase
+        .from("campaign_instances")
+        .select("id")
+        .eq("campaign_id", assignmentData.campaign_id)
+        .eq("status", "active")
+        .single();
+
+      // Get the assignment status using the instance
       const { data: assignmentStatus } = await supabase
-        .rpc('get_assignment_status', {
-          p_assignment_id: assignmentData.id
+        .rpc('get_instance_assignment_status', {
+          p_assignment_id: assignmentData.id,
+          p_instance_id: instance.id
         });
 
       return { 
         ...assignmentData, 
         status: assignmentStatus as ResponseStatus 
-      } as SurveyAssignmentWithStatus;
+      };
     },
   });
 
   useEffect(() => {
-    if (assignment?.survey?.json_data) {
-      const surveyModel = new Model(assignment.survey.json_data);
+    if (assignmentData?.survey?.json_data) {
+      const surveyModel = new Model(assignmentData.survey.json_data);
       
       surveyModel.applyTheme(LayeredDarkPanelless);
       
-      if (assignment.status === "submitted") {
+      if (assignmentData.status === "submitted") {
         surveyModel.mode = 'display';
       }
 
       setSurvey(surveyModel);
     }
-  }, [assignment]);
+  }, [assignmentData]);
 
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  if (!assignment) {
+  if (!assignmentData) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">Survey not found or you don't have access to it.</p>
@@ -130,7 +138,7 @@ export default function UserSurveyResponsePage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-2xl font-bold">
-            {assignment.campaign?.name || assignment.survey.name}
+            {assignmentData.campaign?.name || assignmentData.survey.name}
           </h1>
         </div>
         {lastSaved && (

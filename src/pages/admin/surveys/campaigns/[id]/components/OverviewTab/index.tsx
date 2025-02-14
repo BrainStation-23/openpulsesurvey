@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,6 +83,8 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
   const { data: statusData } = useQuery({
     queryKey: ["instance-status-distribution", selectedInstanceId],
     queryFn: async () => {
+      if (!selectedInstanceId) return [];
+
       // Get assignments
       const { data: assignmentsData } = await supabase
         .from("survey_assignments")
@@ -92,29 +93,26 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
 
       if (!assignmentsData) return [];
 
-      // Get status for each assignment
-      const assignmentStatuses = await Promise.all(
+      // Get status for each assignment using get_instance_assignment_status
+      const statusCounts: Record<string, number> = {};
+
+      await Promise.all(
         assignmentsData.map(async (assignment) => {
           const { data: status } = await supabase
-            .rpc('get_assignment_status', {
+            .rpc('get_instance_assignment_status', {
               p_assignment_id: assignment.id,
               p_instance_id: selectedInstanceId
             });
-          return status;
+          statusCounts[status] = (statusCounts[status] || 0) + 1;
         })
       );
 
-      // Count statuses
-      const distribution = assignmentStatuses.reduce((acc: Record<string, number>, status) => {
-        acc[status || "assigned"] = (acc[status || "assigned"] || 0) + 1;
-        return acc;
-      }, {});
-
-      return Object.entries(distribution).map(([name, value]) => ({
+      return Object.entries(statusCounts).map(([name, value]) => ({
         name,
         value,
       }));
     },
+    enabled: !!selectedInstanceId,
   });
 
   return (
