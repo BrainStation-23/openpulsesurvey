@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -10,6 +11,16 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { SurveyStateData, isSurveyStateData } from "@/types/survey";
 import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import "survey-core/defaultV2.min.css";
 
@@ -19,6 +30,7 @@ export default function SurveyResponsePage() {
   const { toast } = useToast();
   const [survey, setSurvey] = useState<Model | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
 
   const { data: assignment, isLoading } = useQuery({
     queryKey: ["survey-assignment", id],
@@ -71,7 +83,6 @@ export default function SurveyResponsePage() {
         .select("*")
         .eq("assignment_id", id);
 
-      // If this is a campaign instance, check for response in this instance
       if (activeInstance?.id) {
         query.eq("campaign_instance_id", activeInstance.id);
       }
@@ -103,7 +114,7 @@ export default function SurveyResponsePage() {
         }
       }
 
-      if (assignment.status === 'completed') {
+      if (existingResponse?.status === 'submitted' || assignment.status === 'completed') {
         surveyModel.mode = 'display';
       } else {
         // Save state when page changes
@@ -122,8 +133,9 @@ export default function SurveyResponsePage() {
               .upsert({
                 assignment_id: id,
                 user_id: userId,
-                response_data: existingResponse?.response_data || {},
+                response_data: sender.data,
                 state_data: stateData,
+                status: 'in_progress',
                 campaign_instance_id: activeInstance?.id || null,
               }, {
                 onConflict: activeInstance?.id 
@@ -146,6 +158,7 @@ export default function SurveyResponsePage() {
               assignment_id: id,
               user_id: userId,
               response_data: sender.data,
+              status: 'in_progress',
               updated_at: new Date().toISOString(),
               campaign_instance_id: activeInstance?.id || null,
             };
@@ -170,57 +183,65 @@ export default function SurveyResponsePage() {
           }
         });
 
-        surveyModel.onComplete.add(async (sender) => {
-          try {
-            const userId = (await supabase.auth.getUser()).data.user?.id;
-            if (!userId) throw new Error("User not authenticated");
-
-            const responseData = {
-              assignment_id: id,
-              user_id: userId,
-              response_data: sender.data,
-              submitted_at: new Date().toISOString(),
-              campaign_instance_id: activeInstance?.id || null,
-            };
-
-            const { error: responseError } = await supabase
-              .from("survey_responses")
-              .upsert(responseData, {
-                onConflict: activeInstance?.id 
-                  ? 'assignment_id,user_id,campaign_instance_id' 
-                  : 'assignment_id,user_id'
-              });
-
-            if (responseError) throw responseError;
-
-            // Update assignment status
-            const { error: assignmentError } = await supabase
-              .from("survey_assignments")
-              .update({ status: "completed" })
-              .eq("id", id);
-
-            if (assignmentError) throw assignmentError;
-
-            toast({
-              title: "Survey completed",
-              description: "Your response has been submitted successfully.",
-            });
-
-            navigate("/admin/my-surveys");
-          } catch (error) {
-            console.error("Error submitting response:", error);
-            toast({
-              title: "Error submitting response",
-              description: "Your response could not be submitted. Please try again.",
-              variant: "destructive",
-            });
-          }
+        surveyModel.onComplete.add(() => {
+          // Instead of submitting directly, show confirmation dialog
+          setShowSubmitDialog(true);
         });
       }
 
       setSurvey(surveyModel);
     }
   }, [assignment, existingResponse, id, navigate, toast, activeInstance]);
+
+  const handleSubmitSurvey = async () => {
+    if (!survey) return;
+    
+    try {
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      if (!userId) throw new Error("User not authenticated");
+
+      const responseData = {
+        assignment_id: id,
+        user_id: userId,
+        response_data: survey.data,
+        status: 'submitted',
+        submitted_at: new Date().toISOString(),
+        campaign_instance_id: activeInstance?.id || null,
+      };
+
+      const { error: responseError } = await supabase
+        .from("survey_responses")
+        .upsert(responseData, {
+          onConflict: activeInstance?.id 
+            ? 'assignment_id,user_id,campaign_instance_id' 
+            : 'assignment_id,user_id'
+        });
+
+      if (responseError) throw responseError;
+
+      // Update assignment status
+      const { error: assignmentError } = await supabase
+        .from("survey_assignments")
+        .update({ status: "completed" })
+        .eq("id", id);
+
+      if (assignmentError) throw assignmentError;
+
+      toast({
+        title: "Survey completed",
+        description: "Your response has been submitted successfully.",
+      });
+
+      navigate("/admin/my-surveys");
+    } catch (error) {
+      console.error("Error submitting response:", error);
+      toast({
+        title: "Error submitting response",
+        description: "Your response could not be submitted. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading || !survey) {
     return <div>Loading...</div>;
@@ -261,6 +282,21 @@ export default function SurveyResponsePage() {
       <div className="bg-card rounded-lg border p-6">
         <Survey model={survey} />
       </div>
+
+      <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Submit Survey Response</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to submit this survey? Once submitted, you won't be able to make any changes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmitSurvey}>Submit</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
