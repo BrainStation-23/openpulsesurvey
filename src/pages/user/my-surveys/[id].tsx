@@ -100,8 +100,15 @@ export default function UserSurveyResponsePage() {
       try {
         // Apply theme without recreating the model
         survey.applyTheme(theme);
-        // Just trigger a re-render without model recreation
-        setSurvey({ ...survey });
+        // Force a re-render by using a new timestamp
+        setSurvey(prevSurvey => {
+          if (prevSurvey) {
+            // This triggers a re-render while maintaining the Model instance
+            prevSurvey.render();
+            return prevSurvey;
+          }
+          return null;
+        });
       } catch (error) {
         console.error("Error applying theme:", error);
         toast({
