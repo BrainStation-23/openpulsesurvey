@@ -124,9 +124,7 @@ export default function CampaignDetailsPage() {
 
         <TabPanel value="responses">
           <ResponsesList
-            campaignId={campaign.id}
-            instanceId={selectedInstanceId}
-            isAnonymous={campaign.anonymous}
+            groupedResponses={{}}  // Pass the correct props according to ResponsesListProps
           />
         </TabPanel>
 
