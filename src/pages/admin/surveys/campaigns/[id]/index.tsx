@@ -50,6 +50,9 @@ export default function CampaignDetailsPage() {
           campaign_id,
           survey_id,
           due_date,
+          responses:survey_responses!inner (
+            status
+          ),
           user:profiles!survey_assignments_user_id_fkey (
             id,
             email,
@@ -67,6 +70,11 @@ export default function CampaignDetailsPage() {
         `)
         .eq("campaign_id", id);
 
+      // If an instance is selected, filter responses by instance
+      if (selectedInstanceId) {
+        query.eq('responses.campaign_instance_id', selectedInstanceId);
+      }
+
       const { data, error } = await query;
 
       if (error) throw error;
@@ -74,7 +82,8 @@ export default function CampaignDetailsPage() {
       // Transform the data to include the status and correct user_sbus structure
       return data?.map(assignment => ({
         ...assignment,
-        status: 'assigned' as ResponseStatus,
+        // Use the response status if available, otherwise default to 'assigned'
+        status: (assignment.responses?.[0]?.status || 'assigned') as ResponseStatus,
         user: {
           ...assignment.user,
           user_sbus: assignment.user.user_sbus.map(userSbu => ({
