@@ -73,11 +73,23 @@ export default function UserSurveyResponsePage() {
     if (assignmentData?.survey?.json_data) {
       const surveyModel = new Model(assignmentData.survey.json_data);
       
-      surveyModel.applyTheme(LayeredDarkPanelless); // Set initial theme
-      
+      // Set initial mode based on submission status
       if (assignmentData.status === "submitted") {
         surveyModel.mode = 'display';
       }
+
+      // Set up survey event handlers
+      surveyModel.onCurrentPageChanged.add(() => {
+        console.log("Current page changed:", surveyModel.currentPageNo);
+      });
+
+      surveyModel.onValueChanged.add(() => {
+        console.log("Value changed:", surveyModel.data);
+      });
+
+      surveyModel.onComplete.add(() => {
+        console.log("Survey completed");
+      });
 
       setSurvey(surveyModel);
     }
@@ -85,9 +97,19 @@ export default function UserSurveyResponsePage() {
 
   const handleThemeChange = (theme: any) => {
     if (survey) {
-      survey.applyTheme(theme);
-      // Force a re-render since the theme change doesn't trigger one automatically
-      setSurvey(new Model({ ...survey.toJSON() }));
+      try {
+        // Apply theme without recreating the model
+        survey.applyTheme(theme);
+        // Force a re-render by updating the state reference
+        setSurvey(Object.assign(new Model(), survey));
+      } catch (error) {
+        console.error("Error applying theme:", error);
+        toast({
+          title: "Error applying theme",
+          description: "There was an error applying the theme. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
