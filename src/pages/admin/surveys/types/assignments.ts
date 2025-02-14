@@ -7,14 +7,14 @@ export type Survey = {
   id: string;
   name: string;
   description: string | null;
-  json_data: Record<string, any>;
+  json_data: Database["public"]["Tables"]["surveys"]["Row"]["json_data"];
 };
 
 export type Instance = {
   id: string;
   starts_at: string;
   ends_at: string;
-  status: string;
+  status: Database["public"]["Enums"]["instance_status"];
 };
 
 export type Assignment = {
@@ -35,4 +35,3 @@ export type Assignment = {
     campaign_instance_id: string;
   };
 };
-

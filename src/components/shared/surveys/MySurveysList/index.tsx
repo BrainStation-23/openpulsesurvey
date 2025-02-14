@@ -10,7 +10,10 @@ import SurveyCard from "./SurveyCard";
 import SurveyFilters from "./components/SurveyFilters";
 import { ResponseStatus, Assignment } from "@/pages/admin/surveys/types/assignments";
 
-function determineStatus(assignment: Assignment): ResponseStatus {
+function determineStatus(assignment: Partial<Assignment> & { 
+  instance: Assignment["instance"],
+  response?: Assignment["response"]
+}): ResponseStatus {
   // If there's a response for this instance, use its status
   if (assignment.response?.status) {
     return assignment.response.status;
@@ -75,6 +78,11 @@ export default function MySurveysList() {
       if (error) throw error;
 
       return data?.map(assignment => {
+        const status = determineStatus({
+          instance: assignment.instance,
+          response: assignment.responses?.[0]
+        });
+
         const mappedAssignment: Assignment = {
           id: assignment.id,
           survey_id: assignment.survey_id,
@@ -87,11 +95,7 @@ export default function MySurveysList() {
           last_reminder_sent: assignment.last_reminder_sent,
           instance: assignment.instance,
           survey: assignment.survey,
-          status: determineStatus({
-            ...assignment,
-            instance: assignment.instance,
-            response: assignment.responses?.[0]
-          } as Assignment),
+          status,
         };
 
         if (assignment.responses?.[0]) {
@@ -195,4 +199,3 @@ export default function MySurveysList() {
     </div>
   );
 }
-
