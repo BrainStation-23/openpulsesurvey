@@ -88,6 +88,20 @@ export type Database = {
             referencedRelation: "top_performing_surveys"
             referencedColumns: ["campaign_id"]
           },
+          {
+            foreignKeyName: "fk_campaign_instances_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_campaign_instances_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
         ]
       }
       email_config: {
@@ -434,6 +448,20 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_survey_assignments_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_survey_assignments_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
           {
             foreignKeyName: "survey_assignments_campaign_id_fkey"
             columns: ["campaign_id"]
@@ -1023,6 +1051,20 @@ export type Database = {
           },
           {
             foreignKeyName: "campaign_instances_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
+          {
+            foreignKeyName: "fk_campaign_instances_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_campaign_instances_campaign"
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "top_performing_surveys"

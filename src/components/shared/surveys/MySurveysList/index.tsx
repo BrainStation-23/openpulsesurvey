@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -64,22 +63,23 @@ export default function MySurveysList() {
             description,
             json_data
           ),
-          instance:campaign_instances!inner (
-            id,
-            starts_at,
-            ends_at,
-            status
+          campaign:survey_campaigns!inner (
+            instances:campaign_instances (
+              id,
+              starts_at,
+              ends_at,
+              status
+            )
           )
         `)
         .eq("user_id", userId)
-        .eq('instance.status', 'active')
-        .order("created_at", { ascending: false });
+        .eq('campaign.instances.status', 'active');
 
       if (error) throw error;
 
       return (data as any[]).map(assignment => {
-        // Get the active instance (should be only one due to our query filter)
-        const activeInstance = assignment.instance[0];
+        // Get the active instance from the campaign's instances
+        const activeInstance = assignment.campaign.instances[0];
         
         const status = determineStatus({
           instance: activeInstance,
