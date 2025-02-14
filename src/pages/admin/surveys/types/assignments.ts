@@ -22,6 +22,8 @@ export type Assignment = {
   id: string;
   status: ResponseStatus;
   due_date: string | null;
+  public_access_token: string;
+  last_reminder_sent?: string | null;
   user: {
     id: string;
     email: string;
@@ -36,3 +38,4 @@ export type Assignment = {
     }[];
   };
 };
+
