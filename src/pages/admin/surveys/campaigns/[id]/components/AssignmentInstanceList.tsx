@@ -18,6 +18,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Send, MoreHorizontal, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -47,7 +54,12 @@ export function AssignmentInstanceList({
   selectedInstanceId,
 }: AssignmentInstanceListProps) {
   const [selectedAssignments, setSelectedAssignments] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const queryClient = useQueryClient();
+
+  const filteredAssignments = assignments.filter(assignment => 
+    statusFilter === "all" ? true : assignment.status === statusFilter
+  );
 
   const copyPublicLinkMutation = useMutation({
     mutationFn: async (assignment: Assignment) => {
@@ -93,7 +105,7 @@ export function AssignmentInstanceList({
                     table.toggleAllPageRowsSelected(!!value);
                     setSelectedAssignments(
                       value
-                        ? assignments.map((assignment) => assignment.id)
+                        ? filteredAssignments.map((assignment) => assignment.id)
                         : []
                     );
                   }}
@@ -154,16 +166,6 @@ export function AssignmentInstanceList({
       },
     },
     {
-      accessorKey: "due_date",
-      header: "Due Date",
-      cell: ({ row }: any) => {
-        const dueDate = row.original.due_date
-          ? new Date(row.original.due_date).toLocaleDateString()
-          : "N/A";
-        return dueDate;
-      },
-    },
-    {
       accessorKey: "last_reminder",
       header: "Last Reminder",
       cell: ({ row }: any) => {
@@ -219,6 +221,18 @@ export function AssignmentInstanceList({
               Send Reminder ({selectedAssignments.length})
             </Button>
           )}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="assigned">Assigned</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="submitted">Submitted</SelectItem>
+              <SelectItem value="expired">Expired</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         {surveyId && (
           <AssignCampaignUsers surveyId={surveyId} campaignId={campaignId} />
@@ -227,7 +241,7 @@ export function AssignmentInstanceList({
 
       <DataTable
         columns={columns}
-        data={assignments}
+        data={filteredAssignments}
         isLoading={isLoading}
       />
     </div>
