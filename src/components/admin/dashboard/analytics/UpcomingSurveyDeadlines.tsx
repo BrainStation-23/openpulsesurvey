@@ -66,7 +66,6 @@ export function UpcomingSurveyDeadlines() {
             .rpc('get_assignment_status', {
               p_assignment_id: assignment.id
             });
-          
           return status === 'assigned' ? assignment : null;
         })
       ).then(results => results.filter(Boolean));
