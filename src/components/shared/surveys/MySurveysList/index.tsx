@@ -42,7 +42,16 @@ export default function MySurveysList() {
 
       if (!userId) throw new Error("No user found");
 
-      const { data, error } = await supabase
+      // First, get the active campaign instances
+      const { data: activeInstances, error: instanceError } = await supabase
+        .from('campaign_instances')
+        .select('id, campaign_id, starts_at, ends_at, status')
+        .eq('status', 'active');
+
+      if (instanceError) throw instanceError;
+
+      // Then get assignments with their related data
+      const { data: assignments, error: assignmentError } = await supabase
         .from("survey_assignments")
         .select(`
           id,
@@ -66,55 +75,51 @@ export default function MySurveysList() {
           ),
           campaign:survey_campaigns!survey_assignments_campaign_id_fkey (
             id,
-            name,
-            instances:campaign_instances (
-              id,
-              starts_at,
-              ends_at,
-              status
-            )
+            name
           )
         `)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .in('campaign_id', activeInstances.map(instance => instance.campaign_id));
 
-      if (error) throw error;
+      if (assignmentError) throw assignmentError;
 
-      // Filter assignments to only include those with active instances
-      return (data as any[])
-        .filter(assignment => assignment.campaign?.instances?.some((instance: any) => instance.status === 'active'))
-        .map(assignment => {
-          // Get the active instance
-          const activeInstance = assignment.campaign?.instances?.find((instance: any) => instance.status === 'active');
-          
-          const status = determineStatus({
-            instance: activeInstance,
-            response: assignment.responses?.[0]
-          });
+      // Map the data to include active instances
+      return assignments.map(assignment => {
+        const activeInstance = activeInstances.find(
+          instance => instance.campaign_id === assignment.campaign_id
+        );
+        
+        if (!activeInstance) return null;
 
-          const userSurvey: UserSurvey = {
-            id: assignment.id,
-            survey_id: assignment.survey_id,
-            campaign_id: assignment.campaign_id,
-            user_id: assignment.user_id,
-            created_by: assignment.created_by,
-            created_at: assignment.created_at,
-            updated_at: assignment.updated_at,
-            public_access_token: assignment.public_access_token,
-            last_reminder_sent: assignment.last_reminder_sent,
-            instance: activeInstance,
-            survey: assignment.survey,
-            status
-          };
-
-          if (assignment.responses?.[0]) {
-            userSurvey.response = {
-              status: assignment.responses[0].status,
-              campaign_instance_id: assignment.responses[0].campaign_instance_id
-            };
-          }
-
-          return userSurvey;
+        const status = determineStatus({
+          instance: activeInstance,
+          response: assignment.responses?.[0]
         });
+
+        const userSurvey: UserSurvey = {
+          id: assignment.id,
+          survey_id: assignment.survey_id,
+          campaign_id: assignment.campaign_id,
+          user_id: assignment.user_id,
+          created_by: assignment.created_by,
+          created_at: assignment.created_at,
+          updated_at: assignment.updated_at,
+          public_access_token: assignment.public_access_token,
+          last_reminder_sent: assignment.last_reminder_sent,
+          instance: activeInstance,
+          survey: assignment.survey,
+          status
+        };
+
+        if (assignment.responses?.[0]) {
+          userSurvey.response = {
+            status: assignment.responses[0].status,
+            campaign_instance_id: assignment.responses[0].campaign_instance_id
+          };
+        }
+
+        return userSurvey;
+      }).filter(Boolean) as UserSurvey[]; // Filter out null values and cast to UserSurvey[]
     },
   });
 
