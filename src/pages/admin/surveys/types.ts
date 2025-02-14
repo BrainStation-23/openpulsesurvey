@@ -1,4 +1,6 @@
 
+import { ResponseStatus } from "./types/assignments";
+
 export type SurveyStatus = 'draft' | 'published' | 'archived';
 
 export type Survey = {

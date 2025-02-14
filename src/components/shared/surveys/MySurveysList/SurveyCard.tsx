@@ -68,9 +68,9 @@ const getStatusColor = (status: ResponseStatus | null) => {
     case "expired":
       return "destructive";
     case "in_progress":
-      return "warning";
+      return "secondary"; // Changed from "warning" to "secondary"
     default:
-      return "secondary";
+      return "default";
   }
 };
 
