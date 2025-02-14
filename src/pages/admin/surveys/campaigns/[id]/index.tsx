@@ -125,7 +125,11 @@ export default function CampaignDetailsPage() {
 
   return (
     <div className="container max-w-7xl mx-auto py-6 space-y-6">
-      <CampaignHeader campaign={campaign} isLoading={isLoadingCampaign} />
+      <CampaignHeader 
+        campaign={campaign} 
+        isLoading={isLoadingCampaign} 
+        selectedInstanceId={selectedInstanceId}
+      />
       
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Campaign Details</h2>
