@@ -35,3 +35,22 @@ export type Assignment = {
     }[];
   };
 };
+
+export type AssignmentWithStatus = {
+  id: string;
+  due_date: string | null;
+  status: ResponseStatus;
+  user: {
+    id: string;
+    email: string;
+    first_name: string | null;
+    last_name: string | null;
+    user_sbus?: {
+      is_primary: boolean;
+      sbu: {
+        id: string;
+        name: string;
+      };
+    }[];
+  };
+};

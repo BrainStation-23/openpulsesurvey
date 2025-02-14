@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { AssignCampaignUsers } from "./AssignCampaignUsers";
-import type { Assignment, ResponseStatus } from "@/pages/admin/surveys/types";
+import { AssignmentWithStatus } from "@/pages/admin/surveys/types/assignments";
 
 interface AssignmentInstanceListProps {
-  assignments: Assignment[];
+  assignments: AssignmentWithStatus[];
   isLoading?: boolean;
   campaignId?: string;
   surveyId?: string;
@@ -24,7 +24,7 @@ export function AssignmentInstanceList({
     return <div>Loading assignments...</div>;
   }
 
-  const getStatusColor = (status: ResponseStatus) => {
+  const getStatusColor = (status: AssignmentWithStatus['status']) => {
     switch (status) {
       case "submitted":
         return "bg-green-500";
@@ -37,7 +37,7 @@ export function AssignmentInstanceList({
     }
   };
 
-  const getPrimarySBU = (assignment: Assignment) => {
+  const getPrimarySBU = (assignment: AssignmentWithStatus) => {
     return assignment.user.user_sbus?.find(us => us.is_primary)?.sbu.name;
   };
 

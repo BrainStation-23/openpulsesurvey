@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -8,13 +9,13 @@ import { useState } from "react";
 import SurveyCard from "./SurveyCard";
 import SurveyFilters from "./components/SurveyFilters";
 import { Database } from "@/integrations/supabase/types";
+import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 
-type Assignment = {
+type SurveyAssignment = {
   id: string;
   survey_id: string;
   user_id: string;
   due_date: string | null;
-  status: Database["public"]["Enums"]["assignment_status"] | null;
   created_by: string;
   created_at: string | null;
   updated_at: string | null;
@@ -107,9 +108,17 @@ export default function MySurveysList() {
 
       if (error) throw error;
 
-      // For each assignment with a campaign, fetch the active instance
-      const assignmentsWithInstances = await Promise.all(
+      // For each assignment, get the status and active instance
+      const assignmentsWithStatus = await Promise.all(
         data.map(async (assignment) => {
+          // Get the status using our new function
+          const { data: status } = await supabase
+            .rpc('get_assignment_status', {
+              p_assignment_id: assignment.id,
+              p_instance_id: null
+            });
+
+          // Get active instance if it's a campaign assignment
           if (assignment.campaign_id) {
             const { data: instances, error: instanceError } = await supabase
               .from("campaign_instances")
@@ -122,14 +131,18 @@ export default function MySurveysList() {
             
             return {
               ...assignment,
+              status,
               active_instance: instances
             };
           }
-          return assignment;
+          return {
+            ...assignment,
+            status
+          };
         })
       );
 
-      return assignmentsWithInstances as Assignment[];
+      return assignmentsWithStatus as (SurveyAssignment & { status: ResponseStatus })[];
     },
   });
 
@@ -140,7 +153,7 @@ export default function MySurveysList() {
       assignments.forEach(assignment => {
         const effectiveDueDate = assignment.active_instance?.ends_at || assignment.due_date;
         
-        if (effectiveDueDate && assignment.status !== 'completed') {
+        if (effectiveDueDate && assignment.status !== 'submitted') {
           const dueDate = new Date(effectiveDueDate);
           const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
           
