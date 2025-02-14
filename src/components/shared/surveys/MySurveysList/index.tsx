@@ -42,6 +42,34 @@ export default function MySurveysList() {
 
       if (!userId) throw new Error("No user found");
 
+      type DbResponse = {
+        id: string;
+        survey_id: string;
+        campaign_id: string | null;
+        user_id: string;
+        created_by: string;
+        created_at: string;
+        updated_at: string;
+        public_access_token: string;
+        last_reminder_sent: string | null;
+        responses: Array<{
+          status: ResponseStatus;
+          campaign_instance_id: string;
+        }> | null;
+        survey: {
+          id: string;
+          name: string;
+          description: string | null;
+          json_data: any;
+        };
+        instance: {
+          id: string;
+          starts_at: string;
+          ends_at: string;
+          status: "upcoming" | "active" | "completed";
+        };
+      };
+
       const { data, error } = await supabase
         .from("survey_assignments")
         .select(`
@@ -77,7 +105,7 @@ export default function MySurveysList() {
 
       if (error) throw error;
 
-      return data?.map(assignment => {
+      return (data as DbResponse[])?.map(assignment => {
         const status = determineStatus({
           instance: assignment.instance,
           response: assignment.responses?.[0]
@@ -163,7 +191,7 @@ export default function MySurveysList() {
   const filteredAssignments = assignments?.filter((assignment) => {
     const matchesSearch = 
       assignment.survey.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      assignment.survey.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      (assignment.survey.description?.toLowerCase() || '').includes(searchQuery.toLowerCase());
 
     const matchesStatus = 
       statusFilter === "all" || 
