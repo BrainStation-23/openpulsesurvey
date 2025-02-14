@@ -11,8 +11,7 @@ import { ReportsTab } from "./components/ReportsTab";
 import { InstanceSelector } from "./components/InstanceSelector";
 import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
 import { useState } from "react";
-import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
-import { Assignment } from "@/pages/admin/surveys/types/assignments";
+import { ResponseStatus, SurveyAssignment } from "@/pages/admin/surveys/types/assignments";
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
@@ -59,18 +58,6 @@ export default function CampaignDetailsPage() {
             status,
             campaign_instance_id
           ),
-          survey:surveys (
-            id,
-            name,
-            description,
-            json_data
-          ),
-          instance:campaign_instances!inner (
-            id,
-            starts_at,
-            ends_at,
-            status
-          ),
           user:profiles!survey_assignments_user_id_fkey (
             id,
             email,
@@ -98,9 +85,6 @@ export default function CampaignDetailsPage() {
       if (error) throw error;
 
       return (data as unknown as Array<any>)?.map(assignment => {
-        // Get the active instance
-        const activeInstance = assignment.instance[0];
-
         return {
           id: assignment.id,
           survey_id: assignment.survey_id,
@@ -112,16 +96,6 @@ export default function CampaignDetailsPage() {
           public_access_token: assignment.public_access_token,
           last_reminder_sent: assignment.last_reminder_sent,
           status: (assignment.responses?.[0]?.status || 'assigned') as ResponseStatus,
-          // Add the required instance property
-          instance: {
-            id: activeInstance.id,
-            starts_at: activeInstance.starts_at,
-            ends_at: activeInstance.ends_at,
-            status: activeInstance.status
-          },
-          // Add the required survey property
-          survey: assignment.survey,
-          // Map user data as before
           user: {
             id: assignment.user.id,
             email: assignment.user.email,
@@ -132,12 +106,11 @@ export default function CampaignDetailsPage() {
               sbu: userSbu.sbus
             }))
           },
-          // Add response if it exists
           response: assignment.responses?.[0] ? {
             status: assignment.responses[0].status,
             campaign_instance_id: assignment.responses[0].campaign_instance_id
           } : undefined
-        } as Assignment;
+        } as SurveyAssignment;
       }) || [];
     },
   });

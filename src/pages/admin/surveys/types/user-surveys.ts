@@ -3,10 +3,24 @@ import { Database } from "@/integrations/supabase/types";
 
 export type ResponseStatus = "assigned" | "in_progress" | "submitted" | "expired";
 
-export type SurveyAssignment = {
+export type Survey = {
+  id: string;
+  name: string;
+  description: string | null;
+  json_data: Database["public"]["Tables"]["surveys"]["Row"]["json_data"];
+};
+
+export type Instance = {
+  id: string;
+  starts_at: string;
+  ends_at: string;
+  status: Database["public"]["Enums"]["instance_status"];
+};
+
+export type UserSurvey = {
   id: string;
   survey_id: string;
-  campaign_id: string;
+  campaign_id: string | null;
   user_id: string;
   status: ResponseStatus;
   created_by: string;
@@ -14,19 +28,8 @@ export type SurveyAssignment = {
   updated_at: string;
   public_access_token: string;
   last_reminder_sent: string | null;
-  user: {
-    id: string;
-    email: string;
-    first_name: string | null;
-    last_name: string | null;
-    user_sbus?: {
-      is_primary: boolean;
-      sbu: {
-        id: string;
-        name: string;
-      };
-    }[];
-  };
+  instance: Instance;
+  survey: Survey;
   response?: {
     status: ResponseStatus;
     campaign_instance_id: string;

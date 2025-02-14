@@ -1,17 +1,17 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { UserSurvey } from "@/pages/admin/surveys/types/user-surveys";
 import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DueDateInfo from "./components/DueDateInfo";
-import { Assignment, ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 
 interface SurveyCardProps {
-  assignment: Assignment;
+  survey: UserSurvey;
   onSelect: (id: string) => void;
 }
 
-const getStatusColor = (status: ResponseStatus) => {
+const getStatusColor = (status: UserSurvey["status"]) => {
   switch (status) {
     case "submitted":
       return "success";
@@ -32,11 +32,11 @@ const getDaysRemaining = (dueDate: string) => {
   return diffDays;
 };
 
-export default function SurveyCard({ assignment, onSelect }: SurveyCardProps) {
-  const daysRemaining = getDaysRemaining(assignment.instance.ends_at);
+export default function SurveyCard({ survey, onSelect }: SurveyCardProps) {
+  const daysRemaining = getDaysRemaining(survey.instance.ends_at);
   const isOverdue = daysRemaining < 0;
   const isDueSoon = daysRemaining <= 3 && daysRemaining > 0;
-  const isNotSubmitted = assignment.status !== "submitted";
+  const isNotSubmitted = survey.status !== "submitted";
 
   return (
     <Card 
@@ -45,13 +45,13 @@ export default function SurveyCard({ assignment, onSelect }: SurveyCardProps) {
         isNotSubmitted && isOverdue && "border-destructive",
         isNotSubmitted && isDueSoon && "border-yellow-500"
       )}
-      onClick={() => onSelect(assignment.id)}
+      onClick={() => onSelect(survey.id)}
     >
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <CardTitle className="text-lg flex items-center gap-2">
-              {assignment.survey.name}
+              {survey.survey.name}
               {isNotSubmitted && (isOverdue || isDueSoon) && (
                 <AlertCircle 
                   className={cn(
@@ -61,20 +61,20 @@ export default function SurveyCard({ assignment, onSelect }: SurveyCardProps) {
                 />
               )}
             </CardTitle>
-            {assignment.survey.description && (
+            {survey.survey.description && (
               <p className="text-sm text-muted-foreground">
-                {assignment.survey.description}
+                {survey.survey.description}
               </p>
             )}
           </div>
-          <Badge variant={getStatusColor(assignment.status)}>
-            {assignment.status}
+          <Badge variant={getStatusColor(survey.status)}>
+            {survey.status}
           </Badge>
         </div>
       </CardHeader>
       <CardContent>
         <DueDateInfo
-          dueDate={assignment.instance.ends_at}
+          dueDate={survey.instance.ends_at}
           daysRemaining={daysRemaining}
           isOverdue={isOverdue}
           isDueSoon={isDueSoon}
