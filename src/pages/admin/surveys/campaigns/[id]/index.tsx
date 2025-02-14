@@ -12,6 +12,7 @@ import { InstanceSelector } from "./components/InstanceSelector";
 import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
 import { useState } from "react";
 import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
+import { Assignment } from "@/pages/admin/surveys/types/assignments";
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
@@ -50,9 +51,9 @@ export default function CampaignDetailsPage() {
           last_reminder_sent,
           campaign_id,
           survey_id,
-          due_date,
           responses:survey_responses!inner (
-            status
+            status,
+            campaign_instance_id
           ),
           user:profiles!survey_assignments_user_id_fkey (
             id,
@@ -80,19 +81,17 @@ export default function CampaignDetailsPage() {
 
       if (error) throw error;
 
-      // Transform the data to include the status and correct user_sbus structure
-      return data?.map(assignment => ({
+      return (data?.map(assignment => ({
         ...assignment,
-        // Use the response status if available, otherwise default to 'assigned'
         status: (assignment.responses?.[0]?.status || 'assigned') as ResponseStatus,
         user: {
           ...assignment.user,
           user_sbus: assignment.user.user_sbus.map(userSbu => ({
             is_primary: userSbu.is_primary,
-            sbu: userSbu.sbus // Rename sbus to sbu to match the expected type
+            sbu: userSbu.sbus
           }))
         }
-      })) || [];
+      })) || []) as Assignment[];
     },
   });
 

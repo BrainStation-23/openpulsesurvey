@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -8,55 +9,7 @@ import { useState } from "react";
 import SurveyCard from "./SurveyCard";
 import SurveyFilters from "./components/SurveyFilters";
 import { Database } from "@/integrations/supabase/types";
-import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
-
-type SurveyAssignment = {
-  id: string;
-  survey_id: string;
-  user_id: string;
-  due_date: string | null;
-  created_by: string;
-  created_at: string | null;
-  updated_at: string | null;
-  is_organization_wide: boolean | null;
-  campaign_id: string | null;
-  survey: {
-    id: string;
-    name: string;
-    description: string | null;
-    status: Database["public"]["Enums"]["survey_status"] | null;
-    created_at: string;
-    created_by: string;
-    json_data: Database["public"]["Tables"]["surveys"]["Row"]["json_data"];
-    tags: string[] | null;
-    updated_at: string;
-  };
-  campaign?: {
-    id: string;
-    name: string;
-    description: string | null;
-    completion_rate: number | null;
-    status: string;
-    campaign_type: string;
-    created_at: string;
-    created_by: string;
-    ends_at: string | null;
-    is_recurring: boolean | null;
-    recurring_days: number[] | null;
-    recurring_ends_at: string | null;
-    recurring_frequency: string | null;
-    starts_at: string;
-    instance_duration_days: number | null;
-    instance_end_time: string | null;
-    updated_at: string;
-  };
-  active_instance?: {
-    id: string;
-    starts_at: string;
-    ends_at: string;
-    status: string;
-  } | null;
-};
+import { ResponseStatus, Assignment } from "@/pages/admin/surveys/types/assignments";
 
 export default function MySurveysList() {
   const navigate = useNavigate();
@@ -91,6 +44,22 @@ export default function MySurveysList() {
                 name
               )
             )
+          ),
+          survey:surveys (
+            id,
+            name,
+            description,
+            json_data
+          ),
+          campaign:survey_campaigns (
+            id,
+            name,
+            description,
+            starts_at,
+            ends_at,
+            status,
+            created_at,
+            updated_at
           )
         `)
         .eq("user_id", (await supabase.auth.getUser()).data.user?.id)
@@ -98,19 +67,17 @@ export default function MySurveysList() {
 
       if (error) throw error;
 
-      // Transform the data to include the status and correct user_sbus structure
-      return data?.map(assignment => ({
+      return (data?.map(assignment => ({
         ...assignment,
-        // Use the response status if available, otherwise default to 'assigned'
         status: (assignment.responses?.[0]?.status || 'assigned') as ResponseStatus,
         user: {
           ...assignment.user,
           user_sbus: assignment.user.user_sbus.map(userSbu => ({
             is_primary: userSbu.is_primary,
-            sbu: userSbu.sbus // Rename sbus to sbu to match the expected type
+            sbu: userSbu.sbus
           }))
         }
-      })) || [];
+      })) || []) as Assignment[];
     },
   });
 
@@ -119,23 +86,23 @@ export default function MySurveysList() {
     if (assignments) {
       const now = new Date();
       assignments.forEach(assignment => {
-        const effectiveDueDate = assignment.active_instance?.ends_at || assignment.due_date;
+        const effectiveEndDate = assignment.campaign?.ends_at;
         
-        if (effectiveDueDate && assignment.status !== 'submitted') {
-          const dueDate = new Date(effectiveDueDate);
+        if (effectiveEndDate && assignment.status !== 'submitted') {
+          const dueDate = new Date(effectiveEndDate);
           const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
           
           if (daysUntilDue <= 3 && daysUntilDue > 0) {
             toast({
               title: "Survey Due Soon",
-              description: `"${assignment.campaign?.name || assignment.survey.name}" is due in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'}`,
+              description: `"${assignment.campaign?.name || assignment.survey?.name}" is due in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'}`,
               variant: "default",
             });
           }
           else if (daysUntilDue < 0 && assignment.status !== 'expired') {
             toast({
               title: "Survey Overdue",
-              description: `"${assignment.campaign?.name || assignment.survey.name}" is overdue`,
+              description: `"${assignment.campaign?.name || assignment.survey?.name}" is overdue`,
               variant: "destructive",
             });
           }
@@ -160,16 +127,11 @@ export default function MySurveysList() {
   };
 
   const filteredAssignments = assignments?.filter((assignment) => {
-    // Filter out assignments with draft campaigns
-    if (assignment.campaign?.status === 'draft') {
-      return false;
-    }
-
     const matchesSearch = 
       assignment.campaign?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      assignment.survey.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      assignment.survey?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       assignment.campaign?.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      assignment.survey.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      assignment.survey?.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = 
       statusFilter === "all" || 
