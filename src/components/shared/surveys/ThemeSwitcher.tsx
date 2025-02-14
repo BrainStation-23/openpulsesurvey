@@ -10,44 +10,38 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  DefaultLight,
-  DefaultDark,
-  ContrastLight,
-  ContrastDark,
-  PlainLight,
-  PlainDark,
-  SharpLight,
-  SharpDark,
-  SolidLight,
-  SolidDark,
   LayeredLight,
   LayeredDark,
   BorderlessLight,
   BorderlessDark,
+  ContrastLight,
+  ContrastDark,
+  PlainLight,
+  PlainDark,
   DoubleBorderLight,
   DoubleBorderDark,
-  DefaultLightPanelless,
-  DefaultDarkPanelless,
-  ContrastLightPanelless,
-  ContrastDarkPanelless,
-  PlainLightPanelless,
-  PlainDarkPanelless,
-  SharpLightPanelless,
-  SharpDarkPanelless,
-  SolidLightPanelless,
-  SolidDarkPanelless,
+  SharpLight,
+  SharpDark,
+  SolidLight,
+  SolidDark,
   LayeredLightPanelless,
   LayeredDarkPanelless,
   BorderlessLightPanelless,
   BorderlessDarkPanelless,
+  ContrastLightPanelless,
+  ContrastDarkPanelless,
+  PlainLightPanelless,
+  PlainDarkPanelless,
   DoubleBorderLightPanelless,
   DoubleBorderDarkPanelless,
+  SharpLightPanelless,
+  SharpDarkPanelless,
+  SolidLightPanelless,
+  SolidDarkPanelless,
 } from "survey-core/themes";
 
 const BASE_THEMES = [
-  "Default",
   "Layered",
-  "Flat",
   "Borderless",
   "Contrast",
   "Plain",
@@ -64,48 +58,44 @@ interface ThemeSwitcherProps {
 
 const themeMap = {
   // Light themes without panelless
-  DefaultLight,
+  LayeredLight,
   ContrastLight,
   PlainLight,
   SharpLight,
   SolidLight,
-  LayeredLight,
   BorderlessLight,
   DoubleBorderLight,
   // Dark themes without panelless
-  DefaultDark,
+  LayeredDark,
   ContrastDark,
   PlainDark,
   SharpDark,
   SolidDark,
-  LayeredDark,
   BorderlessDark,
   DoubleBorderDark,
   // Light themes with panelless
-  DefaultLightPanelless,
+  LayeredLightPanelless,
   ContrastLightPanelless,
   PlainLightPanelless,
   SharpLightPanelless,
   SolidLightPanelless,
-  LayeredLightPanelless,
   BorderlessLightPanelless,
   DoubleBorderLightPanelless,
   // Dark themes with panelless
-  DefaultDarkPanelless,
+  LayeredDarkPanelless,
   ContrastDarkPanelless,
   PlainDarkPanelless,
   SharpDarkPanelless,
   SolidDarkPanelless,
-  LayeredDarkPanelless,
   BorderlessDarkPanelless,
   DoubleBorderDarkPanelless,
 };
 
 export function ThemeSwitcher({ onThemeChange }: ThemeSwitcherProps) {
-  const [baseTheme, setBaseTheme] = useState<BaseTheme>("Default");
+  const [baseTheme, setBaseTheme] = useState<BaseTheme>("Layered");
   const [isDark, setIsDark] = useState(true);
   const [isPanelless, setIsPanelless] = useState(true);
-  const [currentThemeName, setCurrentThemeName] = useState<string>('DefaultDarkPanelless');
+  const [currentThemeName, setCurrentThemeName] = useState<string>('LayeredDarkPanelless');
 
   useEffect(() => {
     const newThemeName = `${baseTheme}${isDark ? 'Dark' : 'Light'}${isPanelless ? 'Panelless' : ''}`;
