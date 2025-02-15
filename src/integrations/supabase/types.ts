@@ -528,7 +528,6 @@ export type Database = {
           is_recurring: boolean | null
           name: string
           recurring_days: number[] | null
-          recurring_ends_at: string | null
           recurring_frequency: string | null
           starts_at: string
           status: string
@@ -549,7 +548,6 @@ export type Database = {
           is_recurring?: boolean | null
           name: string
           recurring_days?: number[] | null
-          recurring_ends_at?: string | null
           recurring_frequency?: string | null
           starts_at: string
           status?: string
@@ -570,7 +568,6 @@ export type Database = {
           is_recurring?: boolean | null
           name?: string
           recurring_days?: number[] | null
-          recurring_ends_at?: string | null
           recurring_frequency?: string | null
           starts_at?: string
           status?: string
@@ -1120,6 +1117,29 @@ export type Database = {
           p_instance_id: string
         }
         Returns: string
+      }
+      get_my_survey_assignments: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: {
+          id: string
+          survey_id: string
+          campaign_id: string
+          user_id: string
+          public_access_token: string
+          last_reminder_sent: string
+          instance: Json
+          survey: Json
+          status: string
+          response: Json
+        }[]
+      }
+      get_pending_surveys_count: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: number
       }
       get_survey_responses_for_export: {
         Args: {

@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 import { Level, User } from "../types";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +22,7 @@ const csvRowSchema = z.object({
   employeeRole: z.string().optional(),
   employeeType: z.string().optional(),
   supervisorEmail: z.string().email("Invalid supervisor email format").optional(),
+  status: z.enum(["active", "disabled"]).optional(),
 });
 
 export type CSVRow = z.infer<typeof csvRowSchema>;
@@ -168,6 +170,7 @@ export async function processCSVFile(file: File): Promise<ProcessingResult> {
               employeeRole: row['Employee Role']?.trim(),
               employeeType: row['Employee Type']?.trim(),
               supervisorEmail: row['Supervisor Email']?.trim(),
+              status: row['Status']?.trim()?.toLowerCase() as "active" | "disabled",
             };
 
             try {
@@ -177,7 +180,7 @@ export async function processCSVFile(file: File): Promise<ProcessingResult> {
                 const isValid = await verifyExistingUser(validatedRow.id, validatedRow.email);
                 if (!isValid) {
                   result.errors.push({
-                    row: i + 2, // +2 because Papa.parse is 0-based and we want to account for header row
+                    row: i + 2,
                     errors: ["ID and email do not match or ID not found"],
                   });
                   continue;

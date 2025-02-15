@@ -1,6 +1,4 @@
 
-import { ResponseStatus } from "./types/assignments";
-
 export type SurveyStatus = 'draft' | 'published' | 'archived';
 
 export type Survey = {
@@ -23,16 +21,24 @@ export type Campaign = {
   description: string | null;
   survey_id: string;
   starts_at: string;
+  ends_at: string | null;
   is_recurring: boolean;
   recurring_frequency?: RecurringFrequency;
-  recurring_ends_at?: string;
   instance_duration_days?: number;
   instance_end_time?: string;
   status: string;
   created_by: string;
   created_at: string;
   updated_at: string;
+  anonymous?: boolean;
+  campaign_type?: string;
+  completion_rate?: number | null;
+  survey?: {
+    name: string;
+  };
 };
+
+export type ResponseStatus = 'assigned' | 'in_progress' | 'submitted' | 'expired';
 
 export type Assignment = {
   id: string;

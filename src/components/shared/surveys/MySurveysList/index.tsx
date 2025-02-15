@@ -10,24 +10,6 @@ import SurveyCard from "./SurveyCard";
 import SurveyFilters from "./components/SurveyFilters";
 import { ResponseStatus, UserSurvey } from "@/pages/admin/surveys/types/user-surveys";
 
-function determineStatus(survey: Partial<UserSurvey> & { 
-  instance: UserSurvey["instance"],
-  response?: UserSurvey["response"]
-}): ResponseStatus {
-  // If there's a response for this instance, use its status
-  if (survey.response?.status) {
-    return survey.response.status;
-  }
-  
-  // No response but instance ended
-  if (new Date(survey.instance.ends_at) < new Date()) {
-    return 'expired';
-  }
-  
-  // Active instance, no response
-  return 'assigned';
-}
-
 export default function MySurveysList() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -42,84 +24,14 @@ export default function MySurveysList() {
 
       if (!userId) throw new Error("No user found");
 
-      // First, get the active campaign instances
-      const { data: activeInstances, error: instanceError } = await supabase
-        .from('campaign_instances')
-        .select('id, campaign_id, starts_at, ends_at, status')
-        .eq('status', 'active');
-
-      if (instanceError) throw instanceError;
-
-      // Then get assignments with their related data
-      const { data: assignments, error: assignmentError } = await supabase
-        .from("survey_assignments")
-        .select(`
-          id,
-          survey_id,
-          campaign_id,
-          user_id,
-          created_by,
-          created_at,
-          updated_at,
-          public_access_token,
-          last_reminder_sent,
-          responses:survey_responses (
-            status,
-            campaign_instance_id
-          ),
-          survey:surveys (
-            id,
-            name,
-            description,
-            json_data
-          ),
-          campaign:survey_campaigns!survey_assignments_campaign_id_fkey (
-            id,
-            name
-          )
-        `)
-        .eq("user_id", userId)
-        .in('campaign_id', activeInstances.map(instance => instance.campaign_id));
-
-      if (assignmentError) throw assignmentError;
-
-      // Map the data to include active instances
-      return assignments.map(assignment => {
-        const activeInstance = activeInstances.find(
-          instance => instance.campaign_id === assignment.campaign_id
-        );
-        
-        if (!activeInstance) return null;
-
-        const status = determineStatus({
-          instance: activeInstance,
-          response: assignment.responses?.[0]
+      const { data, error } = await supabase
+        .rpc('get_my_survey_assignments', {
+          p_user_id: userId
         });
 
-        const userSurvey: UserSurvey = {
-          id: assignment.id,
-          survey_id: assignment.survey_id,
-          campaign_id: assignment.campaign_id,
-          user_id: assignment.user_id,
-          created_by: assignment.created_by,
-          created_at: assignment.created_at,
-          updated_at: assignment.updated_at,
-          public_access_token: assignment.public_access_token,
-          last_reminder_sent: assignment.last_reminder_sent,
-          instance: activeInstance,
-          survey: assignment.survey,
-          status
-        };
+      if (error) throw error;
 
-        if (assignment.responses?.[0]) {
-          userSurvey.response = {
-            status: assignment.responses[0].status,
-            campaign_instance_id: assignment.responses[0].campaign_instance_id
-          };
-        }
-
-        return userSurvey;
-      }).filter(Boolean) as UserSurvey[]; // Filter out null values and cast to UserSurvey[]
+      return data as UserSurvey[];
     },
   });
 

@@ -1,3 +1,4 @@
+
 // CSV Headers
 export const IMPORT_CSV_HEADERS = [
   "Email",
@@ -18,6 +19,7 @@ export const IMPORT_CSV_HEADERS = [
 
 export const UPDATE_CSV_HEADERS = [
   "ID",
+  "Status",
   "First Name",
   "Last Name",
   "Org ID",
@@ -54,6 +56,7 @@ export const IMPORT_CSV_TEMPLATE_ROW = [
 
 export const UPDATE_CSV_TEMPLATE_ROW = [
   "user-uuid-here",
+  "active",
   "John",
   "Doe",
   "ORG123",
@@ -90,6 +93,7 @@ export const IMPORT_CSV_GUIDELINES = [
 
 export const UPDATE_CSV_GUIDELINES = [
   "ID: Required, must be a valid user ID",
+  "Status: Optional, must be either 'active' or 'disabled', affects both profile and authentication status",
   "First Name: Optional, leave empty to keep existing value",
   "Last Name: Optional, leave empty to keep existing value",
   "Org ID: Optional, leave empty to keep existing value",

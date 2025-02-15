@@ -4,14 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CampaignTabs, TabPanel } from "./components/CampaignTabs";
 import { CampaignHeader } from "./components/CampaignHeader";
-import { AssignmentInstanceList } from "./components/AssignmentInstanceList";
+import { AssignmentsTab } from "./components/AssignmentsTab";
 import { ResponsesTab } from "./components/ResponsesTab";
 import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
 import { InstanceSelector } from "./components/InstanceSelector";
 import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
 import { useState } from "react";
-import { ResponseStatus, SurveyAssignment } from "@/pages/admin/surveys/types/assignments";
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
@@ -43,101 +42,6 @@ export default function CampaignDetailsPage() {
 
       if (error) throw error;
       return data;
-    },
-  });
-
-  const { data: assignments, isLoading: isLoadingAssignments } = useQuery({
-    queryKey: ["campaign-assignments", id, selectedInstanceId],
-    queryFn: async () => {
-      const query = supabase
-        .from("survey_assignments")
-        .select(`
-          id,
-          survey_id,
-          campaign_id,
-          user_id,
-          created_by,
-          created_at,
-          updated_at,
-          public_access_token,
-          last_reminder_sent,
-          responses:survey_responses(
-            status,
-            campaign_instance_id
-          ),
-          user:profiles!survey_assignments_user_id_fkey(
-            id,
-            email,
-            first_name,
-            last_name,
-            user_sbus(
-              id,
-              is_primary,
-              sbus:sbus(
-                id,
-                name
-              )
-            )
-          )
-        `)
-        .eq("campaign_id", id);
-
-      if (selectedInstanceId) {
-        // Using in() with an array for proper filtering
-        query.or(
-          `and(responses.campaign_instance_id.eq.${selectedInstanceId},responses.status.neq.null),and(responses.status.is.null)`
-        );
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      return (data as unknown as Array<any>)?.map(assignment => {
-        // Find the relevant response for the selected instance
-        const instanceResponse = assignment.responses?.find(
-          (response: any) => !selectedInstanceId || response.campaign_instance_id === selectedInstanceId
-        );
-
-        // Determine the status based on instance and response
-        let status: ResponseStatus = 'assigned';
-        if (instanceResponse) {
-          status = instanceResponse.status as ResponseStatus;
-        } else if (selectedInstanceId) {
-          // Check if instance has expired
-          const instance = campaign?.instances?.find((i: any) => i.id === selectedInstanceId);
-          if (instance && new Date(instance.ends_at) < new Date()) {
-            status = 'expired';
-          }
-        }
-
-        return {
-          id: assignment.id,
-          survey_id: assignment.survey_id,
-          campaign_id: assignment.campaign_id,
-          user_id: assignment.user_id,
-          created_by: assignment.created_by,
-          created_at: assignment.created_at,
-          updated_at: assignment.updated_at,
-          public_access_token: assignment.public_access_token,
-          last_reminder_sent: assignment.last_reminder_sent,
-          status,
-          user: {
-            id: assignment.user.id,
-            email: assignment.user.email,
-            first_name: assignment.user.first_name,
-            last_name: assignment.user.last_name,
-            user_sbus: assignment.user.user_sbus.map((userSbu: any) => ({
-              is_primary: userSbu.is_primary,
-              sbu: userSbu.sbus
-            }))
-          },
-          response: instanceResponse ? {
-            status: instanceResponse.status,
-            campaign_instance_id: instanceResponse.campaign_instance_id
-          } : undefined
-        } as SurveyAssignment;
-      }) || [];
     },
   });
 
@@ -175,9 +79,7 @@ export default function CampaignDetailsPage() {
         </TabPanel>
 
         <TabPanel value="assignments">
-          <AssignmentInstanceList
-            assignments={assignments || []}
-            isLoading={isLoadingAssignments}
+          <AssignmentsTab
             campaignId={campaign.id}
             surveyId={campaign.survey_id}
             selectedInstanceId={selectedInstanceId}

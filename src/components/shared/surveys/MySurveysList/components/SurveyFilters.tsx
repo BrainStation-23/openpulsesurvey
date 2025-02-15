@@ -1,7 +1,9 @@
+
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ResponseStatus } from "@/pages/admin/surveys/types/user-surveys";
 
 interface SurveyFiltersProps {
   searchQuery: string;
@@ -51,8 +53,9 @@ export default function SurveyFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Status</SelectItem>
-          <SelectItem value="pending">Pending</SelectItem>
-          <SelectItem value="completed">Completed</SelectItem>
+          <SelectItem value="assigned">Assigned</SelectItem>
+          <SelectItem value="in_progress">In Progress</SelectItem>
+          <SelectItem value="submitted">Submitted</SelectItem>
           <SelectItem value="expired">Expired</SelectItem>
         </SelectContent>
       </Select>

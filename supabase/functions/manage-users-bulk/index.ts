@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -180,6 +181,7 @@ serve(async (req) => {
           gender: user.gender,
           date_of_birth: user.date_of_birth,
           designation: user.designation,
+          status: user.status || 'active', // Add status handling
         };
 
         // Only add IDs that were successfully looked up
@@ -199,6 +201,24 @@ serve(async (req) => {
 
         if (profileError) {
           throw profileError;
+        }
+
+        // Update auth user banned status based on profile status
+        if (user.status) {
+          const { error: authError } = await supabase.auth.admin.updateUserById(
+            user.id,
+            { banned: user.status === 'disabled' }
+          );
+
+          if (authError) {
+            // If auth update fails, revert profile status
+            await supabase
+              .from('profiles')
+              .update({ status: user.status === 'disabled' ? 'active' : 'disabled' })
+              .eq('id', user.id);
+            
+            throw new Error(`Failed to update auth status: ${authError.message}`);
+          }
         }
 
         // Update role if provided
@@ -316,3 +336,4 @@ serve(async (req) => {
     );
   }
 })
+
