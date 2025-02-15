@@ -1121,6 +1121,23 @@ export type Database = {
         }
         Returns: string
       }
+      get_my_survey_assignments: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: {
+          id: string
+          survey_id: string
+          campaign_id: string
+          user_id: string
+          public_access_token: string
+          last_reminder_sent: string
+          instance: Json
+          survey: Json
+          status: string
+          response: Json
+        }[]
+      }
       get_survey_responses_for_export: {
         Args: {
           p_campaign_id: string
