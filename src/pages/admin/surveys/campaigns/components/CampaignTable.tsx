@@ -2,6 +2,7 @@
 import { format } from "date-fns";
 import { MoreHorizontal } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +36,19 @@ interface CampaignTableProps {
 }
 
 export function CampaignTable({ campaigns, onDelete, sortOrder, sortBy, onSort }: CampaignTableProps) {
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const handleDelete = () => {
+    if (selectedCampaignId) {
+      onDelete(selectedCampaignId);
+      setSelectedCampaignId(null);
+      setIsAlertOpen(false);
+      setIsDropdownOpen(false);
+    }
+  };
+
   const columns = [
     {
       accessorKey: "name",
@@ -126,10 +140,31 @@ export function CampaignTable({ campaigns, onDelete, sortOrder, sortBy, onSort }
         const campaign = row.original;
 
         return (
-          <AlertDialog>
-            <DropdownMenu>
+          <AlertDialog 
+            open={isAlertOpen && selectedCampaignId === campaign.id} 
+            onOpenChange={(open) => {
+              setIsAlertOpen(open);
+              if (!open) {
+                setSelectedCampaignId(null);
+                setIsDropdownOpen(false);
+              }
+            }}
+          >
+            <DropdownMenu 
+              open={isDropdownOpen && selectedCampaignId === campaign.id}
+              onOpenChange={(open) => {
+                setIsDropdownOpen(open);
+                if (!open) {
+                  setSelectedCampaignId(null);
+                }
+              }}
+            >
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
+                <Button 
+                  variant="ghost" 
+                  className="h-8 w-8 p-0"
+                  onClick={() => setSelectedCampaignId(campaign.id)}
+                >
                   <span className="sr-only">Open menu</span>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
@@ -147,7 +182,12 @@ export function CampaignTable({ campaigns, onDelete, sortOrder, sortBy, onSort }
                   </Link>
                 </DropdownMenuItem>
                 <AlertDialogTrigger asChild>
-                  <DropdownMenuItem className="text-destructive">
+                  <DropdownMenuItem 
+                    className="text-destructive"
+                    onClick={() => {
+                      setIsAlertOpen(true);
+                    }}
+                  >
                     Delete campaign
                   </DropdownMenuItem>
                 </AlertDialogTrigger>
@@ -163,9 +203,15 @@ export function CampaignTable({ campaigns, onDelete, sortOrder, sortBy, onSort }
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => {
+                  setIsAlertOpen(false);
+                  setIsDropdownOpen(false);
+                  setSelectedCampaignId(null);
+                }}>
+                  Cancel
+                </AlertDialogCancel>
                 <AlertDialogAction
-                  onClick={() => onDelete(campaign.id)}
+                  onClick={handleDelete}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   Delete
