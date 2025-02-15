@@ -13,7 +13,10 @@ import {
   Layers,
   Briefcase,
   Shield,
-  BrainCircuit
+  BrainCircuit,
+  Building2,
+  Lock,
+  KeyRound
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -57,55 +60,79 @@ export const navigationItems: NavigationItem[] = [
     path: "/admin/config",
     children: [
       {
-        title: "SBUs",
-        icon: Database,
-        path: "/admin/config/sbus",
+        title: "Organization",
+        icon: Building2,
+        path: "/admin/config/organization",
+        children: [
+          {
+            title: "SBUs",
+            icon: Database,
+            path: "/admin/config/sbus",
+          },
+          {
+            title: "Location",
+            icon: MapPin,
+            path: "/admin/config/location",
+          }
+        ]
       },
       {
-        title: "Email",
-        icon: Mail,
-        path: "/admin/config/email",
+        title: "Employee",
+        icon: Users,
+        path: "/admin/config/employee",
+        children: [
+          {
+            title: "Role",
+            icon: Shield,
+            path: "/admin/config/employee-role",
+          },
+          {
+            title: "Type",
+            icon: UserRound,
+            path: "/admin/config/employee-type",
+          },
+          {
+            title: "Employment Type",
+            icon: Briefcase,
+            path: "/admin/config/employment-type",
+          },
+          {
+            title: "Level",
+            icon: Layers,
+            path: "/admin/config/level",
+          }
+        ]
       },
       {
-        title: "Location",
-        icon: MapPin,
-        path: "/admin/config/location",
-      },
-      {
-        title: "Level",
-        icon: Layers,
-        path: "/admin/config/level",
-      },
-      {
-        title: "Employment Type",
-        icon: Briefcase,
-        path: "/admin/config/employment-type",
-      },
-      {
-        title: "Employee Type",
-        icon: UserRound,
-        path: "/admin/config/employee-type",
-      },
-      {
-        title: "Employee Role",
-        icon: Shield,
-        path: "/admin/config/employee-role",
-      },
-      {
-        title: "AI Prompts",
-        icon: BrainCircuit,
-        path: "/admin/config/ai-prompts",
-      },
-    ],
+        title: "System",
+        icon: Settings2,
+        path: "/admin/config/system",
+        children: [
+          {
+            title: "Email",
+            icon: Mail,
+            path: "/admin/config/email",
+          },
+          {
+            title: "AI Prompts",
+            icon: BrainCircuit,
+            path: "/admin/config/ai-prompts",
+          }
+        ]
+      }
+    ]
   },
   {
-    title: "Profile",
-    icon: UserRound,
-    path: "/admin/profile",
-  },
-  {
-    title: "Settings",
-    icon: Settings2,
-    path: "/admin/settings",
-  },
+    title: "Security",
+    icon: Lock,
+    path: "/admin/security",
+    children: [
+      {
+        title: "Password",
+        icon: KeyRound,
+        path: "/admin/security/password",
+      }
+    ]
+  }
 ];
+
