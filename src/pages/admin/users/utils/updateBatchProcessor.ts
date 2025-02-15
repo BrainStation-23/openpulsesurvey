@@ -1,3 +1,4 @@
+
 import { CSVRow } from "./csvProcessor";
 import { supabase } from "@/integrations/supabase/client";
 import { ImportError } from "./errorReporting";
@@ -64,7 +65,8 @@ async function* updateBatchProcessor(
             employee_role: user.employeeRole,
             employee_type: user.employeeType,
             sbus: user.sbus,
-            supervisor_email: user.supervisorEmail
+            supervisor_email: user.supervisorEmail,
+            status: user.status // Add status field here
           }))
         }
       });
