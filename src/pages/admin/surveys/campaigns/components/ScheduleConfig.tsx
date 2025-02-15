@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import {
   FormControl,
@@ -19,7 +20,6 @@ import { Switch } from "@/components/ui/switch";
 import { UseFormReturn, useWatch } from "react-hook-form";
 import { CalendarDateTime } from "@/components/ui/calendar-datetime";
 import { CampaignFormData } from "./CampaignForm";
-import { cn } from "@/lib/utils";
 
 interface ScheduleConfigProps {
   form: UseFormReturn<CampaignFormData>;
@@ -63,147 +63,111 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
           )}
         />
 
-        {!isRecurring ? (
-          <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="starts_at"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Start Date & Time</FormLabel>
-                  <FormControl>
-                    <CalendarDateTime 
-                      value={field.value} 
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="starts_at"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Start Date & Time</FormLabel>
+                <FormControl>
+                  <CalendarDateTime 
+                    value={field.value} 
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <FormField
-              control={form.control}
-              name="ends_at"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>End Date & Time</FormLabel>
-                  <FormControl>
-                    <CalendarDateTime 
-                      value={field.value} 
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="ends_at"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Campaign End Date & Time</FormLabel>
+                <FormControl>
+                  <CalendarDateTime 
+                    value={field.value} 
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {isRecurring && (
+            <>
               <FormField
                 control={form.control}
-                name="starts_at"
+                name="recurring_frequency"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Start Date & Time</FormLabel>
-                    <FormControl>
-                      <CalendarDateTime 
-                        value={field.value} 
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
+                    <FormLabel>Frequency</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {frequencyOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
 
-            <FormField
-              control={form.control}
-              name="recurring_frequency"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Frequency</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormField
+                control={form.control}
+                name="instance_duration_days"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Response Window (days)</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select frequency" />
-                      </SelectTrigger>
+                      <Input 
+                        type="number" 
+                        {...field} 
+                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      {frequencyOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormDescription>
+                      How many days should each instance last?
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="instance_duration_days"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Response Window (days)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      {...field} 
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    How many days should each instance last?
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="instance_end_time"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Response Due Time</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="time" 
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    What time should responses be due each day?
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="recurring_ends_at"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Campaign End Date & Time</FormLabel>
-                  <FormControl>
-                    <CalendarDateTime 
-                      value={field.value} 
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        )}
+              <FormField
+                control={form.control}
+                name="instance_end_time"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Response Due Time</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="time" 
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      What time should responses be due each day?
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
+        </div>
       </div>
     </Card>
   );

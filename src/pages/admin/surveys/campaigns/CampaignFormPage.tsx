@@ -81,14 +81,13 @@ export default function CampaignFormPage() {
         starts_at: formData.starts_at.toISOString(),
         is_recurring: formData.is_recurring,
         recurring_frequency: formData.recurring_frequency,
-        recurring_ends_at: formData.recurring_ends_at?.toISOString(),
+        ends_at: formData.ends_at.toISOString(),
         instance_duration_days: formData.instance_duration_days,
         instance_end_time: formData.instance_end_time || '23:59:59',
-        ends_at: formData.ends_at?.toISOString(),
         campaign_type: formData.is_recurring ? 'recurring' : 'one_time',
         status: 'draft',
         created_by: session.user.id,
-        anonymous: formData.anonymous, // Added this line to include the anonymous flag
+        anonymous: formData.anonymous,
       };
 
       if (isEditMode) {
