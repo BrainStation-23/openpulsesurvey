@@ -10,6 +10,7 @@ export const exportUsers = async (users: User[], onProgress?: ProgressCallback) 
   
   const headers = [
     "Email",
+    "Status",
     "First Name",
     "Last Name",
     "Org ID",
@@ -41,6 +42,7 @@ export const exportUsers = async (users: User[], onProgress?: ProgressCallback) 
 
       const row = [
         user.email,
+        user.status || "active",
         user.first_name || "",
         user.last_name || "",
         user.org_id || "",
