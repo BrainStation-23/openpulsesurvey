@@ -1,3 +1,4 @@
+
 import { UseFormReturn } from "react-hook-form";
 import { CampaignFormData } from "./CampaignForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,14 +53,12 @@ export function CampaignReview({ form }: CampaignReviewProps) {
                 </p>
               </div>
 
-              {values.recurring_ends_at && (
-                <div>
-                  <h4 className="font-medium">Ends On</h4>
-                  <p className="text-muted-foreground">
-                    {format(values.recurring_ends_at, "PPP")}
-                  </p>
-                </div>
-              )}
+              <div>
+                <h4 className="font-medium">Campaign End Date</h4>
+                <p className="text-muted-foreground">
+                  {format(values.ends_at, "PPP")}
+                </p>
+              </div>
 
               <div>
                 <h4 className="font-medium">Instance Duration</h4>

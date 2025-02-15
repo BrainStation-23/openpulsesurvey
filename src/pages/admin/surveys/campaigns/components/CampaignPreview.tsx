@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,27 +19,27 @@ export function CampaignPreview({ form }: CampaignPreviewProps) {
 
   const isRecurring = useWatch({
     control: form.control,
-    name: "is_recurring",
+    name: "is_recurring"
   });
 
   const frequency = useWatch({
     control: form.control,
-    name: "recurring_frequency",
+    name: "recurring_frequency"
   });
 
   const startsAt = useWatch({
     control: form.control,
-    name: "starts_at",
+    name: "starts_at"
+  });
+
+  const endsAt = useWatch({
+    control: form.control,
+    name: "ends_at"
   });
 
   const instanceDurationDays = useWatch({
     control: form.control,
-    name: "instance_duration_days",
-  });
-
-  const recurringEndsAt = useWatch({
-    control: form.control,
-    name: "recurring_ends_at",
+    name: "instance_duration_days"
   });
 
   if (!isRecurring) {
@@ -68,7 +69,7 @@ export function CampaignPreview({ form }: CampaignPreviewProps) {
     const events = [];
     let currentDate = new Date(startsAt);
 
-    while (!recurringEndsAt || currentDate <= recurringEndsAt) {
+    while (!endsAt || currentDate <= endsAt) {
       events.push({
         startDate: currentDate,
         endDate: addDays(currentDate, instanceDurationDays || 7),
@@ -182,13 +183,13 @@ export function CampaignPreview({ form }: CampaignPreviewProps) {
                     </p>
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
 
-          {recurringEndsAt && (
+          {endsAt && (
             <div className="text-sm text-muted-foreground mt-4 pt-4 border-t">
-              Campaign ends on {format(recurringEndsAt, "PPP")}
+              Campaign ends on {format(endsAt, "PPP")}
             </div>
           )}
         </div>
