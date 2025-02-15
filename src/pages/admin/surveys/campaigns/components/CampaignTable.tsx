@@ -1,15 +1,16 @@
-import { Link } from "react-router-dom";
+
 import { format } from "date-fns";
-import { ChevronDown, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { MoreHorizontal } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,24 +22,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-
-interface Campaign {
-  id: string;
-  name: string;
-  description: string | null;
-  status: string;
-  campaign_type: string;
-  is_recurring: boolean;
-  recurring_frequency: string | null;
-  recurring_ends_at: string | null;
-  starts_at: string;
-  ends_at: string | null;
-  created_at: string;
-  survey: { name: string };
-  created_by: { email: string };
-}
+import type { Campaign } from "../../types";
+import { DataTable } from "@/components/ui/data-table";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface CampaignTableProps {
   campaigns: Campaign[];
@@ -49,112 +35,148 @@ interface CampaignTableProps {
 }
 
 export function CampaignTable({ campaigns, onDelete, sortOrder, sortBy, onSort }: CampaignTableProps) {
-  const { toast } = useToast();
-
-  const handleDelete = async (id: string) => {
-    try {
-      await onDelete(id);
-      toast({
-        title: "Success",
-        description: "Campaign deleted successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete campaign",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const SortIcon = ({ field }: { field: 'starts_at' | 'ends_at' }) => {
-    if (sortBy !== field) return null;
-    return sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
-  };
-
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Survey</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead 
-            className="cursor-pointer"
-            onClick={() => onSort('starts_at')}
-          >
-            Start Date
-            <SortIcon field="starts_at" />
-          </TableHead>
-          <TableHead 
-            className="cursor-pointer"
-            onClick={() => onSort('ends_at')}
-          >
-            End Date
-            <SortIcon field="ends_at" />
-          </TableHead>
-          <TableHead className="w-[140px]">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {campaigns.map((campaign) => (
-          <TableRow key={campaign.id}>
-            <TableCell className="font-medium">
+  const columns = [
+    {
+      accessorKey: "name",
+      header: "Name",
+      cell: ({ row }: any) => {
+        const campaign = row.original;
+        return (
+          <div className="flex flex-col">
+            <Link
+              to={`/admin/surveys/campaigns/${campaign.id}`}
+              className="font-medium hover:underline"
+            >
               {campaign.name}
-              {campaign.description && (
-                <p className="text-sm text-muted-foreground">{campaign.description}</p>
-              )}
-            </TableCell>
-            <TableCell>{campaign.survey.name}</TableCell>
-            <TableCell>
-              {campaign.is_recurring
-                ? `Recurring (${campaign.recurring_frequency})`
-                : "One-time"}
-            </TableCell>
-            <TableCell>{campaign.status}</TableCell>
-            <TableCell>{format(new Date(campaign.starts_at), 'MMM d, yyyy')}</TableCell>
-            <TableCell>
-              {campaign.ends_at 
-                ? format(new Date(campaign.ends_at), 'MMM d, yyyy')
-                : '-'}
-            </TableCell>
-            <TableCell>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="icon" asChild>
-                  <Link to={`/admin/surveys/campaigns/${campaign.id}`}>
-                    <ChevronDown className="h-4 w-4" />
-                  </Link>
+            </Link>
+            {campaign.description && (
+              <span className="text-sm text-muted-foreground">
+                {campaign.description}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "survey.name",
+      header: "Survey",
+      cell: ({ row }: any) => row.original.survey?.name,
+    },
+    {
+      accessorKey: "starts_at",
+      header: () => (
+        <Button
+          variant="ghost"
+          onClick={() => onSort('starts_at')}
+          className="-ml-4 h-8 data-[state=open]:bg-accent"
+        >
+          Start Date
+          {sortBy === 'starts_at' && (
+            sortOrder === 'desc' ? 
+              <ChevronDown className="ml-2 h-4 w-4" /> : 
+              <ChevronUp className="ml-2 h-4 w-4" />
+          )}
+        </Button>
+      ),
+      cell: ({ row }: any) => format(new Date(row.original.starts_at), "PPP"),
+    },
+    {
+      accessorKey: "ends_at",
+      header: () => (
+        <Button
+          variant="ghost"
+          onClick={() => onSort('ends_at')}
+          className="-ml-4 h-8 data-[state=open]:bg-accent"
+        >
+          End Date
+          {sortBy === 'ends_at' && (
+            sortOrder === 'desc' ? 
+              <ChevronDown className="ml-2 h-4 w-4" /> : 
+              <ChevronUp className="ml-2 h-4 w-4" />
+          )}
+        </Button>
+      ),
+      cell: ({ row }: any) => 
+        row.original.ends_at ? format(new Date(row.original.ends_at), "PPP") : "No end date",
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }: any) => {
+        const status = row.original.status;
+        return (
+          <Badge
+            variant={
+              status === "active"
+                ? "default"
+                : status === "draft"
+                ? "secondary"
+                : "destructive"
+            }
+          >
+            {status}
+          </Badge>
+        );
+      },
+    },
+    {
+      id: "actions",
+      cell: ({ row }: any) => {
+        const campaign = row.original;
+
+        return (
+          <AlertDialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Campaign</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete this campaign? This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleDelete(campaign.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => navigator.clipboard.writeText(campaign.id)}
+                >
+                  Copy campaign ID
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to={`/admin/surveys/campaigns/${campaign.id}`}>
+                    View details
+                  </Link>
+                </DropdownMenuItem>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem className="text-destructive">
+                    Delete campaign
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the
+                  campaign and all its data.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDelete(campaign.id)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        );
+      },
+    },
+  ];
+
+  return <DataTable columns={columns} data={campaigns} />;
 }
