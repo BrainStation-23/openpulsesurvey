@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AssignCampaignUsers } from "./AssignCampaignUsers";
@@ -61,7 +60,7 @@ export function AssignmentInstanceList({
     queryFn: async () => {
       console.log("Fetching assignments with params:", { campaignId, selectedInstanceId });
       
-      let query = supabase
+      const query = supabase
         .from("survey_assignments")
         .select(`
           id,
@@ -95,10 +94,8 @@ export function AssignmentInstanceList({
         .eq('campaign_id', campaignId);
 
       if (selectedInstanceId) {
-        // First, get responses for this instance
-        query = query.or(
-          `responses.campaign_instance_id.eq.${selectedInstanceId},responses.status.is.null`
-        );
+        // Using the contains operator to check for matching responses
+        query.contains('responses', [{ campaign_instance_id: selectedInstanceId }]);
       }
 
       const { data, error } = await query;
