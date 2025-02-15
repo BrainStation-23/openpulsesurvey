@@ -1138,6 +1138,12 @@ export type Database = {
           response: Json
         }[]
       }
+      get_pending_surveys_count: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: number
+      }
       get_survey_responses_for_export: {
         Args: {
           p_campaign_id: string
