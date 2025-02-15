@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { SurveyAssignment, ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 import { AssignCampaignUsers } from "./AssignCampaignUsers";
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Send, MoreHorizontal, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -29,7 +30,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ResponseStatus, SurveyAssignment } from "@/pages/admin/surveys/types/assignments";
 
 interface AssignmentInstanceListProps {
   assignments: SurveyAssignment[];
@@ -60,80 +60,24 @@ export function AssignmentInstanceList({
     queryKey: ["campaign-assignments", campaignId, selectedInstanceId],
     queryFn: async () => {
       console.log("Fetching assignments with params:", { campaignId, selectedInstanceId });
-      
-      let query = supabase
-        .from("survey_assignments")
-        .select(`
-          id,
-          survey_id,
-          campaign_id,
-          user_id,
-          created_by,
-          created_at,
-          updated_at,
-          public_access_token,
-          last_reminder_sent,
-          user:profiles!survey_assignments_user_id_fkey(
-            id,
-            email,
-            first_name,
-            last_name,
-            user_sbus(
-              id,
-              is_primary,
-              sbus:sbus(
-                id,
-                name
-              )
-            )
-          )
-        `)
-        .eq('campaign_id', campaignId);
+      const { data, error } = await supabase
+        .rpc('get_campaign_assignments', {
+          p_campaign_id: campaignId,
+          p_instance_id: selectedInstanceId
+        });
 
-      const { data: assignments, error: assignmentsError } = await query;
-
-      if (assignmentsError) {
-        console.error("Error fetching assignments:", assignmentsError);
-        throw assignmentsError;
+      if (error) {
+        console.error("Error fetching assignments:", error);
+        throw error;
       }
 
-      // Fetch responses separately for better control
-      const { data: responses, error: responsesError } = await supabase
-        .from('survey_responses')
-        .select('*')
-        .in('assignment_id', assignments.map(a => a.id))
-        .eq('campaign_instance_id', selectedInstanceId);
+      console.log("Fetched assignments:", data);
 
-      if (responsesError) {
-        console.error("Error fetching responses:", responsesError);
-        throw responsesError;
-      }
-
-      // Merge responses with assignments
-      const mergedData = assignments.map(assignment => {
-        const assignmentResponses = responses?.filter(r => r.assignment_id === assignment.id) || [];
-        let status: ResponseStatus = 'assigned';
-        
-        if (selectedInstanceId) {
-          const instanceResponse = assignmentResponses.find(
-            r => r.campaign_instance_id === selectedInstanceId
-          );
-          
-          if (instanceResponse) {
-            status = instanceResponse.status as ResponseStatus;
-          }
-        }
-
-        return {
-          ...assignment,
-          status,
-          responses: assignmentResponses,
-          response: assignmentResponses[0]
-        };
-      });
-
-      console.log("Processed assignments:", mergedData);
-      return mergedData;
+      return data.map((assignment: any) => ({
+        ...assignment,
+        status: assignment.status as ResponseStatus,
+        user: assignment.user_details
+      }));
     },
     enabled: !!campaignId,
   });
