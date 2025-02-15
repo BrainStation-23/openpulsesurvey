@@ -60,7 +60,7 @@ export function AssignmentInstanceList({
       const { data, error } = await supabase
         .rpc('get_campaign_assignments', {
           p_campaign_id: campaignId,
-          p_instance_id: selectedInstanceId
+          p_instance_id: selectedInstanceId || null // Making sure we explicitly pass null if no instance is selected
         });
 
       if (error) {
