@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CampaignTabs, TabPanel } from "./components/CampaignTabs";
 import { CampaignHeader } from "./components/CampaignHeader";
-import { AssignmentInstanceList } from "./components/AssignmentInstanceList";
+import { AssignmentsTab } from "./components/AssignmentsTab";
 import { ResponsesTab } from "./components/ResponsesTab";
 import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
@@ -79,7 +79,7 @@ export default function CampaignDetailsPage() {
         </TabPanel>
 
         <TabPanel value="assignments">
-          <AssignmentInstanceList
+          <AssignmentsTab
             campaignId={campaign.id}
             surveyId={campaign.survey_id}
             selectedInstanceId={selectedInstanceId}

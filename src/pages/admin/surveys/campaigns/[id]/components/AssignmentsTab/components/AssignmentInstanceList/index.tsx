@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { ResponseStatus, SurveyAssignment } from "@/pages/admin/surveys/types/assignments";
-import { AssignCampaignUsers } from "./AssignCampaignUsers";
+import { AssignCampaignUsers } from "../AssignCampaignUsers";
 import { DataTable } from "@/components/ui/data-table";
 import {
   DropdownMenu,
