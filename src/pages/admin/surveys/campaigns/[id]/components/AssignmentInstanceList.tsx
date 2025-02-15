@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AssignCampaignUsers } from "./AssignCampaignUsers";
@@ -60,7 +61,7 @@ export function AssignmentInstanceList({
     queryFn: async () => {
       console.log("Fetching assignments with params:", { campaignId, selectedInstanceId });
       
-      const query = supabase
+      let query = supabase
         .from("survey_assignments")
         .select(`
           id,
@@ -72,10 +73,6 @@ export function AssignmentInstanceList({
           updated_at,
           public_access_token,
           last_reminder_sent,
-          responses:survey_responses(
-            status,
-            campaign_instance_id
-          ),
           user:profiles!survey_assignments_user_id_fkey(
             id,
             email,
@@ -93,27 +90,33 @@ export function AssignmentInstanceList({
         `)
         .eq('campaign_id', campaignId);
 
-      if (selectedInstanceId) {
-        // Using the contains operator to check for matching responses
-        query.contains('responses', [{ campaign_instance_id: selectedInstanceId }]);
+      const { data: assignments, error: assignmentsError } = await query;
+
+      if (assignmentsError) {
+        console.error("Error fetching assignments:", assignmentsError);
+        throw assignmentsError;
       }
 
-      const { data, error } = await query;
+      // Fetch responses separately for better control
+      const { data: responses, error: responsesError } = await supabase
+        .from('survey_responses')
+        .select('*')
+        .in('assignment_id', assignments.map(a => a.id))
+        .eq('campaign_instance_id', selectedInstanceId);
 
-      if (error) {
-        console.error("Error fetching assignments:", error);
-        throw error;
+      if (responsesError) {
+        console.error("Error fetching responses:", responsesError);
+        throw responsesError;
       }
 
-      console.log("Fetched assignments:", data);
-
-      // Process the data to determine status
-      return data.map((assignment: any) => {
+      // Merge responses with assignments
+      const mergedData = assignments.map(assignment => {
+        const assignmentResponses = responses?.filter(r => r.assignment_id === assignment.id) || [];
         let status: ResponseStatus = 'assigned';
         
         if (selectedInstanceId) {
-          const instanceResponse = assignment.responses?.find(
-            (r: any) => r.campaign_instance_id === selectedInstanceId
+          const instanceResponse = assignmentResponses.find(
+            r => r.campaign_instance_id === selectedInstanceId
           );
           
           if (instanceResponse) {
@@ -124,9 +127,13 @@ export function AssignmentInstanceList({
         return {
           ...assignment,
           status,
-          response: assignment.responses?.[0]
+          responses: assignmentResponses,
+          response: assignmentResponses[0]
         };
       });
+
+      console.log("Processed assignments:", mergedData);
+      return mergedData;
     },
     enabled: !!campaignId,
   });
