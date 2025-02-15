@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { SurveyAssignment, ResponseStatus } from "@/pages/admin/surveys/types/assignments";
+import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 import { AssignCampaignUsers } from "./AssignCampaignUsers";
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -32,8 +31,6 @@ import {
 } from "@/components/ui/tooltip";
 
 interface AssignmentInstanceListProps {
-  assignments: SurveyAssignment[];
-  isLoading: boolean;
   campaignId: string;
   surveyId?: string;
   selectedInstanceId?: string;
@@ -48,7 +45,6 @@ const statusStyles = {
 
 export function AssignmentInstanceList({
   campaignId,
-  isLoading: isLoadingProp,
   surveyId,
   selectedInstanceId,
 }: AssignmentInstanceListProps) {
