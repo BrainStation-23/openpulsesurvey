@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { SurveyAssignment, ResponseStatus } from "@/pages/admin/surveys/types/assignments";
+import { supabase } from "@/integrations/supabase/client";
 import { AssignCampaignUsers } from "./AssignCampaignUsers";
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Send, MoreHorizontal, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -30,6 +29,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ResponseStatus, SurveyAssignment } from "@/pages/admin/surveys/types/assignments";
 
 interface AssignmentInstanceListProps {
   assignments: SurveyAssignment[];
@@ -60,11 +60,48 @@ export function AssignmentInstanceList({
     queryKey: ["campaign-assignments", campaignId, selectedInstanceId],
     queryFn: async () => {
       console.log("Fetching assignments with params:", { campaignId, selectedInstanceId });
-      const { data, error } = await supabase
-        .rpc('get_campaign_assignments', {
-          p_campaign_id: campaignId,
-          p_instance_id: selectedInstanceId
-        });
+      
+      let query = supabase
+        .from("survey_assignments")
+        .select(`
+          id,
+          survey_id,
+          campaign_id,
+          user_id,
+          created_by,
+          created_at,
+          updated_at,
+          public_access_token,
+          last_reminder_sent,
+          responses:survey_responses(
+            status,
+            campaign_instance_id
+          ),
+          user:profiles!survey_assignments_user_id_fkey(
+            id,
+            email,
+            first_name,
+            last_name,
+            user_sbus(
+              id,
+              is_primary,
+              sbus:sbus(
+                id,
+                name
+              )
+            )
+          )
+        `)
+        .eq('campaign_id', campaignId);
+
+      if (selectedInstanceId) {
+        // First, get responses for this instance
+        query = query.or(
+          `responses.campaign_instance_id.eq.${selectedInstanceId},responses.status.is.null`
+        );
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("Error fetching assignments:", error);
@@ -73,11 +110,26 @@ export function AssignmentInstanceList({
 
       console.log("Fetched assignments:", data);
 
-      return data.map((assignment: any) => ({
-        ...assignment,
-        status: assignment.status as ResponseStatus,
-        user: assignment.user_details
-      }));
+      // Process the data to determine status
+      return data.map((assignment: any) => {
+        let status: ResponseStatus = 'assigned';
+        
+        if (selectedInstanceId) {
+          const instanceResponse = assignment.responses?.find(
+            (r: any) => r.campaign_instance_id === selectedInstanceId
+          );
+          
+          if (instanceResponse) {
+            status = instanceResponse.status as ResponseStatus;
+          }
+        }
+
+        return {
+          ...assignment,
+          status,
+          response: assignment.responses?.[0]
+        };
+      });
     },
     enabled: !!campaignId,
   });
