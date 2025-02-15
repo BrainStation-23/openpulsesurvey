@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -36,7 +37,6 @@ export default function CampaignFormPage() {
         return {
           ...data,
           starts_at: new Date(data.starts_at),
-          recurring_ends_at: data.recurring_ends_at ? new Date(data.recurring_ends_at) : undefined,
           ends_at: data.ends_at ? new Date(data.ends_at) : undefined,
         };
       }
