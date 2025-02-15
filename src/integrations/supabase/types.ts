@@ -528,7 +528,6 @@ export type Database = {
           is_recurring: boolean | null
           name: string
           recurring_days: number[] | null
-          recurring_ends_at: string | null
           recurring_frequency: string | null
           starts_at: string
           status: string
@@ -549,7 +548,6 @@ export type Database = {
           is_recurring?: boolean | null
           name: string
           recurring_days?: number[] | null
-          recurring_ends_at?: string | null
           recurring_frequency?: string | null
           starts_at: string
           status?: string
@@ -570,7 +568,6 @@ export type Database = {
           is_recurring?: boolean | null
           name?: string
           recurring_days?: number[] | null
-          recurring_ends_at?: string | null
           recurring_frequency?: string | null
           starts_at?: string
           status?: string
