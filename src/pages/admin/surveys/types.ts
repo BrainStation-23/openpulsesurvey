@@ -30,7 +30,15 @@ export type Campaign = {
   created_by: string;
   created_at: string;
   updated_at: string;
+  anonymous?: boolean;
+  campaign_type?: string;
+  completion_rate?: number | null;
+  survey?: {
+    name: string;
+  };
 };
+
+export type ResponseStatus = 'assigned' | 'in_progress' | 'submitted' | 'expired';
 
 export type Assignment = {
   id: string;

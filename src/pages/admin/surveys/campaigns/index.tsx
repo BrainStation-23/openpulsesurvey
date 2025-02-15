@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -7,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CampaignTable } from "./components/CampaignTable";
 import { CampaignSearchBar } from "./components/CampaignSearchBar";
+import type { Campaign } from "../types";
 
 export default function CampaignsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,7 +29,7 @@ export default function CampaignsPage() {
         .order(sortBy || 'created_at', { ascending: sortOrder === 'asc' });
       
       if (error) throw error;
-      return data;
+      return data as Campaign[];
     },
   });
 
@@ -53,7 +55,7 @@ export default function CampaignsPage() {
   const filteredCampaigns = campaigns?.filter(campaign => 
     campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     campaign.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    campaign.survey.name.toLowerCase().includes(searchQuery.toLowerCase())
+    campaign.survey?.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
