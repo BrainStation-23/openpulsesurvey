@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -47,7 +48,6 @@ import EmploymentTypeConfig from "./pages/admin/config/employment-type";
 import EmployeeTypeConfig from "./pages/admin/config/employee-type";
 import EmployeeRoleConfig from "./pages/admin/config/employee-role";
 import AIPromptsConfig from "./pages/admin/config/ai-prompts";
-import SecurityPassword from "./pages/admin/security/password";
 
 const queryClient = new QueryClient();
 
@@ -105,7 +105,8 @@ const App = () => (
               <Route path="employee-role" element={<EmployeeRoleConfig />} />
               <Route path="ai-prompts" element={<AIPromptsConfig />} />
             </Route>
-            <Route path="security/password" element={<SecurityPassword />} />
+            <Route path="profile" element={<AdminProfile />} />
+            <Route path="settings" element={<AdminSettings />} />
           </Route>
         </Routes>
       </TooltipProvider>
