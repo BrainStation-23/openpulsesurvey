@@ -60,24 +60,21 @@ const MainLayout = () => {
               <h2 className="text-2xl font-bold mb-6">Get In Touch</h2>
               <div className="flex items-center space-x-4">
                 <Mail className="h-6 w-6 text-primary" />
-                <span>contact@openofficesurvey.com</span>
+                <span>sales@brainstation-23.com</span>
               </div>
               <div className="flex items-center space-x-4">
                 <Phone className="h-6 w-6 text-primary" />
-                <span>+1 (555) 123-4567</span>
+                <span>+1 (201) 534-7200</span>
               </div>
               <div className="flex items-center space-x-4">
                 <MapPin className="h-6 w-6 text-primary" />
-                <span>123 Office Street, Business District</span>
+                <span>7426 Alban Station Blvd,Suite A101, Springfield,VA 22150</span>
               </div>
               <div className="flex space-x-4 pt-4">
-                <a href="#" className="text-gray-400 hover:text-primary">
-                  <Github className="h-6 w-6" />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-primary">
+                <a href="https://www.linkedin.com/company/brain-station-23/" className="text-gray-400 hover:text-primary">
                   <Linkedin className="h-6 w-6" />
                 </a>
-                <a href="#" className="text-gray-400 hover:text-primary">
+                <a href="https://x.com/BrainStation23" className="text-gray-400 hover:text-primary">
                   <Twitter className="h-6 w-6" />
                 </a>
               </div>
@@ -92,7 +89,7 @@ const MainLayout = () => {
             </form>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>© {new Date().getFullYear()} Open Office Survey. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Brain Station 23. All rights reserved.</p>
           </div>
         </div>
       </footer>
