@@ -1,28 +1,12 @@
-
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BarChart3, CheckCircle, Shield, Settings2, Users, BrainCircuit, FileText, Binary, Presentation } from "lucide-react";
+import { ArrowRight, BarChart3, CheckCircle, Shield, Settings2, Users, BrainCircuit, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Features = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Navigation */}
-      <nav className="container mx-auto px-4 py-6 flex justify-between items-center">
-        <div className="text-2xl font-bold text-primary">Open Office Survey</div>
-        <div className="hidden md:flex items-center space-x-8">
-          <a href="/" className="text-gray-600 hover:text-primary">Home</a>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/login')}
-            className="font-medium"
-          >
-            Login
-          </Button>
-        </div>
-      </nav>
-
+    <div>
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-12">
         <h1 className="text-4xl md:text-5xl font-bold text-center mb-8">
