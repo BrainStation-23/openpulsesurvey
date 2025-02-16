@@ -33,6 +33,9 @@ const MainLayout = () => {
             <Link to="/features" className="text-gray-600 hover:text-primary">
               Features
             </Link>
+            <Link to="/tech-stack" className="text-gray-600 hover:text-primary">
+              Tech Stack
+            </Link>
             <Button 
               variant="outline" 
               onClick={() => navigate('/login')}
