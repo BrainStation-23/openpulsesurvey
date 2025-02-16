@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
@@ -39,6 +38,7 @@ const Index = () => {
         <div className="text-2xl font-bold text-primary">Open Office Survey</div>
         <div className="hidden md:flex items-center space-x-8">
           <a href="#features" className="text-gray-600 hover:text-primary">Features</a>
+          <a href="/features" className="text-gray-600 hover:text-primary">Feature Details</a>
           <a href="#how-it-works" className="text-gray-600 hover:text-primary">How It Works</a>
           <a href="#contact" className="text-gray-600 hover:text-primary">Contact</a>
           <Button 
