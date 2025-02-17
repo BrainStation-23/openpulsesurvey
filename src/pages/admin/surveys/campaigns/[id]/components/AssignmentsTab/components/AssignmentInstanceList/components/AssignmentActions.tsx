@@ -50,23 +50,34 @@ export function AssignmentActions({
   });
 
   const sendReminderMutation = useMutation({
-    mutationFn: async ({ instanceId, campaignId }: { instanceId?: string; campaignId: string }) => {
-      const { error } = await supabase.functions.invoke("send-survey-reminder", {
+    mutationFn: async () => {
+      console.log("Sending reminder for assignment:", {
+        assignmentIds: [assignment.id],
+        campaignId,
+        instanceId: selectedInstanceId,
+      });
+
+      const { error } = await supabase.functions.invoke("send-campaign-instance-reminder", {
         body: {
-          instanceId,
+          assignmentIds: [assignment.id], // Now correctly wrapped in array
           campaignId,
-          frontendUrl: window.location.origin,
+          instanceId: selectedInstanceId,
+          baseUrl: window.location.origin, // Changed from frontendUrl to baseUrl
         },
       });
-      if (error) throw error;
+
+      if (error) {
+        console.error("Error sending reminder:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Reminders sent successfully");
+      toast.success("Reminder sent successfully");
       queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
     },
     onError: (error) => {
-      console.error("Error sending reminders:", error);
-      toast.error("Failed to send reminders");
+      console.error("Error sending reminder:", error);
+      toast.error("Failed to send reminder");
     },
   });
 
@@ -88,12 +99,7 @@ export function AssignmentActions({
             <TooltipTrigger asChild>
               <div>
                 <DropdownMenuItem
-                  onClick={() =>
-                    sendReminderMutation.mutate({
-                      campaignId,
-                      instanceId: selectedInstanceId,
-                    })
-                  }
+                  onClick={() => sendReminderMutation.mutate()}
                   disabled={!canSend || assignment.status === "submitted"}
                   className="relative"
                 >
