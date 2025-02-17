@@ -13,7 +13,7 @@ import {
   TooltipTrigger,
   Tooltip,
 } from "@/components/ui/tooltip";
-import { Copy, MoreHorizontal, Send } from "lucide-react";
+import { Copy, MoreHorizontal, Send, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -59,10 +59,10 @@ export function AssignmentActions({
 
       const { error } = await supabase.functions.invoke("send-campaign-instance-reminder", {
         body: {
-          assignmentIds: [assignment.id], // Now correctly wrapped in array
+          assignmentIds: [assignment.id],
           campaignId,
           instanceId: selectedInstanceId,
-          baseUrl: window.location.origin, // Changed from frontendUrl to baseUrl
+          baseUrl: window.location.origin,
         },
       });
 
@@ -78,6 +78,25 @@ export function AssignmentActions({
     onError: (error) => {
       console.error("Error sending reminder:", error);
       toast.error("Failed to send reminder");
+    },
+  });
+
+  const deleteAssignmentMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('delete_survey_assignment', {
+        p_assignment_id: assignment.id
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
+    },
+    onError: (error) => {
+      console.error("Error deleting assignment:", error);
+      toast.error("Failed to delete assignment");
     },
   });
 
@@ -117,6 +136,13 @@ export function AssignmentActions({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        <DropdownMenuItem 
+          onClick={() => deleteAssignmentMutation.mutate()}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete Assignment
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

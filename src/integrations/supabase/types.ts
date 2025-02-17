@@ -1113,6 +1113,12 @@ export type Database = {
         }
         Returns: number
       }
+      delete_survey_assignment: {
+        Args: {
+          p_assignment_id: string
+        }
+        Returns: Json
+      }
       fix_all_instance_completion_rates: {
         Args: Record<PropertyKey, never>
         Returns: undefined
