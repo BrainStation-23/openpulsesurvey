@@ -1,3 +1,4 @@
+
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { User } from "../../types";
+import { Badge } from "@/components/ui/badge";
 
 interface ManagementTabProps {
   user: User;
@@ -35,8 +37,8 @@ export function ManagementTab({
       
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name")
-        .or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%`)
+        .select("id, first_name, last_name, email, org_id")
+        .or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`)
         .neq('id', user.id)
         .limit(5);
 
@@ -90,7 +92,7 @@ export function ManagementTab({
         <div className="flex items-center space-x-2">
           <Search className="w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search supervisors..."
+            placeholder="Search supervisors by name or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -101,11 +103,21 @@ export function ManagementTab({
             {searchResults.map((result) => (
               <div
                 key={result.id}
-                className="flex items-center justify-between p-2 hover:bg-muted/50"
+                className="flex items-center justify-between p-3 hover:bg-muted/50"
               >
-                <span>
-                  {result.first_name} {result.last_name}
-                </span>
+                <div className="flex flex-col">
+                  <span className="font-medium">
+                    {result.first_name} {result.last_name}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {result.email}
+                  </span>
+                  {result.org_id && (
+                    <Badge variant="secondary" className="mt-1 w-fit">
+                      ID: {result.org_id}
+                    </Badge>
+                  )}
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
