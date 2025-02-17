@@ -33,6 +33,18 @@ interface DeleteAssignmentResponse {
   deleted_responses: number;
 }
 
+// Type guard to validate the response shape
+function isDeleteAssignmentResponse(data: unknown): data is DeleteAssignmentResponse {
+  const response = data as DeleteAssignmentResponse;
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    typeof response.success === 'boolean' &&
+    typeof response.message === 'string' &&
+    typeof response.deleted_responses === 'number'
+  );
+}
+
 export function AssignmentActions({
   assignment,
   campaignId,
@@ -97,9 +109,13 @@ export function AssignmentActions({
       if (error) throw error;
       if (!data) throw new Error('No data returned from delete operation');
       
-      return data as DeleteAssignmentResponse;
+      if (!isDeleteAssignmentResponse(data)) {
+        throw new Error('Invalid response format from delete operation');
+      }
+      
+      return data;
     },
-    onSuccess: (data: DeleteAssignmentResponse) => {
+    onSuccess: (data) => {
       toast.success(data.message);
       queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
     },
