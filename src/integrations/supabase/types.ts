@@ -104,6 +104,42 @@ export type Database = {
           },
         ]
       }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          error_message: string | null
+          id: string
+          message: string
+          name: string
+          sent_to: string[] | null
+          status: Database["public"]["Enums"]["contact_message_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          error_message?: string | null
+          id?: string
+          message: string
+          name: string
+          sent_to?: string[] | null
+          status?: Database["public"]["Enums"]["contact_message_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          error_message?: string | null
+          id?: string
+          message?: string
+          name?: string
+          sent_to?: string[] | null
+          status?: Database["public"]["Enums"]["contact_message_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_config: {
         Row: {
           created_at: string
@@ -1199,6 +1235,7 @@ export type Database = {
       assignment_status: "pending" | "completed" | "expired"
       campaign_status: "draft" | "active" | "completed" | "archived"
       config_status: "active" | "inactive"
+      contact_message_status: "pending" | "sent" | "error"
       email_provider: "resend"
       employee_role_status: "active" | "inactive"
       employee_type_status: "active" | "inactive"
