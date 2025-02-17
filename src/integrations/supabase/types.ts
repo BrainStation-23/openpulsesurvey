@@ -1107,6 +1107,16 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_instance_completion_rate: {
+        Args: {
+          instance_id: string
+        }
+        Returns: number
+      }
+      fix_all_instance_completion_rates: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_assignment_instance_status: {
         Args: {
           p_assignment_id: string
