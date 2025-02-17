@@ -18,11 +18,9 @@ import { SilentEmployees } from "@/components/admin/dashboard/analytics/SilentEm
 
 // Layout configurations for different components
 const componentLayouts = {
-  charts: "col-span-full xl:col-span-2", // Charts need more width
-  narrowList: "col-span-full md:col-span-1", // Components that work well in narrow spaces
-  fullWidth: "col-span-full", // Components that need full width
-  table: "col-span-full lg:col-span-2", // Tables that need more horizontal space
-  sideContent: "col-span-full md:col-span-1" // Content that works well as sidebar
+  narrowList: "col-span-1", // Components that work well in narrow spaces (1/3 width)
+  mediumWidth: "col-span-2", // Components that need medium width (2/3 width)
+  fullWidth: "col-span-3", // Components that need full width
 };
 
 export default function AdminDashboard() {
@@ -56,12 +54,12 @@ export default function AdminDashboard() {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           <MetricsOverview />
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <div className={componentLayouts.charts}>
-              <ResponseTrendChart />
-            </div>
-            <div className={componentLayouts.sideContent}>
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+            <div className={componentLayouts.narrowList}>
               <RecentActivity />
+            </div>
+            <div className={componentLayouts.mediumWidth}>
+              <ResponseTrendChart />
             </div>
             <div className={componentLayouts.fullWidth}>
               <DepartmentCompletionChart />
@@ -71,22 +69,22 @@ export default function AdminDashboard() {
 
         {/* Performance Tab */}
         <TabsContent value="performance" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <div className={componentLayouts.table}>
-              <TopManagersTable />
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+            <div className={componentLayouts.narrowList}>
+              <TopSurveysTable />
             </div>
-            <div className={componentLayouts.table}>
+            <div className={componentLayouts.mediumWidth}>
               <TopSBUsTable />
             </div>
-            <div className={componentLayouts.sideContent}>
-              <TopSurveysTable />
+            <div className={componentLayouts.fullWidth}>
+              <TopManagersTable />
             </div>
           </div>
         </TabsContent>
 
         {/* Demographics Tab */}
         <TabsContent value="demographics" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
             <div className={componentLayouts.fullWidth}>
               <DemographicBreakdown />
             </div>
@@ -95,15 +93,15 @@ export default function AdminDashboard() {
 
         {/* Needs Attention Tab */}
         <TabsContent value="attention" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <div className={componentLayouts.table}>
-              <SilentEmployees />
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+            <div className={componentLayouts.narrowList}>
+              <UpcomingSurveyDeadlines />
             </div>
-            <div className={componentLayouts.table}>
+            <div className={componentLayouts.mediumWidth}>
               <ManagersNeedingImprovement />
             </div>
-            <div className={componentLayouts.sideContent}>
-              <UpcomingSurveyDeadlines />
+            <div className={componentLayouts.fullWidth}>
+              <SilentEmployees />
             </div>
           </div>
         </TabsContent>
