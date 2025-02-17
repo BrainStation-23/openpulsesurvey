@@ -1245,7 +1245,7 @@ export type Database = {
       assignment_status: "pending" | "completed" | "expired"
       campaign_status: "draft" | "active" | "completed" | "archived"
       config_status: "active" | "inactive"
-      contact_message_status: "pending" | "sent" | "error"
+      contact_message_status: "pending" | "sent" | "error" | "partially_sent"
       email_provider: "resend"
       employee_role_status: "active" | "inactive"
       employee_type_status: "active" | "inactive"
