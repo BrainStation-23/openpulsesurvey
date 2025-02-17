@@ -26,6 +26,13 @@ interface AssignmentActionsProps {
   getNextReminderTime: (lastReminderSent: string) => string;
 }
 
+// Define the type for the delete assignment response
+interface DeleteAssignmentResponse {
+  success: boolean;
+  message: string;
+  deleted_responses: number;
+}
+
 export function AssignmentActions({
   assignment,
   campaignId,
@@ -83,7 +90,7 @@ export function AssignmentActions({
 
   const deleteAssignmentMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc('delete_survey_assignment', {
+      const { data, error } = await supabase.rpc<DeleteAssignmentResponse>('delete_survey_assignment', {
         p_assignment_id: assignment.id
       });
 
@@ -91,8 +98,10 @@ export function AssignmentActions({
       return data;
     },
     onSuccess: (data) => {
-      toast.success(data.message);
-      queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
+      if (data) {
+        toast.success(data.message);
+        queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
+      }
     },
     onError: (error) => {
       console.error("Error deleting assignment:", error);
