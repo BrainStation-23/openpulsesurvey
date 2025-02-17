@@ -2,7 +2,6 @@
 import { 
   LayoutDashboard, 
   Settings2, 
-  UserRound, 
   Users, 
   FileText, 
   Grid,
@@ -13,7 +12,8 @@ import {
   Layers,
   Briefcase,
   Shield,
-  BrainCircuit
+  BrainCircuit,
+  UserRound
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -97,11 +97,6 @@ export const navigationItems: NavigationItem[] = [
         path: "/admin/config/ai-prompts",
       },
     ],
-  },
-  {
-    title: "Profile",
-    icon: UserRound,
-    path: "/admin/profile",
   },
   {
     title: "Settings",

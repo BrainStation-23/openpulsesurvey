@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,46 +28,47 @@ export function ResponseTrendChart() {
   if (isLoading) return <div>Loading...</div>;
 
   return (
-    <Card className="overflow-hidden">
+    <Card>
       <CardHeader>
         <CardTitle>Response Trends</CardTitle>
       </CardHeader>
-      <CardContent className="aspect-[16/9] w-full">
-        <ChartContainer config={{}}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={trends}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <ChartTooltip
-                content={({ active, payload, label }) => {
-                  if (!active || !payload?.length) return null;
-                  return (
-                    <ChartTooltipContent 
-                      active={active} 
-                      payload={payload} 
-                      label={label}
-                    />
-                  );
-                }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="responses" 
-                stroke="#8884d8" 
-                name="Total Responses"
-              />
-              <Line 
-                type="monotone" 
-                dataKey="respondents" 
-                stroke="#82ca9d" 
-                name="Unique Respondents"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartContainer>
+      <CardContent>
+        <div className="aspect-[2/1] w-full">
+          <ChartContainer config={{}}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={trends}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <ChartTooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    return (
+                      <ChartTooltipContent 
+                        active={active} 
+                        payload={payload} 
+                        label={label}
+                      />
+                    );
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="responses" 
+                  stroke="#8884d8" 
+                  name="Total Responses"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="respondents" 
+                  stroke="#82ca9d" 
+                  name="Unique Respondents"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </div>
       </CardContent>
     </Card>
   );
 }
-

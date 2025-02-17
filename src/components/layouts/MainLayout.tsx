@@ -1,22 +1,66 @@
 
 import { Button } from "@/components/ui/button";
 import { Link, Outlet, useNavigate } from "react-router-dom";
-import { Mail, Phone, MapPin, Github, Linkedin, Twitter } from "lucide-react";
+import { Mail, Phone, MapPin, Github, Linkedin, Twitter, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { supabase } from "@/integrations/supabase/client";
+
+interface ContactFormInputs {
+  name: string;
+  email: string;
+  message: string;
+}
 
 const MainLayout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Message Sent",
-      description: "We'll get back to you as soon as possible.",
-    });
+  const { 
+    register, 
+    handleSubmit, 
+    reset,
+    formState: { errors } 
+  } = useForm<ContactFormInputs>();
+
+  const handleContactSubmit = async (data: ContactFormInputs) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-contact-email', {
+        body: data
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Message Sent",
+        description: "Thank you for your message. We'll get back to you soon!",
+      });
+
+      reset(); // Clear the form
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const navLinks = [
+    { to: "/", label: "Home" },
+    { to: "/features", label: "Features" },
+    { to: "/tech-stack", label: "Tech Stack" },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white">
@@ -26,16 +70,18 @@ const MainLayout = () => {
           <Link to="/" className="text-2xl font-bold text-primary">
             Open Office Survey
           </Link>
+          
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="text-gray-600 hover:text-primary">
-              Home
-            </Link>
-            <Link to="/features" className="text-gray-600 hover:text-primary">
-              Features
-            </Link>
-            <Link to="/tech-stack" className="text-gray-600 hover:text-primary">
-              Tech Stack
-            </Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="text-gray-600 hover:text-primary"
+              >
+                {link.label}
+              </Link>
+            ))}
             <Button 
               variant="outline" 
               onClick={() => navigate('/login')}
@@ -44,6 +90,38 @@ const MainLayout = () => {
               Login
             </Button>
           </div>
+
+          {/* Mobile Navigation */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild className="md:hidden">
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-64">
+              <div className="flex flex-col space-y-4 mt-6">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className="text-lg text-gray-600 hover:text-primary"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+                <Button 
+                  onClick={() => {
+                    navigate('/login');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full"
+                >
+                  Login
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </nav>
 
@@ -79,12 +157,59 @@ const MainLayout = () => {
                 </a>
               </div>
             </div>
-            <form onSubmit={handleContactSubmit} className="space-y-4">
-              <Input placeholder="Your Name" className="bg-gray-800 border-gray-700" />
-              <Input type="email" placeholder="Your Email" className="bg-gray-800 border-gray-700" />
-              <Textarea placeholder="Your Message" className="h-32 bg-gray-800 border-gray-700" />
-              <Button type="submit" className="w-full">
-                Send Message
+            <form onSubmit={handleSubmit(handleContactSubmit)} className="space-y-4">
+              <div>
+                <Input
+                  placeholder="Your Name"
+                  className="bg-gray-800 border-gray-700"
+                  {...register("name", { required: "Name is required" })}
+                  aria-invalid={errors.name ? "true" : "false"}
+                />
+                {errors.name && (
+                  <p className="text-red-400 text-sm mt-1">{errors.name.message}</p>
+                )}
+              </div>
+              <div>
+                <Input
+                  type="email"
+                  placeholder="Your Email"
+                  className="bg-gray-800 border-gray-700"
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Invalid email address"
+                    }
+                  })}
+                  aria-invalid={errors.email ? "true" : "false"}
+                />
+                {errors.email && (
+                  <p className="text-red-400 text-sm mt-1">{errors.email.message}</p>
+                )}
+              </div>
+              <div>
+                <Textarea
+                  placeholder="Your Message"
+                  className="h-32 bg-gray-800 border-gray-700"
+                  {...register("message", {
+                    required: "Message is required",
+                    minLength: {
+                      value: 10,
+                      message: "Message must be at least 10 characters"
+                    }
+                  })}
+                  aria-invalid={errors.message ? "true" : "false"}
+                />
+                {errors.message && (
+                  <p className="text-red-400 text-sm mt-1">{errors.message.message}</p>
+                )}
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Sending..." : "Send Message"}
               </Button>
             </form>
           </div>

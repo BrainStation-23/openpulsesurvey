@@ -17,6 +17,14 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
     queryFn: async () => {
       if (!selectedInstanceId) return null;
 
+      const { data: instanceData, error: instanceError } = await supabase
+        .from("campaign_instances")
+        .select("completion_rate, id")
+        .eq("id", selectedInstanceId)
+        .single();
+
+      if (instanceError) throw instanceError;
+
       const { data: assignments, error: assignmentsError } = await supabase
         .from("survey_assignments")
         .select("id")
@@ -32,16 +40,10 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
 
       if (responsesError) throw responsesError;
 
-      const totalAssignments = assignments?.length || 0;
-      const completedResponses = responses?.length || 0;
-      const completionRate = totalAssignments > 0 
-        ? (completedResponses / totalAssignments) * 100 
-        : 0;
-
       return {
-        completionRate,
-        totalAssignments,
-        completedResponses
+        completionRate: instanceData.completion_rate,
+        totalAssignments: assignments?.length || 0,
+        completedResponses: responses?.length || 0
       };
     },
     enabled: !!selectedInstanceId,

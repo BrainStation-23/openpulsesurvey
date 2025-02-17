@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,8 +31,7 @@ export function DepartmentCompletionChart() {
   if (isLoading) return <div>Loading...</div>;
 
   return (
-    <Card className="overflow-hidden">
-
+    <Card>
       <CardHeader>
         <CardTitle>Department Completion Rates</CardTitle>
       </CardHeader>
@@ -42,39 +42,40 @@ export function DepartmentCompletionChart() {
             <TabsTrigger value="table">Table View</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="chart" className="aspect-[16/9] w-full">
-
-            <ChartContainer config={{}}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={departmentStats}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis unit="%" />
-                  <ChartTooltip
-                    content={({ active, payload, label }) => {
-                      if (!active || !payload?.length) return null;
-                      const data = payload[0].payload;
-                      return (
-                        <ChartTooltipContent>
-                          <div className="space-y-1">
-                            <p className="font-medium">{label}</p>
-                            <p>Completion Rate: {data.completionRate}%</p>
-                            <p>Total Assignments: {data.totalAssignments}</p>
-                            <p>Completed: {data.completedResponses}</p>
-                          </div>
-                        </ChartTooltipContent>
-                      );
-                    }}
-                  />
-                  <Bar 
-                    dataKey="completionRate" 
-                    fill="#8884d8" 
-                    name="Completion Rate"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+          <TabsContent value="chart">
+            <div className="aspect-[2/1] w-full">
+              <ChartContainer config={{}}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={departmentStats}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis unit="%" />
+                    <ChartTooltip
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        const data = payload[0].payload;
+                        return (
+                          <ChartTooltipContent>
+                            <div className="space-y-1">
+                              <p className="font-medium">{label}</p>
+                              <p>Completion Rate: {data.completionRate}%</p>
+                              <p>Total Assignments: {data.totalAssignments}</p>
+                              <p>Completed: {data.completedResponses}</p>
+                            </div>
+                          </ChartTooltipContent>
+                        );
+                      }}
+                    />
+                    <Bar 
+                      dataKey="completionRate" 
+                      fill="#8884d8" 
+                      name="Completion Rate"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </div>
           </TabsContent>
 
           <TabsContent value="table">
@@ -113,4 +114,3 @@ export function DepartmentCompletionChart() {
     </Card>
   );
 }
-
