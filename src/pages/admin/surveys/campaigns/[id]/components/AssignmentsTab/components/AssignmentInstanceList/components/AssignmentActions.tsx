@@ -96,13 +96,13 @@ export function AssignmentActions({
       );
 
       if (error) throw error;
-      return data;
+      if (!data) throw new Error('No data returned from delete operation');
+      
+      return data as DeleteAssignmentResponse;
     },
-    onSuccess: (data) => {
-      if (data && 'message' in data) {
-        toast.success(data.message);
-        queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
-      }
+    onSuccess: (data: DeleteAssignmentResponse) => {
+      toast.success(data.message);
+      queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
     },
     onError: (error) => {
       console.error("Error deleting assignment:", error);
