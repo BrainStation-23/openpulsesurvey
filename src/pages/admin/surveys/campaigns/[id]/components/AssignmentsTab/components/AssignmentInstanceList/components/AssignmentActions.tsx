@@ -90,10 +90,9 @@ export function AssignmentActions({
 
   const deleteAssignmentMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc<DeleteAssignmentResponse, { p_assignment_id: string }>(
-        'delete_survey_assignment',
-        { p_assignment_id: assignment.id }
-      );
+      const { data, error } = await supabase.rpc('delete_survey_assignment', { 
+        p_assignment_id: assignment.id 
+      });
 
       if (error) throw error;
       if (!data) throw new Error('No data returned from delete operation');
