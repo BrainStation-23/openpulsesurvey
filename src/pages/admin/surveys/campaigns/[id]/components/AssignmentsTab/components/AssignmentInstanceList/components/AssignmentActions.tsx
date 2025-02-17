@@ -52,17 +52,17 @@ export function AssignmentActions({
   const sendReminderMutation = useMutation({
     mutationFn: async () => {
       console.log("Sending reminder for assignment:", {
-        assignmentId: assignment.id,
+        assignmentIds: [assignment.id],
         campaignId,
         instanceId: selectedInstanceId,
       });
 
       const { error } = await supabase.functions.invoke("send-campaign-instance-reminder", {
         body: {
-          assignmentId: assignment.id,
+          assignmentIds: [assignment.id], // Now correctly wrapped in array
           campaignId,
           instanceId: selectedInstanceId,
-          frontendUrl: window.location.origin,
+          baseUrl: window.location.origin, // Changed from frontendUrl to baseUrl
         },
       });
 
@@ -121,4 +121,3 @@ export function AssignmentActions({
     </DropdownMenu>
   );
 }
-
