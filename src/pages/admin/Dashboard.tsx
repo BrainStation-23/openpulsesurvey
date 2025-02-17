@@ -34,8 +34,6 @@ export default function AdminDashboard() {
         </div>
       </div>
       
-      <MetricsOverview />
-      
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -46,45 +44,56 @@ export default function AdminDashboard() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-1">
-            <ResponseTrendChart />
-          </div>
-          <div className="grid gap-6 md:grid-cols-1">
-            <DepartmentCompletionChart />
-          </div>
-          <div className="grid gap-6 md:grid-cols-1">
-            <RecentActivity />
+          <MetricsOverview />
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="col-span-full xl:col-span-2">
+              <ResponseTrendChart />
+            </div>
+            <div className="col-span-full md:col-span-1 xl:col-span-1">
+              <RecentActivity />
+            </div>
+            <div className="col-span-full xl:col-span-3">
+              <DepartmentCompletionChart />
+            </div>
           </div>
         </TabsContent>
 
         {/* Performance Tab */}
         <TabsContent value="performance" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-1">
-            <TopManagersTable />
-          </div>
-          <div className="grid gap-6 md:grid-cols-1">
-            <TopSBUsTable />
-          </div>
-          <div className="grid gap-6 md:grid-cols-1">
-            <TopSurveysTable />
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="col-span-full md:col-span-1">
+              <TopManagersTable />
+            </div>
+            <div className="col-span-full md:col-span-1">
+              <TopSBUsTable />
+            </div>
+            <div className="col-span-full xl:col-span-1">
+              <TopSurveysTable />
+            </div>
           </div>
         </TabsContent>
 
         {/* Demographics Tab */}
         <TabsContent value="demographics" className="space-y-6">
-          <DemographicBreakdown />
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="col-span-full">
+              <DemographicBreakdown />
+            </div>
+          </div>
         </TabsContent>
 
         {/* Needs Attention Tab */}
         <TabsContent value="attention" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-1">
-            <SilentEmployees />
-          </div>
-          <div className="grid gap-6 md:grid-cols-1">
-            <ManagersNeedingImprovement />
-          </div>
-          <div className="grid gap-6 md:grid-cols-1">
-            <UpcomingSurveyDeadlines />
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="col-span-full md:col-span-1">
+              <SilentEmployees />
+            </div>
+            <div className="col-span-full md:col-span-1">
+              <ManagersNeedingImprovement />
+            </div>
+            <div className="col-span-full xl:col-span-1">
+              <UpcomingSurveyDeadlines />
+            </div>
           </div>
         </TabsContent>
       </Tabs>
