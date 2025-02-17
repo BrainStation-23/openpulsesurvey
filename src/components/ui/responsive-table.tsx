@@ -22,10 +22,11 @@ export function ResponsiveTable({ children, className, ...props }: ResponsiveTab
   );
 }
 
+// Add static properties to ResponsiveTable
 ResponsiveTable.Header = TableHeader;
 ResponsiveTable.Body = TableBody;
 ResponsiveTable.Head = TableHead;
 ResponsiveTable.Row = TableRow;
 ResponsiveTable.Cell = TableCell;
 
-export { ResponsiveTable };
+// Remove the duplicate export
