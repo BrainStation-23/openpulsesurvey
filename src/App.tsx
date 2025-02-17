@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,7 +20,6 @@ import ThankYouPage from "./pages/public/ThankYou";
 
 // User pages
 import UserDashboard from "./pages/user/Dashboard";
-import UserProfile from "./pages/user/Profile";
 import UserSettings from "./pages/user/Settings";
 import UserMySurveys from "./pages/user/my-surveys";
 import UserSurveyResponse from "./pages/user/my-surveys/[id]";
@@ -27,7 +27,6 @@ import UserSurveyResponse from "./pages/user/my-surveys/[id]";
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminConfig from "./pages/admin/Config";
-import AdminProfile from "./pages/admin/Profile";
 import AdminSettings from "./pages/admin/Settings";
 import Users from "./pages/admin/users";
 import EditUserPage from "./pages/admin/users/[id]/edit";
@@ -79,7 +78,6 @@ const App = () => (
             <Route path="dashboard" element={<UserDashboard />} />
             <Route path="my-surveys" element={<UserMySurveys />} />
             <Route path="my-surveys/:id" element={<UserSurveyResponse />} />
-            <Route path="profile" element={<UserProfile />} />
             <Route path="settings" element={<UserSettings />} />
           </Route>
           
@@ -111,7 +109,6 @@ const App = () => (
               <Route path="employee-role" element={<EmployeeRoleConfig />} />
               <Route path="ai-prompts" element={<AIPromptsConfig />} />
             </Route>
-            <Route path="profile" element={<AdminProfile />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
         </Routes>
