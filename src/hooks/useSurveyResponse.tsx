@@ -54,10 +54,12 @@ export function useSurveyResponse({
           const theme = getThemeInstance(surveyDetails?.theme_settings) || themes.LayeredDarkPanelless;
           console.log("Applying theme:", theme, "with settings:", surveyDetails?.theme_settings);
           surveyModel.applyTheme(theme);
+          setSurvey(surveyModel); // Make sure to update state after applying theme
         } catch (error) {
           console.error("Error fetching theme settings:", error);
           // Fallback to default theme if there's an error
           surveyModel.applyTheme(themes.LayeredDarkPanelless);
+          setSurvey(surveyModel);
         }
       };
 
@@ -208,6 +210,19 @@ export function useSurveyResponse({
       try {
         console.log("Applying new theme:", theme, "with settings:", themeSettings);
         survey.applyTheme(theme);
+        
+        // Force a re-render by creating a new survey model with the same data
+        const newModel = new Model(survey.toJSON());
+        newModel.applyTheme(theme);
+        newModel.data = survey.data;
+        
+        // If we're in the middle of the survey, restore the current page
+        if (survey.currentPageNo !== 0) {
+          newModel.currentPageNo = survey.currentPageNo;
+        }
+        
+        // Update the survey state to trigger a re-render
+        setSurvey(newModel);
       } catch (error) {
         console.error("Error applying theme:", error);
         toast({
