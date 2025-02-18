@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,7 +14,46 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import AdminLayout from "./components/layouts/AdminLayout";
 import UserLayout from "./components/layouts/UserLayout";
 import Dashboard from "./pages/Dashboard";
-import GamePage from "./pages/email-training/game";
+
+import PublicSurveyPage from "./pages/public/Survey";
+import ThankYouPage from "./pages/public/ThankYou";
+
+// User pages
+import UserDashboard from "./pages/user/Dashboard";
+import UserSettings from "./pages/user/Settings";
+import UserMySurveys from "./pages/user/my-surveys";
+import UserSurveyResponse from "./pages/user/my-surveys/[id]";
+import UserAchievementsPage from "./pages/user/achievements";
+
+// Admin pages
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminConfig from "./pages/admin/Config";
+import AdminSettings from "./pages/admin/Settings";
+import Users from "./pages/admin/users";
+import EditUserPage from "./pages/admin/users/[id]/edit";
+import MySurveysPage from "./pages/admin/my-surveys";
+import SurveyResponsePage from "./pages/admin/my-surveys/[id]";
+import SurveysPage from "./pages/admin/surveys";
+import SurveyFormPage from "./pages/admin/surveys/SurveyFormPage";
+import PreviewSurveyPage from "./pages/admin/surveys/[id]/preview";
+import CampaignsPage from "./pages/admin/surveys/campaigns";
+import CampaignFormPage from "./pages/admin/surveys/campaigns/CampaignFormPage";
+import CampaignDetailsPage from "./pages/admin/surveys/campaigns/[id]";
+import PresentationView from "./pages/admin/surveys/campaigns/[id]/components/PresentationView/index";
+import PlatformConfigLayout from "./components/layouts/PlatformConfigLayout";
+import ScenariosPage from "./pages/admin/email-training/scenarios";
+import CreateScenarioPage from "./pages/admin/email-training/scenarios/create";
+import SBUsConfig from "./pages/admin/config/sbus";
+import SBUDetails from "./pages/admin/config/sbus/[id]";
+import EmailConfig from "./pages/admin/config/email";
+import LevelConfig from "./pages/admin/config/level";
+import LocationConfig from "./pages/admin/config/location";
+import EmploymentTypeConfig from "./pages/admin/config/employment-type";
+import EmployeeTypeConfig from "./pages/admin/config/employee-type";
+import EmployeeRoleConfig from "./pages/admin/config/employee-role";
+import AIPromptsConfig from "./pages/admin/config/ai-prompts";
+import AchievementsPage from "./pages/admin/achievements";
+import AchievementFormPage from "./pages/admin/achievements/AchievementFormPage";
 
 const queryClient = new QueryClient();
 
@@ -81,7 +121,6 @@ const App = () => (
             <Route path="email-training/scenarios" element={<ScenariosPage />} />
             <Route path="email-training/scenarios/create" element={<CreateScenarioPage />} />
             <Route path="email-training/scenarios/:id/edit" element={<CreateScenarioPage />} />
-            <Route path="email-training/game" element={<GamePage />} />
           </Route>
         </Routes>
       </TooltipProvider>

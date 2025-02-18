@@ -1,60 +1,124 @@
-import { useState } from "react";
-import { EmailWindow } from "./components/EmailWindow";
-import { Card } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Play, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Scenario } from "@/pages/admin/email-training/scenarios/types";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { toast } from "sonner";
+import { ScenarioDisplay } from "./components/ScenarioDisplay";
+import { EmailWindow } from "./components/EmailWindow";
+import type { Scenario } from "../types";
 
 export default function GamePage() {
-  const [currentScenario, setCurrentScenario] = useState<Scenario | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [scenario, setScenario] = useState<Scenario | null>(null);
+  const [gameState, setGameState] = useState<'initial' | 'playing' | 'submitted'>('initial');
+  const navigate = useNavigate();
 
-  const { data: scenarios, isLoading } = useQuery({
-    queryKey: ["scenarios"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("email_scenarios")
-        .select()
-        .eq("status", "active");
+  useEffect(() => {
+    loadRandomScenario();
+  }, []);
+
+  const loadRandomScenario = async () => {
+    try {
+      const { data: scenarios, error } = await supabase
+        .from('email_scenarios')
+        .select('*')
+        .eq('status', 'active')
+        .order('random()')
+        .limit(1)
+        .single();
+
       if (error) throw error;
-      return data as Scenario[];
+      setScenario(scenarios);
+    } catch (error) {
+      console.error('Error loading scenario:', error);
+      toast.error("Failed to load scenario. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-  });
+  };
 
-  const handleComplete = () => {
-    // Handle completion - can be expanded later
-    setCurrentScenario(null);
+  const handleStart = async () => {
+    if (!scenario) return;
+    
+    try {
+      // Get the current user's ID
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('No user found');
+
+      const { data: session, error: sessionError } = await supabase
+        .from('email_training_sessions')
+        .insert({
+          scenario_id: scenario.id,
+          user_id: user.id,
+          status: 'playing'
+        })
+        .select()
+        .single();
+
+      if (sessionError) throw sessionError;
+      
+      setGameState('playing');
+    } catch (error) {
+      console.error('Error starting session:', error);
+      toast.error("Failed to start session. Please try again.");
+    }
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner className="w-8 h-8" />
+      </div>
+    );
   }
 
-  if (!currentScenario) {
+  if (!scenario) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Email Training Game</h1>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {scenarios?.map((scenario) => (
-            <Card
-              key={scenario.id}
-              className="p-4 cursor-pointer hover:bg-accent"
-              onClick={() => setCurrentScenario(scenario)}
-            >
-              <h3 className="font-semibold">{scenario.name}</h3>
-              <p className="text-sm text-muted-foreground mt-2">
-                Difficulty: {scenario.difficulty_level}
-              </p>
-            </Card>
-          ))}
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <p className="text-lg">No scenarios available.</p>
+        <Button onClick={() => navigate(-1)}>Go Back</Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">{currentScenario.name}</h1>
-      <EmailWindow scenario={currentScenario} onComplete={handleComplete} />
+    <div className="container mx-auto p-4 max-w-7xl">
+      <div className="flex items-center gap-4 mb-6">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-2xl font-bold">Email Training</h1>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ScenarioDisplay scenario={scenario} />
+        
+        {gameState === 'initial' ? (
+          <div className="flex flex-col items-center justify-center p-8 border rounded-lg bg-card">
+            <Button 
+              size="lg"
+              onClick={handleStart}
+              className="gap-2"
+            >
+              <Play className="w-4 w-4" />
+              Start Training
+            </Button>
+          </div>
+        ) : (
+          <EmailWindow 
+            scenario={scenario}
+            onComplete={() => setGameState('submitted')}
+          />
+        )}
+      </div>
     </div>
   );
 }
