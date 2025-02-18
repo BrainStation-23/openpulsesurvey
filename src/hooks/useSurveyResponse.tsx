@@ -61,12 +61,10 @@ export function useSurveyResponse({
     return (themes as any)[themeName];
   };
 
-  // Initial survey setup
+  // Initial survey setup and theme settings fetch
   useEffect(() => {
     if (surveyData) {
-      const surveyModel = new Model(surveyData);
-
-      // Get the survey's theme settings from the database
+      // Fetch theme settings first
       const fetchThemeSettings = async () => {
         try {
           const { data: surveyDetails } = await supabase
@@ -76,17 +74,16 @@ export function useSurveyResponse({
             .single();
 
           if (surveyDetails?.theme_settings && isThemeSettings(surveyDetails.theme_settings)) {
+            console.log("Setting theme from DB:", surveyDetails.theme_settings);
             setCurrentTheme(surveyDetails.theme_settings);
           }
-          
-          setSurvey(surveyModel);
         } catch (error) {
           console.error("Error fetching theme settings:", error);
-          setSurvey(surveyModel);
         }
       };
 
-      fetchThemeSettings();
+      // Create initial survey model
+      const surveyModel = new Model(surveyData);
 
       // If there's an existing response, load it
       if (existingResponse?.response_data) {
@@ -126,8 +123,6 @@ export function useSurveyResponse({
               campaign_instance_id: campaignInstanceId,
             };
 
-            console.log("Saving response with data:", responseData);
-
             const { error } = await supabase
               .from("survey_responses")
               .upsert(responseData, {
@@ -154,8 +149,6 @@ export function useSurveyResponse({
               campaign_instance_id: campaignInstanceId,
             };
 
-            console.log("Saving response with data:", responseData);
-
             const { error } = await supabase
               .from("survey_responses")
               .upsert(responseData, {
@@ -179,6 +172,9 @@ export function useSurveyResponse({
           setShowSubmitDialog(true);
         });
       }
+
+      setSurvey(surveyModel);
+      fetchThemeSettings();
     }
   }, [id, surveyData, existingResponse, campaignInstanceId, toast]);
 
@@ -190,11 +186,10 @@ export function useSurveyResponse({
     const theme = getThemeInstance(currentTheme);
     if (theme) {
       console.log("Theme instance found, applying to survey");
-      survey.applyTheme(theme);
-      // Force a re-render by creating a new model
+      // Create a new model to force a re-render with the new theme
       const newModel = new Model(survey.toJSON());
-      newModel.applyTheme(theme);
       newModel.data = survey.data;
+      newModel.applyTheme(theme);
       if (survey.currentPageNo !== 0) {
         newModel.currentPageNo = survey.currentPageNo;
       }
@@ -219,8 +214,6 @@ export function useSurveyResponse({
         updated_at: now,
         campaign_instance_id: campaignInstanceId,
       };
-
-      console.log("Submitting response with data:", responseData);
 
       const { error: responseError } = await supabase
         .from("survey_responses")
