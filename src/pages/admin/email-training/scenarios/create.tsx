@@ -86,10 +86,14 @@ export default function CreateScenarioPage() {
 
       const { error } = await supabase
         .from("email_scenarios")
-        .insert([{
-          ...data,
+        .insert({
+          name: data.name,
+          story: data.story,
+          difficulty_level: data.difficulty_level,
+          tags: data.tags,
+          status: data.status,
           created_by: user.id
-        }]);
+        });
 
       if (error) throw error;
 
