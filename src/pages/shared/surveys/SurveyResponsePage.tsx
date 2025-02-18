@@ -8,11 +8,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
 import { useSurveyResponse } from "@/hooks/useSurveyResponse";
 import { SubmitDialog } from "@/pages/admin/my-surveys/[id]/components/SubmitDialog";
+import { Json } from "@/integrations/supabase/types";
 
 import "survey-core/defaultV2.min.css";
 
 interface SurveyResponsePageProps {
   viewType: 'user' | 'admin';
+}
+
+interface ThemeSettings {
+  baseTheme: string;
+  isDark: boolean;
+  isPanelless: boolean;
+}
+
+// Type guard to check if a Json value is a ThemeSettings object
+function isThemeSettings(json: Json): json is ThemeSettings {
+  if (typeof json !== 'object' || json === null) return false;
+  
+  const obj = json as Record<string, unknown>;
+  return (
+    typeof obj.baseTheme === 'string' &&
+    typeof obj.isDark === 'boolean' &&
+    typeof obj.isPanelless === 'boolean'
+  );
 }
 
 export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps) {
@@ -116,6 +135,14 @@ export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps
     );
   }
 
+  // Get theme settings with type safety
+  const themeSettings = assignmentData.assignment.survey.theme_settings;
+  const validThemeSettings = isThemeSettings(themeSettings) ? themeSettings : {
+    baseTheme: 'Layered',
+    isDark: true,
+    isPanelless: true
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -141,9 +168,9 @@ export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps
       <div className="flex justify-end">
         <ThemeSwitcher 
           onThemeChange={handleThemeChange}
-          defaultBaseTheme={assignmentData.assignment.survey.theme_settings?.baseTheme}
-          defaultIsDark={assignmentData.assignment.survey.theme_settings?.isDark}
-          defaultIsPanelless={assignmentData.assignment.survey.theme_settings?.isPanelless}
+          defaultBaseTheme={validThemeSettings.baseTheme}
+          defaultIsDark={validThemeSettings.isDark}
+          defaultIsPanelless={validThemeSettings.isPanelless}
         />
       </div>
       
