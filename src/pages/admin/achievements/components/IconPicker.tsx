@@ -6,11 +6,18 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-const achievementIcons = [
-  "Trophy", "Award", "Star", "Medal", "Badge", "Flag", "Gift", "Gem", "Ribbon", "Target",
-  "Crown", "Shield", "Heart", "Circle", "Sun", "Sparkles", "Zap", "Flame"
-] as const;
+// Group icons by categories for better organization
+const iconCategories = {
+  achievement: ["Trophy", "Award", "Star", "Medal", "Badge", "Crown", "Shield", "Target", "Flag"],
+  status: ["CheckCircle", "Circle", "Heart", "ThumbsUp", "Smile", "Zap", "Sparkles"],
+  general: Object.keys(icons).filter(icon => 
+    !["Trophy", "Award", "Star", "Medal", "Badge", "Crown", "Shield", "Target", "Flag", 
+      "CheckCircle", "Circle", "Heart", "ThumbsUp", "Smile", "Zap", "Sparkles"].includes(icon)
+  )
+};
 
 type IconPickerProps = {
   value: string;
@@ -19,23 +26,26 @@ type IconPickerProps = {
 
 export function IconPicker({ value, onChange }: IconPickerProps) {
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("achievement");
   const [open, setOpen] = useState(false);
 
-  const filteredIcons = achievementIcons.filter(icon => 
-    icon.toLowerCase().includes(search.toLowerCase())
-  );
-
   const LucideIcon = icons[value as keyof typeof icons] || icons.Trophy;
+
+  const getFilteredIcons = (categoryIcons: string[]) => {
+    return categoryIcons.filter(icon => 
+      icon.toLowerCase().includes(search.toLowerCase())
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full h-20 gap-2">
-          <LucideIcon className="w-8 h-8" />
-          <span className="text-xs">{value}</span>
+        <Button variant="outline" size="sm" className="h-10 gap-2">
+          <LucideIcon className="w-5 h-5" />
+          <span className="text-sm">{value}</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl">
         <DialogTitle>Select an Icon</DialogTitle>
         <div className="flex items-center border rounded-md px-3 mb-4">
           <Search className="w-4 h-4 mr-2 opacity-50" />
@@ -46,26 +56,46 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
             className="border-0 focus-visible:ring-0"
           />
         </div>
-        <ScrollArea className="h-[400px] rounded-md border p-4">
-          <div className="grid grid-cols-6 gap-2">
-            {filteredIcons.map((iconName) => {
-              const Icon = icons[iconName as keyof typeof icons];
-              return (
-                <Button
-                  key={iconName}
-                  variant="outline"
-                  className="h-12 p-2"
-                  onClick={() => {
-                    onChange(iconName);
-                    setOpen(false);
-                  }}
-                >
-                  <Icon className="w-full h-full" />
-                </Button>
-              );
-            })}
-          </div>
-        </ScrollArea>
+        <Tabs defaultValue="achievement" value={category} onValueChange={setCategory}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="achievement">Achievement</TabsTrigger>
+            <TabsTrigger value="status">Status</TabsTrigger>
+            <TabsTrigger value="general">General</TabsTrigger>
+          </TabsList>
+          {Object.entries(iconCategories).map(([cat, categoryIcons]) => (
+            <TabsContent key={cat} value={cat}>
+              <ScrollArea className="h-[400px] rounded-md border p-4">
+                <div className="grid grid-cols-8 gap-2">
+                  {getFilteredIcons(categoryIcons).map((iconName) => {
+                    const Icon = icons[iconName as keyof typeof icons];
+                    return (
+                      <TooltipProvider key={iconName}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-10 w-10 p-2"
+                              onClick={() => {
+                                onChange(iconName);
+                                setOpen(false);
+                              }}
+                            >
+                              <Icon className="w-full h-full" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{iconName}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          ))}
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

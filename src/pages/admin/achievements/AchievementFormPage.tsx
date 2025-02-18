@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { IconPicker } from "./components/IconPicker";
 import { ConditionForm } from "./components/ConditionForm";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const achievementCategories = [
   "survey_completion",
@@ -186,130 +187,182 @@ export default function AchievementFormPage() {
   }
 
   return (
-    <div className="space-y-4 p-8">
-      <h1 className="text-2xl font-bold">
-        {isEditMode ? "Edit Achievement" : "Create Achievement"}
-      </h1>
+    <div className="p-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">
+          {isEditMode ? "Edit Achievement" : "Create Achievement"}
+        </h1>
+        <Button onClick={() => navigate('/admin/achievements')}>Back to Achievements</Button>
+      </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-          <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="survey_completion">Survey Completion</SelectItem>
-                    <SelectItem value="response_rate">Response Rate</SelectItem>
-                    <SelectItem value="streak">Streak</SelectItem>
-                    <SelectItem value="quality">Quality</SelectItem>
-                    <SelectItem value="special_event">Special Event</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="icon"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Icon</FormLabel>
+                          <FormControl>
+                            <IconPicker value={field.value} onChange={field.onChange} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-          <FormField
-            control={form.control}
-            name="icon"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Icon</FormLabel>
-                <FormControl>
-                  <IconPicker value={field.value} onChange={field.onChange} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                    <FormField
+                      control={form.control}
+                      name="points"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Points</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-          <FormField
-            control={form.control}
-            name="points"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Points</FormLabel>
-                <FormControl>
-                  <Input type="number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="survey_completion">Survey Completion</SelectItem>
+                            <SelectItem value="response_rate">Response Rate</SelectItem>
+                            <SelectItem value="streak">Streak</SelectItem>
+                            <SelectItem value="quality">Quality</SelectItem>
+                            <SelectItem value="special_event">Special Event</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
 
-          <FormField
-            control={form.control}
-            name="condition_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Condition Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select condition type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="survey_count">Survey Count</SelectItem>
-                    <SelectItem value="response_rate">Response Rate</SelectItem>
-                    <SelectItem value="streak_days">Streak Days</SelectItem>
-                    <SelectItem value="response_quality">Response Quality</SelectItem>
-                    <SelectItem value="event_participation">Event Participation</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Preview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 p-4 border rounded-lg">
+                    {form.watch("icon") && (
+                      icons[form.watch("icon") as keyof typeof icons] && (
+                        icons[form.watch("icon") as keyof typeof icons]({
+                          className: "w-12 h-12 text-primary"
+                        })
+                      )
+                    )}
+                    <div>
+                      <h3 className="font-semibold">{form.watch("name") || "Achievement Name"}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {form.watch("description") || "Achievement description will appear here"}
+                      </p>
+                      <div className="text-sm font-medium text-primary mt-1">
+                        {form.watch("points")} points
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-          <div className="space-y-4 border rounded-lg p-4">
-            <h3 className="font-medium">Condition Details</h3>
-            <ConditionForm 
-              form={form} 
-              conditionType={form.watch("condition_type")} 
-            />
+            <div className="lg:col-span-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Achievement Conditions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="condition_type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Condition Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select condition type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="survey_count">Survey Count</SelectItem>
+                            <SelectItem value="response_rate">Response Rate</SelectItem>
+                            <SelectItem value="streak_days">Streak Days</SelectItem>
+                            <SelectItem value="response_quality">Response Quality</SelectItem>
+                            <SelectItem value="event_participation">Event Participation</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="border rounded-lg p-4 bg-muted/50">
+                    <ConditionForm 
+                      form={form} 
+                      conditionType={form.watch("condition_type")} 
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
-          <Button type="submit">
-            {isEditMode ? "Update Achievement" : "Create Achievement"}
-          </Button>
+          <div className="mt-6 flex justify-end">
+            <Button type="submit" size="lg">
+              {isEditMode ? "Update Achievement" : "Create Achievement"}
+            </Button>
+          </div>
         </form>
       </Form>
     </div>
