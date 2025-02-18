@@ -18,7 +18,6 @@ import {
 import { Scenario } from "../types";
 import { Remirror, useRemirror, OnChangeJSON } from '@remirror/react';
 import { WysiwygEditor } from '@remirror/react-editors/wysiwyg';
-import type { ChangeHandler } from '@remirror/react';
 
 const scenarioSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -70,7 +69,7 @@ export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: Scena
     );
   };
 
-  const handleEditorChange: ChangeHandler = ({ state }) => {
+  const handleEditorChange = ({ state }: { state: any }) => {
     form.setValue("story", state.doc.textContent);
   };
 
