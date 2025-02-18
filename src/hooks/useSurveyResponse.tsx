@@ -16,6 +16,12 @@ interface UseSurveyResponseProps {
   campaignInstanceId: string | null;
 }
 
+interface ThemeSettings {
+  baseTheme: string;
+  isDark: boolean;
+  isPanelless: boolean;
+}
+
 export function useSurveyResponse({
   id,
   viewType,
@@ -26,17 +32,22 @@ export function useSurveyResponse({
   const [survey, setSurvey] = useState<Model | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<ThemeSettings>({
+    baseTheme: 'Layered',
+    isDark: true,
+    isPanelless: true
+  });
   const { toast } = useToast();
   const navigate = useNavigate();
 
   // Function to get theme instance
-  const getThemeInstance = (themeSettings: any) => {
-    if (!themeSettings) return null;
+  const getThemeInstance = (themeSettings: ThemeSettings) => {
     const themeName = `${themeSettings.baseTheme}${themeSettings.isDark ? 'Dark' : 'Light'}${themeSettings.isPanelless ? 'Panelless' : ''}`;
     console.log("Getting theme instance for:", themeName);
     return (themes as any)[themeName];
   };
 
+  // Initial survey setup
   useEffect(() => {
     if (surveyData) {
       const surveyModel = new Model(surveyData);
@@ -50,15 +61,13 @@ export function useSurveyResponse({
             .eq('id', surveyData.id)
             .single();
 
-          // Apply theme if available, otherwise use default
-          const theme = getThemeInstance(surveyDetails?.theme_settings) || themes.LayeredDarkPanelless;
-          console.log("Applying theme:", theme, "with settings:", surveyDetails?.theme_settings);
-          surveyModel.applyTheme(theme);
-          setSurvey(surveyModel); // Make sure to update state after applying theme
+          if (surveyDetails?.theme_settings) {
+            setCurrentTheme(surveyDetails.theme_settings as ThemeSettings);
+          }
+          
+          setSurvey(surveyModel);
         } catch (error) {
           console.error("Error fetching theme settings:", error);
-          // Fallback to default theme if there's an error
-          surveyModel.applyTheme(themes.LayeredDarkPanelless);
           setSurvey(surveyModel);
         }
       };
@@ -156,10 +165,28 @@ export function useSurveyResponse({
           setShowSubmitDialog(true);
         });
       }
-
-      setSurvey(surveyModel);
     }
   }, [id, surveyData, existingResponse, campaignInstanceId, toast]);
+
+  // Handle theme changes
+  useEffect(() => {
+    if (!survey) return;
+
+    console.log("Applying theme update:", currentTheme);
+    const theme = getThemeInstance(currentTheme);
+    if (theme) {
+      console.log("Theme instance found, applying to survey");
+      survey.applyTheme(theme);
+      // Force a re-render by creating a new model
+      const newModel = new Model(survey.toJSON());
+      newModel.applyTheme(theme);
+      newModel.data = survey.data;
+      if (survey.currentPageNo !== 0) {
+        newModel.currentPageNo = survey.currentPageNo;
+      }
+      setSurvey(newModel);
+    }
+  }, [currentTheme, survey]);
 
   const handleSubmitSurvey = async () => {
     if (!survey) return;
@@ -206,32 +233,8 @@ export function useSurveyResponse({
   };
 
   const handleThemeChange = ({ theme, themeSettings }: { theme: any; themeSettings: any }) => {
-    if (survey) {
-      try {
-        console.log("Applying new theme:", theme, "with settings:", themeSettings);
-        survey.applyTheme(theme);
-        
-        // Force a re-render by creating a new survey model with the same data
-        const newModel = new Model(survey.toJSON());
-        newModel.applyTheme(theme);
-        newModel.data = survey.data;
-        
-        // If we're in the middle of the survey, restore the current page
-        if (survey.currentPageNo !== 0) {
-          newModel.currentPageNo = survey.currentPageNo;
-        }
-        
-        // Update the survey state to trigger a re-render
-        setSurvey(newModel);
-      } catch (error) {
-        console.error("Error applying theme:", error);
-        toast({
-          title: "Error applying theme",
-          description: "There was an error applying the theme. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }
+    console.log("Theme change received:", themeSettings);
+    setCurrentTheme(themeSettings);
   };
 
   return {
