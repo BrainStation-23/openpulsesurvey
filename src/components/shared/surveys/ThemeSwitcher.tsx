@@ -100,11 +100,27 @@ export function ThemeSwitcher({
   defaultIsDark = true,
   defaultIsPanelless = true 
 }: ThemeSwitcherProps) {
-  const [baseTheme, setBaseTheme] = useState<BaseTheme>(defaultBaseTheme as BaseTheme);
+  // Ensure the base theme is capitalized to match our theme keys
+  const capitalizedBaseTheme = defaultBaseTheme.charAt(0).toUpperCase() + defaultBaseTheme.slice(1);
+  
+  const [baseTheme, setBaseTheme] = useState<BaseTheme>(capitalizedBaseTheme as BaseTheme);
   const [isDark, setIsDark] = useState(defaultIsDark);
   const [isPanelless, setIsPanelless] = useState(defaultIsPanelless);
-  const [currentThemeName, setCurrentThemeName] = useState<string>('LayeredDarkPanelless');
 
+  // Initialize theme name based on props
+  const initialThemeName = `${capitalizedBaseTheme}${defaultIsDark ? 'Dark' : 'Light'}${defaultIsPanelless ? 'Panelless' : ''}`;
+  const [currentThemeName, setCurrentThemeName] = useState<string>(initialThemeName);
+
+  // Apply initial theme on mount
+  useEffect(() => {
+    const theme = (themeMap as any)[initialThemeName];
+    if (theme) {
+      console.log("Applying initial theme:", initialThemeName);
+      onThemeChange(theme);
+    }
+  }, []); // Only run once on mount
+
+  // Handle theme changes
   useEffect(() => {
     const newThemeName = `${baseTheme}${isDark ? 'Dark' : 'Light'}${isPanelless ? 'Panelless' : ''}`;
     
@@ -119,7 +135,7 @@ export function ThemeSwitcher({
         console.warn(`Theme ${newThemeName} not found`);
       }
     }
-  }, [baseTheme, isDark, isPanelless, currentThemeName]); // Remove onThemeChange from deps
+  }, [baseTheme, isDark, isPanelless, currentThemeName, onThemeChange]);
 
   return (
     <div className="flex items-center gap-6">
