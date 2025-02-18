@@ -60,8 +60,7 @@ export type Database = {
       }
       achievements: {
         Row: {
-          category: Database["public"]["Enums"]["achievement_category"]
-          condition_type: Database["public"]["Enums"]["achievement_condition_type"]
+          achievement_type: Database["public"]["Enums"]["achievement_type"]
           condition_value: Json
           created_at: string
           description: string
@@ -72,8 +71,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          category: Database["public"]["Enums"]["achievement_category"]
-          condition_type: Database["public"]["Enums"]["achievement_condition_type"]
+          achievement_type: Database["public"]["Enums"]["achievement_type"]
           condition_value?: Json
           created_at?: string
           description: string
@@ -84,8 +82,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          category?: Database["public"]["Enums"]["achievement_category"]
-          condition_type?: Database["public"]["Enums"]["achievement_condition_type"]
+          achievement_type?: Database["public"]["Enums"]["achievement_type"]
           condition_value?: Json
           created_at?: string
           description?: string
@@ -1406,6 +1403,12 @@ export type Database = {
         | "streak_days"
         | "response_quality"
         | "event_participation"
+      achievement_type:
+        | "survey_completion"
+        | "response_rate"
+        | "streak"
+        | "quality"
+        | "special_event"
       assignment_status: "pending" | "completed" | "expired"
       campaign_status: "draft" | "active" | "completed" | "archived"
       config_status: "active" | "inactive"

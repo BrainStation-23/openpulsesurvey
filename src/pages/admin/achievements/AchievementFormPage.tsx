@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
@@ -29,30 +30,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { IconPicker } from "./components/IconPicker";
 import { ConditionForm } from "./components/ConditionForm";
-
-const achievementCategories = [
-  "survey_completion",
-  "response_rate",
-  "streak",
-  "quality",
-  "special_event",
-] as const;
-
-const conditionTypes = [
-  "survey_count",
-  "response_rate",
-  "streak_days",
-  "response_quality",
-  "event_participation",
-] as const;
+import { AchievementType, ACHIEVEMENT_TYPE_CONFIG } from "./types";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
-  category: z.enum(achievementCategories),
+  achievement_type: z.custom<AchievementType>(),
   icon: z.string().min(1, "Icon is required"),
   points: z.coerce.number().min(0, "Points must be a positive number"),
-  condition_type: z.enum(conditionTypes),
   condition_value: z.string().transform(val => JSON.parse(val)),
   required_count: z.number().optional(),
   required_rate: z.number().optional(),
@@ -69,10 +54,9 @@ type Achievement = {
   id: string;
   name: string;
   description: string;
-  category: typeof achievementCategories[number];
+  achievement_type: AchievementType;
   icon: string;
   points: number;
-  condition_type: typeof conditionTypes[number];
   condition_value: any;
   created_at?: string;
   updated_at?: string;
@@ -105,10 +89,9 @@ export default function AchievementFormPage() {
     defaultValues: {
       name: "",
       description: "",
-      category: "survey_completion",
+      achievement_type: "survey_completion",
       icon: "Trophy",
       points: 0,
-      condition_type: "survey_count",
       condition_value: "{}",
     },
   });
@@ -118,10 +101,9 @@ export default function AchievementFormPage() {
       const achievementData: Omit<Achievement, 'id' | 'created_at' | 'updated_at'> = {
         name: values.name,
         description: values.description,
-        category: values.category,
+        achievement_type: values.achievement_type,
         icon: values.icon,
         points: values.points,
-        condition_type: values.condition_type,
         condition_value: values.condition_value,
       };
 
@@ -149,10 +131,9 @@ export default function AchievementFormPage() {
       const achievementData: Omit<Achievement, 'id' | 'created_at' | 'updated_at'> = {
         name: values.name,
         description: values.description,
-        category: values.category,
+        achievement_type: values.achievement_type,
         icon: values.icon,
         points: values.points,
-        condition_type: values.condition_type,
         condition_value: values.condition_value,
       };
 
@@ -187,6 +168,9 @@ export default function AchievementFormPage() {
   if (isEditMode && isLoadingAchievement) {
     return <div>Loading...</div>;
   }
+
+  const selectedType = form.watch("achievement_type") as AchievementType;
+  const typeConfig = ACHIEVEMENT_TYPE_CONFIG[selectedType];
 
   return (
     <div className="p-8">
@@ -266,24 +250,32 @@ export default function AchievementFormPage() {
 
                   <FormField
                     control={form.control}
-                    name="category"
+                    name="achievement_type"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Category</FormLabel>
+                        <FormLabel>Achievement Type</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
+                              <SelectValue placeholder="Select achievement type" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="survey_completion">Survey Completion</SelectItem>
-                            <SelectItem value="response_rate">Response Rate</SelectItem>
-                            <SelectItem value="streak">Streak</SelectItem>
-                            <SelectItem value="quality">Quality</SelectItem>
-                            <SelectItem value="special_event">Special Event</SelectItem>
+                            {Object.entries(ACHIEVEMENT_TYPE_CONFIG).map(([type, config]) => (
+                              <SelectItem key={type} value={type}>
+                                <div className="flex flex-col">
+                                  <span>{config.label}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {config.description}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
+                        <FormDescription>
+                          {typeConfig?.description}
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -321,35 +313,11 @@ export default function AchievementFormPage() {
                   <CardTitle>Achievement Conditions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="condition_type"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Condition Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select condition type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="survey_count">Survey Count</SelectItem>
-                            <SelectItem value="response_rate">Response Rate</SelectItem>
-                            <SelectItem value="streak_days">Streak Days</SelectItem>
-                            <SelectItem value="response_quality">Response Quality</SelectItem>
-                            <SelectItem value="event_participation">Event Participation</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <div className="border rounded-lg p-4 bg-muted/50">
                     <ConditionForm 
                       form={form} 
-                      conditionType={form.watch("condition_type")} 
+                      achievementType={selectedType}
+                      typeConfig={typeConfig}
                     />
                   </div>
                 </CardContent>
