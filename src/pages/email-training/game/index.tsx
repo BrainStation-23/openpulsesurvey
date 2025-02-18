@@ -26,12 +26,30 @@ export default function GamePage() {
         .from('email_scenarios')
         .select('*')
         .eq('status', 'active')
-        .order('random()')
         .limit(1)
-        .single();
+        .select('*', { head: true, count: 'exact' })
+        .then(result => {
+          if (result.count && result.count > 0) {
+            // If we have scenarios, get a random offset
+            const randomOffset = Math.floor(Math.random() * result.count);
+            // Fetch the random scenario
+            return supabase
+              .from('email_scenarios')
+              .select('*')
+              .eq('status', 'active')
+              .limit(1)
+              .range(randomOffset, randomOffset);
+          }
+          return result;
+        });
 
       if (error) throw error;
-      setScenario(scenarios);
+      
+      if (scenarios && scenarios.length > 0) {
+        setScenario(scenarios[0]);
+      } else {
+        toast.error("No active scenarios available.");
+      }
     } catch (error) {
       console.error('Error loading scenario:', error);
       toast.error("Failed to load scenario. Please try again.");
