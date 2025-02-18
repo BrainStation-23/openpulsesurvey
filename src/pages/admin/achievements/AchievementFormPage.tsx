@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
@@ -25,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { IconPicker } from "./components/IconPicker";
+import { ConditionForm } from "./components/ConditionForm";
 
 const achievementCategories = [
   "survey_completion",
@@ -50,6 +51,13 @@ const formSchema = z.object({
   points: z.coerce.number().min(0, "Points must be a positive number"),
   condition_type: z.enum(conditionTypes),
   condition_value: z.string().transform(val => JSON.parse(val)),
+  required_count: z.number().optional(),
+  required_rate: z.number().optional(),
+  required_days: z.number().optional(),
+  min_rating: z.number().optional(),
+  min_length: z.number().optional(),
+  event_type: z.string().optional(),
+  participation_count: z.number().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -95,7 +103,7 @@ export default function AchievementFormPage() {
       name: "",
       description: "",
       category: "survey_completion",
-      icon: "trophy",
+      icon: "Trophy",
       points: 0,
       condition_type: "survey_count",
       condition_value: "{}",
@@ -240,6 +248,20 @@ export default function AchievementFormPage() {
 
           <FormField
             control={form.control}
+            name="icon"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Icon</FormLabel>
+                <FormControl>
+                  <IconPicker value={field.value} onChange={field.onChange} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="points"
             render={({ field }) => (
               <FormItem>
@@ -277,22 +299,13 @@ export default function AchievementFormPage() {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="condition_value"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Condition Value (JSON)</FormLabel>
-                <FormControl>
-                  <Textarea {...field} />
-                </FormControl>
-                <FormDescription>
-                  Enter the condition value as a JSON object. For example: {"{"}"required_count": 5{"}"}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="space-y-4 border rounded-lg p-4">
+            <h3 className="font-medium">Condition Details</h3>
+            <ConditionForm 
+              form={form} 
+              conditionType={form.watch("condition_type")} 
+            />
+          </div>
 
           <Button type="submit">
             {isEditMode ? "Update Achievement" : "Create Achievement"}
