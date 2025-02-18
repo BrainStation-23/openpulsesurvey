@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import * as icons from "lucide-react";
 import { LucideIcon } from "lucide-react";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -69,6 +70,18 @@ export default function AchievementFormPage() {
   const queryClient = useQueryClient();
   const isEditMode = !!id;
 
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      achievement_type: "survey_completion",
+      icon: "Trophy",
+      points: 0,
+      condition_value: "{}",
+    },
+  });
+
   const { data: achievement, isLoading: isLoadingAchievement } = useQuery({
     queryKey: ['achievement', id],
     queryFn: async () => {
@@ -85,17 +98,28 @@ export default function AchievementFormPage() {
     enabled: isEditMode,
   });
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      achievement_type: "survey_completion",
-      icon: "Trophy",
-      points: 0,
-      condition_value: "{}",
-    },
-  });
+  // Update form when achievement data is loaded
+  useEffect(() => {
+    if (achievement) {
+      // Extract condition fields from condition_value
+      const conditionValue = typeof achievement.condition_value === 'string' 
+        ? JSON.parse(achievement.condition_value)
+        : achievement.condition_value;
+
+      // Reset form with achievement data and parsed condition fields
+      form.reset({
+        ...achievement,
+        condition_value: JSON.stringify(conditionValue),
+        required_count: conditionValue.required_count,
+        required_rate: conditionValue.required_rate,
+        required_days: conditionValue.required_days,
+        min_rating: conditionValue.min_rating,
+        min_length: conditionValue.min_length,
+        event_type: conditionValue.event_type,
+        participation_count: conditionValue.participation_count,
+      });
+    }
+  }, [achievement, form]);
 
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
