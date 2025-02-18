@@ -1,9 +1,9 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Bold, Italic, List, ListOrdered } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +59,19 @@ export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: Scena
       const html = editor.getHTML();
       form.setValue("story", html);
     },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm focus:outline-none min-h-[150px] p-4',
+      },
+    },
   });
+
+  // Update editor content when form value changes
+  useEffect(() => {
+    if (editor && scenario?.story) {
+      editor.commands.setContent(scenario.story);
+    }
+  }, [editor, scenario]);
 
   const handleAddTag = () => {
     if (newTag.trim() && !form.getValues("tags").includes(newTag.trim())) {
@@ -107,11 +119,50 @@ export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: Scena
                 <FormItem>
                   <FormLabel>Story</FormLabel>
                   <FormControl>
-                    <div className="min-h-[150px] border rounded-md p-4">
-                      <EditorContent 
-                        editor={editor} 
-                        className="prose prose-sm max-w-none focus:outline-none"
-                      />
+                    <div className="border rounded-md overflow-hidden">
+                      <div className="border-b bg-muted p-2 flex gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => editor?.chain().focus().toggleBold().run()}
+                          data-active={editor?.isActive('bold')}
+                        >
+                          <Bold className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => editor?.chain().focus().toggleItalic().run()}
+                          data-active={editor?.isActive('italic')}
+                        >
+                          <Italic className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                          data-active={editor?.isActive('bulletList')}
+                        >
+                          <List className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+                          data-active={editor?.isActive('orderedList')}
+                        >
+                          <ListOrdered className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <EditorContent editor={editor} />
                     </div>
                   </FormControl>
                   <FormMessage />
