@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,7 +8,8 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Mail, Send, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { Scenario } from "../../types";
+import type { Scenario } from "../../scenarios/types";
+import type { Json } from "@/integrations/supabase/types";
 
 interface EmailWindowProps {
   scenario: Scenario;
@@ -67,12 +69,10 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
 
     setIsSending(true);
     try {
-      // Get the current user's ID
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
       if (!user) throw new Error('No user found');
 
-      // Get the active session
       const { data: session, error: sessionError } = await supabase
         .from('email_training_sessions')
         .select()
@@ -83,22 +83,31 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
 
       if (sessionError) throw sessionError;
 
-      // Save the response with the correct type structure
+      // Convert the GeneratedEmail to a proper Json type
+      const jsonOriginalEmail: Json = {
+        from: originalEmail.from,
+        subject: originalEmail.subject,
+        content: originalEmail.content,
+        tone: originalEmail.tone,
+        key_points: originalEmail.key_points
+      };
+
+      const jsonResponseEmail: Json = {
+        subject: response.subject,
+        content: response.content
+      };
+
       const { error: responseError } = await supabase
         .from('email_responses')
-        .insert([{
+        .insert({
           session_id: session.id,
-          original_email: originalEmail,
-          response_email: {
-            subject: response.subject,
-            content: response.content
-          },
+          original_email: jsonOriginalEmail,
+          response_email: jsonResponseEmail,
           submitted_at: new Date().toISOString()
-        }]);
+        });
 
       if (responseError) throw responseError;
 
-      // Update session status
       const { error: updateError } = await supabase
         .from('email_training_sessions')
         .update({ status: 'submitted', completed_at: new Date().toISOString() })
