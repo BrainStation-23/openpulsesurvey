@@ -8,7 +8,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Mail, Send, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { Scenario } from "../../types";
+import type { Scenario } from "../../../admin/email-training/scenarios/types";
 
 interface EmailWindowProps {
   scenario: Scenario;
@@ -84,12 +84,12 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
 
       if (sessionError) throw sessionError;
 
-      // Save the response
+      // Save the response - now properly handling the JSON types
       const { error: responseError } = await supabase
         .from('email_responses')
         .insert({
           session_id: session.id,
-          original_email: originalEmail,
+          original_email: originalEmail as unknown as Record<string, unknown>,
           response_email: {
             subject: response.subject,
             content: response.content
