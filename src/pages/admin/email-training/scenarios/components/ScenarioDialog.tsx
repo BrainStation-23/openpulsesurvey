@@ -16,7 +16,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Scenario } from "../types";
-import { Editor } from '@tinymce/tinymce-react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 
 const scenarioSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -49,6 +50,17 @@ export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: Scena
     },
   });
 
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+    ],
+    content: form.getValues("story") || "",
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      form.setValue("story", html);
+    },
+  });
+
   const handleAddTag = () => {
     if (newTag.trim() && !form.getValues("tags").includes(newTag.trim())) {
       form.setValue("tags", [...form.getValues("tags"), newTag.trim()]);
@@ -61,10 +73,6 @@ export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: Scena
       "tags",
       form.getValues("tags").filter((tag) => tag !== tagToRemove)
     );
-  };
-
-  const handleEditorChange = (content: string) => {
-    form.setValue("story", content);
   };
 
   return (
@@ -99,24 +107,10 @@ export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: Scena
                 <FormItem>
                   <FormLabel>Story</FormLabel>
                   <FormControl>
-                    <div className="min-h-[150px] border rounded-md">
-                      <Editor
-                        apiKey="your-api-key" // You'll need to get a free API key from TinyMCE
-                        value={field.value}
-                        onEditorChange={handleEditorChange}
-                        init={{
-                          height: 300,
-                          menubar: false,
-                          plugins: [
-                            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                            'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
-                          ],
-                          toolbar: 'undo redo | blocks | ' +
-                            'bold italic forecolor | alignleft aligncenter ' +
-                            'alignright alignjustify | bullist numlist outdent indent | ' +
-                            'removeformat | help',
-                        }}
+                    <div className="min-h-[150px] border rounded-md p-4">
+                      <EditorContent 
+                        editor={editor} 
+                        className="prose prose-sm max-w-none focus:outline-none"
                       />
                     </div>
                   </FormControl>
