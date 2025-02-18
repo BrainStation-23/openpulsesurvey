@@ -29,6 +29,32 @@ export function ConditionForm({ form, achievementType, typeConfig }: ConditionFo
     form.setValue("condition_value", JSON.stringify(values));
   };
 
+  const handleNumberInput = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: any,
+    fieldName: string
+  ) => {
+    const value = e.target.value;
+    
+    // Allow empty input for better UX
+    if (value === '') {
+      field.onChange(undefined);
+      const values = { ...JSON.parse(form.getValues("condition_value") || "{}") };
+      delete values[fieldName];
+      updateConditionValue(values);
+      return;
+    }
+
+    // Parse number and update both the field and condition_value
+    const numberValue = parseInt(value, 10);
+    if (!isNaN(numberValue)) {
+      field.onChange(numberValue);
+      const values = { ...JSON.parse(form.getValues("condition_value") || "{}") };
+      values[fieldName] = numberValue;
+      updateConditionValue(values);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {Object.entries(typeConfig.conditionFields).map(([fieldName, fieldConfig]) => (
@@ -68,12 +94,14 @@ export function ConditionForm({ form, achievementType, typeConfig }: ConditionFo
                     type={fieldConfig.type}
                     {...field}
                     onChange={(e) => {
-                      field.onChange(e);
-                      const values = { ...JSON.parse(form.getValues("condition_value") || "{}") };
-                      values[fieldName] = fieldConfig.type === 'number' 
-                        ? parseInt(e.target.value)
-                        : e.target.value;
-                      updateConditionValue(values);
+                      if (fieldConfig.type === 'number') {
+                        handleNumberInput(e, field, fieldName);
+                      } else {
+                        field.onChange(e);
+                        const values = { ...JSON.parse(form.getValues("condition_value") || "{}") };
+                        values[fieldName] = e.target.value;
+                        updateConditionValue(values);
+                      }
                     }}
                   />
                 )}

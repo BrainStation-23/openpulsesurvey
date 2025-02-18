@@ -39,13 +39,14 @@ const formSchema = z.object({
   icon: z.string().min(1, "Icon is required"),
   points: z.coerce.number().min(0, "Points must be a positive number"),
   condition_value: z.string().transform(val => JSON.parse(val)),
-  required_count: z.number().optional(),
-  required_rate: z.number().optional(),
-  required_days: z.number().optional(),
-  min_rating: z.number().optional(),
-  min_length: z.number().optional(),
+  // Make all condition fields optional and ensure they're numbers when present
+  required_count: z.number().optional().nullable(),
+  required_rate: z.number().optional().nullable(),
+  required_days: z.number().optional().nullable(),
+  min_rating: z.number().optional().nullable(),
+  min_length: z.number().optional().nullable(),
   event_type: z.string().optional(),
-  participation_count: z.number().optional(),
+  participation_count: z.number().optional().nullable(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
