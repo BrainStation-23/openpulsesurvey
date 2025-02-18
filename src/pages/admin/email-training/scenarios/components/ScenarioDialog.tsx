@@ -16,7 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Scenario } from "../types";
-import { Remirror, useRemirror } from '@remirror/react';
+import { Remirror, useRemirror, OnChangeJSON } from '@remirror/react';
 import { WysiwygEditor } from '@remirror/react-editors/wysiwyg';
 
 const scenarioSchema = z.object({
@@ -69,6 +69,10 @@ export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: Scena
     );
   };
 
+  const handleEditorChange: OnChangeJSON = ({ state }) => {
+    form.setValue("story", state.doc.textContent);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[725px]">
@@ -103,12 +107,8 @@ export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: Scena
                   <FormControl>
                     <div className="min-h-[150px] border rounded-md">
                       <Remirror manager={manager}>
-                        <WysiwygEditor 
-                          placeholder="Enter scenario details"
-                          onChange={(params) => {
-                            field.onChange(params.state.doc.textContent);
-                          }}
-                        />
+                        <WysiwygEditor placeholder="Enter scenario details" />
+                        <OnChangeJSON onChange={handleEditorChange} />
                       </Remirror>
                     </div>
                   </FormControl>
