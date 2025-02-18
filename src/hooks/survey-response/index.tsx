@@ -1,29 +1,18 @@
 
 import { useEffect, useState, useRef } from "react";
 import { Model } from "survey-core";
-import * as themes from "survey-core/themes";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { SurveyStateData, isSurveyStateData } from "@/types/survey";
+import { isSurveyStateData } from "@/types/survey";
 import { useNavigate } from "react-router-dom";
 import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
-import { Json } from "@/integrations/supabase/types";
-
-interface UseSurveyResponseProps {
-  id: string;
-  viewType: 'user' | 'admin';
-  surveyData: any;
-  existingResponse: any;
-  campaignInstanceId: string | null;
-  initialTheme: ThemeSettings;
-}
-
-interface ThemeSettings {
-  [key: string]: Json | undefined;
-  baseTheme: string;
-  isDark: boolean;
-  isPanelless: boolean;
-}
+import { useTheme } from "./useTheme";
+import { useAutoSave } from "./useAutoSave";
+import type { 
+  UseSurveyResponseProps, 
+  UseSurveyResponseResult,
+  ThemeChangeEvent 
+} from "./types";
 
 export function useSurveyResponse({
   id,
@@ -32,21 +21,16 @@ export function useSurveyResponse({
   existingResponse,
   campaignInstanceId,
   initialTheme,
-}: UseSurveyResponseProps) {
+}: UseSurveyResponseProps): UseSurveyResponseResult {
   const [survey, setSurvey] = useState<Model | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState<ThemeSettings>(initialTheme);
   const surveyRef = useRef<Model | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Function to get theme instance
-  const getThemeInstance = (themeSettings: ThemeSettings) => {
-    const themeName = `${themeSettings.baseTheme}${themeSettings.isDark ? 'Dark' : 'Light'}${themeSettings.isPanelless ? 'Panelless' : ''}`;
-    console.log("Getting theme instance for:", themeName);
-    return (themes as any)[themeName];
-  };
+  const { currentTheme, setCurrentTheme, getThemeInstance } = useTheme(initialTheme);
+  const { setupAutoSave } = useAutoSave(id, campaignInstanceId, setLastSaved);
 
   // Initialize survey once
   useEffect(() => {
@@ -82,70 +66,7 @@ export function useSurveyResponse({
         surveyModel.mode = 'display';
       } else {
         // Add autosave for non-submitted surveys
-        surveyModel.onCurrentPageChanged.add(async (sender) => {
-          try {
-            const userId = (await supabase.auth.getUser()).data.user?.id;
-            if (!userId) throw new Error("User not authenticated");
-
-            const stateData = {
-              lastPageNo: sender.currentPageNo,
-              lastUpdated: new Date().toISOString()
-            } as SurveyStateData;
-
-            const responseData = {
-              assignment_id: id,
-              user_id: userId,
-              response_data: sender.data,
-              state_data: stateData,
-              status: 'in_progress' as ResponseStatus,
-              campaign_instance_id: campaignInstanceId,
-            };
-
-            const { error } = await supabase
-              .from("survey_responses")
-              .upsert(responseData, {
-                onConflict: 'assignment_id,user_id'
-              });
-
-            if (error) throw error;
-            console.log("Saved page state:", stateData);
-          } catch (error) {
-            console.error("Error saving page state:", error);
-          }
-        });
-
-        surveyModel.onValueChanged.add(async (sender) => {
-          try {
-            const userId = (await supabase.auth.getUser()).data.user?.id;
-            if (!userId) throw new Error("User not authenticated");
-
-            const responseData = {
-              assignment_id: id,
-              user_id: userId,
-              response_data: sender.data,
-              status: 'in_progress' as ResponseStatus,
-              campaign_instance_id: campaignInstanceId,
-            };
-
-            const { error } = await supabase
-              .from("survey_responses")
-              .upsert(responseData, {
-                onConflict: 'assignment_id,user_id'
-              });
-
-            if (error) throw error;
-            setLastSaved(new Date());
-            console.log("Saved response data");
-          } catch (error) {
-            console.error("Error saving response:", error);
-            toast({
-              title: "Error saving response",
-              description: "Your progress could not be saved. Please try again.",
-              variant: "destructive",
-            });
-          }
-        });
-
+        setupAutoSave(surveyModel);
         surveyModel.onComplete.add(() => {
           setShowSubmitDialog(true);
         });
@@ -161,7 +82,7 @@ export function useSurveyResponse({
         variant: "destructive",
       });
     }
-  }, [id, surveyData, existingResponse, campaignInstanceId, toast, initialTheme]); // removed currentTheme dependency
+  }, [id, surveyData, existingResponse, campaignInstanceId, toast, initialTheme]);
 
   // Handle only theme changes
   useEffect(() => {
@@ -176,10 +97,9 @@ export function useSurveyResponse({
     if (theme) {
       console.log("Theme instance found, applying to existing survey");
       currentSurvey.applyTheme(theme);
-      // No need to create a new model, just update the existing one
       setSurvey(currentSurvey);
     }
-  }, [currentTheme, initialTheme]);
+  }, [currentTheme, initialTheme, getThemeInstance]);
 
   const handleSubmitSurvey = async () => {
     if (!survey) return;
@@ -223,7 +143,7 @@ export function useSurveyResponse({
     }
   };
 
-  const handleThemeChange = ({ theme, themeSettings }: { theme: any; themeSettings: ThemeSettings }) => {
+  const handleThemeChange = ({ themeSettings }: ThemeChangeEvent) => {
     console.log("Theme change received:", themeSettings);
     setCurrentTheme(themeSettings);
   };
@@ -237,3 +157,6 @@ export function useSurveyResponse({
     handleThemeChange
   };
 }
+
+// Re-export types
+export type * from './types';
