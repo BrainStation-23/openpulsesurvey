@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import * as icons from "lucide-react";
+import { LucideIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -29,7 +30,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
   const [category, setCategory] = useState("achievement");
   const [open, setOpen] = useState(false);
 
-  const LucideIcon = icons[value as keyof typeof icons] || icons.Trophy;
+  const IconComponent = (icons[value as keyof typeof icons] as LucideIcon) || icons.Trophy;
 
   const getFilteredIcons = (categoryIcons: string[]) => {
     return categoryIcons.filter(icon => 
@@ -41,7 +42,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="h-10 gap-2">
-          <LucideIcon className="w-5 h-5" />
+          {IconComponent && <IconComponent className="w-5 h-5" />}
           <span className="text-sm">{value}</span>
         </Button>
       </DialogTrigger>
@@ -67,8 +68,8 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
               <ScrollArea className="h-[400px] rounded-md border p-4">
                 <div className="grid grid-cols-8 gap-2">
                   {getFilteredIcons(categoryIcons).map((iconName) => {
-                    const Icon = icons[iconName as keyof typeof icons];
-                    return (
+                    const IconComponent = icons[iconName as keyof typeof icons] as LucideIcon;
+                    return IconComponent ? (
                       <TooltipProvider key={iconName}>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -81,7 +82,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
                                 setOpen(false);
                               }}
                             >
-                              <Icon className="w-full h-full" />
+                              <IconComponent className="w-full h-full" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -89,7 +90,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                    );
+                    ) : null;
                   })}
                 </div>
               </ScrollArea>

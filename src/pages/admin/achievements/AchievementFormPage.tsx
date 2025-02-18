@@ -3,6 +3,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
+import * as icons from "lucide-react";
+import { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -22,11 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { IconPicker } from "./components/IconPicker";
 import { ConditionForm } from "./components/ConditionForm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const achievementCategories = [
   "survey_completion",
@@ -295,13 +297,10 @@ export default function AchievementFormPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-4 p-4 border rounded-lg">
-                    {form.watch("icon") && (
-                      icons[form.watch("icon") as keyof typeof icons] && (
-                        icons[form.watch("icon") as keyof typeof icons]({
-                          className: "w-12 h-12 text-primary"
-                        })
-                      )
-                    )}
+                    {form.watch("icon") && (() => {
+                      const PreviewIcon = icons[form.watch("icon") as keyof typeof icons] as LucideIcon;
+                      return PreviewIcon ? <PreviewIcon className="w-12 h-12 text-primary" /> : null;
+                    })()}
                     <div>
                       <h3 className="font-semibold">{form.watch("name") || "Achievement Name"}</h3>
                       <p className="text-sm text-muted-foreground">
