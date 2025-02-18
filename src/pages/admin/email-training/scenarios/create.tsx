@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import type { Scenario } from "./types";
+import { AIGenerationPanel } from "./components/AIGenerationPanel";
 
 const scenarioSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -108,6 +109,23 @@ export default function CreateScenarioPage() {
     );
   };
 
+  const handleGenerated = (generatedContent: {
+    name: string;
+    story: string;
+    difficulty_level: number;
+    tags: string[];
+  }) => {
+    form.setValue("name", generatedContent.name);
+    form.setValue("story", generatedContent.story);
+    form.setValue("difficulty_level", generatedContent.difficulty_level);
+    form.setValue("tags", generatedContent.tags);
+    
+    // Update the editor content
+    if (editor) {
+      editor.commands.setContent(generatedContent.story);
+    }
+  };
+
   const onSubmit = async (data: ScenarioFormData) => {
     try {
       const {
@@ -180,6 +198,12 @@ export default function CreateScenarioPage() {
       </div>
 
       <div className="max-w-[800px]">
+        {!isEditMode && (
+          <div className="mb-6">
+            <AIGenerationPanel onGenerate={handleGenerated} />
+          </div>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
