@@ -69,19 +69,11 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
     }
   };
 
-  const handleThemeChange = (theme: any) => {
+  const handleThemeChange = ({ theme, themeSettings }: { theme: any; themeSettings: any }) => {
     if (survey) {
+      console.log("Applying theme with settings:", themeSettings);
       survey.applyTheme(theme);
-      // Extract theme settings from the theme name
-      const isDark = theme.themeName?.toLowerCase().includes('dark') || false;
-      const isPanelless = theme.themeName?.toLowerCase().includes('panelless') || false;
-      const baseTheme = theme.themeName?.replace(/(?:Dark|Light|Panelless)$/, '');
-      
-      setCurrentTheme({
-        baseTheme,
-        isDark,
-        isPanelless
-      });
+      setCurrentTheme(themeSettings);
     }
   };
 

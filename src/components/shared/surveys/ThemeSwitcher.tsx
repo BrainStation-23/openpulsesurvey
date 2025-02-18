@@ -111,13 +111,33 @@ export function ThemeSwitcher({
   const initialThemeName = `${capitalizedBaseTheme}${defaultIsDark ? 'Dark' : 'Light'}${defaultIsPanelless ? 'Panelless' : ''}`;
   const [currentThemeName, setCurrentThemeName] = useState<string>(initialThemeName);
 
+  // Apply theme and notify parent of changes
+  const applyTheme = (themeName: string, themeState: { baseTheme: string; isDark: boolean; isPanelless: boolean }) => {
+    const theme = (themeMap as any)[themeName];
+    if (theme) {
+      console.log("Applying theme:", themeName, "with state:", themeState);
+      // Pass both the theme object and the theme state to parent
+      onThemeChange({
+        theme,
+        themeSettings: {
+          baseTheme: themeState.baseTheme,
+          isDark: themeState.isDark,
+          isPanelless: themeState.isPanelless
+        }
+      });
+      setCurrentThemeName(themeName);
+    } else {
+      console.warn(`Theme ${themeName} not found`);
+    }
+  };
+
   // Apply initial theme on mount
   useEffect(() => {
-    const theme = (themeMap as any)[initialThemeName];
-    if (theme) {
-      console.log("Applying initial theme:", initialThemeName);
-      onThemeChange(theme);
-    }
+    applyTheme(initialThemeName, {
+      baseTheme: capitalizedBaseTheme,
+      isDark: defaultIsDark,
+      isPanelless: defaultIsPanelless
+    });
   }, []); // Only run once on mount
 
   // Handle theme changes
@@ -126,16 +146,13 @@ export function ThemeSwitcher({
     
     // Only apply theme if it's different from current
     if (newThemeName !== currentThemeName) {
-      const theme = (themeMap as any)[newThemeName];
-      if (theme) {
-        console.log("Applying new theme:", newThemeName);
-        onThemeChange(theme);
-        setCurrentThemeName(newThemeName);
-      } else {
-        console.warn(`Theme ${newThemeName} not found`);
-      }
+      applyTheme(newThemeName, {
+        baseTheme,
+        isDark,
+        isPanelless
+      });
     }
-  }, [baseTheme, isDark, isPanelless, currentThemeName, onThemeChange]);
+  }, [baseTheme, isDark, isPanelless]);
 
   return (
     <div className="flex items-center gap-6">
