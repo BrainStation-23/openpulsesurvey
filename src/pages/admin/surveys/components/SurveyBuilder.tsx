@@ -21,7 +21,6 @@ interface SurveyBuilderProps {
 
 export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBuilderProps) {
   const [jsonContent, setJsonContent] = useState(defaultValue || "{}");
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [survey, setSurvey] = useState<Model | null>(null);
   
@@ -115,39 +114,15 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
             Design your survey using the JSON editor below
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setIsPreviewMode(!isPreviewMode)}
-          >
-            {isPreviewMode ? "Edit" : "Preview"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              window.open("https://surveyjs.io/create-survey", "_blank");
-            }}
-          >
-            Open Survey.js Creator
-          </Button>
-        </div>
       </div>
 
-      <div className="flex justify-end">
-        <ThemeSwitcher 
-          onThemeChange={handleThemeChange}
-          defaultBaseTheme={initialTheme.baseTheme}
-          defaultIsDark={initialTheme.isDark}
-          defaultIsPanelless={initialTheme.isPanelless}
-        />
-      </div>
-
-      <div className={cn("min-h-[500px]", isPreviewMode ? "hidden" : "block")}>
+      <div className="grid grid-cols-2 gap-6 min-h-[600px]">
+        {/* Left side - JSON Editor */}
         <div className="flex flex-col gap-4">
           <Textarea
             value={jsonContent}
             onChange={handleEditorChange}
-            className="min-h-[500px] font-mono text-sm"
+            className="flex-1 font-mono text-sm min-h-[500px]"
             placeholder="Paste your survey JSON here..."
           />
           <Button 
@@ -158,10 +133,29 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
             Format JSON
           </Button>
         </div>
-      </div>
 
-      <div className={cn("min-h-[500px]", !isPreviewMode ? "hidden" : "block")}>
-        {survey && <Survey model={survey} />}
+        {/* Right side - Preview with controls */}
+        <div className="flex flex-col">
+          <div className="flex justify-between items-center mb-4 gap-4">
+            <ThemeSwitcher 
+              onThemeChange={handleThemeChange}
+              defaultBaseTheme={initialTheme.baseTheme}
+              defaultIsDark={initialTheme.isDark}
+              defaultIsPanelless={initialTheme.isPanelless}
+            />
+            <Button
+              variant="outline"
+              onClick={() => {
+                window.open("https://surveyjs.io/create-survey", "_blank");
+              }}
+            >
+              Open Survey.js Creator
+            </Button>
+          </div>
+          <div className="flex-1 border rounded-md p-4 bg-background">
+            {survey && <Survey model={survey} />}
+          </div>
+        </div>
       </div>
 
       {error && (
