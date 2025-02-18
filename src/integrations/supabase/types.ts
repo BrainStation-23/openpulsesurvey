@@ -261,6 +261,44 @@ export type Database = {
         }
         Relationships: []
       }
+      email_responses: {
+        Row: {
+          created_at: string
+          id: string
+          original_email: Json
+          response_email: Json | null
+          session_id: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          original_email: Json
+          response_email?: Json | null
+          session_id: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          original_email?: Json
+          response_email?: Json | null
+          session_id?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "email_training_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_scenarios: {
         Row: {
           created_at: string
@@ -296,6 +334,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      email_training_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          scenario_id: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["session_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          scenario_id: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          scenario_id?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_training_sessions_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "email_scenarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employee_roles: {
         Row: {
@@ -1479,6 +1558,7 @@ export type Database = {
         | "yearly"
       response_status: "assigned" | "in_progress" | "submitted" | "expired"
       scenario_status: "active" | "inactive" | "draft"
+      session_status: "initial" | "playing" | "submitted"
       survey_status: "draft" | "published" | "archived"
       user_role: "admin" | "user"
     }
