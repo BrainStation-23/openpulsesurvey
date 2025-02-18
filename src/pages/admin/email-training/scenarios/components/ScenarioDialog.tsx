@@ -16,9 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Scenario } from "../types";
-import { Remirror, useRemirror, OnChangeJSON } from '@remirror/react';
-import { WysiwygEditor } from '@remirror/react-editors/wysiwyg';
-import type { RemirrorJSON } from '@remirror/core';
+import { Editor } from '@tinymce/tinymce-react';
 
 const scenarioSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -39,11 +37,6 @@ interface ScenarioDialogProps {
 
 export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: ScenarioDialogProps) {
   const [newTag, setNewTag] = useState("");
-  
-  const { manager } = useRemirror({
-    content: scenario?.story || "",
-    selection: 'end',
-  });
 
   const form = useForm<ScenarioFormData>({
     resolver: zodResolver(scenarioSchema),
@@ -70,20 +63,8 @@ export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: Scena
     );
   };
 
-  const handleEditorChange = (json: RemirrorJSON) => {
-    // Extract text content from the JSON structure
-    const content = json.content || [];
-    const textContent = content
-      .map(node => {
-        if (node.type === 'text' && typeof node.text === 'string') {
-          return node.text;
-        }
-        return '';
-      })
-      .join(' ')
-      .trim();
-    
-    form.setValue("story", textContent);
+  const handleEditorChange = (content: string) => {
+    form.setValue("story", content);
   };
 
   return (
@@ -119,10 +100,24 @@ export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: Scena
                   <FormLabel>Story</FormLabel>
                   <FormControl>
                     <div className="min-h-[150px] border rounded-md">
-                      <Remirror manager={manager}>
-                        <WysiwygEditor placeholder="Enter scenario details" />
-                        <OnChangeJSON onChange={handleEditorChange} />
-                      </Remirror>
+                      <Editor
+                        apiKey="your-api-key" // You'll need to get a free API key from TinyMCE
+                        value={field.value}
+                        onEditorChange={handleEditorChange}
+                        init={{
+                          height: 300,
+                          menubar: false,
+                          plugins: [
+                            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                            'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+                          ],
+                          toolbar: 'undo redo | blocks | ' +
+                            'bold italic forecolor | alignleft aligncenter ' +
+                            'alignright alignjustify | bullist numlist outdent indent | ' +
+                            'removeformat | help',
+                        }}
+                      />
                     </div>
                   </FormControl>
                   <FormMessage />
