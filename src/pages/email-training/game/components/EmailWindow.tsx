@@ -8,7 +8,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Mail, Send, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { Scenario } from "../../scenarios/types";
+import type { Scenario } from "@/pages/admin/email-training/scenarios/types";
 import type { Json } from "@/integrations/supabase/types";
 
 interface EmailWindowProps {

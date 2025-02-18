@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { EmailWindow } from "./components/EmailWindow";
 import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Scenario } from "../scenarios/types";
+import type { Scenario } from "@/pages/admin/email-training/scenarios/types";
 
 export default function GamePage() {
   const [currentScenario, setCurrentScenario] = useState<Scenario | null>(null);
