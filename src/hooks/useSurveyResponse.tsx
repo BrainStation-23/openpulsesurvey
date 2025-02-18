@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Model } from "survey-core";
 import * as themes from "survey-core/themes";
@@ -7,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SurveyStateData, isSurveyStateData } from "@/types/survey";
 import { useNavigate } from "react-router-dom";
 import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
+import { Json } from "@/integrations/supabase/types";
 
 interface UseSurveyResponseProps {
   id: string;
@@ -20,6 +20,18 @@ interface ThemeSettings {
   baseTheme: string;
   isDark: boolean;
   isPanelless: boolean;
+}
+
+// Type guard to check if a Json value is a ThemeSettings object
+function isThemeSettings(json: Json): json is ThemeSettings {
+  if (typeof json !== 'object' || json === null) return false;
+  
+  const obj = json as Record<string, unknown>;
+  return (
+    typeof obj.baseTheme === 'string' &&
+    typeof obj.isDark === 'boolean' &&
+    typeof obj.isPanelless === 'boolean'
+  );
 }
 
 export function useSurveyResponse({
@@ -61,8 +73,8 @@ export function useSurveyResponse({
             .eq('id', surveyData.id)
             .single();
 
-          if (surveyDetails?.theme_settings) {
-            setCurrentTheme(surveyDetails.theme_settings as ThemeSettings);
+          if (surveyDetails?.theme_settings && isThemeSettings(surveyDetails.theme_settings)) {
+            setCurrentTheme(surveyDetails.theme_settings);
           }
           
           setSurvey(surveyModel);
@@ -232,7 +244,7 @@ export function useSurveyResponse({
     }
   };
 
-  const handleThemeChange = ({ theme, themeSettings }: { theme: any; themeSettings: any }) => {
+  const handleThemeChange = ({ theme, themeSettings }: { theme: any; themeSettings: ThemeSettings }) => {
     console.log("Theme change received:", themeSettings);
     setCurrentTheme(themeSettings);
   };
