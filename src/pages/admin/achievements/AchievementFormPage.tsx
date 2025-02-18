@@ -44,10 +44,6 @@ const formSchema = z.object({
   required_count: z.number().optional().nullable(),
   required_rate: z.number().optional().nullable(),
   required_days: z.number().optional().nullable(),
-  min_rating: z.number().optional().nullable(),
-  min_length: z.number().optional().nullable(),
-  event_type: z.string().optional(),
-  participation_count: z.number().optional().nullable(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -112,17 +108,13 @@ export default function AchievementFormPage() {
         required_count: conditionValue.required_count,
         required_rate: conditionValue.required_rate,
         required_days: conditionValue.required_days,
-        min_rating: conditionValue.min_rating,
-        min_length: conditionValue.min_length,
-        event_type: conditionValue.event_type,
-        participation_count: conditionValue.participation_count,
       });
     }
   }, [achievement, form]);
 
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const achievementData: Omit<Achievement, 'id' | 'created_at' | 'updated_at'> = {
+      const achievementData = {
         name: values.name,
         description: values.description,
         achievement_type: values.achievement_type,
@@ -153,7 +145,7 @@ export default function AchievementFormPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const achievementData: Omit<Achievement, 'id' | 'created_at' | 'updated_at'> = {
+      const achievementData = {
         name: values.name,
         description: values.description,
         achievement_type: values.achievement_type,
