@@ -4,14 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ACHIEVEMENT_TYPE_CONFIG, AchievementType } from "../types";
 
 type Achievement = {
   id: string;
   name: string;
   description: string;
-  category: string;
+  achievement_type: AchievementType;
   points: number;
-  condition_type: string;
+  icon: string;
 };
 
 export const columns: ColumnDef<Achievement>[] = [
@@ -32,12 +33,13 @@ export const columns: ColumnDef<Achievement>[] = [
     header: "Description",
   },
   {
-    accessorKey: "category",
-    header: "Category",
+    accessorKey: "achievement_type",
+    header: "Type",
     cell: ({ row }) => {
+      const config = ACHIEVEMENT_TYPE_CONFIG[row.original.achievement_type];
       return (
         <Badge variant="secondary">
-          {row.original.category.replace('_', ' ')}
+          {config.label}
         </Badge>
       );
     },
@@ -49,17 +51,6 @@ export const columns: ColumnDef<Achievement>[] = [
       return (
         <Badge variant="default">
           {row.original.points} pts
-        </Badge>
-      );
-    },
-  },
-  {
-    accessorKey: "condition_type",
-    header: "Condition Type",
-    cell: ({ row }) => {
-      return (
-        <Badge variant="outline">
-          {row.original.condition_type.replace('_', ' ')}
         </Badge>
       );
     },

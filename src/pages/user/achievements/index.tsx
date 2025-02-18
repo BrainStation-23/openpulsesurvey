@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ACHIEVEMENT_TYPE_CONFIG, AchievementType } from "@/pages/admin/achievements/types";
 
 export default function UserAchievementsPage() {
   const { data: achievements, isLoading } = useQuery({
@@ -61,7 +62,7 @@ export default function UserAchievementsPage() {
                     {userAchievement.achievement.points} pts
                   </Badge>
                   <Badge variant="outline">
-                    {userAchievement.achievement.category.replace('_', ' ')}
+                    {ACHIEVEMENT_TYPE_CONFIG[userAchievement.achievement.achievement_type as AchievementType].label}
                   </Badge>
                 </div>
               </CardContent>
@@ -92,7 +93,7 @@ export default function UserAchievementsPage() {
                     {achievement.points} pts
                   </Badge>
                   <Badge variant="outline">
-                    {achievement.category.replace('_', ' ')}
+                    {ACHIEVEMENT_TYPE_CONFIG[achievement.achievement_type as AchievementType].label}
                   </Badge>
                 </div>
               </CardContent>

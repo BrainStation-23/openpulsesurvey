@@ -6,6 +6,19 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { columns } from "./components/columns";
 import { useNavigate } from "react-router-dom";
+import { AchievementType } from "./types";
+
+type Achievement = {
+  id: string;
+  name: string;
+  description: string;
+  achievement_type: AchievementType;
+  icon: string;
+  points: number;
+  condition_value: any;
+  created_at: string;
+  updated_at: string;
+};
 
 export default function AchievementsPage() {
   const navigate = useNavigate();
@@ -18,7 +31,7 @@ export default function AchievementsPage() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data as Achievement[];
     },
   });
 
