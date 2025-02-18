@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -41,6 +42,7 @@ import CampaignDetailsPage from "./pages/admin/surveys/campaigns/[id]";
 import PresentationView from "./pages/admin/surveys/campaigns/[id]/components/PresentationView/index";
 import PlatformConfigLayout from "./components/layouts/PlatformConfigLayout";
 import ScenariosPage from "./pages/admin/email-training/scenarios";
+import CreateScenarioPage from "./pages/admin/email-training/scenarios/create";
 import SBUsConfig from "./pages/admin/config/sbus";
 import SBUDetails from "./pages/admin/config/sbus/[id]";
 import EmailConfig from "./pages/admin/config/email";
@@ -116,8 +118,8 @@ const App = () => (
             <Route path="achievements" element={<AchievementsPage />} />
             <Route path="achievements/create" element={<AchievementFormPage />} />
             <Route path="achievements/:id/edit" element={<AchievementFormPage />} />
-            <Route path="settings" element={<AdminSettings />} />
             <Route path="email-training/scenarios" element={<ScenariosPage />} />
+            <Route path="email-training/scenarios/create" element={<CreateScenarioPage />} />
           </Route>
         </Routes>
       </TooltipProvider>
