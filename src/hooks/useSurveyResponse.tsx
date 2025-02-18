@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Model } from "survey-core";
 import * as themes from "survey-core/themes";
@@ -17,6 +18,7 @@ interface UseSurveyResponseProps {
 }
 
 interface ThemeSettings {
+  [key: string]: Json | undefined;
   baseTheme: string;
   isDark: boolean;
   isPanelless: boolean;
