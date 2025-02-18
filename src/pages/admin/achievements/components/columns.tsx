@@ -2,9 +2,24 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trophy } from "lucide-react";
+import { Edit, Trash2, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ACHIEVEMENT_TYPE_CONFIG, AchievementType } from "../types";
+import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogCancel,
+  AlertDialogAction,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 type Achievement = {
   id: string;
@@ -13,6 +28,7 @@ type Achievement = {
   achievement_type: AchievementType;
   points: number;
   icon: string;
+  status: 'active' | 'inactive';
 };
 
 export const columns: ColumnDef<Achievement>[] = [
@@ -56,17 +72,115 @@ export const columns: ColumnDef<Achievement>[] = [
     },
   },
   {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const [isLoading, setIsLoading] = useState(false);
+
+      const toggleStatus = async () => {
+        try {
+          setIsLoading(true);
+          const newStatus = row.original.status === 'active' ? 'inactive' : 'active';
+          
+          const { error } = await supabase
+            .from('achievements')
+            .update({ status: newStatus })
+            .eq('id', row.original.id);
+
+          if (error) throw error;
+
+          toast.success(`Achievement ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
+          // Force refresh the table
+          window.location.reload();
+        } catch (error) {
+          console.error('Error toggling status:', error);
+          toast.error("Failed to update achievement status");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      return (
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={row.original.status === 'active'}
+            onCheckedChange={toggleStatus}
+            disabled={isLoading}
+          />
+          <span className="text-sm">
+            {row.original.status === 'active' ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+      );
+    },
+  },
+  {
     id: "actions",
     cell: ({ row }) => {
       const navigate = useNavigate();
+      const [isDeleting, setIsDeleting] = useState(false);
+
+      const deleteAchievement = async () => {
+        try {
+          setIsDeleting(true);
+          const { error } = await supabase
+            .from('achievements')
+            .delete()
+            .eq('id', row.original.id);
+
+          if (error) throw error;
+
+          toast.success("Achievement deleted successfully");
+          // Force refresh the table
+          window.location.reload();
+        } catch (error) {
+          console.error('Error deleting achievement:', error);
+          toast.error("Failed to delete achievement");
+        } finally {
+          setIsDeleting(false);
+        }
+      };
+
       return (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(`/admin/achievements/${row.original.id}/edit`)}
-        >
-          <Edit className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(`/admin/achievements/${row.original.id}/edit`)}
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                disabled={isDeleting}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Achievement</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this achievement? This action will also remove all related user progress and cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={deleteAchievement}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       );
     },
   },

@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
@@ -39,6 +38,7 @@ const formSchema = z.object({
   achievement_type: z.custom<AchievementType>(),
   icon: z.string().min(1, "Icon is required"),
   points: z.coerce.number().min(0, "Points must be a positive number"),
+  status: z.enum(['active', 'inactive']),
   condition_value: z.string().transform(val => JSON.parse(val)),
   // Make all condition fields optional and ensure they're numbers when present
   required_count: z.number().optional().nullable(),
@@ -59,6 +59,7 @@ type Achievement = {
   achievement_type: AchievementType;
   icon: string;
   points: number;
+  status: 'active' | 'inactive';
   condition_value: any;
   created_at?: string;
   updated_at?: string;
@@ -78,6 +79,7 @@ export default function AchievementFormPage() {
       achievement_type: "survey_completion",
       icon: "Trophy",
       points: 0,
+      status: "active",
       condition_value: "{}",
     },
   });
@@ -98,15 +100,12 @@ export default function AchievementFormPage() {
     enabled: isEditMode,
   });
 
-  // Update form when achievement data is loaded
   useEffect(() => {
     if (achievement) {
-      // Extract condition fields from condition_value
       const conditionValue = typeof achievement.condition_value === 'string' 
         ? JSON.parse(achievement.condition_value)
         : achievement.condition_value;
 
-      // Reset form with achievement data and parsed condition fields
       form.reset({
         ...achievement,
         condition_value: JSON.stringify(conditionValue),
@@ -129,6 +128,7 @@ export default function AchievementFormPage() {
         achievement_type: values.achievement_type,
         icon: values.icon,
         points: values.points,
+        status: values.status,
         condition_value: values.condition_value,
       };
 
@@ -159,6 +159,7 @@ export default function AchievementFormPage() {
         achievement_type: values.achievement_type,
         icon: values.icon,
         points: values.points,
+        status: values.status,
         condition_value: values.condition_value,
       };
 
@@ -272,6 +273,31 @@ export default function AchievementFormPage() {
                       )}
                     />
                   </div>
+
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Inactive achievements won't be awarded to users
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <FormField
                     control={form.control}

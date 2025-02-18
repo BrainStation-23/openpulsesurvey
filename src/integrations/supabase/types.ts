@@ -68,6 +68,7 @@ export type Database = {
           id: string
           name: string
           points: number
+          status: Database["public"]["Enums"]["achievement_status"] | null
           updated_at: string
         }
         Insert: {
@@ -79,6 +80,7 @@ export type Database = {
           id?: string
           name: string
           points?: number
+          status?: Database["public"]["Enums"]["achievement_status"] | null
           updated_at?: string
         }
         Update: {
@@ -90,6 +92,7 @@ export type Database = {
           id?: string
           name?: string
           points?: number
+          status?: Database["public"]["Enums"]["achievement_status"] | null
           updated_at?: string
         }
         Relationships: []
@@ -1403,6 +1406,7 @@ export type Database = {
         | "streak_days"
         | "response_quality"
         | "event_participation"
+      achievement_status: "active" | "inactive"
       achievement_type:
         | "survey_completion"
         | "response_rate"
