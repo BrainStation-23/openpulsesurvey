@@ -26,15 +26,46 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
+const achievementCategories = [
+  "survey_completion",
+  "response_rate",
+  "streak",
+  "quality",
+  "special_event",
+] as const;
+
+const conditionTypes = [
+  "survey_count",
+  "response_rate",
+  "streak_days",
+  "response_quality",
+  "event_participation",
+] as const;
+
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
-  category: z.enum(["survey_completion", "response_rate", "streak", "quality", "special_event"]),
+  category: z.enum(achievementCategories),
   icon: z.string().min(1, "Icon is required"),
   points: z.string().transform(val => parseInt(val, 10)),
-  condition_type: z.enum(["survey_count", "response_rate", "streak_days", "response_quality", "event_participation"]),
+  condition_type: z.enum(conditionTypes),
   condition_value: z.string().transform(val => JSON.parse(val)),
 });
+
+type FormValues = z.infer<typeof formSchema>;
+
+type Achievement = {
+  id: string;
+  name: string;
+  description: string;
+  category: typeof achievementCategories[number];
+  icon: string;
+  points: number;
+  condition_type: typeof conditionTypes[number];
+  condition_value: any;
+  created_at?: string;
+  updated_at?: string;
+};
 
 export default function AchievementFormPage() {
   const { id } = useParams();
@@ -53,12 +84,12 @@ export default function AchievementFormPage() {
         .single();
       
       if (error) throw error;
-      return data;
+      return data as Achievement;
     },
     enabled: isEditMode,
   });
 
-  const form = useForm({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
@@ -72,15 +103,24 @@ export default function AchievementFormPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (values: z.infer<typeof formSchema>) => {
+    mutationFn: async (values: FormValues) => {
+      const achievementData: Omit<Achievement, 'id' | 'created_at' | 'updated_at'> = {
+        name: values.name,
+        description: values.description,
+        category: values.category,
+        icon: values.icon,
+        points: values.points,
+        condition_type: values.condition_type,
+        condition_value: values.condition_value,
+      };
+
       const { data, error } = await supabase
         .from('achievements')
-        .insert([values])
-        .select()
-        .single();
+        .insert([achievementData])
+        .select();
       
       if (error) throw error;
-      return data;
+      return data[0] as Achievement;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['achievements'] });
@@ -94,16 +134,25 @@ export default function AchievementFormPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (values: z.infer<typeof formSchema>) => {
+    mutationFn: async (values: FormValues) => {
+      const achievementData: Omit<Achievement, 'id' | 'created_at' | 'updated_at'> = {
+        name: values.name,
+        description: values.description,
+        category: values.category,
+        icon: values.icon,
+        points: values.points,
+        condition_type: values.condition_type,
+        condition_value: values.condition_value,
+      };
+
       const { data, error } = await supabase
         .from('achievements')
-        .update(values)
-        .eq('id', id)
-        .select()
-        .single();
+        .update(achievementData)
+        .eq('id', id as string)
+        .select();
       
       if (error) throw error;
-      return data;
+      return data[0] as Achievement;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['achievements'] });
@@ -116,7 +165,7 @@ export default function AchievementFormPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = (values: FormValues) => {
     if (isEditMode) {
       updateMutation.mutate(values);
     } else {
