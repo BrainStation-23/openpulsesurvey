@@ -308,13 +308,13 @@ export default function AchievementFormPage() {
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select achievement type" />
+                              <SelectValue placeholder="Select achievement type" className="text-left" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {Object.entries(ACHIEVEMENT_TYPE_CONFIG).map(([type, config]) => (
-                              <SelectItem key={type} value={type}>
-                                <div className="flex flex-col">
+                              <SelectItem key={type} value={type} className="w-full">
+                                <div className="flex flex-col w-full text-left">
                                   <span>{config.label}</span>
                                   <span className="text-xs text-muted-foreground">
                                     {config.description}
