@@ -71,7 +71,19 @@ export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: Scena
   };
 
   const handleEditorChange = (json: RemirrorJSON) => {
-    form.setValue("story", json.doc.textContent || "");
+    // Extract text content from the JSON structure
+    const content = json.content || [];
+    const textContent = content
+      .map(node => {
+        if (node.type === 'text' && typeof node.text === 'string') {
+          return node.text;
+        }
+        return '';
+      })
+      .join(' ')
+      .trim();
+    
+    form.setValue("story", textContent);
   };
 
   return (
