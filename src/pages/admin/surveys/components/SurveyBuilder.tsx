@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
 import { Button } from "@/components/ui/button";
@@ -24,44 +24,54 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [survey, setSurvey] = useState<Model | null>(null);
-  const [currentTheme, setCurrentTheme] = useState(defaultTheme || {
-    baseTheme: 'Layered',
-    isDark: true,
-    isPanelless: true
-  });
+  
+  // Ensure theme settings are properly capitalized
+  const initialTheme = useMemo(() => ({
+    baseTheme: defaultTheme?.baseTheme || 'Layered',
+    isDark: defaultTheme?.isDark ?? true,
+    isPanelless: defaultTheme?.isPanelless ?? true
+  }), [defaultTheme]);
+  
+  const [currentTheme, setCurrentTheme] = useState(initialTheme);
+
+  // Function to get theme instance
+  const getThemeInstance = (themeSettings: typeof currentTheme) => {
+    const themeName = `${themeSettings.baseTheme}${themeSettings.isDark ? 'Dark' : 'Light'}${themeSettings.isPanelless ? 'Panelless' : ''}`;
+    console.log("Getting theme instance for:", themeName);
+    return (themes as any)[themeName];
+  };
 
   // Create or update survey model when JSON content changes
   useEffect(() => {
     try {
+      console.log("Creating new survey model with theme:", currentTheme);
       const parsedJson = JSON.parse(jsonContent);
       const surveyModel = new Model(parsedJson);
-      setSurvey(surveyModel);
-      setError(null);
-
-      // Apply current theme after model creation
-      const themeName = `${currentTheme.baseTheme}${currentTheme.isDark ? 'Dark' : 'Light'}${currentTheme.isPanelless ? 'Panelless' : ''}`;
-      const theme = (themes as any)[themeName];
       
-      if (theme && surveyModel) {
-        console.log("Applying theme after model creation:", themeName);
+      // Apply theme immediately after model creation
+      const theme = getThemeInstance(currentTheme);
+      if (theme) {
+        console.log("Applying initial theme:", theme);
         surveyModel.applyTheme(theme);
       }
+
+      setSurvey(surveyModel);
+      setError(null);
     } catch (err: any) {
+      console.error("Error creating survey model:", err);
       setError(err.message);
       setSurvey(null);
     }
   }, [jsonContent]);
 
-  // Separate effect for theme changes
+  // Handle theme changes
   useEffect(() => {
-    if (survey) {
-      const themeName = `${currentTheme.baseTheme}${currentTheme.isDark ? 'Dark' : 'Light'}${currentTheme.isPanelless ? 'Panelless' : ''}`;
-      const theme = (themes as any)[themeName];
-      
-      if (theme) {
-        console.log("Applying theme on theme change:", themeName);
-        survey.applyTheme(theme);
-      }
+    if (!survey) return;
+
+    console.log("Applying theme update:", currentTheme);
+    const theme = getThemeInstance(currentTheme);
+    if (theme) {
+      survey.applyTheme(theme);
     }
   }, [currentTheme, survey]);
 
@@ -126,9 +136,9 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
       <div className="flex justify-end">
         <ThemeSwitcher 
           onThemeChange={handleThemeChange}
-          defaultBaseTheme={currentTheme.baseTheme}
-          defaultIsDark={currentTheme.isDark}
-          defaultIsPanelless={currentTheme.isPanelless}
+          defaultBaseTheme={initialTheme.baseTheme}
+          defaultIsDark={initialTheme.isDark}
+          defaultIsPanelless={initialTheme.isPanelless}
         />
       </div>
 
