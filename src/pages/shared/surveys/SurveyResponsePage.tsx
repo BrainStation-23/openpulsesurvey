@@ -101,19 +101,28 @@ export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps
     },
   });
 
+  // Get theme settings with type safety
+  const themeSettings = assignmentData?.assignment.survey.theme_settings;
+  const validThemeSettings = isThemeSettings(themeSettings) ? themeSettings : {
+    baseTheme: 'Layered',
+    isDark: true,
+    isPanelless: true
+  };
+
   const {
     survey,
     lastSaved,
     showSubmitDialog,
     setShowSubmitDialog,
     handleSubmitSurvey,
-    handleThemeChange
+    handleThemeChange,
   } = useSurveyResponse({
     id: id!,
     viewType,
     surveyData: assignmentData?.assignment.survey?.json_data,
     existingResponse: assignmentData?.existingResponse,
     campaignInstanceId: assignmentData?.assignment.campaign_id || null,
+    initialTheme: validThemeSettings,
   });
 
   if (isLoading) {
@@ -135,14 +144,6 @@ export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps
       </div>
     );
   }
-
-  // Get theme settings with type safety
-  const themeSettings = assignmentData.assignment.survey.theme_settings;
-  const validThemeSettings = isThemeSettings(themeSettings) ? themeSettings : {
-    baseTheme: 'Layered',
-    isDark: true,
-    isPanelless: true
-  };
 
   return (
     <div className="space-y-6">

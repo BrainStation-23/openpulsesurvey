@@ -15,6 +15,7 @@ interface UseSurveyResponseProps {
   surveyData: any;
   existingResponse: any;
   campaignInstanceId: string | null;
+  initialTheme: ThemeSettings;
 }
 
 interface ThemeSettings {
@@ -24,33 +25,18 @@ interface ThemeSettings {
   isPanelless: boolean;
 }
 
-// Type guard to check if a Json value is a ThemeSettings object
-function isThemeSettings(json: Json): json is ThemeSettings {
-  if (typeof json !== 'object' || json === null) return false;
-  
-  const obj = json as Record<string, unknown>;
-  return (
-    typeof obj.baseTheme === 'string' &&
-    typeof obj.isDark === 'boolean' &&
-    typeof obj.isPanelless === 'boolean'
-  );
-}
-
 export function useSurveyResponse({
   id,
   viewType,
   surveyData,
   existingResponse,
   campaignInstanceId,
+  initialTheme,
 }: UseSurveyResponseProps) {
   const [survey, setSurvey] = useState<Model | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState<ThemeSettings>({
-    baseTheme: 'Layered',
-    isDark: true,
-    isPanelless: true
-  });
+  const [currentTheme, setCurrentTheme] = useState<ThemeSettings>(initialTheme);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -61,134 +47,118 @@ export function useSurveyResponse({
     return (themes as any)[themeName];
   };
 
-  // Initial survey setup and theme settings fetch
+  // Initialize survey with theme
   useEffect(() => {
-    const initializeSurvey = async () => {
-      if (!surveyData) return;
+    if (!surveyData) return;
 
-      try {
-        // Fetch theme settings first
-        const { data: surveyDetails } = await supabase
-          .from('surveys')
-          .select('theme_settings')
-          .eq('id', surveyData.id)
-          .single();
+    try {
+      console.log("Initializing survey with theme:", currentTheme);
+      
+      // Create survey model with theme
+      const surveyModel = new Model(surveyData);
+      const theme = getThemeInstance(currentTheme);
+      if (theme) {
+        console.log("Applying initial theme");
+        surveyModel.applyTheme(theme);
+      }
 
-        let themeToUse = currentTheme;
-        if (surveyDetails?.theme_settings && isThemeSettings(surveyDetails.theme_settings)) {
-          console.log("Setting theme from DB:", surveyDetails.theme_settings);
-          themeToUse = surveyDetails.theme_settings;
-          setCurrentTheme(themeToUse);
+      // If there's an existing response, load it
+      if (existingResponse?.response_data) {
+        console.log("Loading existing response data:", existingResponse.response_data);
+        surveyModel.data = existingResponse.response_data;
+        surveyModel.start();
+        
+        // Restore the last page from state data
+        const stateData = existingResponse.state_data;
+        if (stateData && isSurveyStateData(stateData)) {
+          console.log("Restoring to page:", stateData.lastPageNo);
+          surveyModel.currentPageNo = stateData.lastPageNo;
         }
+      }
 
-        // Create survey model with theme
-        const surveyModel = new Model(surveyData);
-        const theme = getThemeInstance(themeToUse);
-        if (theme) {
-          console.log("Applying initial theme");
-          surveyModel.applyTheme(theme);
-        }
+      // If the response is submitted, make it read-only
+      if (existingResponse?.status === 'submitted') {
+        surveyModel.mode = 'display';
+      } else {
+        // Add autosave for non-submitted surveys
+        surveyModel.onCurrentPageChanged.add(async (sender) => {
+          try {
+            const userId = (await supabase.auth.getUser()).data.user?.id;
+            if (!userId) throw new Error("User not authenticated");
 
-        // If there's an existing response, load it
-        if (existingResponse?.response_data) {
-          console.log("Loading existing response data:", existingResponse.response_data);
-          surveyModel.data = existingResponse.response_data;
-          surveyModel.start();
-          
-          // Restore the last page from state data
-          const stateData = existingResponse.state_data;
-          if (stateData && isSurveyStateData(stateData)) {
-            console.log("Restoring to page:", stateData.lastPageNo);
-            surveyModel.currentPageNo = stateData.lastPageNo;
-          }
-        }
+            const stateData = {
+              lastPageNo: sender.currentPageNo,
+              lastUpdated: new Date().toISOString()
+            } as SurveyStateData;
 
-        // If the response is submitted, make it read-only
-        if (existingResponse?.status === 'submitted') {
-          surveyModel.mode = 'display';
-        } else {
-          // Add autosave for non-submitted surveys
-          surveyModel.onCurrentPageChanged.add(async (sender) => {
-            try {
-              const userId = (await supabase.auth.getUser()).data.user?.id;
-              if (!userId) throw new Error("User not authenticated");
+            const responseData = {
+              assignment_id: id,
+              user_id: userId,
+              response_data: sender.data,
+              state_data: stateData,
+              status: 'in_progress' as ResponseStatus,
+              campaign_instance_id: campaignInstanceId,
+            };
 
-              const stateData = {
-                lastPageNo: sender.currentPageNo,
-                lastUpdated: new Date().toISOString()
-              } as SurveyStateData;
-
-              const responseData = {
-                assignment_id: id,
-                user_id: userId,
-                response_data: sender.data,
-                state_data: stateData,
-                status: 'in_progress' as ResponseStatus,
-                campaign_instance_id: campaignInstanceId,
-              };
-
-              const { error } = await supabase
-                .from("survey_responses")
-                .upsert(responseData, {
-                  onConflict: 'assignment_id,user_id'
-                });
-
-              if (error) throw error;
-              console.log("Saved page state:", stateData);
-            } catch (error) {
-              console.error("Error saving page state:", error);
-            }
-          });
-
-          surveyModel.onValueChanged.add(async (sender) => {
-            try {
-              const userId = (await supabase.auth.getUser()).data.user?.id;
-              if (!userId) throw new Error("User not authenticated");
-
-              const responseData = {
-                assignment_id: id,
-                user_id: userId,
-                response_data: sender.data,
-                status: 'in_progress' as ResponseStatus,
-                campaign_instance_id: campaignInstanceId,
-              };
-
-              const { error } = await supabase
-                .from("survey_responses")
-                .upsert(responseData, {
-                  onConflict: 'assignment_id,user_id'
-                });
-
-              if (error) throw error;
-              setLastSaved(new Date());
-              console.log("Saved response data");
-            } catch (error) {
-              console.error("Error saving response:", error);
-              toast({
-                title: "Error saving response",
-                description: "Your progress could not be saved. Please try again.",
-                variant: "destructive",
+            const { error } = await supabase
+              .from("survey_responses")
+              .upsert(responseData, {
+                onConflict: 'assignment_id,user_id'
               });
-            }
-          });
 
-          surveyModel.onComplete.add(() => {
-            setShowSubmitDialog(true);
-          });
-        }
+            if (error) throw error;
+            console.log("Saved page state:", stateData);
+          } catch (error) {
+            console.error("Error saving page state:", error);
+          }
+        });
 
-        setSurvey(surveyModel);
-      } catch (error) {
-        console.error("Error initializing survey:", error);
-        toast({
-          title: "Error loading survey",
-          description: "Could not load the survey. Please try again.",
-          variant: "destructive",
+        surveyModel.onValueChanged.add(async (sender) => {
+          try {
+            const userId = (await supabase.auth.getUser()).data.user?.id;
+            if (!userId) throw new Error("User not authenticated");
+
+            const responseData = {
+              assignment_id: id,
+              user_id: userId,
+              response_data: sender.data,
+              status: 'in_progress' as ResponseStatus,
+              campaign_instance_id: campaignInstanceId,
+            };
+
+            const { error } = await supabase
+              .from("survey_responses")
+              .upsert(responseData, {
+                onConflict: 'assignment_id,user_id'
+              });
+
+            if (error) throw error;
+            setLastSaved(new Date());
+            console.log("Saved response data");
+          } catch (error) {
+            console.error("Error saving response:", error);
+            toast({
+              title: "Error saving response",
+              description: "Your progress could not be saved. Please try again.",
+              variant: "destructive",
+            });
+          }
+        });
+
+        surveyModel.onComplete.add(() => {
+          setShowSubmitDialog(true);
         });
       }
-    };
 
-    initializeSurvey();
+      setSurvey(surveyModel);
+    } catch (error) {
+      console.error("Error initializing survey:", error);
+      toast({
+        title: "Error loading survey",
+        description: "Could not load the survey. Please try again.",
+        variant: "destructive",
+      });
+    }
   }, [id, surveyData, existingResponse, campaignInstanceId, toast, currentTheme]);
 
   // Handle theme changes
