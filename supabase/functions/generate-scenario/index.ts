@@ -31,36 +31,61 @@ serve(async (req) => {
     Complexity Level: ${complexity}
     Specific Situation: ${situation || 'Not specified'}
 
-    Generate a JSON response with the following structure:
+    Generate a scenario in the following format, using double quotes for all strings and escaping any special characters:
     {
       "name": "A concise, descriptive title for the scenario",
-      "story": "A detailed story written in HTML format explaining the email scenario. Include background context, challenges, and what needs to be done.",
+      "story": "<p>Your story content here, using proper HTML tags</p>",
       "difficulty_level": A number from 1 to 5 (1: Very Easy, 2: Easy, 3: Moderate, 4: Hard, 5: Very Hard),
-      "tags": ["tag1", "tag2", "tag3"] (3-5 relevant tags)
+      "tags": ["tag1", "tag2", "tag3"]
     }
 
-    The story should be realistic, relevant to the industry, and focus on email communication challenges.
-    Include HTML formatting in the story for better readability (use <p>, <ul>, <li> tags where appropriate).`;
+    Important: 
+    - Use proper JSON format with double quotes for strings
+    - Use only basic HTML tags (<p>, <ul>, <li>) in the story content
+    - Make sure all quotes and special characters are properly escaped
+    - The response must be a valid JSON object`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
-    // Extract JSON from the response
+    // Extract JSON from the response and clean it up
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error('Failed to generate properly formatted scenario');
     }
 
-    const generatedScenario = JSON.parse(jsonMatch[0]);
+    let cleanedJson = jsonMatch[0]
+      // Replace any backticks with double quotes
+      .replace(/`/g, '"')
+      // Ensure newlines within the story are preserved but properly escaped
+      .replace(/\n/g, ' ')
+      // Remove any extra spaces
+      .replace(/\s+/g, ' ');
 
-    return new Response(JSON.stringify(generatedScenario), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    try {
+      const generatedScenario = JSON.parse(cleanedJson);
+      
+      // Validate the structure
+      if (!generatedScenario.name || !generatedScenario.story || 
+          !generatedScenario.difficulty_level || !Array.isArray(generatedScenario.tags)) {
+        throw new Error('Generated content is missing required fields');
+      }
+
+      return new Response(JSON.stringify(generatedScenario), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError, '\nAttempted to parse:', cleanedJson);
+      throw new Error('Failed to parse generated content as JSON');
+    }
   } catch (error) {
     console.error('Error generating scenario:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Failed to generate or parse scenario content'
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
