@@ -22,26 +22,28 @@ export default function GamePage() {
 
   const loadRandomScenario = async () => {
     try {
+      // First, get the count of active scenarios
+      const { count, error: countError } = await supabase
+        .from('email_scenarios')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+
+      if (countError) throw countError;
+      if (!count || count === 0) {
+        toast.error("No active scenarios available.");
+        return;
+      }
+
+      // Get a random offset
+      const randomOffset = Math.floor(Math.random() * count);
+
+      // Fetch the random scenario
       const { data: scenarios, error } = await supabase
         .from('email_scenarios')
         .select('*')
         .eq('status', 'active')
-        .limit(1)
-        .select('*', { head: true, count: 'exact' })
-        .then(result => {
-          if (result.count && result.count > 0) {
-            // If we have scenarios, get a random offset
-            const randomOffset = Math.floor(Math.random() * result.count);
-            // Fetch the random scenario
-            return supabase
-              .from('email_scenarios')
-              .select('*')
-              .eq('status', 'active')
-              .limit(1)
-              .range(randomOffset, randomOffset);
-          }
-          return result;
-        });
+        .range(randomOffset, randomOffset)
+        .limit(1);
 
       if (error) throw error;
       
@@ -88,55 +90,3 @@ export default function GamePage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner className="w-8 h-8" />
-      </div>
-    );
-  }
-
-  if (!scenario) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <p className="text-lg">No scenarios available.</p>
-        <Button onClick={() => navigate(-1)}>Go Back</Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mx-auto p-4 max-w-7xl">
-      <div className="flex items-center gap-4 mb-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold">Email Training</h1>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ScenarioDisplay scenario={scenario} />
-        
-        {gameState === 'initial' ? (
-          <div className="flex flex-col items-center justify-center p-8 border rounded-lg bg-card">
-            <Button 
-              size="lg"
-              onClick={handleStart}
-              className="gap-2"
-            >
-              <Play className="w-4 w-4" />
-              Start Training
-            </Button>
-          </div>
-        ) : (
-          <EmailWindow 
-            scenario={scenario}
-            onComplete={() => setGameState('submitted')}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
