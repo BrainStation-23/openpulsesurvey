@@ -28,9 +28,18 @@ export default function ScenariosPage() {
 
   const handleCreate = async (scenario: Omit<Scenario, "id" | "created_at" | "updated_at" | "created_by">) => {
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) throw new Error("User not authenticated");
+
       const { error } = await supabase
         .from("email_scenarios")
-        .insert([scenario]);
+        .insert([{
+          ...scenario,
+          created_by: user.id
+        }]);
 
       if (error) throw error;
 
