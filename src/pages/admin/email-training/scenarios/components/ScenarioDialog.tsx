@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,7 +7,6 @@ import { X, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
@@ -16,11 +16,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Scenario } from "../types";
+import { Remirror, useRemirror } from '@remirror/react';
+import { WysiwygEditor } from '@remirror/react-editors/wysiwyg';
 
 const scenarioSchema = z.object({
   name: z.string().min(1, "Name is required"),
   story: z.string().min(1, "Story is required"),
-  difficulty_level: z.number().min(1).max(10),
+  difficulty_level: z.number().min(1),
   tags: z.array(z.string()),
   status: z.enum(["active", "inactive", "draft"]).default("draft"),
 });
@@ -37,6 +39,11 @@ interface ScenarioDialogProps {
 export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: ScenarioDialogProps) {
   const [newTag, setNewTag] = useState("");
   
+  const { manager } = useRemirror({
+    content: scenario?.story || "",
+    selection: 'end',
+  });
+
   const form = useForm<ScenarioFormData>({
     resolver: zodResolver(scenarioSchema),
     defaultValues: scenario || {
@@ -94,11 +101,16 @@ export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: Scena
                 <FormItem>
                   <FormLabel>Story</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Enter scenario details"
-                      className="min-h-[150px]"
-                      {...field}
-                    />
+                    <div className="min-h-[150px] border rounded-md">
+                      <Remirror manager={manager}>
+                        <WysiwygEditor 
+                          placeholder="Enter scenario details"
+                          onChange={(params) => {
+                            field.onChange(params.state.doc.textContent);
+                          }}
+                        />
+                      </Remirror>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -110,12 +122,11 @@ export function ScenarioDialog({ scenario, open, onOpenChange, onSubmit }: Scena
               name="difficulty_level"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Difficulty Level (1-10)</FormLabel>
+                  <FormLabel>Difficulty Level</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       min={1}
-                      max={10}
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value))}
                     />
