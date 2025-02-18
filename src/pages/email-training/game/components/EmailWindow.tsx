@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,24 +83,18 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
 
       if (sessionError) throw sessionError;
 
-      // Save the response with properly typed JSON data
+      // Save the response with the correct type structure
       const { error: responseError } = await supabase
         .from('email_responses')
-        .insert({
+        .insert([{
           session_id: session.id,
-          original_email: {
-            from: originalEmail.from,
-            subject: originalEmail.subject,
-            content: originalEmail.content,
-            tone: originalEmail.tone,
-            key_points: originalEmail.key_points
-          } as Record<string, unknown>,
+          original_email: originalEmail,
           response_email: {
             subject: response.subject,
             content: response.content
-          } as Record<string, unknown>,
+          },
           submitted_at: new Date().toISOString()
-        });
+        }]);
 
       if (responseError) throw responseError;
 
