@@ -50,6 +50,7 @@ import EmployeeTypeConfig from "./pages/admin/config/employee-type";
 import EmployeeRoleConfig from "./pages/admin/config/employee-role";
 import AIPromptsConfig from "./pages/admin/config/ai-prompts";
 import AchievementsPage from "./pages/admin/achievements";
+import AchievementFormPage from "./pages/admin/achievements/AchievementFormPage";
 
 const queryClient = new QueryClient();
 
@@ -112,6 +113,8 @@ const App = () => (
               <Route path="ai-prompts" element={<AIPromptsConfig />} />
             </Route>
             <Route path="achievements" element={<AchievementsPage />} />
+            <Route path="achievements/create" element={<AchievementFormPage />} />
+            <Route path="achievements/:id/edit" element={<AchievementFormPage />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
         </Routes>

@@ -13,7 +13,8 @@ import {
   Briefcase,
   Shield,
   BrainCircuit,
-  UserRound
+  UserRound,
+  Trophy
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -50,6 +51,11 @@ export const navigationItems: NavigationItem[] = [
         path: "/admin/surveys/campaigns",
       },
     ],
+  },
+  {
+    title: "Achievements",
+    icon: Trophy,
+    path: "/admin/achievements",
   },
   {
     title: "Platform Config",
