@@ -6,13 +6,33 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
-import { useSurveyResponse } from "@/hooks/useSurveyResponse";
+import { useSurveyResponse } from "@/hooks/survey-response"; // Updated import path
 import { SubmitDialog } from "@/pages/admin/my-surveys/[id]/components/SubmitDialog";
+import { Json } from "@/integrations/supabase/types";
 
 import "survey-core/defaultV2.min.css";
 
 interface SurveyResponsePageProps {
   viewType: 'user' | 'admin';
+}
+
+interface ThemeSettings {
+  [key: string]: Json | undefined;
+  baseTheme: string;
+  isDark: boolean;
+  isPanelless: boolean;
+}
+
+// Type guard to check if a Json value is a ThemeSettings object
+function isThemeSettings(json: Json): json is ThemeSettings {
+  if (typeof json !== 'object' || json === null) return false;
+  
+  const obj = json as Record<string, unknown>;
+  return (
+    typeof obj.baseTheme === 'string' &&
+    typeof obj.isDark === 'boolean' &&
+    typeof obj.isPanelless === 'boolean'
+  );
 }
 
 export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps) {
@@ -34,6 +54,7 @@ export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps
             name,
             description,
             json_data,
+            theme_settings,
             status
           ),
           campaign:survey_campaigns!survey_assignments_campaign_id_fkey (
@@ -80,19 +101,28 @@ export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps
     },
   });
 
+  // Get theme settings with type safety
+  const themeSettings = assignmentData?.assignment.survey.theme_settings;
+  const validThemeSettings = isThemeSettings(themeSettings) ? themeSettings : {
+    baseTheme: 'Layered',
+    isDark: true,
+    isPanelless: true
+  };
+
   const {
     survey,
     lastSaved,
     showSubmitDialog,
     setShowSubmitDialog,
     handleSubmitSurvey,
-    handleThemeChange
+    handleThemeChange,
   } = useSurveyResponse({
     id: id!,
     viewType,
     surveyData: assignmentData?.assignment.survey?.json_data,
     existingResponse: assignmentData?.existingResponse,
     campaignInstanceId: assignmentData?.assignment.campaign_id || null,
+    initialTheme: validThemeSettings,
   });
 
   if (isLoading) {
@@ -138,7 +168,12 @@ export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps
       </div>
 
       <div className="flex justify-end">
-        <ThemeSwitcher onThemeChange={handleThemeChange} />
+        <ThemeSwitcher 
+          onThemeChange={handleThemeChange}
+          defaultBaseTheme={validThemeSettings.baseTheme}
+          defaultIsDark={validThemeSettings.isDark}
+          defaultIsPanelless={validThemeSettings.isPanelless}
+        />
       </div>
       
       <div className="bg-card rounded-lg border p-6">

@@ -1,36 +1,79 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
-import { LayeredDarkPanelless } from "survey-core/themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
+import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
 import "survey-core/defaultV2.min.css";
+import * as themes from "survey-core/themes";
 
 interface SurveyBuilderProps {
-  onSubmit: (jsonData: any) => void;
+  onSubmit: (data: { jsonData: any; themeSettings: any }) => void;
   defaultValue?: string;
+  defaultTheme?: {
+    baseTheme: string;
+    isDark: boolean;
+    isPanelless: boolean;
+  };
 }
 
-export function SurveyBuilder({ onSubmit, defaultValue }: SurveyBuilderProps) {
+export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBuilderProps) {
   const [jsonContent, setJsonContent] = useState(defaultValue || "{}");
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [survey, setSurvey] = useState<Model | null>(null);
+  
+  // Ensure theme settings are properly capitalized
+  const initialTheme = useMemo(() => ({
+    baseTheme: defaultTheme?.baseTheme || 'Layered',
+    isDark: defaultTheme?.isDark ?? true,
+    isPanelless: defaultTheme?.isPanelless ?? true
+  }), [defaultTheme]);
+  
+  const [currentTheme, setCurrentTheme] = useState(initialTheme);
 
+  // Function to get theme instance
+  const getThemeInstance = (themeSettings: typeof currentTheme) => {
+    const themeName = `${themeSettings.baseTheme}${themeSettings.isDark ? 'Dark' : 'Light'}${themeSettings.isPanelless ? 'Panelless' : ''}`;
+    console.log("Getting theme instance for:", themeName);
+    return (themes as any)[themeName];
+  };
+
+  // Create or update survey model when JSON content changes
   useEffect(() => {
     try {
+      console.log("Creating new survey model with theme:", currentTheme);
       const parsedJson = JSON.parse(jsonContent);
       const surveyModel = new Model(parsedJson);
-      surveyModel.applyTheme(LayeredDarkPanelless);
+      
+      // Apply theme immediately after model creation
+      const theme = getThemeInstance(currentTheme);
+      if (theme) {
+        console.log("Applying initial theme:", theme);
+        surveyModel.applyTheme(theme);
+      }
+
       setSurvey(surveyModel);
       setError(null);
     } catch (err: any) {
+      console.error("Error creating survey model:", err);
       setError(err.message);
       setSurvey(null);
     }
   }, [jsonContent]);
+
+  // Handle theme changes
+  useEffect(() => {
+    if (!survey) return;
+
+    console.log("Applying theme update:", currentTheme);
+    const theme = getThemeInstance(currentTheme);
+    if (theme) {
+      survey.applyTheme(theme);
+    }
+  }, [currentTheme, survey]);
 
   const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setJsonContent(e.target.value);
@@ -49,10 +92,18 @@ export function SurveyBuilder({ onSubmit, defaultValue }: SurveyBuilderProps) {
   const handleSave = () => {
     try {
       const parsedJson = JSON.parse(jsonContent);
-      onSubmit(parsedJson);
+      onSubmit({
+        jsonData: parsedJson,
+        themeSettings: currentTheme
+      });
     } catch (err: any) {
       setError(err.message);
     }
+  };
+
+  const handleThemeChange = ({ theme, themeSettings }: { theme: any; themeSettings: any }) => {
+    console.log("Theme change received:", themeSettings);
+    setCurrentTheme(themeSettings);
   };
 
   return (
@@ -80,6 +131,15 @@ export function SurveyBuilder({ onSubmit, defaultValue }: SurveyBuilderProps) {
             Open Survey.js Creator
           </Button>
         </div>
+      </div>
+
+      <div className="flex justify-end">
+        <ThemeSwitcher 
+          onThemeChange={handleThemeChange}
+          defaultBaseTheme={initialTheme.baseTheme}
+          defaultIsDark={initialTheme.isDark}
+          defaultIsPanelless={initialTheme.isPanelless}
+        />
       </div>
 
       <div className={cn("min-h-[500px]", isPreviewMode ? "hidden" : "block")}>

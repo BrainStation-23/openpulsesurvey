@@ -9,6 +9,94 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      achievement_progress: {
+        Row: {
+          achievement_id: string
+          created_at: string
+          current_value: Json
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          created_at?: string
+          current_value?: Json
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          created_at?: string
+          current_value?: Json
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "achievement_progress_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "achievement_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "achievement_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      achievements: {
+        Row: {
+          achievement_type: Database["public"]["Enums"]["achievement_type"]
+          condition_value: Json
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          name: string
+          points: number
+          status: Database["public"]["Enums"]["achievement_status"] | null
+          updated_at: string
+        }
+        Insert: {
+          achievement_type: Database["public"]["Enums"]["achievement_type"]
+          condition_value?: Json
+          created_at?: string
+          description: string
+          icon: string
+          id?: string
+          name: string
+          points?: number
+          status?: Database["public"]["Enums"]["achievement_status"] | null
+          updated_at?: string
+        }
+        Update: {
+          achievement_type?: Database["public"]["Enums"]["achievement_type"]
+          condition_value?: Json
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          points?: number
+          status?: Database["public"]["Enums"]["achievement_status"] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       analysis_prompts: {
         Row: {
           category: Database["public"]["Enums"]["prompt_category"]
@@ -726,6 +814,7 @@ export type Database = {
           name: string
           status: Database["public"]["Enums"]["survey_status"] | null
           tags: string[] | null
+          theme_settings: Json | null
           updated_at: string
         }
         Insert: {
@@ -737,6 +826,7 @@ export type Database = {
           name: string
           status?: Database["public"]["Enums"]["survey_status"] | null
           tags?: string[] | null
+          theme_settings?: Json | null
           updated_at?: string
         }
         Update: {
@@ -748,6 +838,7 @@ export type Database = {
           name?: string
           status?: Database["public"]["Enums"]["survey_status"] | null
           tags?: string[] | null
+          theme_settings?: Json | null
           updated_at?: string
         }
         Relationships: [
@@ -761,6 +852,58 @@ export type Database = {
           {
             foreignKeyName: "surveys_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          created_at: string
+          id: string
+          progress: Json
+          unlocked_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          created_at?: string
+          id?: string
+          progress?: Json
+          unlocked_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          created_at?: string
+          id?: string
+          progress?: Json
+          unlocked_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "silent_employees"
             referencedColumns: ["id"]
@@ -1113,6 +1256,12 @@ export type Database = {
         }
         Returns: number
       }
+      check_and_award_achievements: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       delete_survey_assignment: {
         Args: {
           p_assignment_id: string
@@ -1248,6 +1397,24 @@ export type Database = {
           }
     }
     Enums: {
+      achievement_category:
+        | "survey_completion"
+        | "response_rate"
+        | "streak"
+        | "quality"
+        | "special_event"
+      achievement_condition_type:
+        | "survey_count"
+        | "response_rate"
+        | "streak_days"
+        | "response_quality"
+        | "event_participation"
+      achievement_status: "active" | "inactive"
+      achievement_type:
+        | "survey_completion"
+        | "response_rate"
+        | "streak"
+        | "campaign_completion"
       assignment_status: "pending" | "completed" | "expired"
       campaign_status: "draft" | "active" | "completed" | "archived"
       config_status: "active" | "inactive"

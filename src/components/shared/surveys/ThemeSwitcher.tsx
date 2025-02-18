@@ -54,6 +54,9 @@ type BaseTheme = typeof BASE_THEMES[number];
 
 interface ThemeSwitcherProps {
   onThemeChange: (theme: any) => void;
+  defaultBaseTheme?: string;
+  defaultIsDark?: boolean;
+  defaultIsPanelless?: boolean;
 }
 
 const themeMap = {
@@ -91,27 +94,69 @@ const themeMap = {
   DoubleBorderDarkPanelless,
 };
 
-export function ThemeSwitcher({ onThemeChange }: ThemeSwitcherProps) {
-  const [baseTheme, setBaseTheme] = useState<BaseTheme>("Layered");
-  const [isDark, setIsDark] = useState(true);
-  const [isPanelless, setIsPanelless] = useState(true);
-  const [currentThemeName, setCurrentThemeName] = useState<string>('LayeredDarkPanelless');
+export function ThemeSwitcher({ 
+  onThemeChange, 
+  defaultBaseTheme = 'Layered',
+  defaultIsDark = true,
+  defaultIsPanelless = true 
+}: ThemeSwitcherProps) {
+  // Ensure the base theme is capitalized to match our theme keys
+  const capitalizedBaseTheme = defaultBaseTheme.charAt(0).toUpperCase() + defaultBaseTheme.slice(1);
+  
+  const [baseTheme, setBaseTheme] = useState<BaseTheme>(capitalizedBaseTheme as BaseTheme);
+  const [isDark, setIsDark] = useState(defaultIsDark);
+  const [isPanelless, setIsPanelless] = useState(defaultIsPanelless);
 
-  useEffect(() => {
-    const newThemeName = `${baseTheme}${isDark ? 'Dark' : 'Light'}${isPanelless ? 'Panelless' : ''}`;
-    
-    // Only apply theme if it's different from current
-    if (newThemeName !== currentThemeName) {
-      const theme = (themeMap as any)[newThemeName];
-      if (theme) {
-        console.log("Applying new theme:", newThemeName);
-        onThemeChange(theme);
-        setCurrentThemeName(newThemeName);
-      } else {
-        console.warn(`Theme ${newThemeName} not found`);
-      }
+  // Initialize theme name based on current settings
+  const getThemeName = (base: string, dark: boolean, panelless: boolean) => 
+    `${base}${dark ? 'Dark' : 'Light'}${panelless ? 'Panelless' : ''}`;
+
+  const [currentThemeName, setCurrentThemeName] = useState<string>(
+    getThemeName(capitalizedBaseTheme, defaultIsDark, defaultIsPanelless)
+  );
+
+  // Apply theme and notify parent of changes
+  const applyTheme = (themeName: string, themeState: { baseTheme: string; isDark: boolean; isPanelless: boolean }) => {
+    const theme = (themeMap as any)[themeName];
+    if (theme) {
+      console.log("Applying theme:", themeName, "with state:", themeState);
+      onThemeChange({
+        theme,
+        themeSettings: themeState
+      });
+      setCurrentThemeName(themeName);
+    } else {
+      console.warn(`Theme ${themeName} not found`);
     }
-  }, [baseTheme, isDark, isPanelless, currentThemeName]); // Remove onThemeChange from deps
+  };
+
+  // Effect to handle prop changes
+  useEffect(() => {
+    const newThemeName = getThemeName(capitalizedBaseTheme, defaultIsDark, defaultIsPanelless);
+    if (newThemeName !== currentThemeName) {
+      console.log("Props changed, applying theme:", newThemeName);
+      setBaseTheme(capitalizedBaseTheme as BaseTheme);
+      setIsDark(defaultIsDark);
+      setIsPanelless(defaultIsPanelless);
+      applyTheme(newThemeName, {
+        baseTheme: capitalizedBaseTheme,
+        isDark: defaultIsDark,
+        isPanelless: defaultIsPanelless
+      });
+    }
+  }, [defaultBaseTheme, defaultIsDark, defaultIsPanelless]);
+
+  // Handle theme changes from user interactions
+  useEffect(() => {
+    const newThemeName = getThemeName(baseTheme, isDark, isPanelless);
+    if (newThemeName !== currentThemeName) {
+      applyTheme(newThemeName, {
+        baseTheme,
+        isDark,
+        isPanelless
+      });
+    }
+  }, [baseTheme, isDark, isPanelless]);
 
   return (
     <div className="flex items-center gap-6">
