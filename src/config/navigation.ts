@@ -17,7 +17,7 @@ import {
   Trophy,
   Mail as MailIcon,
   Settings,
-  GameController,
+  Gamepad,
   BookText
 } from "lucide-react";
 
@@ -73,7 +73,7 @@ export const navigationItems: NavigationItem[] = [
       },
       {
         title: "Game",
-        icon: GameController,
+        icon: Gamepad,
         path: "/admin/email-training/game",
       },
       {

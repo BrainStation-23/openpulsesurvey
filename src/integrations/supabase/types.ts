@@ -261,6 +261,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_scenarios: {
+        Row: {
+          created_at: string
+          created_by: string
+          difficulty_level: number
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["scenario_status"] | null
+          story: string
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          difficulty_level?: number
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["scenario_status"] | null
+          story: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          difficulty_level?: number
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["scenario_status"] | null
+          story?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employee_roles: {
         Row: {
           color_code: string | null
@@ -1442,6 +1478,7 @@ export type Database = {
         | "quarterly"
         | "yearly"
       response_status: "assigned" | "in_progress" | "submitted" | "expired"
+      scenario_status: "active" | "inactive" | "draft"
       survey_status: "draft" | "published" | "archived"
       user_role: "admin" | "user"
     }
