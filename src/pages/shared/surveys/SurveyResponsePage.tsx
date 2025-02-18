@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
-import { useSurveyResponse } from "@/hooks/useSurveyResponse";
+import { useSurveyResponse } from "@/hooks/survey-response"; // Updated import path
 import { SubmitDialog } from "@/pages/admin/my-surveys/[id]/components/SubmitDialog";
 import { Json } from "@/integrations/supabase/types";
 
