@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
 import "survey-core/defaultV2.min.css";
+import * as themes from "survey-core/themes";
 
 interface SurveyBuilderProps {
   onSubmit: (data: { jsonData: any; themeSettings: any }) => void;
@@ -34,24 +35,35 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
     try {
       const parsedJson = JSON.parse(jsonContent);
       const surveyModel = new Model(parsedJson);
-      
-      // Get theme name based on current theme settings
-      const themeName = `${currentTheme.baseTheme}${currentTheme.isDark ? 'Dark' : 'Light'}${currentTheme.isPanelless ? 'Panelless' : ''}`;
-      const themeMap = require('survey-core/themes');
-      const theme = themeMap[themeName];
-      
-      if (theme) {
-        console.log("Applying theme on survey creation:", themeName);
-        surveyModel.applyTheme(theme);
-      }
-      
       setSurvey(surveyModel);
       setError(null);
+
+      // Apply current theme after model creation
+      const themeName = `${currentTheme.baseTheme}${currentTheme.isDark ? 'Dark' : 'Light'}${currentTheme.isPanelless ? 'Panelless' : ''}`;
+      const theme = (themes as any)[themeName];
+      
+      if (theme && surveyModel) {
+        console.log("Applying theme after model creation:", themeName);
+        surveyModel.applyTheme(theme);
+      }
     } catch (err: any) {
       setError(err.message);
       setSurvey(null);
     }
-  }, [jsonContent, currentTheme]);
+  }, [jsonContent]);
+
+  // Separate effect for theme changes
+  useEffect(() => {
+    if (survey) {
+      const themeName = `${currentTheme.baseTheme}${currentTheme.isDark ? 'Dark' : 'Light'}${currentTheme.isPanelless ? 'Panelless' : ''}`;
+      const theme = (themes as any)[themeName];
+      
+      if (theme) {
+        console.log("Applying theme on theme change:", themeName);
+        survey.applyTheme(theme);
+      }
+    }
+  }, [currentTheme, survey]);
 
   const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setJsonContent(e.target.value);
@@ -81,10 +93,7 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
 
   const handleThemeChange = ({ theme, themeSettings }: { theme: any; themeSettings: any }) => {
     console.log("Theme change received:", themeSettings);
-    if (survey) {
-      survey.applyTheme(theme);
-      setCurrentTheme(themeSettings);
-    }
+    setCurrentTheme(themeSettings);
   };
 
   return (
