@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import type { Scenario } from "../../admin/email-training/scenarios/types";
+import type { Scenario } from "../../types";
 
 interface EmailWindowProps {
   scenario: Scenario;

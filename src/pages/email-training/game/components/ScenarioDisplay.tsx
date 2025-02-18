@@ -1,5 +1,5 @@
 
-import type { Scenario } from "../../admin/email-training/scenarios/types";
+import type { Scenario } from "../../types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 

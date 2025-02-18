@@ -8,7 +8,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
 import { ScenarioDisplay } from "./components/ScenarioDisplay";
 import { EmailWindow } from "./components/EmailWindow";
-import type { Scenario } from "../admin/email-training/scenarios/types";
+import type { Scenario } from "../types";
 
 export default function GamePage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -44,10 +44,16 @@ export default function GamePage() {
     if (!scenario) return;
     
     try {
+      // Get the current user's ID
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('No user found');
+
       const { data: session, error: sessionError } = await supabase
         .from('email_training_sessions')
         .insert({
           scenario_id: scenario.id,
+          user_id: user.id,
           status: 'playing'
         })
         .select()
@@ -102,7 +108,7 @@ export default function GamePage() {
               onClick={handleStart}
               className="gap-2"
             >
-              <Play className="w-4 h-4" />
+              <Play className="w-4 w-4" />
               Start Training
             </Button>
           </div>
