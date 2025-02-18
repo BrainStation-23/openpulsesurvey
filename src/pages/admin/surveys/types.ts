@@ -7,6 +7,11 @@ export type Survey = {
   description: string | null;
   tags: string[];
   json_data: Record<string, any>;
+  theme_settings: {
+    baseTheme: string;
+    isDark: boolean;
+    isPanelless: boolean;
+  } | null;
   status: SurveyStatus;
   created_by: string;
   created_at: string;
