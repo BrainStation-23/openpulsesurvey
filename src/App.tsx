@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -54,6 +53,7 @@ import EmployeeRoleConfig from "./pages/admin/config/employee-role";
 import AIPromptsConfig from "./pages/admin/config/ai-prompts";
 import AchievementsPage from "./pages/admin/achievements";
 import AchievementFormPage from "./pages/admin/achievements/AchievementFormPage";
+import GamePage from "./pages/admin/email-training/game";
 
 const queryClient = new QueryClient();
 
@@ -121,6 +121,7 @@ const App = () => (
             <Route path="email-training/scenarios" element={<ScenariosPage />} />
             <Route path="email-training/scenarios/create" element={<CreateScenarioPage />} />
             <Route path="email-training/scenarios/:id/edit" element={<CreateScenarioPage />} />
+            <Route path="email-training/game" element={<GamePage />} />
           </Route>
         </Routes>
       </TooltipProvider>

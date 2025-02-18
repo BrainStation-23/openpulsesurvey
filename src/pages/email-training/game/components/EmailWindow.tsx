@@ -84,16 +84,22 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
 
       if (sessionError) throw sessionError;
 
-      // Save the response
+      // Save the response with properly typed JSON data
       const { error: responseError } = await supabase
         .from('email_responses')
         .insert({
           session_id: session.id,
-          original_email: originalEmail,
+          original_email: {
+            from: originalEmail.from,
+            subject: originalEmail.subject,
+            content: originalEmail.content,
+            tone: originalEmail.tone,
+            key_points: originalEmail.key_points
+          } as Record<string, unknown>,
           response_email: {
             subject: response.subject,
             content: response.content
-          },
+          } as Record<string, unknown>,
           submitted_at: new Date().toISOString()
         });
 
