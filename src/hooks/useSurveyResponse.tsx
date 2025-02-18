@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Model } from "survey-core";
 import * as themes from "survey-core/themes";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +37,7 @@ export function useSurveyResponse({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeSettings>(initialTheme);
+  const surveyRef = useRef<Model | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -47,16 +48,16 @@ export function useSurveyResponse({
     return (themes as any)[themeName];
   };
 
-  // Initialize survey with theme
+  // Initialize survey once
   useEffect(() => {
     if (!surveyData) return;
 
     try {
-      console.log("Initializing survey with theme:", currentTheme);
+      console.log("Initializing survey with initial theme:", initialTheme);
       
-      // Create survey model with theme
+      // Create survey model with initial theme
       const surveyModel = new Model(surveyData);
-      const theme = getThemeInstance(currentTheme);
+      const theme = getThemeInstance(initialTheme);
       if (theme) {
         console.log("Applying initial theme");
         surveyModel.applyTheme(theme);
@@ -64,7 +65,7 @@ export function useSurveyResponse({
 
       // If there's an existing response, load it
       if (existingResponse?.response_data) {
-        console.log("Loading existing response data:", existingResponse.response_data);
+        console.log("Loading existing response data");
         surveyModel.data = existingResponse.response_data;
         surveyModel.start();
         
@@ -150,6 +151,7 @@ export function useSurveyResponse({
         });
       }
 
+      surveyRef.current = surveyModel;
       setSurvey(surveyModel);
     } catch (error) {
       console.error("Error initializing survey:", error);
@@ -159,26 +161,25 @@ export function useSurveyResponse({
         variant: "destructive",
       });
     }
-  }, [id, surveyData, existingResponse, campaignInstanceId, toast, currentTheme]);
+  }, [id, surveyData, existingResponse, campaignInstanceId, toast, initialTheme]); // removed currentTheme dependency
 
-  // Handle theme changes
+  // Handle only theme changes
   useEffect(() => {
-    if (!survey) return;
+    const currentSurvey = surveyRef.current;
+    if (!currentSurvey) return;
+
+    // Skip if theme hasn't actually changed
+    if (JSON.stringify(currentTheme) === JSON.stringify(initialTheme)) return;
 
     console.log("Applying theme update:", currentTheme);
     const theme = getThemeInstance(currentTheme);
     if (theme) {
-      console.log("Theme instance found, applying to survey");
-      // Create a new model to force a re-render with the new theme
-      const newModel = new Model(survey.toJSON());
-      newModel.data = survey.data;
-      newModel.applyTheme(theme);
-      if (survey.currentPageNo !== 0) {
-        newModel.currentPageNo = survey.currentPageNo;
-      }
-      setSurvey(newModel);
+      console.log("Theme instance found, applying to existing survey");
+      currentSurvey.applyTheme(theme);
+      // No need to create a new model, just update the existing one
+      setSurvey(currentSurvey);
     }
-  }, [currentTheme, survey]);
+  }, [currentTheme, initialTheme]);
 
   const handleSubmitSurvey = async () => {
     if (!survey) return;
