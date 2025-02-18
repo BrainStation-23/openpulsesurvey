@@ -35,12 +35,11 @@ import { AchievementType, ACHIEVEMENT_TYPE_CONFIG } from "./types";
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
-  achievement_type: z.custom<AchievementType>(),
+  achievement_type: z.enum(['survey_completion', 'response_rate', 'streak', 'campaign_completion'] as const),
   icon: z.string().min(1, "Icon is required"),
   points: z.coerce.number().min(0, "Points must be a positive number"),
   status: z.enum(['active', 'inactive']),
   condition_value: z.string().transform(val => JSON.parse(val)),
-  // Make all condition fields optional and ensure they're numbers when present
   required_count: z.number().optional().nullable(),
   required_rate: z.number().optional().nullable(),
   required_days: z.number().optional().nullable(),
@@ -114,23 +113,22 @@ export default function AchievementFormPage() {
 
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const achievementData = {
-        name: values.name,
-        description: values.description,
-        achievement_type: values.achievement_type,
-        icon: values.icon,
-        points: values.points,
-        status: values.status,
-        condition_value: values.condition_value,
-      };
-
       const { data, error } = await supabase
         .from('achievements')
-        .insert([achievementData])
-        .select();
+        .insert([{
+          name: values.name,
+          description: values.description,
+          achievement_type: values.achievement_type,
+          icon: values.icon,
+          points: values.points,
+          status: values.status,
+          condition_value: values.condition_value,
+        }])
+        .select()
+        .single();
       
       if (error) throw error;
-      return data[0] as Achievement;
+      return data as Achievement;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['achievements'] });
@@ -145,24 +143,23 @@ export default function AchievementFormPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const achievementData = {
-        name: values.name,
-        description: values.description,
-        achievement_type: values.achievement_type,
-        icon: values.icon,
-        points: values.points,
-        status: values.status,
-        condition_value: values.condition_value,
-      };
-
       const { data, error } = await supabase
         .from('achievements')
-        .update(achievementData)
+        .update({
+          name: values.name,
+          description: values.description,
+          achievement_type: values.achievement_type,
+          icon: values.icon,
+          points: values.points,
+          status: values.status,
+          condition_value: values.condition_value,
+        })
         .eq('id', id as string)
-        .select();
+        .select()
+        .single();
       
       if (error) throw error;
-      return data[0] as Achievement;
+      return data as Achievement;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['achievements'] });
