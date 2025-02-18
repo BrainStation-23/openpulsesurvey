@@ -15,6 +15,7 @@ type Achievement = {
   achievement_type: AchievementType;
   icon: string;
   points: number;
+  status: 'active' | 'inactive';
   condition_value: any;
   created_at: string;
   updated_at: string;
