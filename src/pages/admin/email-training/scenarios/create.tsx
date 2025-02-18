@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -55,6 +54,28 @@ export default function CreateScenarioPage() {
     enabled: isEditMode,
   });
 
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+    ],
+    content: "",
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      form.setValue("story", html);
+    },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm focus:outline-none min-h-[150px] p-4',
+      },
+    },
+  });
+
+  useEffect(() => {
+    if (editor && existingScenario?.story) {
+      editor.commands.setContent(existingScenario.story);
+    }
+  }, [editor, existingScenario]);
+
   const form = useForm<ScenarioFormData>({
     resolver: zodResolver(scenarioSchema),
     defaultValues: {
@@ -71,22 +92,6 @@ export default function CreateScenarioPage() {
       tags: existingScenario.tags || [],
       status: existingScenario.status,
     } : undefined,
-  });
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-    ],
-    content: "",
-    onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      form.setValue("story", html);
-    },
-    editorProps: {
-      attributes: {
-        class: 'prose prose-sm focus:outline-none min-h-[150px] p-4',
-      },
-    },
   });
 
   const handleAddTag = () => {
