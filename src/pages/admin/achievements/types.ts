@@ -3,8 +3,7 @@ export type AchievementType =
   | 'survey_completion'
   | 'response_rate'
   | 'streak'
-  | 'quality'
-  | 'special_event';
+  | 'campaign_completion';
 
 export interface AchievementTypeConfig {
   label: string;
@@ -53,40 +52,14 @@ export const ACHIEVEMENT_TYPE_CONFIG: Record<AchievementType, AchievementTypeCon
       }
     }
   },
-  quality: {
-    label: 'Quality',
-    description: 'Track high-quality response achievements',
+  campaign_completion: {
+    label: 'Campaign Completion',
+    description: 'Track campaign completion milestones',
     conditionFields: {
-      min_rating: {
+      required_count: {
         type: 'number',
-        label: 'Minimum Rating',
-        description: 'Minimum rating required for responses'
-      },
-      min_length: {
-        type: 'number',
-        label: 'Minimum Response Length',
-        description: 'Minimum character count for text responses'
-      }
-    }
-  },
-  special_event: {
-    label: 'Special Event',
-    description: 'Track special event participation',
-    conditionFields: {
-      event_type: {
-        type: 'select',
-        label: 'Event Type',
-        description: 'Type of event to track',
-        options: [
-          { label: 'Survey Campaign', value: 'survey_campaign' },
-          { label: 'Feedback Session', value: 'feedback_session' },
-          { label: 'Special Survey', value: 'special_survey' }
-        ]
-      },
-      participation_count: {
-        type: 'number',
-        label: 'Required Participations',
-        description: 'Number of times user needs to participate'
+        label: 'Required Campaigns',
+        description: 'Number of unique campaigns that need to be completed'
       }
     }
   }
