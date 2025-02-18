@@ -47,7 +47,7 @@ const formSchema = z.object({
   description: z.string().min(1, "Description is required"),
   category: z.enum(achievementCategories),
   icon: z.string().min(1, "Icon is required"),
-  points: z.string().transform(val => parseInt(val, 10)),
+  points: z.coerce.number().min(0, "Points must be a positive number"),
   condition_type: z.enum(conditionTypes),
   condition_value: z.string().transform(val => JSON.parse(val)),
 });
@@ -96,7 +96,7 @@ export default function AchievementFormPage() {
       description: "",
       category: "survey_completion",
       icon: "trophy",
-      points: "0",
+      points: 0,
       condition_type: "survey_count",
       condition_value: "{}",
     },
