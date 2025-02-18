@@ -107,23 +107,22 @@ export function ThemeSwitcher({
   const [isDark, setIsDark] = useState(defaultIsDark);
   const [isPanelless, setIsPanelless] = useState(defaultIsPanelless);
 
-  // Initialize theme name based on props
-  const initialThemeName = `${capitalizedBaseTheme}${defaultIsDark ? 'Dark' : 'Light'}${defaultIsPanelless ? 'Panelless' : ''}`;
-  const [currentThemeName, setCurrentThemeName] = useState<string>(initialThemeName);
+  // Initialize theme name based on current settings
+  const getThemeName = (base: string, dark: boolean, panelless: boolean) => 
+    `${base}${dark ? 'Dark' : 'Light'}${panelless ? 'Panelless' : ''}`;
+
+  const [currentThemeName, setCurrentThemeName] = useState<string>(
+    getThemeName(capitalizedBaseTheme, defaultIsDark, defaultIsPanelless)
+  );
 
   // Apply theme and notify parent of changes
   const applyTheme = (themeName: string, themeState: { baseTheme: string; isDark: boolean; isPanelless: boolean }) => {
     const theme = (themeMap as any)[themeName];
     if (theme) {
       console.log("Applying theme:", themeName, "with state:", themeState);
-      // Pass both the theme object and the theme state to parent
       onThemeChange({
         theme,
-        themeSettings: {
-          baseTheme: themeState.baseTheme,
-          isDark: themeState.isDark,
-          isPanelless: themeState.isPanelless
-        }
+        themeSettings: themeState
       });
       setCurrentThemeName(themeName);
     } else {
@@ -131,20 +130,25 @@ export function ThemeSwitcher({
     }
   };
 
-  // Apply initial theme on mount
+  // Effect to handle prop changes
   useEffect(() => {
-    applyTheme(initialThemeName, {
-      baseTheme: capitalizedBaseTheme,
-      isDark: defaultIsDark,
-      isPanelless: defaultIsPanelless
-    });
-  }, []); // Only run once on mount
+    const newThemeName = getThemeName(capitalizedBaseTheme, defaultIsDark, defaultIsPanelless);
+    if (newThemeName !== currentThemeName) {
+      console.log("Props changed, applying theme:", newThemeName);
+      setBaseTheme(capitalizedBaseTheme as BaseTheme);
+      setIsDark(defaultIsDark);
+      setIsPanelless(defaultIsPanelless);
+      applyTheme(newThemeName, {
+        baseTheme: capitalizedBaseTheme,
+        isDark: defaultIsDark,
+        isPanelless: defaultIsPanelless
+      });
+    }
+  }, [defaultBaseTheme, defaultIsDark, defaultIsPanelless]);
 
-  // Handle theme changes
+  // Handle theme changes from user interactions
   useEffect(() => {
-    const newThemeName = `${baseTheme}${isDark ? 'Dark' : 'Light'}${isPanelless ? 'Panelless' : ''}`;
-    
-    // Only apply theme if it's different from current
+    const newThemeName = getThemeName(baseTheme, isDark, isPanelless);
     if (newThemeName !== currentThemeName) {
       applyTheme(newThemeName, {
         baseTheme,

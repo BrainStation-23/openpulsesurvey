@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
-import { LayeredDarkPanelless } from "survey-core/themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,18 +29,29 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
     isPanelless: true
   });
 
+  // Create or update survey model when JSON content changes
   useEffect(() => {
     try {
       const parsedJson = JSON.parse(jsonContent);
       const surveyModel = new Model(parsedJson);
-      surveyModel.applyTheme(LayeredDarkPanelless);
+      
+      // Get theme name based on current theme settings
+      const themeName = `${currentTheme.baseTheme}${currentTheme.isDark ? 'Dark' : 'Light'}${currentTheme.isPanelless ? 'Panelless' : ''}`;
+      const themeMap = require('survey-core/themes');
+      const theme = themeMap[themeName];
+      
+      if (theme) {
+        console.log("Applying theme on survey creation:", themeName);
+        surveyModel.applyTheme(theme);
+      }
+      
       setSurvey(surveyModel);
       setError(null);
     } catch (err: any) {
       setError(err.message);
       setSurvey(null);
     }
-  }, [jsonContent]);
+  }, [jsonContent, currentTheme]);
 
   const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setJsonContent(e.target.value);
@@ -70,8 +80,8 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
   };
 
   const handleThemeChange = ({ theme, themeSettings }: { theme: any; themeSettings: any }) => {
+    console.log("Theme change received:", themeSettings);
     if (survey) {
-      console.log("Applying theme with settings:", themeSettings);
       survey.applyTheme(theme);
       setCurrentTheme(themeSettings);
     }
