@@ -22,6 +22,7 @@ import UserDashboard from "./pages/user/Dashboard";
 import UserSettings from "./pages/user/Settings";
 import UserMySurveys from "./pages/user/my-surveys";
 import UserSurveyResponse from "./pages/user/my-surveys/[id]";
+import UserAchievementsPage from "./pages/user/achievements";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -48,6 +49,7 @@ import EmploymentTypeConfig from "./pages/admin/config/employment-type";
 import EmployeeTypeConfig from "./pages/admin/config/employee-type";
 import EmployeeRoleConfig from "./pages/admin/config/employee-role";
 import AIPromptsConfig from "./pages/admin/config/ai-prompts";
+import AchievementsPage from "./pages/admin/achievements";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +80,7 @@ const App = () => (
             <Route path="my-surveys" element={<UserMySurveys />} />
             <Route path="my-surveys/:id" element={<UserSurveyResponse />} />
             <Route path="settings" element={<UserSettings />} />
+            <Route path="achievements" element={<UserAchievementsPage />} />
           </Route>
           
           {/* Admin routes */}
@@ -108,6 +111,7 @@ const App = () => (
               <Route path="employee-role" element={<EmployeeRoleConfig />} />
               <Route path="ai-prompts" element={<AIPromptsConfig />} />
             </Route>
+            <Route path="achievements" element={<AchievementsPage />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
         </Routes>
