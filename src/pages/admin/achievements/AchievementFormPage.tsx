@@ -200,11 +200,10 @@ export default function AchievementFormPage() {
 
   return (
     <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold">
           {isEditMode ? "Edit Achievement" : "Create Achievement"}
         </h1>
-        <Button onClick={() => navigate('/admin/achievements')}>Back to Achievements</Button>
       </div>
 
       <Form {...form}>
@@ -376,7 +375,14 @@ export default function AchievementFormPage() {
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-end gap-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => navigate('/admin/achievements')}
+            >
+              Cancel
+            </Button>
             <Button type="submit" size="lg">
               {isEditMode ? "Update Achievement" : "Create Achievement"}
             </Button>
