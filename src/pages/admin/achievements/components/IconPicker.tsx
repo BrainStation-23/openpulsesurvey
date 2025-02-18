@@ -10,14 +10,59 @@ import { Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-// Group icons by categories for better organization
+// Explicitly define valid achievement icons
+const achievementIcons = [
+  "Trophy",
+  "Award", 
+  "Star",
+  "Medal",
+  "Badge",
+  "Crown",
+  "Shield",
+  "Target",
+  "Flag"
+];
+
+// Explicitly define valid status icons
+const statusIcons = [
+  "CheckCircle",
+  "Circle",
+  "Heart",
+  "ThumbsUp",
+  "Smile",
+  "Zap",
+];
+
+// Define safe general icons that we know exist
+const generalIcons = [
+  "Activity",
+  "AlertCircle",
+  "ArrowRight",
+  "ArrowLeft",
+  "Bell",
+  "Book",
+  "Calendar",
+  "Check",
+  "Clock",
+  "Edit",
+  "File",
+  "Folder",
+  "Globe",
+  "Home",
+  "Info",
+  "Mail",
+  "MessageSquare",
+  "Phone",
+  "Plus",
+  "Settings",
+  "User",
+];
+
+// Group icons by categories with type safety
 const iconCategories = {
-  achievement: ["Trophy", "Award", "Star", "Medal", "Badge", "Crown", "Shield", "Target", "Flag"],
-  status: ["CheckCircle", "Circle", "Heart", "ThumbsUp", "Smile", "Zap", "Sparkles"],
-  general: Object.keys(icons).filter(icon => 
-    !["Trophy", "Award", "Star", "Medal", "Badge", "Crown", "Shield", "Target", "Flag", 
-      "CheckCircle", "Circle", "Heart", "ThumbsUp", "Smile", "Zap", "Sparkles"].includes(icon)
-  )
+  achievement: achievementIcons,
+  status: statusIcons,
+  general: generalIcons
 };
 
 type IconPickerProps = {
@@ -30,12 +75,51 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
   const [category, setCategory] = useState("achievement");
   const [open, setOpen] = useState(false);
 
-  const IconComponent = (icons[value as keyof typeof icons] as LucideIcon) || icons.Trophy;
+  // Safely get the icon component with fallback
+  const getIconComponent = (iconName: string): LucideIcon => {
+    const IconComponent = icons[iconName as keyof typeof icons] as LucideIcon;
+    return IconComponent || icons.Trophy;
+  };
+
+  const IconComponent = getIconComponent(value);
 
   const getFilteredIcons = (categoryIcons: string[]) => {
     return categoryIcons.filter(icon => 
       icon.toLowerCase().includes(search.toLowerCase())
     );
+  };
+
+  const renderIcon = (iconName: string) => {
+    try {
+      const IconComponent = getIconComponent(iconName);
+      if (!IconComponent) return null;
+
+      return (
+        <TooltipProvider key={iconName}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 w-10 p-2"
+                onClick={() => {
+                  onChange(iconName);
+                  setOpen(false);
+                }}
+              >
+                <IconComponent className="w-full h-full" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{iconName}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    } catch (error) {
+      console.error(`Error rendering icon ${iconName}:`, error);
+      return null;
+    }
   };
 
   return (
@@ -67,31 +151,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
             <TabsContent key={cat} value={cat}>
               <ScrollArea className="h-[400px] rounded-md border p-4">
                 <div className="grid grid-cols-8 gap-2">
-                  {getFilteredIcons(categoryIcons).map((iconName) => {
-                    const IconComponent = icons[iconName as keyof typeof icons] as LucideIcon;
-                    return IconComponent ? (
-                      <TooltipProvider key={iconName}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-10 w-10 p-2"
-                              onClick={() => {
-                                onChange(iconName);
-                                setOpen(false);
-                              }}
-                            >
-                              <IconComponent className="w-full h-full" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{iconName}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : null;
-                  })}
+                  {getFilteredIcons(categoryIcons).map((iconName) => renderIcon(iconName))}
                 </div>
               </ScrollArea>
             </TabsContent>
