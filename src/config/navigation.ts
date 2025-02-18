@@ -14,7 +14,11 @@ import {
   Shield,
   BrainCircuit,
   UserRound,
-  Trophy
+  Trophy,
+  Mail as MailIcon,
+  Settings,
+  GameController,
+  BookText
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -56,6 +60,28 @@ export const navigationItems: NavigationItem[] = [
     title: "Achievements",
     icon: Trophy,
     path: "/admin/achievements",
+  },
+  {
+    title: "Gamified Email Training",
+    icon: MailIcon,
+    path: "/admin/email-training",
+    children: [
+      {
+        title: "Scenarios",
+        icon: BookText,
+        path: "/admin/email-training/scenarios",
+      },
+      {
+        title: "Game",
+        icon: GameController,
+        path: "/admin/email-training/game",
+      },
+      {
+        title: "Configuration",
+        icon: Settings,
+        path: "/admin/email-training/config",
+      },
+    ],
   },
   {
     title: "Platform Config",
