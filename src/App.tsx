@@ -120,6 +120,7 @@ const App = () => (
             <Route path="achievements/:id/edit" element={<AchievementFormPage />} />
             <Route path="email-training/scenarios" element={<ScenariosPage />} />
             <Route path="email-training/scenarios/create" element={<CreateScenarioPage />} />
+            <Route path="email-training/scenarios/:id/edit" element={<CreateScenarioPage />} />
           </Route>
         </Routes>
       </TooltipProvider>

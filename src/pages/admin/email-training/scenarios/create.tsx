@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +18,8 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 const scenarioSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -34,6 +35,24 @@ export default function CreateScenarioPage() {
   const [newTag, setNewTag] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { id } = useParams();
+  const isEditMode = !!id;
+
+  const { data: existingScenario } = useQuery({
+    queryKey: ["scenario", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await supabase
+        .from("email_scenarios")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      return data as Scenario;
+    },
+    enabled: isEditMode,
+  });
 
   const form = useForm<ScenarioFormData>({
     resolver: zodResolver(scenarioSchema),
@@ -44,6 +63,13 @@ export default function CreateScenarioPage() {
       tags: [],
       status: "draft",
     },
+    values: existingScenario ? {
+      name: existingScenario.name,
+      story: existingScenario.story,
+      difficulty_level: existingScenario.difficulty_level,
+      tags: existingScenario.tags || [],
+      status: existingScenario.status,
+    } : undefined,
   });
 
   const editor = useEditor({
@@ -84,23 +110,43 @@ export default function CreateScenarioPage() {
 
       if (!user) throw new Error("User not authenticated");
 
-      const { error } = await supabase
-        .from("email_scenarios")
-        .insert({
-          name: data.name,
-          story: data.story,
-          difficulty_level: data.difficulty_level,
-          tags: data.tags,
-          status: data.status,
-          created_by: user.id
+      if (isEditMode) {
+        const { error } = await supabase
+          .from("email_scenarios")
+          .update({
+            name: data.name,
+            story: data.story,
+            difficulty_level: data.difficulty_level,
+            tags: data.tags,
+            status: data.status,
+          })
+          .eq("id", id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Scenario updated successfully",
         });
+      } else {
+        const { error } = await supabase
+          .from("email_scenarios")
+          .insert({
+            name: data.name,
+            story: data.story,
+            difficulty_level: data.difficulty_level,
+            tags: data.tags,
+            status: data.status,
+            created_by: user.id
+          });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Scenario created successfully",
-      });
+        toast({
+          title: "Success",
+          description: "Scenario created successfully",
+        });
+      }
 
       navigate("/admin/email-training/scenarios");
     } catch (error: any) {
@@ -122,7 +168,9 @@ export default function CreateScenarioPage() {
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">Create New Scenario</h1>
+        <h1 className="text-2xl font-bold">
+          {isEditMode ? 'Edit' : 'Create New'} Scenario
+        </h1>
       </div>
 
       <div className="max-w-[800px]">

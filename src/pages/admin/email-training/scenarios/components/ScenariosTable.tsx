@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Edit, MoreVertical, Trash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Scenario } from "../types";
-import { ScenarioDialog } from "./ScenarioDialog";
+import { useNavigate } from "react-router-dom";
 
 interface ScenariosTableProps {
   scenarios: Scenario[];
@@ -28,7 +29,7 @@ interface ScenariosTableProps {
 }
 
 export function ScenariosTable({ scenarios, onUpdate }: ScenariosTableProps) {
-  const [editingScenario, setEditingScenario] = useState<Scenario | null>(null);
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleDelete = async (id: string) => {
@@ -55,23 +56,21 @@ export function ScenariosTable({ scenarios, onUpdate }: ScenariosTableProps) {
     }
   };
 
-  const handleUpdate = async (data: Partial<Scenario>) => {
-    if (!editingScenario) return;
-
+  const handleStatusChange = async (id: string, currentStatus: string) => {
     try {
+      const newStatus = currentStatus === "active" ? "inactive" : "active";
       const { error } = await supabase
         .from("email_scenarios")
-        .update(data)
-        .eq("id", editingScenario.id);
+        .update({ status: newStatus })
+        .eq("id", id);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Scenario updated successfully",
+        description: "Status updated successfully",
       });
 
-      setEditingScenario(null);
       onUpdate();
     } catch (error: any) {
       toast({
@@ -83,83 +82,63 @@ export function ScenariosTable({ scenarios, onUpdate }: ScenariosTableProps) {
   };
 
   return (
-    <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Story</TableHead>
-            <TableHead>Difficulty</TableHead>
-            <TableHead>Tags</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="w-[100px]">Actions</TableHead>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Difficulty</TableHead>
+          <TableHead>Tags</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="w-[100px]">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {scenarios.map((scenario) => (
+          <TableRow key={scenario.id}>
+            <TableCell className="font-medium">{scenario.name}</TableCell>
+            <TableCell>{scenario.difficulty_level}</TableCell>
+            <TableCell>
+              <div className="flex gap-1 flex-wrap">
+                {scenario.tags?.map((tag) => (
+                  <Badge key={tag} variant="outline">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </TableCell>
+            <TableCell>
+              <Switch
+                checked={scenario.status === "active"}
+                onCheckedChange={() => handleStatusChange(scenario.id, scenario.status)}
+              />
+            </TableCell>
+            <TableCell>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => navigate(`/admin/email-training/scenarios/${scenario.id}/edit`)}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => handleDelete(scenario.id)}
+                  >
+                    <Trash className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {scenarios.map((scenario) => (
-            <TableRow key={scenario.id}>
-              <TableCell className="font-medium">{scenario.name}</TableCell>
-              <TableCell className="max-w-md truncate">
-                {scenario.story}
-              </TableCell>
-              <TableCell>{scenario.difficulty_level}</TableCell>
-              <TableCell>
-                <div className="flex gap-1 flex-wrap">
-                  {scenario.tags?.map((tag) => (
-                    <Badge key={tag} variant="outline">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge
-                  variant={
-                    scenario.status === "active"
-                      ? "default"
-                      : scenario.status === "draft"
-                      ? "secondary"
-                      : "destructive"
-                  }
-                >
-                  {scenario.status}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => setEditingScenario(scenario)}
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => handleDelete(scenario.id)}
-                    >
-                      <Trash className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      <ScenarioDialog
-        scenario={editingScenario || undefined}
-        open={!!editingScenario}
-        onOpenChange={(open) => !open && setEditingScenario(null)}
-        onSubmit={handleUpdate}
-      />
-    </>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
