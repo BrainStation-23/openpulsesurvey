@@ -54,6 +54,9 @@ type BaseTheme = typeof BASE_THEMES[number];
 
 interface ThemeSwitcherProps {
   onThemeChange: (theme: any) => void;
+  defaultBaseTheme?: string;
+  defaultIsDark?: boolean;
+  defaultIsPanelless?: boolean;
 }
 
 const themeMap = {
@@ -91,10 +94,15 @@ const themeMap = {
   DoubleBorderDarkPanelless,
 };
 
-export function ThemeSwitcher({ onThemeChange }: ThemeSwitcherProps) {
-  const [baseTheme, setBaseTheme] = useState<BaseTheme>("Layered");
-  const [isDark, setIsDark] = useState(true);
-  const [isPanelless, setIsPanelless] = useState(true);
+export function ThemeSwitcher({ 
+  onThemeChange, 
+  defaultBaseTheme = 'Layered',
+  defaultIsDark = true,
+  defaultIsPanelless = true 
+}: ThemeSwitcherProps) {
+  const [baseTheme, setBaseTheme] = useState<BaseTheme>(defaultBaseTheme as BaseTheme);
+  const [isDark, setIsDark] = useState(defaultIsDark);
+  const [isPanelless, setIsPanelless] = useState(defaultIsPanelless);
   const [currentThemeName, setCurrentThemeName] = useState<string>('LayeredDarkPanelless');
 
   useEffect(() => {

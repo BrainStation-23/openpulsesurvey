@@ -6,18 +6,29 @@ import { LayeredDarkPanelless } from "survey-core/themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
+import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
 import "survey-core/defaultV2.min.css";
 
 interface SurveyBuilderProps {
-  onSubmit: (jsonData: any) => void;
+  onSubmit: (data: { jsonData: any; themeSettings: any }) => void;
   defaultValue?: string;
+  defaultTheme?: {
+    baseTheme: string;
+    isDark: boolean;
+    isPanelless: boolean;
+  };
 }
 
-export function SurveyBuilder({ onSubmit, defaultValue }: SurveyBuilderProps) {
+export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBuilderProps) {
   const [jsonContent, setJsonContent] = useState(defaultValue || "{}");
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [survey, setSurvey] = useState<Model | null>(null);
+  const [currentTheme, setCurrentTheme] = useState(defaultTheme || {
+    baseTheme: 'Layered',
+    isDark: true,
+    isPanelless: true
+  });
 
   useEffect(() => {
     try {
@@ -49,9 +60,28 @@ export function SurveyBuilder({ onSubmit, defaultValue }: SurveyBuilderProps) {
   const handleSave = () => {
     try {
       const parsedJson = JSON.parse(jsonContent);
-      onSubmit(parsedJson);
+      onSubmit({
+        jsonData: parsedJson,
+        themeSettings: currentTheme
+      });
     } catch (err: any) {
       setError(err.message);
+    }
+  };
+
+  const handleThemeChange = (theme: any) => {
+    if (survey) {
+      survey.applyTheme(theme);
+      // Extract theme settings from the theme name
+      const isDark = theme.themeName?.toLowerCase().includes('dark') || false;
+      const isPanelless = theme.themeName?.toLowerCase().includes('panelless') || false;
+      const baseTheme = theme.themeName?.replace(/(?:Dark|Light|Panelless)$/, '');
+      
+      setCurrentTheme({
+        baseTheme,
+        isDark,
+        isPanelless
+      });
     }
   };
 
@@ -80,6 +110,15 @@ export function SurveyBuilder({ onSubmit, defaultValue }: SurveyBuilderProps) {
             Open Survey.js Creator
           </Button>
         </div>
+      </div>
+
+      <div className="flex justify-end">
+        <ThemeSwitcher 
+          onThemeChange={handleThemeChange}
+          defaultBaseTheme={currentTheme.baseTheme}
+          defaultIsDark={currentTheme.isDark}
+          defaultIsPanelless={currentTheme.isPanelless}
+        />
       </div>
 
       <div className={cn("min-h-[500px]", isPreviewMode ? "hidden" : "block")}>

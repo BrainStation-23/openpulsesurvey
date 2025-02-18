@@ -814,6 +814,7 @@ export type Database = {
           name: string
           status: Database["public"]["Enums"]["survey_status"] | null
           tags: string[] | null
+          theme_settings: Json | null
           updated_at: string
         }
         Insert: {
@@ -825,6 +826,7 @@ export type Database = {
           name: string
           status?: Database["public"]["Enums"]["survey_status"] | null
           tags?: string[] | null
+          theme_settings?: Json | null
           updated_at?: string
         }
         Update: {
@@ -836,6 +838,7 @@ export type Database = {
           name?: string
           status?: Database["public"]["Enums"]["survey_status"] | null
           tags?: string[] | null
+          theme_settings?: Json | null
           updated_at?: string
         }
         Relationships: [

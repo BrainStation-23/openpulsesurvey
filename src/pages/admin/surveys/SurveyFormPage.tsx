@@ -72,7 +72,7 @@ export default function SurveyFormPage() {
     }
   };
 
-  const handleSurveySubmit = async (jsonData: any) => {
+  const handleSurveySubmit = async ({ jsonData, themeSettings }: { jsonData: any; themeSettings: any }) => {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
@@ -92,6 +92,7 @@ export default function SurveyFormPage() {
           .from('surveys')
           .update({
             json_data: jsonData,
+            theme_settings: themeSettings
           })
           .eq('id', id);
 
@@ -117,6 +118,7 @@ export default function SurveyFormPage() {
           description: basicInfo.description,
           tags: basicInfo.tags,
           json_data: jsonData,
+          theme_settings: themeSettings,
           status: "draft",
           created_by: session.user.id,
         });
@@ -182,6 +184,7 @@ export default function SurveyFormPage() {
               <SurveyBuilder 
                 onSubmit={handleSurveySubmit} 
                 defaultValue={survey ? JSON.stringify(survey.json_data, null, 2) : undefined}
+                defaultTheme={survey?.theme_settings}
               />
             </TabsContent>
           </Tabs>
