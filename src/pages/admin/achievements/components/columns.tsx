@@ -20,6 +20,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Achievement = {
   id: string;
@@ -76,6 +77,7 @@ export const columns: ColumnDef<Achievement>[] = [
     header: "Status",
     cell: ({ row }) => {
       const [isLoading, setIsLoading] = useState(false);
+      const queryClient = useQueryClient();
 
       const toggleStatus = async () => {
         try {
@@ -89,12 +91,22 @@ export const columns: ColumnDef<Achievement>[] = [
 
           if (error) throw error;
 
+          // Optimistically update the cache
+          queryClient.setQueryData(['achievements'], (oldData: Achievement[] | undefined) => {
+            if (!oldData) return oldData;
+            return oldData.map(achievement => 
+              achievement.id === row.original.id 
+                ? { ...achievement, status: newStatus }
+                : achievement
+            );
+          });
+
           toast.success(`Achievement ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
-          // Force refresh the table
-          window.location.reload();
         } catch (error) {
           console.error('Error toggling status:', error);
           toast.error("Failed to update achievement status");
+          // Invalidate the cache to refetch the correct data
+          queryClient.invalidateQueries({ queryKey: ['achievements'] });
         } finally {
           setIsLoading(false);
         }
@@ -119,6 +131,7 @@ export const columns: ColumnDef<Achievement>[] = [
     cell: ({ row }) => {
       const navigate = useNavigate();
       const [isDeleting, setIsDeleting] = useState(false);
+      const queryClient = useQueryClient();
 
       const deleteAchievement = async () => {
         try {
@@ -130,12 +143,18 @@ export const columns: ColumnDef<Achievement>[] = [
 
           if (error) throw error;
 
+          // Optimistically update the cache
+          queryClient.setQueryData(['achievements'], (oldData: Achievement[] | undefined) => {
+            if (!oldData) return oldData;
+            return oldData.filter(achievement => achievement.id !== row.original.id);
+          });
+
           toast.success("Achievement deleted successfully");
-          // Force refresh the table
-          window.location.reload();
         } catch (error) {
           console.error('Error deleting achievement:', error);
           toast.error("Failed to delete achievement");
+          // Invalidate the cache to refetch the correct data
+          queryClient.invalidateQueries({ queryKey: ['achievements'] });
         } finally {
           setIsDeleting(false);
         }
