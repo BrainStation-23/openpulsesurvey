@@ -34,6 +34,7 @@ export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps
             name,
             description,
             json_data,
+            theme_settings,
             status
           ),
           campaign:survey_campaigns!survey_assignments_campaign_id_fkey (
@@ -138,7 +139,12 @@ export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps
       </div>
 
       <div className="flex justify-end">
-        <ThemeSwitcher onThemeChange={handleThemeChange} />
+        <ThemeSwitcher 
+          onThemeChange={handleThemeChange}
+          defaultBaseTheme={assignmentData.assignment.survey.theme_settings?.baseTheme}
+          defaultIsDark={assignmentData.assignment.survey.theme_settings?.isDark}
+          defaultIsPanelless={assignmentData.assignment.survey.theme_settings?.isPanelless}
+        />
       </div>
       
       <div className="bg-card rounded-lg border p-6">

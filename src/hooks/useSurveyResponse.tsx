@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { Model } from "survey-core";
-import { LayeredDarkPanelless } from "survey-core/themes";
+import * as themes from "survey-core/themes";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SurveyStateData, isSurveyStateData } from "@/types/survey";
@@ -29,11 +29,39 @@ export function useSurveyResponse({
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Function to get theme instance
+  const getThemeInstance = (themeSettings: any) => {
+    if (!themeSettings) return null;
+    const themeName = `${themeSettings.baseTheme}${themeSettings.isDark ? 'Dark' : 'Light'}${themeSettings.isPanelless ? 'Panelless' : ''}`;
+    console.log("Getting theme instance for:", themeName);
+    return (themes as any)[themeName];
+  };
+
   useEffect(() => {
     if (surveyData) {
       const surveyModel = new Model(surveyData);
-      // Apply default theme
-      surveyModel.applyTheme(LayeredDarkPanelless);
+
+      // Get the survey's theme settings from the database
+      const fetchThemeSettings = async () => {
+        try {
+          const { data: surveyDetails } = await supabase
+            .from('surveys')
+            .select('theme_settings')
+            .eq('id', surveyData.id)
+            .single();
+
+          // Apply theme if available, otherwise use default
+          const theme = getThemeInstance(surveyDetails?.theme_settings) || themes.LayeredDarkPanelless;
+          console.log("Applying theme:", theme, "with settings:", surveyDetails?.theme_settings);
+          surveyModel.applyTheme(theme);
+        } catch (error) {
+          console.error("Error fetching theme settings:", error);
+          // Fallback to default theme if there's an error
+          surveyModel.applyTheme(themes.LayeredDarkPanelless);
+        }
+      };
+
+      fetchThemeSettings();
 
       // If there's an existing response, load it
       if (existingResponse?.response_data) {
@@ -175,17 +203,11 @@ export function useSurveyResponse({
     }
   };
 
-  const handleThemeChange = (theme: any) => {
+  const handleThemeChange = ({ theme, themeSettings }: { theme: any; themeSettings: any }) => {
     if (survey) {
       try {
+        console.log("Applying new theme:", theme, "with settings:", themeSettings);
         survey.applyTheme(theme);
-        setSurvey(prevSurvey => {
-          if (prevSurvey) {
-            prevSurvey.render();
-            return prevSurvey;
-          }
-          return null;
-        });
       } catch (error) {
         console.error("Error applying theme:", error);
         toast({
