@@ -17,6 +17,7 @@ interface SurveyResponsePageProps {
 }
 
 interface ThemeSettings {
+  [key: string]: Json | undefined;
   baseTheme: string;
   isDark: boolean;
   isPanelless: boolean;
