@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Scenario } from "../../types";
 import { useGeneratedEmail } from "../hooks/useGeneratedEmail";
-import { EmailList } from "./email-list/EmailList";
 import { EmailHeader } from "./email/EmailHeader";
 import { EmailContent } from "./email/EmailContent";
 import { EmailEditor } from "./email/EmailEditor";
@@ -12,7 +11,6 @@ import type { EmailResponse } from "../types";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from "@/components/ui/resizable";
 import { GradingDisplay } from "./grading/GradingDisplay";
 import { AIResponse } from "./email/AIResponse";
 import type { GradingResponse } from "../types";
@@ -132,44 +130,36 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
 
   return (
     <div className="h-[900px] rounded-lg border bg-card">
-      <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg overflow-hidden">
-        <ResizablePanel defaultSize={25} minSize={15}>
-          <EmailList 
-            email={email} 
-            error={error}
-            onRetry={() => generateEmail()}
-          />
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={75}>
-          <div className="flex h-full flex-col bg-background">
-            <div className="sticky top-0 z-20">
-              <EmailHeader email={email} />
+      <div className="flex h-full flex-col">
+        <div className="border-b">
+          <EmailHeader email={email} />
+        </div>
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex-1 overflow-auto">
+            <div className="p-6">
+              <EmailContent email={email} />
             </div>
-            <div className="flex-1 overflow-auto">
-              <div className="p-6 space-y-6">
-                <EmailContent email={email} />
-                {gradingResponse && (
-                  <>
-                    <GradingDisplay 
-                      grade={gradingResponse.grade} 
-                      attemptNumber={currentAttempt - 1} 
-                    />
-                    <AIResponse response={gradingResponse.aiResponse} />
-                  </>
-                )}
-              </div>
-              <div className="border-t">
-                <EmailEditor 
-                  onSubmit={handleSubmit} 
-                  isSubmitting={isSubmitting}
-                  disabled={gradingResponse?.isComplete}
-                />
-              </div>
+            <div className="border-t">
+              <EmailEditor 
+                onSubmit={handleSubmit} 
+                isSubmitting={isSubmitting}
+                disabled={gradingResponse?.isComplete}
+              />
             </div>
           </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+          {gradingResponse && (
+            <div className="w-96 border-l overflow-auto">
+              <div className="p-6 space-y-6">
+                <GradingDisplay 
+                  grade={gradingResponse.grade} 
+                  attemptNumber={currentAttempt - 1} 
+                />
+                <AIResponse response={gradingResponse.aiResponse} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

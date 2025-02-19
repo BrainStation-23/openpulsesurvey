@@ -45,7 +45,7 @@ export function EmailEditor({ onSubmit, isSubmitting = false, disabled = false }
 
   return (
     <div className="bg-background">
-      <div className="border-b sticky top-0 z-10">
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center gap-2 p-4">
           <Button
             variant="ghost"
@@ -134,7 +134,7 @@ export function EmailEditor({ onSubmit, isSubmitting = false, disabled = false }
         </div>
       </div>
       
-      <div className="border-t p-4 sticky bottom-0 bg-background">
+      <div className="border-t p-4 bg-background">
         <div className="flex justify-end">
           <Button 
             onClick={handleSubmit} 
