@@ -1,15 +1,16 @@
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { RefreshCw } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Scenario } from "../../../admin/email-training/scenarios/types";
 import { useGeneratedEmail } from "../hooks/useGeneratedEmail";
-import { ReceivedEmail } from "./ReceivedEmail";
-import { ResponseForm } from "./ResponseForm";
+import { EmailHeader } from "./email/EmailHeader";
+import { EmailContent } from "./email/EmailContent";
+import { EmailEditor } from "./email/EmailEditor";
 import type { EmailResponse } from "../types";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface EmailWindowProps {
   scenario: Scenario;
@@ -69,9 +70,9 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center p-8">
+        <div className="flex items-center justify-center p-8">
           <LoadingSpinner className="w-8 h-8" />
-        </CardContent>
+        </div>
       </Card>
     );
   }
@@ -79,21 +80,32 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
   if (!originalEmail) {
     return (
       <Card>
-        <CardContent className="flex flex-col items-center justify-center gap-4 p-8">
+        <div className="flex flex-col items-center justify-center gap-4 p-8">
           <p className="text-muted-foreground">Failed to generate email</p>
           <Button onClick={generateEmail} variant="outline" className="gap-2">
             <RefreshCw className="w-4 h-4" />
             Try Again
           </Button>
-        </CardContent>
+        </div>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <ReceivedEmail email={originalEmail} />
-      <ResponseForm onSubmit={handleSubmit} />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-4">
+        <Card className="overflow-hidden">
+          <EmailHeader email={originalEmail} />
+          <div className="p-6">
+            <EmailContent email={originalEmail} />
+          </div>
+        </Card>
+      </div>
+      <div className="space-y-4">
+        <Card className="p-6">
+          <EmailEditor onSubmit={handleSubmit} />
+        </Card>
+      </div>
     </div>
   );
 }
