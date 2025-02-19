@@ -25,6 +25,7 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
   const [error, setError] = useState<string | null>(null);
   const [survey, setSurvey] = useState<Model | null>(null);
   
+  // Ensure theme settings are properly capitalized
   const initialTheme = useMemo(() => ({
     baseTheme: defaultTheme?.baseTheme || 'Layered',
     isDark: defaultTheme?.isDark ?? true,
@@ -33,18 +34,21 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
   
   const [currentTheme, setCurrentTheme] = useState(initialTheme);
 
+  // Function to get theme instance
   const getThemeInstance = (themeSettings: typeof currentTheme) => {
     const themeName = `${themeSettings.baseTheme}${themeSettings.isDark ? 'Dark' : 'Light'}${themeSettings.isPanelless ? 'Panelless' : ''}`;
     console.log("Getting theme instance for:", themeName);
     return (themes as any)[themeName];
   };
 
+  // Create or update survey model when JSON content changes
   useEffect(() => {
     try {
       console.log("Creating new survey model with theme:", currentTheme);
       const parsedJson = JSON.parse(jsonContent);
       const surveyModel = new Model(parsedJson);
       
+      // Apply theme immediately after model creation
       const theme = getThemeInstance(currentTheme);
       if (theme) {
         console.log("Applying initial theme:", theme);
@@ -60,6 +64,7 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
     }
   }, [jsonContent]);
 
+  // Handle theme changes
   useEffect(() => {
     if (!survey) return;
 
@@ -101,20 +106,6 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
     setCurrentTheme(themeSettings);
   };
 
-  const openSurveyCreator = () => {
-    try {
-      // Parse and re-stringify to get a compact JSON without formatting
-      const compactJson = JSON.stringify(JSON.parse(jsonContent));
-      const encodedJson = encodeURIComponent(compactJson);
-      console.log("Opening Survey Creator with encoded JSON:", encodedJson);
-      const creatorUrl = `https://surveyjs.io/create-survey?source=${encodedJson}`;
-      window.open(creatorUrl, '_blank');
-    } catch (error) {
-      console.error("Error opening Survey Creator:", error);
-      setError("Failed to open Survey Creator. Please try again.");
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -133,7 +124,9 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
           </Button>
           <Button
             variant="outline"
-            onClick={openSurveyCreator}
+            onClick={() => {
+              window.open("https://surveyjs.io/create-survey", "_blank");
+            }}
           >
             Open Survey.js Creator
           </Button>
@@ -188,4 +181,3 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
     </div>
   );
 }
-
