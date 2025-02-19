@@ -457,6 +457,33 @@ export type Database = {
         }
         Relationships: []
       }
+      grading_criteria: {
+        Row: {
+          created_at: string
+          id: string
+          max_points: number
+          name: string
+          status: Database["public"]["Enums"]["grading_criteria_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_points: number
+          name: string
+          status?: Database["public"]["Enums"]["grading_criteria_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_points?: number
+          name?: string
+          status?: Database["public"]["Enums"]["grading_criteria_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       levels: {
         Row: {
           color_code: string | null
@@ -1539,6 +1566,7 @@ export type Database = {
       employee_type_status: "active" | "inactive"
       employment_type_status: "active" | "inactive"
       gender_type: "male" | "female" | "other"
+      grading_criteria_status: "active" | "inactive"
       instance_status: "upcoming" | "active" | "completed"
       level_status: "active" | "inactive"
       profile_status: "active" | "disabled"
