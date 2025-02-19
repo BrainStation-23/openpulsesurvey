@@ -1297,7 +1297,7 @@ export type Database = {
       }
       delete_auth_user_complete: {
         Args: {
-          user_id: string
+          in_user_id: string
         }
         Returns: Database["public"]["CompositeTypes"]["user_deletion_result"]
       }

@@ -33,7 +33,7 @@ serve(async (req) => {
     // Call our new elevated-access function to delete the user
     const { data: result, error: dbError } = await supabaseClient
       .rpc('delete_auth_user_complete', {
-        user_id: user_id
+        in_user_id: user_id  // Updated to match the new parameter name
       });
 
     if (dbError) {
