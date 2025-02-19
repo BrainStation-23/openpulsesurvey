@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GradingCriteriaTab } from "./config/grading-criteria/GradingCriteriaTab";
+import { GradingCriteriaTab } from "../admin/email-training/config/grading-criteria/GradingCriteriaTab";
 
 export default function AdminConfig() {
   const navigate = useNavigate();
