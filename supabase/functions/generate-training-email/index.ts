@@ -28,9 +28,9 @@ serve(async (req) => {
     const prompt = `Based on this scenario:
     ${scenario.story}
 
-    Generate a realistic email that would be sent by a client or stakeholder in this scenario. Format the response as a JSON object with the following structure:
+    Generate a realistic email that would be sent by a client or stakeholder in this scenario. The response should be a JSON object with the following structure:
     {
-      "from": "Name <email@example.com>",
+      "from": "Full Name <email@example.com>",
       "subject": "A relevant subject line",
       "content": "The email body with proper formatting",
       "tone": "The overall tone of the email (e.g., formal, urgent, friendly)",
@@ -42,7 +42,8 @@ serve(async (req) => {
     2. Matches the scenario context
     3. Contains appropriate business language
     4. Includes any relevant details from the scenario
-    5. Uses proper email formatting`;
+    5. Uses proper email formatting
+    6. Has a valid email address domain that matches the context`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -55,7 +56,7 @@ serve(async (req) => {
     }
 
     const cleanedJson = jsonMatch[0]
-      .replace(/`/g, '"')
+      .replace(/`/g, '')
       .replace(/\n/g, ' ')
       .replace(/\s+/g, ' ');
 

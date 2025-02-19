@@ -2,36 +2,22 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { Scenario } from "../../../admin/email-training/scenarios/types";
 import type { GeneratedEmail } from "../types";
+import { transformEmailResponse } from "../utils/emailParser";
 
 interface EmailGenerationState {
   email: GeneratedEmail | null;
   isLoading: boolean;
   error: string | null;
-  retryCount: number;
-}
-
-function isValidEmailResponse(data: any): data is GeneratedEmail {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    typeof data.subject === 'string' &&
-    typeof data.content === 'string' &&
-    typeof data.from === 'object' &&
-    data.from !== null &&
-    typeof data.from.name === 'string' &&
-    typeof data.from.email === 'string'
-  );
 }
 
 export function useGeneratedEmail(scenario: Scenario) {
   const [state, setState] = useState<EmailGenerationState>({
     email: null,
     isLoading: true,
-    error: null,
-    retryCount: 0
+    error: null
   });
 
-  const generateEmail = async (isRetry = false) => {
+  const generateEmail = async () => {
     setState(prev => ({
       ...prev,
       isLoading: true,
@@ -55,20 +41,17 @@ export function useGeneratedEmail(scenario: Scenario) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json();
+      const rawData = await response.json();
+      console.log('Raw email response:', rawData); // Debug log
       
-      if (!isValidEmailResponse(data)) {
-        console.error('Invalid email response structure:', data);
-        throw new Error('Received malformed data from the server');
-      }
+      const transformedData = transformEmailResponse(rawData);
+      console.log('Transformed email data:', transformedData); // Debug log
 
-      setState(prev => ({
-        ...prev,
-        email: data,
+      setState({
+        email: transformedData,
         isLoading: false,
-        error: null,
-        retryCount: 0
-      }));
+        error: null
+      });
     } catch (error) {
       console.error('Error generating email:', error);
       
@@ -76,19 +59,11 @@ export function useGeneratedEmail(scenario: Scenario) {
         ...prev,
         isLoading: false,
         error: error instanceof Error ? error.message : 'Failed to generate email',
-        retryCount: prev.retryCount + 1
+        // Keep the previous email if we have one
+        email: prev.email
       }));
 
-      if (!isRetry) {
-        toast.error("Failed to generate email. Retrying...");
-      }
-
-      if (state.retryCount < 3) {
-        const retryDelay = Math.min(1000 * Math.pow(2, state.retryCount), 5000);
-        setTimeout(() => generateEmail(true), retryDelay);
-      } else {
-        toast.error("Could not generate email after multiple attempts. Please try again later.");
-      }
+      toast.error("Failed to generate email. Please try again.");
     }
   };
 
@@ -100,7 +75,6 @@ export function useGeneratedEmail(scenario: Scenario) {
     isLoading: state.isLoading,
     email: state.email,
     error: state.error,
-    generateEmail: () => generateEmail(),
-    retryCount: state.retryCount
+    generateEmail
   };
 }
