@@ -1,4 +1,6 @@
 
+import type { GeneratedEmail } from "../types";
+
 /**
  * Parses email strings in the format "Name <email@domain.com>" into separate name and email
  */
