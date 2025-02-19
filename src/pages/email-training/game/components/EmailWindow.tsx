@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -26,7 +27,7 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gradingResponse, setGradingResponse] = useState<GradingResponse | null>(null);
   const [currentSession, setCurrentSession] = useState<{ id: string } | null>(null);
-  const [currentResponse, setCurrentResponse] = useState<{ id: string } | null>(null);
+  const [currentResponse, setCurrentResponse] = useState<{ id: string; response_email: string } | null>(null);
 
   const handleSubmit = async (response: EmailResponse) => {
     if (!email) {
@@ -136,25 +137,70 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
         </div>
         <div className="flex flex-1 overflow-hidden">
           <div className="flex-1 overflow-auto">
-            <div className="p-6">
-              <EmailContent email={email} />
-            </div>
-            <div className="border-t">
-              <EmailEditor 
-                onSubmit={handleSubmit} 
-                isSubmitting={isSubmitting}
-                disabled={gradingResponse?.isComplete}
-              />
+            <div className="p-6 space-y-6">
+              {/* Original Client Email */}
+              <div className="border rounded-lg bg-background">
+                <div className="p-4 border-b bg-muted/40">
+                  <div className="text-sm text-muted-foreground">Original Message</div>
+                </div>
+                <div className="p-4">
+                  <EmailContent email={email} />
+                </div>
+              </div>
+
+              {/* User's Response (when submitted) */}
+              {currentResponse && (
+                <div className="border rounded-lg bg-background">
+                  <div className="p-4 border-b bg-blue-50 dark:bg-blue-950/30">
+                    <div className="text-sm text-muted-foreground">Your Response</div>
+                  </div>
+                  <div className="p-4">
+                    <div className="prose dark:prose-invert max-w-none" 
+                         dangerouslySetInnerHTML={{ __html: JSON.parse(currentResponse.response_email).content }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Client's Follow-up (when received) */}
+              {gradingResponse && (
+                <div className="border rounded-lg bg-background">
+                  <div className="p-4 border-b bg-muted/40">
+                    <div className="text-sm text-muted-foreground">Client's Reply</div>
+                  </div>
+                  <div className="p-4">
+                    <div className="prose dark:prose-invert max-w-none">
+                      {gradingResponse.aiResponse}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Email Editor for next response */}
+              {!gradingResponse?.isComplete && (
+                <div className="border rounded-lg">
+                  <div className="p-4 border-b bg-blue-50 dark:bg-blue-950/30">
+                    <div className="text-sm text-muted-foreground">
+                      {currentResponse ? "Your Next Response" : "Your Response"}
+                    </div>
+                  </div>
+                  <EmailEditor 
+                    onSubmit={handleSubmit} 
+                    isSubmitting={isSubmitting}
+                    disabled={gradingResponse?.isComplete}
+                  />
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Grading Feedback Sidebar */}
           {gradingResponse && (
             <div className="w-96 border-l overflow-auto">
-              <div className="p-6 space-y-6">
+              <div className="p-6">
                 <GradingDisplay 
                   grade={gradingResponse.grade} 
                   attemptNumber={currentAttempt - 1} 
                 />
-                <AIResponse response={gradingResponse.aiResponse} />
               </div>
             </div>
           )}
