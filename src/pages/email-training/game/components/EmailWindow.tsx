@@ -94,12 +94,12 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
   }
 
   return (
-    <Card className="h-[800px]">
-      <ResizablePanelGroup direction="horizontal">
-        <ResizablePanel defaultSize={25} minSize={20}>
+    <Card className="h-[800px] overflow-hidden">
+      <ResizablePanelGroup direction="horizontal" className="h-full">
+        <ResizablePanel defaultSize={25} minSize={20} className="overflow-hidden">
           <EmailList email={originalEmail} />
         </ResizablePanel>
-        <ResizablePanel defaultSize={75}>
+        <ResizablePanel defaultSize={75} className="overflow-hidden">
           <div className="flex h-full flex-col">
             <EmailHeader email={originalEmail} />
             <div className="flex-1 overflow-auto p-6">

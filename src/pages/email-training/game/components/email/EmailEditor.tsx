@@ -2,11 +2,7 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { 
-  Bold, Italic, List, ListOrdered, 
-  Quote, Undo, Redo, Send 
-} from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Quote, Undo, Redo, Send } from "lucide-react";
 import type { EmailResponse } from "../../types";
 
 interface EmailEditorProps {
@@ -28,7 +24,7 @@ export function EmailEditor({ onSubmit }: EmailEditorProps) {
     if (!editor) return;
     
     const response: EmailResponse = {
-      subject: document.querySelector<HTMLInputElement>('input[name="subject"]')?.value || "",
+      subject: "Re: Response", // Default response subject
       content: editor.getHTML(),
     };
 
@@ -39,14 +35,6 @@ export function EmailEditor({ onSubmit }: EmailEditorProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 border-b pb-4">
-        <Input 
-          name="subject"
-          placeholder="Subject"
-          className="flex-1"
-        />
-      </div>
-      
       <div className="flex items-center gap-2 border-b pb-4">
         <Button
           variant="ghost"
