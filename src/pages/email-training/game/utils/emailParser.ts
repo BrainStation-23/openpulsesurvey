@@ -35,8 +35,7 @@ export function transformEmailResponse(data: any): GeneratedEmail {
         : data.from,
       subject: data.subject || 'No Subject',
       content: data.content || '',
-      key_points: Array.isArray(data.key_points) ? data.key_points : [],
-      tone: data.tone || 'neutral'
+      key_points: Array.isArray(data.key_points) ? data.key_points : []
     };
   } catch (error) {
     console.error('Error transforming email response:', error);
