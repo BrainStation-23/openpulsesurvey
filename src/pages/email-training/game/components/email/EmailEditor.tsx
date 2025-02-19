@@ -1,6 +1,7 @@
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
 import { Button } from "@/components/ui/button";
 import { Bold, Italic, List, ListOrdered, Quote, Undo, Redo, Send } from "lucide-react";
 import type { EmailResponse } from "../../types";
@@ -11,11 +12,17 @@ interface EmailEditorProps {
 
 export function EmailEditor({ onSubmit }: EmailEditorProps) {
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      Placeholder.configure({
+        placeholder: 'Type your response here...',
+        emptyEditorClass: 'is-editor-empty',
+      }),
+    ],
     content: "",
     editorProps: {
       attributes: {
-        class: "prose dark:prose-invert max-w-none focus:outline-none min-h-[200px]",
+        class: "prose dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-3 rounded-md border border-input bg-transparent hover:bg-accent/50 focus:bg-background transition-colors",
       },
     },
   });
@@ -98,6 +105,16 @@ export function EmailEditor({ onSubmit }: EmailEditorProps) {
           </Button>
         </div>
       </div>
+
+      <style>{`
+        .is-editor-empty:first-child::before {
+          color: #adb5bd;
+          content: attr(data-placeholder);
+          float: left;
+          height: 0;
+          pointer-events: none;
+        }
+      `}</style>
 
       <EditorContent editor={editor} />
       
