@@ -2,8 +2,9 @@
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { Scenario } from "../../../admin/email-training/scenarios/types";
+import type { Scenario } from "../../../types";
 import { useGeneratedEmail } from "../hooks/useGeneratedEmail";
+import { EmailList } from "./email-list/EmailList";
 import { EmailHeader } from "./email/EmailHeader";
 import { EmailContent } from "./email/EmailContent";
 import { EmailEditor } from "./email/EmailEditor";
@@ -11,6 +12,7 @@ import type { EmailResponse } from "../types";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 
 interface EmailWindowProps {
   scenario: Scenario;
@@ -92,20 +94,23 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="space-y-4">
-        <Card className="overflow-hidden">
-          <EmailHeader email={originalEmail} />
-          <div className="p-6">
-            <EmailContent email={originalEmail} />
+    <Card className="h-[800px]">
+      <ResizablePanelGroup direction="horizontal">
+        <ResizablePanel defaultSize={25} minSize={20}>
+          <EmailList email={originalEmail} />
+        </ResizablePanel>
+        <ResizablePanel defaultSize={75}>
+          <div className="flex h-full flex-col">
+            <EmailHeader email={originalEmail} />
+            <div className="flex-1 overflow-auto p-6">
+              <EmailContent email={originalEmail} />
+            </div>
+            <div className="border-t p-6">
+              <EmailEditor onSubmit={handleSubmit} />
+            </div>
           </div>
-        </Card>
-      </div>
-      <div className="space-y-4">
-        <Card className="p-6">
-          <EmailEditor onSubmit={handleSubmit} />
-        </Card>
-      </div>
-    </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    </Card>
   );
 }
