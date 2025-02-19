@@ -1295,6 +1295,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      delete_auth_user_complete: {
+        Args: {
+          user_id: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["user_deletion_result"]
+      }
       delete_survey_assignment: {
         Args: {
           p_assignment_id: string
@@ -1482,7 +1488,10 @@ export type Database = {
       user_role: "admin" | "user"
     }
     CompositeTypes: {
-      [_ in never]: never
+      user_deletion_result: {
+        success: boolean | null
+        error_message: string | null
+      }
     }
   }
 }
