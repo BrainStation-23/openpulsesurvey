@@ -25,7 +25,7 @@ export function EmailEditor({ onSubmit, isSubmitting = false, disabled = false }
     content: "",
     editorProps: {
       attributes: {
-        class: "prose dark:prose-invert max-w-none focus:outline-none min-h-[100px] max-h-[500px] px-4 py-3 overflow-y-auto rounded-md border border-input bg-transparent hover:bg-accent/50 focus:bg-background transition-colors",
+        class: "prose dark:prose-invert max-w-none focus:outline-none",
       },
     },
   });
@@ -34,7 +34,7 @@ export function EmailEditor({ onSubmit, isSubmitting = false, disabled = false }
     if (!editor || disabled || isSubmitting) return;
     
     const response: EmailResponse = {
-      subject: "Re: Response", // Default response subject
+      subject: "Re: Response",
       content: editor.getHTML(),
     };
 
@@ -44,8 +44,8 @@ export function EmailEditor({ onSubmit, isSubmitting = false, disabled = false }
   if (!editor) return null;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="border-b bg-background sticky top-0 z-10">
+    <div className="bg-background">
+      <div className="border-b sticky top-0 z-10">
         <div className="flex items-center gap-2 p-4">
           <Button
             variant="ghost"
@@ -128,11 +128,13 @@ export function EmailEditor({ onSubmit, isSubmitting = false, disabled = false }
         }
       `}</style>
 
-      <div className="flex-1 overflow-auto p-4">
-        <EditorContent editor={editor} />
+      <div className="p-4">
+        <div className="min-h-[200px] border border-input rounded-md bg-transparent p-4">
+          <EditorContent editor={editor} />
+        </div>
       </div>
       
-      <div className="border-t p-4 bg-background sticky bottom-0">
+      <div className="border-t p-4 sticky bottom-0 bg-background">
         <div className="flex justify-end">
           <Button 
             onClick={handleSubmit} 

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -148,31 +147,30 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={75}>
           <div className="flex h-full flex-col bg-background">
-            <EmailHeader email={email} />
-            <ResizablePanelGroup direction="vertical" className="flex-1">
-              <ResizablePanel defaultSize={50}>
-                <div className="h-full overflow-auto p-6 space-y-6">
-                  <EmailContent email={email} />
-                  {gradingResponse && (
-                    <>
-                      <GradingDisplay 
-                        grade={gradingResponse.grade} 
-                        attemptNumber={currentAttempt - 1} 
-                      />
-                      <AIResponse response={gradingResponse.aiResponse} />
-                    </>
-                  )}
-                </div>
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={50}>
+            <div className="sticky top-0 z-20">
+              <EmailHeader email={email} />
+            </div>
+            <div className="flex-1 overflow-auto">
+              <div className="p-6 space-y-6">
+                <EmailContent email={email} />
+                {gradingResponse && (
+                  <>
+                    <GradingDisplay 
+                      grade={gradingResponse.grade} 
+                      attemptNumber={currentAttempt - 1} 
+                    />
+                    <AIResponse response={gradingResponse.aiResponse} />
+                  </>
+                )}
+              </div>
+              <div className="border-t">
                 <EmailEditor 
                   onSubmit={handleSubmit} 
                   isSubmitting={isSubmitting}
                   disabled={gradingResponse?.isComplete}
                 />
-              </ResizablePanel>
-            </ResizablePanelGroup>
+              </div>
+            </div>
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
