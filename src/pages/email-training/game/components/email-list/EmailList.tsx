@@ -9,8 +9,6 @@ interface EmailListProps {
 }
 
 export function EmailList({ email }: EmailListProps) {
-  if (!email) return null;
-
   return (
     <div className="flex h-full flex-col border-r">
       <div className="flex items-center gap-2 p-4 border-b bg-background">

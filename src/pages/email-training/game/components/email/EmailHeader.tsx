@@ -2,13 +2,22 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import { AlertTriangle } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import type { GeneratedEmail } from "../../types";
 
 interface EmailHeaderProps {
-  email: GeneratedEmail;
+  email: GeneratedEmail | null;
 }
 
 export function EmailHeader({ email }: EmailHeaderProps) {
+  if (!email) {
+    return (
+      <div className="flex items-center justify-center p-6 border-b">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 p-6 border-b">
       <div className="flex items-start gap-4">

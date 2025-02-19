@@ -2,15 +2,24 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import type { GeneratedEmail } from "../../types";
 
 interface EmailListItemProps {
-  email: GeneratedEmail;
+  email: GeneratedEmail | null;
   isSelected?: boolean;
   onClick?: () => void;
 }
 
 export function EmailListItem({ email, isSelected, onClick }: EmailListItemProps) {
+  if (!email) {
+    return (
+      <div className="w-full flex items-center justify-center p-6">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
   return (
     <button
       onClick={onClick}
