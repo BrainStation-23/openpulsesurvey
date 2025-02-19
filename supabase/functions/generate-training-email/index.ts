@@ -8,6 +8,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  initialDelay = 1000
+): Promise<T> {
+  let lastError: Error;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      console.error(`Attempt ${i + 1} failed:`, error);
+      lastError = error;
+      if (i < maxRetries - 1) {
+        const delay = initialDelay * Math.pow(2, i);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError!;
+}
+
 function extractEmailParts(text: string) {
   // Split text into lines for processing
   const lines = text.split('\n').map(line => line.trim());
@@ -65,10 +86,13 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY is not set');
     }
 
+    const { scenario } = await req.json();
+    if (!scenario || !scenario.story) {
+      throw new Error('Invalid scenario data provided');
+    }
+
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-    const { scenario } = await req.json();
 
     const prompt = `Based on this scenario:
 ${scenario.story}
@@ -97,31 +121,52 @@ Important guidelines:
 - Make the content detailed and technically accurate
 - Set up a situation that requires a thoughtful, professional response`;
 
-    console.log('Sending prompt:', prompt);
+    console.log('Starting email generation with scenario:', scenario.id);
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    // Use retryWithBackoff for the AI operation
+    const text = await retryWithBackoff(async () => {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    });
+
+    console.log('Successfully generated AI response');
     
-    console.log('Raw AI response:', text);
+    // Validate the response format
+    if (!text.includes('FROM:') || !text.includes('SUBJECT:') || !text.includes('KEY POINTS:')) {
+      throw new Error('Generated content does not match expected format');
+    }
 
     // Extract and structure the email parts
     const emailData = extractEmailParts(text);
-    console.log('Structured email data:', emailData);
+    console.log('Successfully parsed email data');
 
     return new Response(JSON.stringify(emailData), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache' 
+      },
     });
   } catch (error) {
-    console.error('Error generating email:', error);
+    console.error('Error in generate-training-email:', error);
+    
+    // Determine if it's a Gemini API error or other type
+    const errorMessage = error.message || 'An unexpected error occurred';
+    const statusCode = error.status || 500;
+
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: 'Failed to generate or process email content'
+        error: errorMessage,
+        details: 'Failed to generate email content. Please try again.'
       }),
       { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: statusCode,
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
       }
     );
   }
