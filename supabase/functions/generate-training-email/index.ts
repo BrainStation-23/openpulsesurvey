@@ -8,6 +8,51 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function extractEmailParts(text: string) {
+  // Split text into lines for processing
+  const lines = text.split('\n').map(line => line.trim());
+  
+  // Extract FROM
+  const fromLine = lines.find(line => line.startsWith('FROM:'))?.replace('FROM:', '').trim();
+  const fromMatch = fromLine?.match(/([^<]*?)\s*<([^>]+)>|([^\s]+@[^\s]+)/);
+  const from = {
+    name: (fromMatch?.[1] || 'Unknown').trim(),
+    email: fromMatch?.[2] || fromMatch?.[3] || 'unknown@example.com'
+  };
+
+  // Extract SUBJECT
+  const subject = lines.find(line => line.startsWith('SUBJECT:'))?.replace('SUBJECT:', '').trim() || 'No Subject';
+
+  // Extract content (everything between SUBJECT and KEY POINTS)
+  const contentStartIndex = lines.findIndex(line => line.startsWith('SUBJECT:')) + 1;
+  const contentEndIndex = lines.findIndex(line => line.startsWith('KEY POINTS:'));
+  const content = lines
+    .slice(contentStartIndex, contentEndIndex !== -1 ? contentEndIndex : undefined)
+    .filter(line => line.length > 0)
+    .join('\n')
+    .trim();
+
+  // Extract key points
+  const keyPoints: string[] = [];
+  let collectingKeyPoints = false;
+  for (const line of lines) {
+    if (line.startsWith('KEY POINTS:')) {
+      collectingKeyPoints = true;
+      continue;
+    }
+    if (collectingKeyPoints && line.match(/^\d+\.\s/)) {
+      keyPoints.push(line.replace(/^\d+\.\s/, '').trim());
+    }
+  }
+
+  return {
+    from,
+    subject,
+    content,
+    key_points: keyPoints
+  };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -28,41 +73,35 @@ serve(async (req) => {
     const prompt = `Based on this scenario:
     ${scenario.story}
 
-    Generate a realistic email that would be sent by a client or stakeholder in this scenario. The response should be a JSON object with the following structure:
-    {
-      "from": "Full Name <email@example.com>",
-      "subject": "A relevant subject line",
-      "content": "The email body with proper formatting",
-      "tone": "The overall tone of the email (e.g., formal, urgent, friendly)",
-      "key_points": ["Key point 1", "Key point 2", "Key point 3"]
-    }
+    Write a professional business email following EXACTLY this format:
 
-    Make sure the email:
-    1. Is realistic and professional
-    2. Matches the scenario context
-    3. Contains appropriate business language
-    4. Includes any relevant details from the scenario
-    5. Uses proper email formatting
-    6. Has a valid email address domain that matches the context`;
+    FROM: [Full Name] <email@domain.com>
+    SUBJECT: [Write a clear subject line]
+
+    [Write the email body here. Make it professional and relevant to the scenario]
+
+    KEY POINTS:
+    1. [First key point from the email]
+    2. [Second key point from the email]
+    3. [Third key point from the email]
+
+    Important:
+    - Use a relevant business email domain that matches the scenario
+    - Make the content realistic and professional
+    - Ensure the email tone matches the scenario context
+    - Include specific details from the scenario`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
+    
+    console.log('Raw AI response:', text);
 
-    // Extract and parse JSON
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Failed to generate properly formatted email');
-    }
+    // Extract and structure the email parts
+    const emailData = extractEmailParts(text);
+    console.log('Structured email data:', emailData);
 
-    const cleanedJson = jsonMatch[0]
-      .replace(/`/g, '')
-      .replace(/\n/g, ' ')
-      .replace(/\s+/g, ' ');
-
-    const generatedEmail = JSON.parse(cleanedJson);
-
-    return new Response(JSON.stringify(generatedEmail), {
+    return new Response(JSON.stringify(emailData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
@@ -70,7 +109,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: 'Failed to generate or parse email content'
+        details: 'Failed to generate or process email content'
       }),
       { 
         status: 500,
