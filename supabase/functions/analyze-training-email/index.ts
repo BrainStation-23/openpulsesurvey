@@ -23,6 +23,13 @@ interface EmailAnalysisRequest {
   attemptNumber: number;
 }
 
+interface GradingCriteria {
+  id: string;
+  name: string;
+  max_points: number;
+  status: 'active' | 'inactive';
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -34,15 +41,31 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Fetch active grading criteria
+    const { data: gradingCriteria, error: criteriaError } = await supabaseClient
+      .from('grading_criteria')
+      .select('*')
+      .eq('status', 'active')
+
+    if (criteriaError) throw criteriaError
+
+    if (!gradingCriteria || gradingCriteria.length === 0) {
+      throw new Error('No active grading criteria found')
+    }
+
     const { sessionId, responseId, originalEmail, userResponse, attemptNumber } = await req.json() as EmailAnalysisRequest
 
-    // 1. Analyze and grade the email
+    // Construct the grading criteria prompt dynamically
+    const criteriaPrompt = gradingCriteria
+      .map(criteria => `- ${criteria.name} (0-${criteria.max_points}): ${criteria.name}`)
+      .join('\n')
+
+    const totalMaxPoints = gradingCriteria.reduce((sum, criteria) => sum + criteria.max_points, 0)
+
+    // Build the grading prompt using the dynamic criteria
     const gradingPrompt = `
       Analyze and grade this email response based on the following criteria:
-      - Professionalism (0-10): Formal language, appropriate tone
-      - Completeness (0-10): Addresses all points from the original email
-      - Clarity (0-10): Clear and concise communication
-      - Solution Quality (0-10): Effectiveness of proposed solutions
+      ${criteriaPrompt}
       
       Original Email:
       Subject: ${originalEmail.subject}
@@ -56,10 +79,7 @@ serve(async (req) => {
       Provide your analysis in JSON format with the following structure:
       {
         "scores": {
-          "professionalism": number,
-          "completeness": number,
-          "clarity": number,
-          "solution_quality": number,
+          ${gradingCriteria.map(c => `"${c.name.toLowerCase().replace(/\s+/g, '_')}": number`).join(',\n          ')},
           "total_score": number
         },
         "analysis": {
@@ -88,11 +108,12 @@ serve(async (req) => {
     const gradingData = await gradingResponse.json()
     const analysis = JSON.parse(gradingData.choices[0].message.content)
 
-    // 2. Generate AI response based on user's email
+    // Generate AI response based on the score percentage
+    const scorePercentage = (analysis.scores.total_score / totalMaxPoints) * 100
     const responsePrompt = `
       You are the original sender of this email chain. Generate a response to the user's email.
       The response should be natural and reflect whether you are satisfied with their response.
-      Base your satisfaction on their score of ${analysis.scores.total_score}/40.
+      Base your satisfaction on their score of ${analysis.scores.total_score}/${totalMaxPoints} (${scorePercentage.toFixed(1)}%).
       
       Original Email:
       ${originalEmail.content}
@@ -100,8 +121,8 @@ serve(async (req) => {
       Their Response:
       ${userResponse.content}
       
-      Respond naturally as the original sender. If their score is below 30, express some dissatisfaction
-      or ask for clarification. If their score is above 30, express satisfaction.
+      Respond naturally as the original sender. If their score is below 75%, express some dissatisfaction
+      or ask for clarification. If their score is above 75%, express satisfaction.
       Keep the chain going if this is not the final attempt (current attempt: ${attemptNumber}/3).
       If this is the final attempt, bring the conversation to a conclusion.
     `
@@ -124,7 +145,7 @@ serve(async (req) => {
     const aiResponseData = await aiResponse.json()
     const aiResponseText = aiResponseData.choices[0].message.content
 
-    // 3. Store the results
+    // Store the results
     const { data: gradeData, error: gradeError } = await supabaseClient
       .from('email_response_grades')
       .insert({
@@ -133,15 +154,15 @@ serve(async (req) => {
         grading_data: analysis,
         ai_analysis: analysis.analysis.detailed_feedback,
         ai_response: aiResponseText,
-        client_satisfaction: analysis.scores.total_score >= 30
+        client_satisfaction: scorePercentage >= 75
       })
       .select()
       .single()
 
     if (gradeError) throw gradeError
 
-    // 4. If this is the final attempt, store the final results
-    if (attemptNumber === 3 || analysis.scores.total_score >= 35) {
+    // If this is the final attempt or score is very high, store the final results
+    if (attemptNumber === 3 || scorePercentage >= 87.5) {
       const { data: gradesData, error: gradesError } = await supabaseClient
         .from('email_response_grades')
         .select('grading_data')
@@ -150,19 +171,29 @@ serve(async (req) => {
       if (gradesError) throw gradesError
 
       const finalScore = gradesData.reduce((acc, grade) => {
-        const scores = grade.grading_data.scores
-        return acc + scores.total_score
+        const totalScore = Object.values(grade.grading_data.scores)
+          .reduce((sum: number, score: number) => {
+            if (typeof score === 'number' && score !== grade.grading_data.scores.total_score) {
+              return sum + score;
+            }
+            return sum;
+          }, 0);
+        return acc + totalScore;
       }, 0) / gradesData.length
+
+      const { data: sessionData, error: sessionError } = await supabaseClient
+        .from('email_training_sessions')
+        .select('user_id')
+        .eq('id', sessionId)
+        .single()
+
+      if (sessionError) throw sessionError
 
       const { error: resultError } = await supabaseClient
         .from('email_training_results')
         .insert({
           session_id: sessionId,
-          user_id: (await supabaseClient
-            .from('email_training_sessions')
-            .select('user_id')
-            .eq('id', sessionId)
-            .single()).data?.user_id,
+          user_id: sessionData.user_id,
           final_score: finalScore,
           total_attempts: attemptNumber,
           improvement_notes: analysis.analysis.areas_for_improvement.join(". ")
@@ -175,7 +206,7 @@ serve(async (req) => {
       JSON.stringify({
         grade: analysis,
         aiResponse: aiResponseText,
-        isComplete: attemptNumber === 3 || analysis.scores.total_score >= 35
+        isComplete: attemptNumber === 3 || scorePercentage >= 87.5
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
