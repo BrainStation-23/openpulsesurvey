@@ -261,6 +261,223 @@ export type Database = {
         }
         Relationships: []
       }
+      email_response_grades: {
+        Row: {
+          ai_analysis: string | null
+          ai_response: string | null
+          attempt_number: number
+          client_satisfaction: boolean | null
+          created_at: string
+          grading_data: Json
+          id: string
+          response_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_analysis?: string | null
+          ai_response?: string | null
+          attempt_number: number
+          client_satisfaction?: boolean | null
+          created_at?: string
+          grading_data?: Json
+          id?: string
+          response_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_analysis?: string | null
+          ai_response?: string | null
+          attempt_number?: number
+          client_satisfaction?: boolean | null
+          created_at?: string
+          grading_data?: Json
+          id?: string
+          response_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_response_grades_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "email_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_responses: {
+        Row: {
+          attempt_number: number
+          created_at: string
+          id: string
+          original_email: Json
+          response_email: Json | null
+          session_id: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt_number?: number
+          created_at?: string
+          id?: string
+          original_email: Json
+          response_email?: Json | null
+          session_id: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt_number?: number
+          created_at?: string
+          id?: string
+          original_email?: Json
+          response_email?: Json | null
+          session_id?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "email_training_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_scenarios: {
+        Row: {
+          created_at: string
+          created_by: string
+          difficulty_level: number
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["scenario_status"] | null
+          story: string
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          difficulty_level?: number
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["scenario_status"] | null
+          story: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          difficulty_level?: number
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["scenario_status"] | null
+          story?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_training_results: {
+        Row: {
+          created_at: string
+          final_score: number
+          id: string
+          improvement_notes: string | null
+          session_id: string
+          total_attempts: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          final_score: number
+          id?: string
+          improvement_notes?: string | null
+          session_id: string
+          total_attempts: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          final_score?: number
+          id?: string
+          improvement_notes?: string | null
+          session_id?: string
+          total_attempts?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_training_results_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "email_training_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_training_results_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_training_results_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_training_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          scenario_id: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["session_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          scenario_id: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          scenario_id?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_training_sessions_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "email_scenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_roles: {
         Row: {
           color_code: string | null
@@ -338,6 +555,33 @@ export type Database = {
           id?: string
           name?: string
           status?: Database["public"]["Enums"]["config_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      grading_criteria: {
+        Row: {
+          created_at: string
+          id: string
+          max_points: number
+          name: string
+          status: Database["public"]["Enums"]["grading_criteria_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_points: number
+          name: string
+          status?: Database["public"]["Enums"]["grading_criteria_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_points?: number
+          name?: string
+          status?: Database["public"]["Enums"]["grading_criteria_status"]
           updated_at?: string
         }
         Relationships: []
@@ -1424,6 +1668,7 @@ export type Database = {
       employee_type_status: "active" | "inactive"
       employment_type_status: "active" | "inactive"
       gender_type: "male" | "female" | "other"
+      grading_criteria_status: "active" | "inactive"
       instance_status: "upcoming" | "active" | "completed"
       level_status: "active" | "inactive"
       profile_status: "active" | "disabled"
@@ -1442,6 +1687,8 @@ export type Database = {
         | "quarterly"
         | "yearly"
       response_status: "assigned" | "in_progress" | "submitted" | "expired"
+      scenario_status: "active" | "inactive" | "draft"
+      session_status: "initial" | "playing" | "submitted"
       survey_status: "draft" | "published" | "archived"
       user_role: "admin" | "user"
     }
