@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +8,7 @@ import { useGeneratedEmail } from "../hooks/useGeneratedEmail";
 import { EmailHeader } from "./email/EmailHeader";
 import { EmailContent } from "./email/EmailContent";
 import { EmailEditor } from "./email/EmailEditor";
-import type { EmailResponse } from "../types";
+import type { EmailResponse, EmailMessage } from "../types";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,9 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gradingResponse, setGradingResponse] = useState<GradingResponse | null>(null);
   const [currentSession, setCurrentSession] = useState<{ id: string } | null>(null);
-  const [currentResponse, setCurrentResponse] = useState<{ id: string; response_email: string } | null>(null);
+  const [messages, setMessages] = useState<EmailMessage[]>([]);
+  const [editorKey, setEditorKey] = useState(0); // Key to force editor reset
+  const editorRef = useRef<{ clearContent: () => void } | null>(null);
 
   const handleSubmit = async (response: EmailResponse) => {
     if (!email) {
@@ -59,11 +61,20 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
         setCurrentSession(session);
       }
 
+      // Add user's message to the chain
+      const userMessage: EmailMessage = {
+        id: crypto.randomUUID(),
+        type: 'user',
+        content: response.content,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, userMessage]);
+
       // Save the response
       const { data: emailResponse, error: responseError } = await supabase
         .from('email_responses')
         .insert([{
-          original_email: JSON.stringify(email),
+          original_email: JSON.stringify(messages.length === 0 ? email : messages[messages.length - 1]),
           response_email: JSON.stringify(response),
           session_id: currentSession?.id,
           attempt_number: currentAttempt
@@ -72,19 +83,13 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
         .single();
 
       if (responseError) throw responseError;
-      
-      // Convert the response data to the expected format
-      setCurrentResponse({
-        id: emailResponse.id,
-        response_email: JSON.stringify(emailResponse.response_email)
-      });
 
       // Send to AI for analysis using Supabase edge function
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-training-email', {
         body: {
           sessionId: currentSession?.id,
           responseId: emailResponse.id,
-          originalEmail: email,
+          originalEmail: messages.length === 0 ? email : messages[messages.length - 1],
           userResponse: response,
           attemptNumber: currentAttempt
         }
@@ -94,6 +99,19 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
 
       const gradingData = analysisData as GradingResponse;
       setGradingResponse(gradingData);
+
+      // Add client's response to the chain
+      const clientMessage: EmailMessage = {
+        id: crypto.randomUUID(),
+        type: 'client',
+        content: gradingData.aiResponse,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, clientMessage]);
+
+      // Clear the editor
+      setEditorKey(prev => prev + 1);
+      editorRef.current?.clearContent();
 
       if (gradingData.isComplete) {
         toast.success("Training completed!");
@@ -108,6 +126,18 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
       setIsSubmitting(false);
     }
   };
+
+  // Initialize the first client message when email is loaded
+  useState(() => {
+    if (email && messages.length === 0) {
+      setMessages([{
+        id: crypto.randomUUID(),
+        type: 'client',
+        content: email.content,
+        timestamp: new Date().toISOString(),
+      }]);
+    }
+  });
 
   if (isLoading) {
     return (
@@ -142,52 +172,41 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
         <div className="flex flex-1 overflow-hidden">
           <div className="flex-1 overflow-auto">
             <div className="p-6 space-y-6">
-              {/* Original Client Email */}
-              <div className="border rounded-lg bg-background">
-                <div className="p-4 border-b bg-muted/40">
-                  <div className="text-sm text-muted-foreground">Original Message</div>
-                </div>
-                <div className="p-4">
-                  <EmailContent email={email} />
-                </div>
-              </div>
-
-              {/* User's Response (when submitted) */}
-              {currentResponse && (
-                <div className="border rounded-lg bg-background">
-                  <div className="p-4 border-b bg-blue-50 dark:bg-blue-950/30">
-                    <div className="text-sm text-muted-foreground">Your Response</div>
-                  </div>
-                  <div className="p-4">
-                    <div className="prose dark:prose-invert max-w-none" 
-                         dangerouslySetInnerHTML={{ __html: JSON.parse(currentResponse.response_email).content }} />
-                  </div>
-                </div>
-              )}
-
-              {/* Client's Follow-up (when received) */}
-              {gradingResponse && (
-                <div className="border rounded-lg bg-background">
-                  <div className="p-4 border-b bg-muted/40">
-                    <div className="text-sm text-muted-foreground">Client's Reply</div>
+              {/* Email Chain */}
+              {messages.map((message, index) => (
+                <div key={message.id} className="border rounded-lg bg-background">
+                  <div className={`p-4 border-b ${
+                    message.type === 'client' 
+                      ? 'bg-muted/40' 
+                      : 'bg-blue-50 dark:bg-blue-950/30'
+                  }`}>
+                    <div className="text-sm text-muted-foreground">
+                      {message.type === 'client' ? 'Client Message' : 'Your Response'}
+                    </div>
                   </div>
                   <div className="p-4">
                     <div className="prose dark:prose-invert max-w-none">
-                      {gradingResponse.aiResponse}
+                      {message.type === 'client' ? (
+                        <div dangerouslySetInnerHTML={{ __html: message.content }} />
+                      ) : (
+                        <div dangerouslySetInnerHTML={{ __html: message.content }} />
+                      )}
                     </div>
                   </div>
                 </div>
-              )}
+              ))}
 
               {/* Email Editor for next response */}
               {!gradingResponse?.isComplete && (
                 <div className="border rounded-lg">
                   <div className="p-4 border-b bg-blue-50 dark:bg-blue-950/30">
                     <div className="text-sm text-muted-foreground">
-                      {currentResponse ? "Your Next Response" : "Your Response"}
+                      Your Response
                     </div>
                   </div>
                   <EmailEditor 
+                    key={editorKey}
+                    ref={editorRef}
                     onSubmit={handleSubmit} 
                     isSubmitting={isSubmitting}
                     disabled={gradingResponse?.isComplete}

@@ -34,3 +34,10 @@ export interface GradingResponse {
   aiResponse: string;
   isComplete: boolean;
 }
+
+export interface EmailMessage {
+  id: string;
+  type: 'client' | 'user';
+  content: string;
+  timestamp: string;
+}
