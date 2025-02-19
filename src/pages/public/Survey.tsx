@@ -10,8 +10,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
+import * as themes from "survey-core/themes";
 
 import "survey-core/defaultV2.min.css";
+
+const getThemeInstance = (themeSettings: any) => {
+  const themeName = `${themeSettings.baseTheme}${themeSettings.isDark ? 'Dark' : 'Light'}${themeSettings.isPanelless ? 'Panelless' : ''}`;
+  return (themes as any)[themeName];
+};
 
 export default function PublicSurveyPage() {
   const { token } = useParams();
@@ -33,6 +39,7 @@ export default function PublicSurveyPage() {
             name,
             description,
             json_data,
+            theme_settings,
             status
           )
         `)
@@ -62,7 +69,16 @@ export default function PublicSurveyPage() {
   useEffect(() => {
     if (assignmentData?.assignment?.survey?.json_data && !assignmentData.existingResponse) {
       const surveyModel = new Model(assignmentData.assignment.survey.json_data);
-      surveyModel.applyTheme(LayeredDarkPanelless);
+      
+      // Apply theme settings from the survey if available, otherwise use default
+      if (assignmentData.assignment.survey.theme_settings) {
+        const theme = getThemeInstance(assignmentData.assignment.survey.theme_settings);
+        if (theme) {
+          surveyModel.applyTheme(theme);
+        }
+      } else {
+        surveyModel.applyTheme(LayeredDarkPanelless);
+      }
       
       surveyModel.onComplete.add(async (sender) => {
         try {
@@ -117,6 +133,12 @@ export default function PublicSurveyPage() {
     }
   }, [assignmentData, navigate, toast, token]);
 
+  const handleThemeChange = (theme: any) => {
+    if (survey) {
+      survey.applyTheme(theme);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -157,12 +179,6 @@ export default function PublicSurveyPage() {
       </div>
     );
   }
-
-  const handleThemeChange = (theme: any) => {
-    if (survey) {
-      survey.applyTheme(theme);
-    }
-  };
 
   return (
     <div className="container mx-auto py-8 px-4">

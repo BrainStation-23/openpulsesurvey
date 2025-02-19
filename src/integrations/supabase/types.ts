@@ -261,6 +261,39 @@ export type Database = {
         }
         Relationships: []
       }
+      email_responses: {
+        Row: {
+          attempt_number: number
+          created_at: string
+          id: string
+          original_email: Json
+          response_email: Json | null
+          session_id: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt_number?: number
+          created_at?: string
+          id?: string
+          original_email: Json
+          response_email?: Json | null
+          session_id: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt_number?: number
+          created_at?: string
+          id?: string
+          original_email?: Json
+          response_email?: Json | null
+          session_id?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employee_roles: {
         Row: {
           color_code: string | null
@@ -1424,6 +1457,7 @@ export type Database = {
       employee_type_status: "active" | "inactive"
       employment_type_status: "active" | "inactive"
       gender_type: "male" | "female" | "other"
+      grading_criteria_status: "active" | "inactive"
       instance_status: "upcoming" | "active" | "completed"
       level_status: "active" | "inactive"
       profile_status: "active" | "disabled"
@@ -1442,6 +1476,8 @@ export type Database = {
         | "quarterly"
         | "yearly"
       response_status: "assigned" | "in_progress" | "submitted" | "expired"
+      scenario_status: "active" | "inactive" | "draft"
+      session_status: "initial" | "playing" | "submitted"
       survey_status: "draft" | "published" | "archived"
       user_role: "admin" | "user"
     }
