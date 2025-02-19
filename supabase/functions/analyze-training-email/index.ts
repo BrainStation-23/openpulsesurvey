@@ -7,6 +7,97 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function parseGradingResponse(text: string) {
+  console.log('Raw response:', text);
+  
+  // Default structure
+  const grade = {
+    scores: {
+      professionalism: 0,
+      completeness: 0,
+      clarity: 0,
+      solution_quality: 0,
+      total_score: 0
+    },
+    analysis: {
+      strengths: [] as string[],
+      areas_for_improvement: [] as string[],
+      detailed_feedback: ""
+    }
+  };
+
+  try {
+    // First attempt to find a JSON-like structure
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.scores && parsed.analysis) {
+          return parsed;
+        }
+      } catch (e) {
+        console.log('JSON parsing failed, falling back to text parsing');
+      }
+    }
+
+    // Extract scores - look for numbers after score labels
+    const scorePatterns = {
+      professionalism: /professionalism[^0-9]*([0-9]+)/i,
+      completeness: /completeness[^0-9]*([0-9]+)/i,
+      clarity: /clarity[^0-9]*([0-9]+)/i,
+      solution_quality: /(solution|quality)[^0-9]*([0-9]+)/i
+    };
+
+    for (const [key, pattern] of Object.entries(scorePatterns)) {
+      const match = text.match(pattern);
+      if (match) {
+        const score = parseInt(match[1], 10);
+        if (score >= 0 && score <= 10) {
+          grade.scores[key as keyof typeof grade.scores] = score;
+        }
+      }
+    }
+
+    // Calculate total score
+    grade.scores.total_score = Object.values(grade.scores).reduce((a, b) => a + b, 0);
+
+    // Extract strengths and improvements
+    // Look for bullet points or numbered lists after relevant headers
+    const sections = {
+      strengths: /strengths?:?([\s\S]*?)(?=(areas?|improvements?|detailed|$))/i,
+      improvements: /(?:areas?|improvements?):?([\s\S]*?)(?=(detailed|$))/i,
+    };
+
+    for (const [key, pattern] of Object.entries(sections)) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const items = match[1]
+          .split(/[\n\r]/)
+          .map(line => line.replace(/^[-•\d.)\s]+/, '').trim())
+          .filter(line => line.length > 0);
+
+        if (key === 'strengths') {
+          grade.analysis.strengths = items;
+        } else {
+          grade.analysis.areas_for_improvement = items;
+        }
+      }
+    }
+
+    // Extract detailed feedback - take everything after "detailed feedback" or similar headers
+    const feedbackMatch = text.match(/(?:detailed|comprehensive|overall)[\s\S]*?(?:feedback|analysis):?([\s\S]*?)(?=$)/i);
+    if (feedbackMatch && feedbackMatch[1]) {
+      grade.analysis.detailed_feedback = feedbackMatch[1].trim();
+    }
+
+    console.log('Parsed grade:', grade);
+    return grade;
+  } catch (error) {
+    console.error('Error parsing response:', error);
+    return grade; // Return default structure if parsing fails
+  }
+}
+
 // Utility function for retry logic
 async function retryWithBackoff<T>(
   operation: () => Promise<T>,
@@ -47,28 +138,29 @@ serve(async (req) => {
     // First, generate the grading analysis
     const gradingPrompt = `
       You are an expert email response evaluator. Analyze this email exchange and provide a detailed evaluation.
+      Use exactly this format in your response:
+      
+      PROFESSIONALISM SCORE: (give a score from 0-10)
+      COMPLETENESS SCORE: (give a score from 0-10)
+      CLARITY SCORE: (give a score from 0-10)
+      SOLUTION QUALITY SCORE: (give a score from 0-10)
+      
+      STRENGTHS:
+      - (list key strengths)
+      - (continue listing strengths)
+      
+      AREAS FOR IMPROVEMENT:
+      - (list areas to improve)
+      - (continue listing areas)
+      
+      DETAILED FEEDBACK:
+      (provide comprehensive feedback)
       
       Original Email:
       ${JSON.stringify(originalEmail)}
       
       User's Response:
-      ${JSON.stringify(userResponse)}
-      
-      Provide a JSON response with the following structure:
-      {
-        "scores": {
-          "professionalism": (0-10),
-          "completeness": (0-10),
-          "clarity": (0-10),
-          "solution_quality": (0-10),
-          "total_score": (sum of all scores)
-        },
-        "analysis": {
-          "strengths": ["strength1", "strength2", ...],
-          "areas_for_improvement": ["area1", "area2", ...],
-          "detailed_feedback": "comprehensive feedback"
-        }
-      }`;
+      ${JSON.stringify(userResponse)}`;
 
     console.log('Generating grading analysis...');
     const gradeResult = await retryWithBackoff(async () => {
@@ -77,15 +169,9 @@ serve(async (req) => {
       return response.text();
     });
 
-    // Parse and validate the grading response
-    let grade;
-    try {
-      grade = JSON.parse(gradeResult);
-      console.log('Successfully parsed grade:', grade);
-    } catch (error) {
-      console.error('Failed to parse grade JSON:', error);
-      throw new Error('Invalid grading response format');
-    }
+    // Parse the grading response using our robust parser
+    const grade = parseGradingResponse(gradeResult);
+    console.log('Processed grade:', grade);
 
     // Generate AI response based on the analysis
     const responsePrompt = `
