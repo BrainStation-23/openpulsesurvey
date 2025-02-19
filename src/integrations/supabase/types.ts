@@ -307,6 +307,7 @@ export type Database = {
       }
       email_responses: {
         Row: {
+          attempt_number: number
           created_at: string
           id: string
           original_email: Json
@@ -316,6 +317,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attempt_number?: number
           created_at?: string
           id?: string
           original_email: Json
@@ -325,6 +327,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attempt_number?: number
           created_at?: string
           id?: string
           original_email?: Json
