@@ -20,11 +20,11 @@ export function EmailListItem({ email, isSelected, onClick }: EmailListItemProps
       )}
     >
       <Avatar className="mt-0.5 h-8 w-8">
-        <AvatarFallback className="text-xs">{email.from[0]}</AvatarFallback>
+        <AvatarFallback className="text-xs">{email.from.name[0]}</AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1 space-y-0.5">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-medium truncate">{email.from}</p>
+          <p className="text-sm font-medium truncate">{email.from.name}</p>
           <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
             {formatDistanceToNow(new Date(), { addSuffix: true })}
           </span>

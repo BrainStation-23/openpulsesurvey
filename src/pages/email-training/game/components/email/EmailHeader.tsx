@@ -13,14 +13,14 @@ export function EmailHeader({ email }: EmailHeaderProps) {
     <div className="space-y-4 p-6 border-b">
       <div className="flex items-start gap-4">
         <Avatar className="mt-0.5">
-          <AvatarFallback>{email.from[0]}</AvatarFallback>
+          <AvatarFallback>{email.from.name[0]}</AvatarFallback>
         </Avatar>
         <div className="flex-1 space-y-1">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <h3 className="font-semibold">{email.from}</h3>
+              <h3 className="font-semibold">{email.from.name}</h3>
               <p className="text-sm text-muted-foreground">
-                to <span className="text-foreground">me</span>
+                <span className="text-muted-foreground">{email.from.email}</span> to <span className="text-foreground">me</span>
               </p>
             </div>
             <span className="text-sm text-muted-foreground">

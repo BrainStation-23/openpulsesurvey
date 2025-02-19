@@ -60,12 +60,12 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
       // Save the response
       const { data: emailResponse, error: responseError } = await supabase
         .from('email_responses')
-        .insert({
-          original_email: originalEmail,
-          response_email: response,
+        .insert([{
+          original_email: JSON.stringify(originalEmail),
+          response_email: JSON.stringify(response),
           session_id: currentSession?.id,
           attempt_number: currentAttempt
-        })
+        }])
         .select()
         .single();
 
