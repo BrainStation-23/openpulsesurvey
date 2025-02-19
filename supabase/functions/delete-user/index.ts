@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
@@ -26,15 +27,44 @@ serve(async (req) => {
 
     console.log('Starting user deletion process for user:', user_id);
 
-    // Check if user exists
-    const { data: user, error: userError } = await supabaseClient.auth.admin.getUserById(user_id);
+    // Step 1: Remove all auth sessions
+    console.log('Removing auth sessions...');
+    const { error: sessionError } = await supabaseClient
+      .from('auth.sessions')
+      .delete()
+      .eq('user_id', user_id);
 
-    if (userError || !user) {
-      console.error('Error fetching user:', userError);
-      throw new Error('User not found');
+    if (sessionError) {
+      console.error('Error deleting sessions:', sessionError);
+      // Continue with deletion even if session deletion fails
     }
 
-    // Delete the user using auth admin API
+    // Step 2: Remove MFA factors
+    console.log('Removing MFA factors...');
+    const { error: mfaError } = await supabaseClient
+      .from('auth.mfa_factors')
+      .delete()
+      .eq('user_id', user_id);
+
+    if (mfaError) {
+      console.error('Error deleting MFA factors:', mfaError);
+      // Continue with deletion even if MFA deletion fails
+    }
+
+    // Step 3: Remove identities
+    console.log('Removing auth identities...');
+    const { error: identityError } = await supabaseClient
+      .from('auth.identities')
+      .delete()
+      .eq('user_id', user_id);
+
+    if (identityError) {
+      console.error('Error deleting identities:', identityError);
+      // Continue with deletion even if identity deletion fails
+    }
+
+    // Step 4: Delete the auth user
+    console.log('Deleting auth user...');
     const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(user_id);
 
     if (deleteError) {
