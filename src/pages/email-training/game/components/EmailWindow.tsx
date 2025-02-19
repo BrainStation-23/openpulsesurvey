@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +12,9 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from "@/components/ui/resizable";
+import { GradingDisplay } from "./grading/GradingDisplay";
+import { AIResponse } from "./email/AIResponse";
+import type { GradingResponse } from "../types";
 
 interface EmailWindowProps {
   scenario: Scenario;
@@ -21,51 +23,77 @@ interface EmailWindowProps {
 
 export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
   const { isLoading, email: originalEmail, generateEmail } = useGeneratedEmail(scenario);
+  const [currentAttempt, setCurrentAttempt] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gradingResponse, setGradingResponse] = useState<GradingResponse | null>(null);
+  const [currentSession, setCurrentSession] = useState<{ id: string } | null>(null);
+  const [currentResponse, setCurrentResponse] = useState<{ id: string } | null>(null);
 
   const handleSubmit = async (response: EmailResponse) => {
     try {
-      // Get the current user's ID
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      if (!user) throw new Error('No user found');
+      setIsSubmitting(true);
 
-      // Get the active session
-      const { data: session, error: sessionError } = await supabase
-        .from('email_training_sessions')
-        .select()
-        .eq('user_id', user.id)
-        .eq('scenario_id', scenario.id)
-        .eq('status', 'playing')
-        .single();
+      // If no session exists, create one
+      if (!currentSession) {
+        const { data: session, error: sessionError } = await supabase
+          .from('email_training_sessions')
+          .insert({
+            scenario_id: scenario.id,
+            status: 'playing'
+          })
+          .select()
+          .single();
 
-      if (sessionError) throw sessionError;
+        if (sessionError) throw sessionError;
+        setCurrentSession(session);
+      }
 
       // Save the response
-      const { error: responseError } = await supabase
+      const { data: emailResponse, error: responseError } = await supabase
         .from('email_responses')
         .insert({
-          session_id: session.id,
-          original_email: JSON.stringify(originalEmail),
-          response_email: JSON.stringify(response),
-          submitted_at: new Date().toISOString()
-        });
+          session_id: currentSession?.id,
+          original_email: originalEmail,
+          response_email: response,
+          attempt_number: currentAttempt
+        })
+        .select()
+        .single();
 
       if (responseError) throw responseError;
+      setCurrentResponse(emailResponse);
 
-      // Update session status
-      const { error: updateError } = await supabase
-        .from('email_training_sessions')
-        .update({ status: 'submitted', completed_at: new Date().toISOString() })
-        .eq('id', session.id);
+      // Send to AI for analysis
+      const analysisResponse = await fetch('/api/analyze-training-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: currentSession?.id,
+          responseId: emailResponse.id,
+          originalEmail,
+          userResponse: response,
+          attemptNumber: currentAttempt
+        })
+      });
 
-      if (updateError) throw updateError;
+      if (!analysisResponse.ok) {
+        throw new Error('Failed to analyze response');
+      }
 
-      toast.success("Response submitted successfully!");
-      onComplete();
+      const gradingData: GradingResponse = await analysisResponse.json();
+      setGradingResponse(gradingData);
+
+      if (gradingData.isComplete) {
+        toast.success("Training completed!");
+        onComplete();
+      } else {
+        setCurrentAttempt(prev => prev + 1);
+      }
     } catch (error) {
       console.error('Error submitting response:', error);
       toast.error("Failed to submit response. Please try again.");
-      throw error;
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -103,11 +131,25 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
         <ResizablePanel defaultSize={75}>
           <div className="flex h-full flex-col bg-background">
             <EmailHeader email={originalEmail} />
-            <div className="flex-1 overflow-auto p-6">
+            <div className="flex-1 overflow-auto p-6 space-y-6">
               <EmailContent email={originalEmail} />
+              
+              {gradingResponse && (
+                <>
+                  <GradingDisplay 
+                    grade={gradingResponse.grade} 
+                    attemptNumber={currentAttempt - 1} 
+                  />
+                  <AIResponse response={gradingResponse.aiResponse} />
+                </>
+              )}
             </div>
             <div className="border-t p-6">
-              <EmailEditor onSubmit={handleSubmit} />
+              <EmailEditor 
+                onSubmit={handleSubmit} 
+                isSubmitting={isSubmitting}
+                disabled={gradingResponse?.isComplete}
+              />
             </div>
           </div>
         </ResizablePanel>

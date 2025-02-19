@@ -5,12 +5,16 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { Button } from "@/components/ui/button";
 import { Bold, Italic, List, ListOrdered, Quote, Undo, Redo, Send } from "lucide-react";
 import type { EmailResponse } from "../../types";
+import { useState } from "react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface EmailEditorProps {
   onSubmit: (response: EmailResponse) => Promise<void>;
+  isSubmitting?: boolean;
+  disabled?: boolean;
 }
 
-export function EmailEditor({ onSubmit }: EmailEditorProps) {
+export function EmailEditor({ onSubmit, isSubmitting = false, disabled = false }: EmailEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -28,7 +32,7 @@ export function EmailEditor({ onSubmit }: EmailEditorProps) {
   });
 
   const handleSubmit = async () => {
-    if (!editor) return;
+    if (!editor || disabled || isSubmitting) return;
     
     const response: EmailResponse = {
       subject: "Re: Response", // Default response subject
@@ -49,6 +53,7 @@ export function EmailEditor({ onSubmit }: EmailEditorProps) {
           onClick={() => editor.chain().focus().toggleBold().run()}
           data-active={editor.isActive('bold')}
           className="data-[active=true]:bg-accent"
+          disabled={disabled}
         >
           <Bold className="h-4 w-4" />
         </Button>
@@ -58,6 +63,7 @@ export function EmailEditor({ onSubmit }: EmailEditorProps) {
           onClick={() => editor.chain().focus().toggleItalic().run()}
           data-active={editor.isActive('italic')}
           className="data-[active=true]:bg-accent"
+          disabled={disabled}
         >
           <Italic className="h-4 w-4" />
         </Button>
@@ -67,6 +73,7 @@ export function EmailEditor({ onSubmit }: EmailEditorProps) {
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           data-active={editor.isActive('bulletList')}
           className="data-[active=true]:bg-accent"
+          disabled={disabled}
         >
           <List className="h-4 w-4" />
         </Button>
@@ -76,6 +83,7 @@ export function EmailEditor({ onSubmit }: EmailEditorProps) {
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           data-active={editor.isActive('orderedList')}
           className="data-[active=true]:bg-accent"
+          disabled={disabled}
         >
           <ListOrdered className="h-4 w-4" />
         </Button>
@@ -85,6 +93,7 @@ export function EmailEditor({ onSubmit }: EmailEditorProps) {
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           data-active={editor.isActive('blockquote')}
           className="data-[active=true]:bg-accent"
+          disabled={disabled}
         >
           <Quote className="h-4 w-4" />
         </Button>
@@ -93,6 +102,7 @@ export function EmailEditor({ onSubmit }: EmailEditorProps) {
             variant="ghost"
             size="icon"
             onClick={() => editor.chain().focus().undo().run()}
+            disabled={disabled}
           >
             <Undo className="h-4 w-4" />
           </Button>
@@ -100,6 +110,7 @@ export function EmailEditor({ onSubmit }: EmailEditorProps) {
             variant="ghost"
             size="icon"
             onClick={() => editor.chain().focus().redo().run()}
+            disabled={disabled}
           >
             <Redo className="h-4 w-4" />
           </Button>
@@ -119,8 +130,16 @@ export function EmailEditor({ onSubmit }: EmailEditorProps) {
       <EditorContent editor={editor} />
       
       <div className="flex justify-end pt-4 border-t">
-        <Button onClick={handleSubmit} className="gap-2">
-          <Send className="h-4 w-4" />
+        <Button 
+          onClick={handleSubmit} 
+          className="gap-2"
+          disabled={disabled || isSubmitting}
+        >
+          {isSubmitting ? (
+            <LoadingSpinner className="h-4 w-4" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
           Send Response
         </Button>
       </div>

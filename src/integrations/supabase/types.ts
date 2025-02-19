@@ -261,6 +261,50 @@ export type Database = {
         }
         Relationships: []
       }
+      email_response_grades: {
+        Row: {
+          ai_analysis: string | null
+          ai_response: string | null
+          attempt_number: number
+          client_satisfaction: boolean | null
+          created_at: string
+          grading_data: Json
+          id: string
+          response_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_analysis?: string | null
+          ai_response?: string | null
+          attempt_number: number
+          client_satisfaction?: boolean | null
+          created_at?: string
+          grading_data?: Json
+          id?: string
+          response_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_analysis?: string | null
+          ai_response?: string | null
+          attempt_number?: number
+          client_satisfaction?: boolean | null
+          created_at?: string
+          grading_data?: Json
+          id?: string
+          response_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_response_grades_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "email_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_responses: {
         Row: {
           created_at: string
@@ -334,6 +378,61 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      email_training_results: {
+        Row: {
+          created_at: string
+          final_score: number
+          id: string
+          improvement_notes: string | null
+          session_id: string
+          total_attempts: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          final_score: number
+          id?: string
+          improvement_notes?: string | null
+          session_id: string
+          total_attempts: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          final_score?: number
+          id?: string
+          improvement_notes?: string | null
+          session_id?: string
+          total_attempts?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_training_results_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "email_training_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_training_results_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_training_results_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_training_sessions: {
         Row: {
