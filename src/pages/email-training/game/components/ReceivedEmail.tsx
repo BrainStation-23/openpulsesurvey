@@ -19,7 +19,7 @@ export function ReceivedEmail({ email }: ReceivedEmailProps) {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">From</p>
-          <p className="text-sm">{email.from}</p>
+          <p className="text-sm">{email.from.name} ({email.from.email})</p>
         </div>
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">Subject</p>
