@@ -96,22 +96,33 @@ SUBJECT: [Write an urgent subject line about the main issue]
     console.log('Starting email generation with scenario:', scenario.id);
 
     // Use retryWithBackoff for the AI operation
-    const text = await retryWithBackoff(async () => {
+    const generatedContent = await retryWithBackoff(async () => {
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      console.log('Raw AI response:', response.text); // Debug log
-      return response.text;
+      console.log('Raw response object:', response); // Debug full response object
+      
+      // Get the text content from the response parts
+      const text = response.text();
+      console.log('Extracted text content:', text); // Debug extracted text
+      
+      return text;
     });
+
+    // Validate we have a string
+    if (typeof generatedContent !== 'string') {
+      console.error('Unexpected response type:', typeof generatedContent);
+      throw new Error('Generated content is not a string');
+    }
 
     console.log('Successfully generated AI response');
     
     // Validate the response format
-    if (!text.includes('FROM:') || !text.includes('SUBJECT:')) {
+    if (!generatedContent.includes('FROM:') || !generatedContent.includes('SUBJECT:')) {
       throw new Error('Generated content does not match expected format');
     }
 
     // Extract and structure the email parts
-    const emailData = extractEmailParts(text);
+    const emailData = extractEmailParts(generatedContent);
     console.log('Successfully parsed email data:', emailData); // Debug log
 
     return new Response(JSON.stringify(emailData), {
