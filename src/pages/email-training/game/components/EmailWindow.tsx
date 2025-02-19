@@ -13,7 +13,6 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GradingDisplay } from "./grading/GradingDisplay";
-import { AIResponse } from "./email/AIResponse";
 import type { GradingResponse } from "../types";
 
 interface EmailWindowProps {
@@ -73,7 +72,12 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
         .single();
 
       if (responseError) throw responseError;
-      setCurrentResponse(emailResponse);
+      
+      // Convert the response data to the expected format
+      setCurrentResponse({
+        id: emailResponse.id,
+        response_email: JSON.stringify(emailResponse.response_email)
+      });
 
       // Send to AI for analysis using Supabase edge function
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-training-email', {
