@@ -4,7 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Scenario } from "../../../admin/email-training/scenarios/types";
+import type { Scenario } from "../../../../types";
 import { GeneratedEmail } from "../../types";
 
 interface MailLayoutProps {
