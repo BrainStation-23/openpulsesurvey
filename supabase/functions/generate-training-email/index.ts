@@ -71,25 +71,33 @@ serve(async (req) => {
     const { scenario } = await req.json();
 
     const prompt = `Based on this scenario:
-    ${scenario.story}
+${scenario.story}
 
-    Write a professional business email following EXACTLY this format:
+Write an urgent business email FROM THE CLIENT'S PERSPECTIVE to the support/service provider. The email should come from the client who is experiencing issues. Follow EXACTLY this format:
 
-    FROM: [Full Name] <email@domain.com>
-    SUBJECT: [Write a clear subject line]
+FROM: [Client's Full Name] <[appropriate-email]>
+SUBJECT: [Write an urgent subject line about the main issue]
 
-    [Write the email body here. Make it professional and relevant to the scenario]
+[Write the email body from the CLIENT'S perspective, expressing:
+- The specific issues or problems they're experiencing
+- The impact on their business or operations
+- Their level of frustration and urgency
+- Clear expectations or requests for resolution]
 
-    KEY POINTS:
-    1. [First key point from the email]
-    2. [Second key point from the email]
-    3. [Third key point from the email]
+KEY POINTS:
+1. [First key point about the main issue and its business impact]
+2. [Second key point about their expectations]
+3. [Third key point about urgency or consequences]
 
-    Important:
-    - Use a relevant business email domain that matches the scenario
-    - Make the content realistic and professional
-    - Ensure the email tone matches the scenario context
-    - Include specific details from the scenario`;
+Important guidelines:
+- Write FROM the client's perspective
+- Use a business email domain that matches the client's organization
+- Express genuine frustration while maintaining professionalism
+- Include specific details about the problems described in the scenario
+- Make the content detailed and technically accurate
+- Set up a situation that requires a thoughtful, professional response`;
+
+    console.log('Sending prompt:', prompt);
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
