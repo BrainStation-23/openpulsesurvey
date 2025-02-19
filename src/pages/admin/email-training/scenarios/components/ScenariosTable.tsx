@@ -13,10 +13,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Scenario } from "../types";
 import { useNavigate } from "react-router-dom";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface ScenariosTableProps {
   scenarios: Scenario[];
@@ -30,6 +41,8 @@ export function ScenariosTable({ scenarios, onUpdate }: ScenariosTableProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortField, setSortField] = useState<'name' | 'difficulty_level'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [scenarioToDelete, setScenarioToDelete] = useState<Scenario | null>(null);
 
   // Get unique tags from all scenarios
   const allTags = useMemo(() => {
@@ -66,12 +79,19 @@ export function ScenariosTable({ scenarios, onUpdate }: ScenariosTableProps) {
       });
   }, [scenarios, searchQuery, selectedTags, sortField, sortDirection]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (scenario: Scenario) => {
+    setScenarioToDelete(scenario);
+  };
+
+  const confirmDelete = async () => {
+    if (!scenarioToDelete) return;
+    
     try {
+      setIsDeleting(true);
       const { error } = await supabase
         .from("email_scenarios")
         .delete()
-        .eq("id", id);
+        .eq("id", scenarioToDelete.id);
 
       if (error) throw error;
 
@@ -87,6 +107,9 @@ export function ScenariosTable({ scenarios, onUpdate }: ScenariosTableProps) {
         title: "Error",
         description: error.message,
       });
+    } finally {
+      setIsDeleting(false);
+      setScenarioToDelete(null);
     }
   };
 
@@ -205,7 +228,7 @@ export function ScenariosTable({ scenarios, onUpdate }: ScenariosTableProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDelete(scenario.id)}
+                    onClick={() => handleDelete(scenario)}
                     className="text-destructive"
                   >
                     <Trash className="h-4 w-4" />
@@ -216,6 +239,28 @@ export function ScenariosTable({ scenarios, onUpdate }: ScenariosTableProps) {
           ))}
         </TableBody>
       </Table>
+
+      <AlertDialog open={!!scenarioToDelete} onOpenChange={() => setScenarioToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the scenario "{scenarioToDelete?.name}" and all associated training data.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? <LoadingSpinner className="h-4 w-4" /> : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
