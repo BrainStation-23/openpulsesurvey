@@ -1,3 +1,5 @@
+
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,12 +35,19 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
     try {
       setIsSubmitting(true);
 
+      // Get the current user's ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       // If no session exists, create one
       if (!currentSession) {
         const { data: session, error: sessionError } = await supabase
           .from('email_training_sessions')
           .insert({
             scenario_id: scenario.id,
+            user_id: user.id,
             status: 'playing'
           })
           .select()
@@ -52,9 +61,9 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
       const { data: emailResponse, error: responseError } = await supabase
         .from('email_responses')
         .insert({
-          session_id: currentSession?.id,
           original_email: originalEmail,
           response_email: response,
+          session_id: currentSession?.id,
           attempt_number: currentAttempt
         })
         .select()

@@ -3,6 +3,10 @@ export interface GeneratedEmail {
   subject: string;
   content: string;
   key_points?: string[];
+  from: {
+    name: string;
+    email: string;
+  };
 }
 
 export interface EmailResponse {
