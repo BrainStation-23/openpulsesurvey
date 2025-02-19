@@ -14,6 +14,7 @@ export default function GamePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [gameState, setGameState] = useState<'initial' | 'playing' | 'submitted'>('initial');
+  const [isScenarioExpanded, setIsScenarioExpanded] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -82,6 +83,7 @@ export default function GamePage() {
       if (sessionError) throw sessionError;
       
       setGameState('playing');
+      setIsScenarioExpanded(false); // Collapse scenario when starting
     } catch (error) {
       console.error('Error starting session:', error);
       toast.error("Failed to start session. Please try again.");
@@ -118,8 +120,12 @@ export default function GamePage() {
         <h1 className="text-2xl font-bold">Email Training</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ScenarioDisplay scenario={scenario} />
+      <div className="space-y-6">
+        <ScenarioDisplay 
+          scenario={scenario} 
+          isExpanded={isScenarioExpanded}
+          onToggle={() => setIsScenarioExpanded(!isScenarioExpanded)}
+        />
         
         {gameState === 'initial' ? (
           <div className="flex flex-col items-center justify-center p-8 border rounded-lg bg-card">
