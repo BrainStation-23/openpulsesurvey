@@ -76,24 +76,20 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
       if (responseError) throw responseError;
       setCurrentResponse(emailResponse);
 
-      // Send to AI for analysis
-      const analysisResponse = await fetch('/api/analyze-training-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      // Send to AI for analysis using Supabase edge function
+      const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-training-email', {
+        body: {
           sessionId: currentSession?.id,
           responseId: emailResponse.id,
           originalEmail: email,
           userResponse: response,
           attemptNumber: currentAttempt
-        })
+        }
       });
 
-      if (!analysisResponse.ok) {
-        throw new Error('Failed to analyze response');
-      }
+      if (analysisError) throw analysisError;
 
-      const gradingData: GradingResponse = await analysisResponse.json();
+      const gradingData = analysisData as GradingResponse;
       setGradingResponse(gradingData);
 
       if (gradingData.isComplete) {
