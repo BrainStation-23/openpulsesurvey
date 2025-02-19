@@ -15,22 +15,22 @@ export function EmailListItem({ email, isSelected, onClick }: EmailListItemProps
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-start gap-4 p-4 text-left transition-colors hover:bg-accent",
-        isSelected && "bg-accent"
+        "w-full flex items-start gap-3 p-3 text-left transition-colors hover:bg-accent/50",
+        isSelected && "bg-accent/50"
       )}
     >
-      <Avatar className="shrink-0">
-        <AvatarFallback>{email.from[0]}</AvatarFallback>
+      <Avatar className="mt-0.5 h-8 w-8">
+        <AvatarFallback className="text-xs">{email.from[0]}</AvatarFallback>
       </Avatar>
-      <div className="flex-1 space-y-1 overflow-hidden">
+      <div className="min-w-0 flex-1 space-y-0.5">
         <div className="flex items-center justify-between">
-          <p className="font-medium truncate">{email.from}</p>
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
+          <p className="text-sm font-medium truncate">{email.from}</p>
+          <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
             {formatDistanceToNow(new Date(), { addSuffix: true })}
           </span>
         </div>
-        <p className="text-sm font-medium truncate">{email.subject}</p>
-        <p className="text-xs text-muted-foreground truncate">{email.content.substring(0, 100)}...</p>
+        <p className="text-xs font-medium truncate">{email.subject}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2 break-words">{email.content}</p>
       </div>
     </button>
   );
