@@ -30,20 +30,14 @@ serve(async (req) => {
 
     console.log('Starting user deletion process for user:', user_id);
 
-    // Call our new elevated-access function to delete the user
-    const { data: result, error: dbError } = await supabaseClient
-      .rpc('delete_auth_user_complete', {
-        in_user_id: user_id  // Updated to match the new parameter name
-      });
+    // Use the built-in admin.deleteUser method
+    const { error } = await supabaseClient.auth.admin.deleteUser(
+      user_id
+    )
 
-    if (dbError) {
-      console.error('Database error during user deletion:', dbError);
-      throw new Error(`Failed to delete user: ${dbError.message}`);
-    }
-
-    if (!result.success) {
-      console.error('User deletion failed:', result.error_message);
-      throw new Error(`Failed to delete user: ${result.error_message}`);
+    if (error) {
+      console.error('Error deleting user:', error);
+      throw error;
     }
 
     console.log('User deletion completed successfully');
