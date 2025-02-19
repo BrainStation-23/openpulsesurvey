@@ -94,9 +94,9 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
   }
 
   return (
-    <div className="h-[800px] rounded-lg border bg-card">
+    <div className="h-[900px] rounded-lg border bg-card">
       <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg overflow-hidden">
-        <ResizablePanel defaultSize={25} minSize={20}>
+        <ResizablePanel defaultSize={25} minSize={15}>
           <EmailList email={originalEmail} />
         </ResizablePanel>
         <ResizableHandle withHandle />
