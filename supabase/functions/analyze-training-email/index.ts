@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.3";
 
@@ -98,7 +97,6 @@ function parseGradingResponse(text: string) {
   }
 }
 
-// Utility function for retry logic
 async function retryWithBackoff<T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
@@ -173,24 +171,28 @@ serve(async (req) => {
     const grade = parseGradingResponse(gradeResult);
     console.log('Processed grade:', grade);
 
-    // Generate AI response based on the analysis
+    // Generate client's follow-up response based on the analysis
     const responsePrompt = `
-      You are a helpful email training assistant. Based on the following email exchange and analysis:
-      
+      You are the original client who sent this email:
+
       Original Email:
       ${JSON.stringify(originalEmail)}
-      
-      User's Response:
-      ${JSON.stringify(userResponse)}
-      
-      Analysis:
-      ${JSON.stringify(grade)}
-      
-      Provide a constructive and encouraging response to help the user improve their email writing skills.
-      Focus on both their strengths and areas for improvement.
-      Keep the response professional but friendly.`;
 
-    console.log('Generating AI response...');
+      You just received this response from the vendor/support:
+      ${JSON.stringify(userResponse)}
+
+      Write a follow-up email response that:
+      1. Maintains your original tone and perspective as the client
+      2. Either:
+         - Confirms the solution worked and expresses appreciation
+         - Asks for clarification if the response wasn't fully clear
+         - Raises additional related concerns if relevant
+      3. Stays consistent with your original email's context and your role
+
+      Just write the email content directly. Do not include any metadata like subject or sender information.
+      Start with a greeting and write the email body as you would normally write an email response.`;
+
+    console.log('Generating client response...');
     const aiResponse = await retryWithBackoff(async () => {
       const result = await model.generateContent(responsePrompt);
       const response = await result.response;
