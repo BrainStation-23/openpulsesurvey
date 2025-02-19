@@ -2,8 +2,6 @@
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GradingCriteriaTab } from "../admin/email-training/config/grading-criteria/GradingCriteriaTab";
 
 export default function AdminConfig() {
   const navigate = useNavigate();
@@ -21,18 +19,6 @@ export default function AdminConfig() {
         </Button>
         <h1 className="text-2xl font-bold">Platform Configuration</h1>
       </div>
-      
-      <Tabs defaultValue="grading-criteria">
-        <TabsList>
-          <TabsTrigger value="grading-criteria">Grading Criteria</TabsTrigger>
-          {/* Add other configuration tabs here */}
-        </TabsList>
-        
-        <TabsContent value="grading-criteria">
-          <GradingCriteriaTab />
-        </TabsContent>
-        {/* Add other tab contents here */}
-      </Tabs>
     </div>
   );
 }
