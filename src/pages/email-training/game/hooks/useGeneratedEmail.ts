@@ -12,12 +12,12 @@ export function useGeneratedEmail(scenario: Scenario) {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-training-email`,
+        "https://iqpgjxbqoeioqlfzosvu.supabase.co/functions/v1/generate-training-email",
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxcGdqeGJxb2Vpb3FsZnpvc3Z1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcxNzg3MDYsImV4cCI6MjA1Mjc1NDcwNn0.Pt2ZONdaxW9ofQ3bijC2vknLL4jYgAZSgJEcNmYJjSY'
           },
           body: JSON.stringify({ scenario })
         }
