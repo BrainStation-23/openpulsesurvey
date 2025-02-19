@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -31,6 +32,11 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
   const [currentResponse, setCurrentResponse] = useState<{ id: string } | null>(null);
 
   const handleSubmit = async (response: EmailResponse) => {
+    if (!email) {
+      toast.error("No email to respond to");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -60,7 +66,7 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
       const { data: emailResponse, error: responseError } = await supabase
         .from('email_responses')
         .insert([{
-          original_email: JSON.stringify(originalEmail),
+          original_email: JSON.stringify(email),
           response_email: JSON.stringify(response),
           session_id: currentSession?.id,
           attempt_number: currentAttempt
@@ -78,7 +84,7 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
         body: JSON.stringify({
           sessionId: currentSession?.id,
           responseId: emailResponse.id,
-          originalEmail,
+          originalEmail: email,
           userResponse: response,
           attemptNumber: currentAttempt
         })
