@@ -12,7 +12,7 @@ import type { EmailResponse } from "../types";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from "@/components/ui/resizable";
 
 interface EmailWindowProps {
   scenario: Scenario;
@@ -71,8 +71,8 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
 
   if (isLoading) {
     return (
-      <Card>
-        <div className="flex items-center justify-center p-8">
+      <Card className="p-8">
+        <div className="flex items-center justify-center">
           <LoadingSpinner className="w-8 h-8" />
         </div>
       </Card>
@@ -81,8 +81,8 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
 
   if (!originalEmail) {
     return (
-      <Card>
-        <div className="flex flex-col items-center justify-center gap-4 p-8">
+      <Card className="p-8">
+        <div className="flex flex-col items-center justify-center gap-4">
           <p className="text-muted-foreground">Failed to generate email</p>
           <Button onClick={generateEmail} variant="outline" className="gap-2">
             <RefreshCw className="w-4 h-4" />
@@ -94,13 +94,14 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
   }
 
   return (
-    <Card className="h-[800px] overflow-hidden">
-      <ResizablePanelGroup direction="horizontal" className="h-full">
-        <ResizablePanel defaultSize={25} minSize={20} className="overflow-hidden">
+    <div className="h-[800px] rounded-lg border bg-card">
+      <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg overflow-hidden">
+        <ResizablePanel defaultSize={25} minSize={20}>
           <EmailList email={originalEmail} />
         </ResizablePanel>
-        <ResizablePanel defaultSize={75} className="overflow-hidden">
-          <div className="flex h-full flex-col">
+        <ResizableHandle withHandle />
+        <ResizablePanel defaultSize={75}>
+          <div className="flex h-full flex-col bg-background">
             <EmailHeader email={originalEmail} />
             <div className="flex-1 overflow-auto p-6">
               <EmailContent email={originalEmail} />
@@ -111,6 +112,6 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
-    </Card>
+    </div>
   );
 }
