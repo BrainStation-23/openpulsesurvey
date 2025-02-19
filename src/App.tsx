@@ -44,6 +44,7 @@ import PlatformConfigLayout from "./components/layouts/PlatformConfigLayout";
 import ScenariosPage from "./pages/admin/email-training/scenarios";
 import CreateScenarioPage from "./pages/admin/email-training/scenarios/create";
 import GamePage from "./pages/email-training/game";
+import EmailTrainingConfig from "./pages/admin/email-training/config";
 import SBUsConfig from "./pages/admin/config/sbus";
 import SBUDetails from "./pages/admin/config/sbus/[id]";
 import EmailConfig from "./pages/admin/config/email";
@@ -123,6 +124,7 @@ const App = () => (
             <Route path="email-training/scenarios/create" element={<CreateScenarioPage />} />
             <Route path="email-training/scenarios/:id/edit" element={<CreateScenarioPage />} />
             <Route path="email-training/game" element={<GamePage />} />
+            <Route path="email-training/config" element={<EmailTrainingConfig />} />
           </Route>
         </Routes>
       </TooltipProvider>
