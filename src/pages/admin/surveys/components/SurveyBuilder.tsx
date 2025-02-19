@@ -103,8 +103,11 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
 
   const openSurveyCreator = () => {
     try {
-      const encodedJson = encodeURIComponent(jsonContent);
-      const creatorUrl = `https://surveyjs.io/create-survey?json=${encodedJson}`;
+      // Parse and re-stringify to get a compact JSON without formatting
+      const compactJson = JSON.stringify(JSON.parse(jsonContent));
+      const encodedJson = encodeURIComponent(compactJson);
+      console.log("Opening Survey Creator with encoded JSON:", encodedJson);
+      const creatorUrl = `https://surveyjs.io/create-survey?source=${encodedJson}`;
       window.open(creatorUrl, '_blank');
     } catch (error) {
       console.error("Error opening Survey Creator:", error);
