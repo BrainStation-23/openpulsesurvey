@@ -5,7 +5,6 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { Button } from "@/components/ui/button";
 import { Bold, Italic, List, ListOrdered, Quote, Undo, Redo, Send } from "lucide-react";
 import type { EmailResponse } from "../../types";
-import { useState } from "react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface EmailEditorProps {
@@ -26,7 +25,7 @@ export function EmailEditor({ onSubmit, isSubmitting = false, disabled = false }
     content: "",
     editorProps: {
       attributes: {
-        class: "prose dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-3 rounded-md border border-input bg-transparent hover:bg-accent/50 focus:bg-background transition-colors",
+        class: "prose dark:prose-invert max-w-none focus:outline-none min-h-[100px] max-h-[500px] px-4 py-3 overflow-y-auto rounded-md border border-input bg-transparent hover:bg-accent/50 focus:bg-background transition-colors",
       },
     },
   });
@@ -45,75 +44,77 @@ export function EmailEditor({ onSubmit, isSubmitting = false, disabled = false }
   if (!editor) return null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 border-b pb-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          data-active={editor.isActive('bold')}
-          className="data-[active=true]:bg-accent"
-          disabled={disabled}
-        >
-          <Bold className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          data-active={editor.isActive('italic')}
-          className="data-[active=true]:bg-accent"
-          disabled={disabled}
-        >
-          <Italic className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          data-active={editor.isActive('bulletList')}
-          className="data-[active=true]:bg-accent"
-          disabled={disabled}
-        >
-          <List className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          data-active={editor.isActive('orderedList')}
-          className="data-[active=true]:bg-accent"
-          disabled={disabled}
-        >
-          <ListOrdered className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          data-active={editor.isActive('blockquote')}
-          className="data-[active=true]:bg-accent"
-          disabled={disabled}
-        >
-          <Quote className="h-4 w-4" />
-        </Button>
-        <div className="ml-auto flex items-center gap-2">
+    <div className="flex flex-col h-full">
+      <div className="border-b bg-background sticky top-0 z-10">
+        <div className="flex items-center gap-2 p-4">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => editor.chain().focus().undo().run()}
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            data-active={editor.isActive('bold')}
+            className="data-[active=true]:bg-accent"
             disabled={disabled}
           >
-            <Undo className="h-4 w-4" />
+            <Bold className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => editor.chain().focus().redo().run()}
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            data-active={editor.isActive('italic')}
+            className="data-[active=true]:bg-accent"
             disabled={disabled}
           >
-            <Redo className="h-4 w-4" />
+            <Italic className="h-4 w-4" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            data-active={editor.isActive('bulletList')}
+            className="data-[active=true]:bg-accent"
+            disabled={disabled}
+          >
+            <List className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            data-active={editor.isActive('orderedList')}
+            className="data-[active=true]:bg-accent"
+            disabled={disabled}
+          >
+            <ListOrdered className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            data-active={editor.isActive('blockquote')}
+            className="data-[active=true]:bg-accent"
+            disabled={disabled}
+          >
+            <Quote className="h-4 w-4" />
+          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => editor.chain().focus().undo().run()}
+              disabled={disabled}
+            >
+              <Undo className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => editor.chain().focus().redo().run()}
+              disabled={disabled}
+            >
+              <Redo className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -127,21 +128,25 @@ export function EmailEditor({ onSubmit, isSubmitting = false, disabled = false }
         }
       `}</style>
 
-      <EditorContent editor={editor} />
+      <div className="flex-1 overflow-auto p-4">
+        <EditorContent editor={editor} />
+      </div>
       
-      <div className="flex justify-end pt-4 border-t">
-        <Button 
-          onClick={handleSubmit} 
-          className="gap-2"
-          disabled={disabled || isSubmitting}
-        >
-          {isSubmitting ? (
-            <LoadingSpinner className="h-4 w-4" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-          Send Response
-        </Button>
+      <div className="border-t p-4 bg-background sticky bottom-0">
+        <div className="flex justify-end">
+          <Button 
+            onClick={handleSubmit} 
+            className="gap-2"
+            disabled={disabled || isSubmitting}
+          >
+            {isSubmitting ? (
+              <LoadingSpinner className="h-4 w-4" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            Send Response
+          </Button>
+        </div>
       </div>
     </div>
   );
