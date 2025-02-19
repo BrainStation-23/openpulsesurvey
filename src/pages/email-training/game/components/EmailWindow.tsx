@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -24,7 +23,7 @@ interface EmailWindowProps {
 }
 
 export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
-  const { isLoading, email: originalEmail, generateEmail } = useGeneratedEmail(scenario);
+  const { isLoading, email, error, generateEmail } = useGeneratedEmail(scenario);
   const [currentAttempt, setCurrentAttempt] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gradingResponse, setGradingResponse] = useState<GradingResponse | null>(null);
@@ -116,7 +115,7 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
     );
   }
 
-  if (!originalEmail) {
+  if (!email) {
     return (
       <Card className="p-8">
         <div className="flex flex-col items-center justify-center gap-4">
@@ -134,14 +133,18 @@ export function EmailWindow({ scenario, onComplete }: EmailWindowProps) {
     <div className="h-[900px] rounded-lg border bg-card">
       <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg overflow-hidden">
         <ResizablePanel defaultSize={25} minSize={15}>
-          <EmailList email={originalEmail} />
+          <EmailList 
+            email={email} 
+            error={error}
+            onRetry={() => generateEmail()}
+          />
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={75}>
           <div className="flex h-full flex-col bg-background">
-            <EmailHeader email={originalEmail} />
+            <EmailHeader email={email} />
             <div className="flex-1 overflow-auto p-6 space-y-6">
-              <EmailContent email={originalEmail} />
+              <EmailContent email={email} />
               
               {gradingResponse && (
                 <>

@@ -1,15 +1,43 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { Scenario } from "../../../admin/email-training/scenarios/types";
 import type { GeneratedEmail } from "../types";
 
-export function useGeneratedEmail(scenario: Scenario) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [email, setEmail] = useState<GeneratedEmail | null>(null);
+interface EmailGenerationState {
+  email: GeneratedEmail | null;
+  isLoading: boolean;
+  error: string | null;
+  retryCount: number;
+}
 
-  const generateEmail = async () => {
-    setIsLoading(true);
+function isValidEmailResponse(data: any): data is GeneratedEmail {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    typeof data.subject === 'string' &&
+    typeof data.content === 'string' &&
+    typeof data.from === 'object' &&
+    data.from !== null &&
+    typeof data.from.name === 'string' &&
+    typeof data.from.email === 'string'
+  );
+}
+
+export function useGeneratedEmail(scenario: Scenario) {
+  const [state, setState] = useState<EmailGenerationState>({
+    email: null,
+    isLoading: true,
+    error: null,
+    retryCount: 0
+  });
+
+  const generateEmail = async (isRetry = false) => {
+    setState(prev => ({
+      ...prev,
+      isLoading: true,
+      error: null,
+    }));
+
     try {
       const response = await fetch(
         "https://iqpgjxbqoeioqlfzosvu.supabase.co/functions/v1/generate-training-email",
@@ -23,15 +51,44 @@ export function useGeneratedEmail(scenario: Scenario) {
         }
       );
 
-      if (!response.ok) throw new Error('Failed to generate email');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
-      const generatedEmail = await response.json();
-      setEmail(generatedEmail);
+      const data = await response.json();
+      
+      if (!isValidEmailResponse(data)) {
+        console.error('Invalid email response structure:', data);
+        throw new Error('Received malformed data from the server');
+      }
+
+      setState(prev => ({
+        ...prev,
+        email: data,
+        isLoading: false,
+        error: null,
+        retryCount: 0
+      }));
     } catch (error) {
       console.error('Error generating email:', error);
-      toast.error("Failed to generate email. Please try again.");
-    } finally {
-      setIsLoading(false);
+      
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to generate email',
+        retryCount: prev.retryCount + 1
+      }));
+
+      if (!isRetry) {
+        toast.error("Failed to generate email. Retrying...");
+      }
+
+      if (state.retryCount < 3) {
+        const retryDelay = Math.min(1000 * Math.pow(2, state.retryCount), 5000);
+        setTimeout(() => generateEmail(true), retryDelay);
+      } else {
+        toast.error("Could not generate email after multiple attempts. Please try again later.");
+      }
     }
   };
 
@@ -40,8 +97,10 @@ export function useGeneratedEmail(scenario: Scenario) {
   }, [scenario]);
 
   return {
-    isLoading,
-    email,
-    generateEmail
+    isLoading: state.isLoading,
+    email: state.email,
+    error: state.error,
+    generateEmail: () => generateEmail(),
+    retryCount: state.retryCount
   };
 }
