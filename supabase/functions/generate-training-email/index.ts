@@ -44,33 +44,18 @@ function extractEmailParts(text: string) {
   // Extract SUBJECT
   const subject = lines.find(line => line.startsWith('SUBJECT:'))?.replace('SUBJECT:', '').trim() || 'No Subject';
 
-  // Extract content (everything between SUBJECT and KEY POINTS)
+  // Extract content (everything after SUBJECT)
   const contentStartIndex = lines.findIndex(line => line.startsWith('SUBJECT:')) + 1;
-  const contentEndIndex = lines.findIndex(line => line.startsWith('KEY POINTS:'));
   const content = lines
-    .slice(contentStartIndex, contentEndIndex !== -1 ? contentEndIndex : undefined)
+    .slice(contentStartIndex)
     .filter(line => line.length > 0)
     .join('\n')
     .trim();
 
-  // Extract key points
-  const keyPoints: string[] = [];
-  let collectingKeyPoints = false;
-  for (const line of lines) {
-    if (line.startsWith('KEY POINTS:')) {
-      collectingKeyPoints = true;
-      continue;
-    }
-    if (collectingKeyPoints && line.match(/^\d+\.\s/)) {
-      keyPoints.push(line.replace(/^\d+\.\s/, '').trim());
-    }
-  }
-
   return {
     from,
     subject,
-    content,
-    key_points: keyPoints
+    content
   };
 }
 
@@ -97,7 +82,7 @@ serve(async (req) => {
     const prompt = `Based on this scenario:
 ${scenario.story}
 
-Write an urgent business email FROM THE CLIENT'S PERSPECTIVE to the support/service provider. The email should come from the client who is experiencing issues. Follow EXACTLY this format:
+Write an urgent business email FROM THE CLIENT'S PERSPECTIVE to the support/service provider. Follow EXACTLY this format:
 
 FROM: [Client's Full Name] <[appropriate-email]>
 SUBJECT: [Write an urgent subject line about the main issue]
@@ -106,20 +91,7 @@ SUBJECT: [Write an urgent subject line about the main issue]
 - The specific issues or problems they're experiencing
 - The impact on their business or operations
 - Their level of frustration and urgency
-- Clear expectations or requests for resolution]
-
-KEY POINTS:
-1. [First key point about the main issue and its business impact]
-2. [Second key point about their expectations]
-3. [Third key point about urgency or consequences]
-
-Important guidelines:
-- Write FROM the client's perspective
-- Use a business email domain that matches the client's organization
-- Express genuine frustration while maintaining professionalism
-- Include specific details about the problems described in the scenario
-- Make the content detailed and technically accurate
-- Set up a situation that requires a thoughtful, professional response`;
+- Clear expectations or requests for resolution]`;
 
     console.log('Starting email generation with scenario:', scenario.id);
 
@@ -127,19 +99,20 @@ Important guidelines:
     const text = await retryWithBackoff(async () => {
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      return response.text();
+      console.log('Raw AI response:', response.text); // Debug log
+      return response.text;
     });
 
     console.log('Successfully generated AI response');
     
     // Validate the response format
-    if (!text.includes('FROM:') || !text.includes('SUBJECT:') || !text.includes('KEY POINTS:')) {
+    if (!text.includes('FROM:') || !text.includes('SUBJECT:')) {
       throw new Error('Generated content does not match expected format');
     }
 
     // Extract and structure the email parts
     const emailData = extractEmailParts(text);
-    console.log('Successfully parsed email data');
+    console.log('Successfully parsed email data:', emailData); // Debug log
 
     return new Response(JSON.stringify(emailData), {
       headers: { 
