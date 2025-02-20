@@ -1,5 +1,5 @@
 
-import { CircleDollarSign, CloudCog, Mail, Users, Infinity, LineChart, Lock, Server, ExternalLink } from "lucide-react";
+import { CircleDollarSign, CloudCog, Mail, Users, Infinity, LineChart, Lock, Server, ExternalLink, Check } from "lucide-react";
 
 const WhyUs = () => {
   return (
@@ -146,19 +146,19 @@ const WhyUs = () => {
               </p>
               <ul className="space-y-3 text-gray-600">
                 <li className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <Check className="h-5 w-5 text-green-500" />
                   Self-host PostgreSQL database on your servers
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <Check className="h-5 w-5 text-green-500" />
                   Deploy the frontend to your own web servers
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <Check className="h-5 w-5 text-green-500" />
                   Use your existing email infrastructure
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <Check className="h-5 w-5 text-green-500" />
                   Complete control over your data and infrastructure
                 </li>
               </ul>
