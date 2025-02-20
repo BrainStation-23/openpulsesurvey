@@ -34,7 +34,7 @@ export function useSurveyResponse({
 
   // Initialize survey once
   useEffect(() => {
-    if (!surveyData) return;
+    if (!surveyData || !campaignInstanceId) return;
 
     try {
       console.log("Initializing survey with initial theme:", initialTheme);
@@ -48,7 +48,14 @@ export function useSurveyResponse({
       }
 
       // Only load existing response if it matches the current instance
-      if (existingResponse?.response_data && existingResponse.campaign_instance_id === campaignInstanceId) {
+      const matchingResponse = existingResponse?.campaign_instance_id === campaignInstanceId;
+      console.log("Checking for matching response:", { 
+        existingInstanceId: existingResponse?.campaign_instance_id,
+        currentInstanceId: campaignInstanceId,
+        hasMatch: matchingResponse
+      });
+
+      if (matchingResponse && existingResponse?.response_data) {
         console.log("Loading existing response data for instance:", campaignInstanceId);
         surveyModel.data = existingResponse.response_data;
         surveyModel.start();
@@ -59,13 +66,17 @@ export function useSurveyResponse({
           console.log("Restoring to page:", stateData.lastPageNo);
           surveyModel.currentPageNo = stateData.lastPageNo;
         }
+
+        // Make survey read-only if it's submitted
+        if (existingResponse.status === 'submitted') {
+          console.log("Setting survey to read-only mode");
+          surveyModel.mode = 'display';
+        }
       }
 
-      // If the response is submitted, make it read-only
-      if (existingResponse?.status === 'submitted' && existingResponse.campaign_instance_id === campaignInstanceId) {
-        surveyModel.mode = 'display';
-      } else {
-        // Add autosave for non-submitted surveys
+      // Only set up autosave if the survey is not in read-only mode
+      if (surveyModel.mode !== 'display') {
+        console.log("Setting up autosave");
         setupAutoSave(surveyModel);
         surveyModel.onComplete.add(() => {
           setShowSubmitDialog(true);
@@ -101,7 +112,7 @@ export function useSurveyResponse({
   }, [currentTheme, initialTheme, getThemeInstance]);
 
   const handleSubmitSurvey = async () => {
-    if (!survey) return;
+    if (!survey || !campaignInstanceId) return;
     
     try {
       const userId = (await supabase.auth.getUser()).data.user?.id;
@@ -114,15 +125,14 @@ export function useSurveyResponse({
         response_data: survey.data,
         status: 'submitted' as ResponseStatus,
         submitted_at: now,
-        updated_at: now,
         campaign_instance_id: campaignInstanceId,
       };
 
+      console.log("Submitting response:", responseData);
+
       const { error: responseError } = await supabase
         .from("survey_responses")
-        .upsert(responseData, {
-          onConflict: 'assignment_id,user_id,campaign_instance_id'
-        });
+        .upsert(responseData);
 
       if (responseError) throw responseError;
 

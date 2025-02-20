@@ -14,6 +14,11 @@ export function useAutoSave(
   const { toast } = useToast();
 
   const setupAutoSave = (surveyModel: Model) => {
+    if (!campaignInstanceId) {
+      console.error("Cannot setup autosave without campaign instance ID");
+      return;
+    }
+
     surveyModel.onCurrentPageChanged.add(async (sender) => {
       try {
         const userId = (await supabase.auth.getUser()).data.user?.id;
@@ -33,14 +38,14 @@ export function useAutoSave(
           campaign_instance_id: campaignInstanceId,
         };
 
+        console.log("Saving page state:", responseData);
+
         const { error } = await supabase
           .from("survey_responses")
-          .upsert(responseData, {
-            onConflict: 'assignment_id,user_id,campaign_instance_id'
-          });
+          .upsert(responseData);
 
         if (error) throw error;
-        console.log("Saved page state:", stateData);
+        console.log("Successfully saved page state");
       } catch (error) {
         console.error("Error saving page state:", error);
       }
@@ -59,15 +64,15 @@ export function useAutoSave(
           campaign_instance_id: campaignInstanceId,
         };
 
+        console.log("Saving response data:", responseData);
+
         const { error } = await supabase
           .from("survey_responses")
-          .upsert(responseData, {
-            onConflict: 'assignment_id,user_id,campaign_instance_id'
-          });
+          .upsert(responseData);
 
         if (error) throw error;
         setLastSaved(new Date());
-        console.log("Saved response data");
+        console.log("Successfully saved response data");
       } catch (error) {
         console.error("Error saving response:", error);
         toast({
