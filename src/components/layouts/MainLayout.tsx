@@ -3,23 +3,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
-import { Mail, MapPin, Phone, Facebook, Twitter, Linkedin, Github } from "lucide-react";
-import { useState } from "react";
+import { Mail, MapPin, Phone, Linkedin, Twitter } from "lucide-react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+
+type ContactFormData = {
+  name: string;
+  email: string;
+  message: string;
+};
 
 const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting }
+  } = useForm<ContactFormData>();
 
   const isActive = (path: string) => location.pathname === path;
 
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success("Message sent successfully! We'll get back to you soon.");
-    setEmail("");
-    setMessage("");
+  const handleContactSubmit = async (data: ContactFormData) => {
+    try {
+      // Here you would typically send the data to your backend
+      console.log("Form data:", data);
+      toast.success("Message sent successfully! We'll get back to you soon.");
+      reset();
+    } catch (error) {
+      toast.error("Failed to send message. Please try again.");
+    }
   };
 
   return (
@@ -76,97 +90,91 @@ const MainLayout = () => {
       <main className="flex-1">
         <Outlet />
       </main>
-      <footer className="bg-gray-900 text-gray-300">
-        <div className="container mx-auto px-4 py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-            {/* Company Info */}
-            <div>
-              <h3 className="text-white text-lg font-semibold mb-4">Open Office Survey</h3>
-              <p className="mb-4 text-gray-400">
-                Transform your workplace with meaningful feedback and data-driven insights.
-              </p>
-              <div className="flex space-x-4">
-                <a href="https://facebook.com" className="hover:text-white">
-                  <Facebook className="h-5 w-5" />
+      {/* Footer with Contact Section */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-2 gap-12 max-w-4xl mx-auto mb-12">
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold mb-6">Get In Touch</h2>
+              <div className="flex items-center space-x-4">
+                <Mail className="h-6 w-6 text-primary" />
+                <span>sales@brainstation-23.com</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Phone className="h-6 w-6 text-primary" />
+                <span>+1 (201) 534-7200</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <MapPin className="h-6 w-6 text-primary" />
+                <span>7426 Alban Station Blvd,Suite A101, Springfield,VA 22150</span>
+              </div>
+              <div className="flex space-x-4 pt-4">
+                <a href="https://www.linkedin.com/company/brain-station-23/" className="text-gray-400 hover:text-primary">
+                  <Linkedin className="h-6 w-6" />
                 </a>
-                <a href="https://twitter.com" className="hover:text-white">
-                  <Twitter className="h-5 w-5" />
-                </a>
-                <a href="https://linkedin.com" className="hover:text-white">
-                  <Linkedin className="h-5 w-5" />
-                </a>
-                <a href="https://github.com/BrainStation-23/openofficesurvey" className="hover:text-white">
-                  <Github className="h-5 w-5" />
+                <a href="https://x.com/BrainStation23" className="text-gray-400 hover:text-primary">
+                  <Twitter className="h-6 w-6" />
                 </a>
               </div>
             </div>
-
-            {/* Quick Links */}
-            <div>
-              <h3 className="text-white text-lg font-semibold mb-4">Quick Links</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link to="/features" className="hover:text-white">Features</Link>
-                </li>
-                <li>
-                  <Link to="/why-us" className="hover:text-white">Why Us?</Link>
-                </li>
-                <li>
-                  <Link to="/tech-stack" className="hover:text-white">Tech Stack</Link>
-                </li>
-                <li>
-                  <Link to="/login" className="hover:text-white">Login</Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Contact Info */}
-            <div>
-              <h3 className="text-white text-lg font-semibold mb-4">Contact Info</h3>
-              <ul className="space-y-3">
-                <li className="flex items-start">
-                  <MapPin className="h-5 w-5 mr-2 mt-1" />
-                  <span>Level 10, Plot 2, Bir Uttam AK Khandakar Road, Mohakhali C/A, Dhaka-1212</span>
-                </li>
-                <li className="flex items-center">
-                  <Phone className="h-5 w-5 mr-2" />
-                  <span>+880 9612 323232</span>
-                </li>
-                <li className="flex items-center">
-                  <Mail className="h-5 w-5 mr-2" />
-                  <span>hello@brainstation-23.com</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Contact Form */}
-            <div>
-              <h3 className="text-white text-lg font-semibold mb-4">Send us a message</h3>
-              <form onSubmit={handleContactSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit(handleContactSubmit)} className="space-y-4">
+              <div>
+                <Input
+                  placeholder="Your Name"
+                  className="bg-gray-800 border-gray-700"
+                  {...register("name", { required: "Name is required" })}
+                  aria-invalid={errors.name ? "true" : "false"}
+                />
+                {errors.name && (
+                  <p className="text-red-400 text-sm mt-1">{errors.name.message}</p>
+                )}
+              </div>
+              <div>
                 <Input
                   type="email"
-                  placeholder="Your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-400"
-                  required
+                  placeholder="Your Email"
+                  className="bg-gray-800 border-gray-700"
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Invalid email address"
+                    }
+                  })}
+                  aria-invalid={errors.email ? "true" : "false"}
                 />
+                {errors.email && (
+                  <p className="text-red-400 text-sm mt-1">{errors.email.message}</p>
+                )}
+              </div>
+              <div>
                 <Textarea
-                  placeholder="Your message"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-400"
-                  required
+                  placeholder="Your Message"
+                  className="h-32 bg-gray-800 border-gray-700"
+                  {...register("message", {
+                    required: "Message is required",
+                    minLength: {
+                      value: 10,
+                      message: "Message must be at least 10 characters"
+                    }
+                  })}
+                  aria-invalid={errors.message ? "true" : "false"}
                 />
-                <Button type="submit" className="w-full">
-                  Send Message
-                </Button>
-              </form>
-            </div>
+                {errors.message && (
+                  <p className="text-red-400 text-sm mt-1">{errors.message.message}</p>
+                )}
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Sending..." : "Send Message"}
+              </Button>
+            </form>
           </div>
-
-          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-sm">
-            <p>© 2024 Open Office Survey. All rights reserved.</p>
+          <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
+            <p>© {new Date().getFullYear()} Brain Station 23. All rights reserved.</p>
           </div>
         </div>
       </footer>
