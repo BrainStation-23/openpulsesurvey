@@ -36,14 +36,17 @@ const features = [
 
 const Features = () => {
   return (
-    <section id="features" className="py-20 bg-white">
+    <section id="features" className="py-24 bg-white">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center mb-12">Powerful Features</h2>
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <h2 className="text-3xl font-bold mb-4">Powerful Features</h2>
+          <p className="text-gray-600 text-lg">Everything you need to create and manage effective employee surveys</p>
+        </div>
         <div className="grid md:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <div 
               key={index}
-              className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+              className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
             >
               <feature.icon className="h-12 w-12 text-primary mb-4" />
               <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>

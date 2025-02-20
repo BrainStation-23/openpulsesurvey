@@ -5,7 +5,7 @@ import HowItWorks from "@/components/home/HowItWorks";
 
 const Index = () => {
   return (
-    <div>
+    <div className="overflow-hidden">
       <Hero />
       <Features />
       <HowItWorks />
