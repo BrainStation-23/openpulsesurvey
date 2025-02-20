@@ -42,7 +42,9 @@ export function useAutoSave(
 
         const { error } = await supabase
           .from("survey_responses")
-          .upsert(responseData);
+          .upsert(responseData, {
+            onConflict: 'assignment_id,user_id,campaign_instance_id'
+          });
 
         if (error) throw error;
         console.log("Successfully saved page state");
@@ -68,7 +70,9 @@ export function useAutoSave(
 
         const { error } = await supabase
           .from("survey_responses")
-          .upsert(responseData);
+          .upsert(responseData, {
+            onConflict: 'assignment_id,user_id,campaign_instance_id'
+          });
 
         if (error) throw error;
         setLastSaved(new Date());
