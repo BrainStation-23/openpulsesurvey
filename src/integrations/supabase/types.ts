@@ -1411,14 +1411,10 @@ export type Database = {
           p_instance_id: string
         }
         Returns: {
-          department: string
-          supervisor: string
+          primary_sbu: string
+          primary_manager: string
+          respondent_name: string
           response_data: Json
-          user_name: string
-          user_email: string
-          status: string
-          created_at: string
-          updated_at: string
           submitted_at: string
         }[]
       }
