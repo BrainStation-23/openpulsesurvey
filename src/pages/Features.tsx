@@ -1,11 +1,6 @@
-
-import { Button } from "@/components/ui/button";
-import { ArrowRight, BarChart3, CheckCircle, Shield, Settings2, Users, BrainCircuit, FileText } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { BarChart3, CheckCircle, Shield, Settings2, Users, BrainCircuit, FileText } from "lucide-react";
 
 const Features = () => {
-  const navigate = useNavigate();
-
   return (
     <div>
       {/* Hero Section with Background Image */}
@@ -28,13 +23,6 @@ const Features = () => {
               Open Office Survey helps organizations build a culture of continuous improvement through meaningful feedback. 
               Our comprehensive platform makes it easy to create, manage, and analyze employee surveys.
             </p>
-            <Button 
-              size="lg" 
-              onClick={() => navigate('/login')}
-              className="animate-fade-in bg-white text-purple-900 hover:bg-gray-100 font-medium text-lg px-8"
-            >
-              Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
           </div>
         </div>
       </div>
@@ -189,23 +177,6 @@ const Features = () => {
           <p className="text-xl text-gray-200 mb-12 max-w-2xl mx-auto">
             Join organizations that trust Open Office Survey to improve their workplace culture through meaningful feedback.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg" 
-              onClick={() => navigate('/login')}
-              className="bg-white text-purple-900 hover:bg-gray-100 font-medium text-lg px-8"
-            >
-              Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="lg"
-              onClick={() => navigate('/contact')}
-              className="border-white text-white hover:bg-white/10 font-medium text-lg px-8"
-            >
-              Contact Sales
-            </Button>
-          </div>
         </div>
       </section>
     </div>

@@ -1,11 +1,6 @@
-
-import { Button } from "@/components/ui/button";
-import { ArrowRight, CircleDollarSign, CloudCog, Mail, Users, Infinity, LineChart, Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { CircleDollarSign, CloudCog, Mail, Users, Infinity, LineChart, Lock } from "lucide-react";
 
 const WhyUs = () => {
-  const navigate = useNavigate();
-
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -115,23 +110,6 @@ const WhyUs = () => {
               Perfect for organizations with up to 5,000 monthly active users on the free tier. 
               Need more? Scale up only when you need to - no pressure, no hidden charges.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                onClick={() => navigate('/login')}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-lg px-8"
-              >
-                Get Started Free <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => navigate('/contact')}
-                className="border-blue-600 text-blue-600 hover:bg-blue-50 font-medium text-lg px-8"
-              >
-                Talk to Us
-              </Button>
-            </div>
           </div>
         </div>
       </section>
