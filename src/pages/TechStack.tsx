@@ -16,14 +16,15 @@ const TechStack = () => {
               Our platform leverages the power of battle-tested open source technologies,
               ensuring transparency, security, and continuous innovation.
             </p>
-            <div className="flex items-center justify-center space-x-4">
-              <Button variant="default" size="lg" className="gap-2">
+            <div className="flex items-center justify-center">
+              <Button 
+                variant="default" 
+                size="lg" 
+                className="gap-2"
+                onClick={() => window.open('https://github.com/BrainStation-23/openofficesurvey', '_blank')}
+              >
                 <Github className="h-5 w-5" />
                 View on GitHub
-              </Button>
-              <Button variant="outline" size="lg" className="gap-2">
-                <Terminal className="h-5 w-5" />
-                Documentation
               </Button>
             </div>
           </div>
@@ -128,6 +129,30 @@ const TechStack = () => {
                 stars: "30k+",
                 description: "Powerful asynchronous state management",
                 link: "https://github.com/TanStack/query"
+              },
+              {
+                name: "Survey.js",
+                stars: "8k+",
+                description: "JavaScript Survey and Form Library",
+                link: "https://github.com/surveyjs/survey-library"
+              },
+              {
+                name: "Recharts",
+                stars: "20k+",
+                description: "Composable charting library built on React components",
+                link: "https://github.com/recharts/recharts"
+              },
+              {
+                name: "Papa Parse",
+                stars: "10k+",
+                description: "Powerful CSV parser for JavaScript",
+                link: "https://github.com/mholt/PapaParse"
+              },
+              {
+                name: "Zod",
+                stars: "25k+",
+                description: "TypeScript-first schema validation",
+                link: "https://github.com/colinhacks/zod"
               },
               {
                 name: "Lucide Icons",
