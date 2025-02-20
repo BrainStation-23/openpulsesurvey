@@ -29,7 +29,7 @@ export default function PublicSurveyPage() {
   const { data: assignmentData, isLoading } = useQuery({
     queryKey: ["public-survey", token],
     queryFn: async () => {
-      // First get the assignment
+      // First get the assignment with campaign info
       const { data: assignment, error: assignmentError } = await supabase
         .from("survey_assignments")
         .select(`
@@ -41,6 +41,12 @@ export default function PublicSurveyPage() {
             json_data,
             theme_settings,
             status
+          ),
+          campaign:survey_campaigns!survey_assignments_campaign_id_fkey (
+            id,
+            name,
+            is_recurring,
+            status
           )
         `)
         .eq("public_access_token", token)
@@ -49,11 +55,28 @@ export default function PublicSurveyPage() {
       if (assignmentError) throw assignmentError;
       if (!assignment) throw new Error("Survey not found");
 
-      // Check for existing response
+      // Get active instance if there is a campaign
+      let activeInstance = null;
+      if (assignment.campaign_id) {
+        const { data: instance, error: instanceError } = await supabase
+          .from("campaign_instances")
+          .select("*")
+          .eq("campaign_id", assignment.campaign_id)
+          .eq("status", 'active')
+          .order("period_number", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (instanceError) throw instanceError;
+        activeInstance = instance;
+      }
+
+      // Check for existing response using the active instance
       const { data: existingResponse, error: responseError } = await supabase
         .from("survey_responses")
         .select("submitted_at")
         .eq("assignment_id", assignment.id)
+        .eq("campaign_instance_id", activeInstance?.id)
         .not("submitted_at", "is", null)
         .maybeSingle();
 
@@ -61,6 +84,7 @@ export default function PublicSurveyPage() {
 
       return {
         assignment,
+        activeInstance,
         existingResponse
       };
     },
@@ -70,7 +94,7 @@ export default function PublicSurveyPage() {
     if (assignmentData?.assignment?.survey?.json_data && !assignmentData.existingResponse) {
       const surveyModel = new Model(assignmentData.assignment.survey.json_data);
       
-      // Apply theme settings from the survey if available, otherwise use default
+      // Apply theme settings
       if (assignmentData.assignment.survey.theme_settings) {
         const theme = getThemeInstance(assignmentData.assignment.survey.theme_settings);
         if (theme) {
@@ -82,28 +106,12 @@ export default function PublicSurveyPage() {
       
       surveyModel.onComplete.add(async (sender) => {
         try {
-          // Double-check for existing response before submitting
-          const { data: existingResponse } = await supabase
-            .from("survey_responses")
-            .select("id")
-            .eq("assignment_id", assignmentData.assignment.id)
-            .not("submitted_at", "is", null)
-            .maybeSingle();
-
-          if (existingResponse) {
-            toast({
-              title: "Already submitted",
-              description: "You have already submitted a response to this survey.",
-              variant: "destructive",
-            });
-            navigate(`/public/survey/${token}/thank-you`);
-            return;
-          }
-
           const responseData = {
             assignment_id: assignmentData.assignment.id,
             user_id: assignmentData.assignment.user_id,
             response_data: sender.data,
+            status: 'submitted' as const,
+            campaign_instance_id: assignmentData.activeInstance?.id || null,
             submitted_at: new Date().toISOString(),
           };
 
@@ -154,6 +162,40 @@ export default function PublicSurveyPage() {
         <p className="text-muted-foreground">
           The survey you're looking for doesn't exist or has expired.
         </p>
+      </div>
+    );
+  }
+
+  // Check if campaign is active when there is a campaign
+  if (assignmentData.assignment.campaign && assignmentData.assignment.campaign.status !== 'active') {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-2xl mx-auto">
+          <Alert variant="default">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Survey Not Available</AlertTitle>
+            <AlertDescription>
+              This survey is not currently active. Please try again later or contact the survey administrator.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if there's an active instance when there is a campaign
+  if (assignmentData.assignment.campaign && !assignmentData.activeInstance) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-2xl mx-auto">
+          <Alert variant="default">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Survey Not Available</AlertTitle>
+            <AlertDescription>
+              There is no active survey period at the moment. Please try again later.
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
     );
   }
