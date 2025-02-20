@@ -109,7 +109,7 @@ export default function MySurveysList() {
         <div className="space-y-4 p-4">
           {filteredSurveys?.map((survey) => (
             <SurveyCard
-              key={survey.id}
+              key={survey.instance.unique_key || `${survey.id}_${survey.instance.period_number}`}
               survey={survey}
               onSelect={handleSelectSurvey}
             />
