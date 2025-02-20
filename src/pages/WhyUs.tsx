@@ -52,7 +52,7 @@ const WhyUs = () => {
                   </li>
                   <li className="flex items-center">
                     <Infinity className="h-5 w-5 text-green-500 mr-2" />
-                    Unlimited users on free tier
+                    Unlimited users
                   </li>
                   <li className="flex items-center">
                     <LineChart className="h-5 w-5 text-green-500 mr-2" />
@@ -77,7 +77,7 @@ const WhyUs = () => {
                 <CloudCog className="h-12 w-12 text-blue-500 mb-4" />
                 <h3 className="text-xl font-semibold mb-3">Supabase Backend</h3>
                 <p className="text-gray-600">
-                  Hosted on Supabase's generous free tier, supporting up to 5,000 monthly active users with enterprise-grade PostgreSQL database.
+                  Hosted on Supabase's generous free tier, supporting up to 50,000 monthly active users with enterprise-grade PostgreSQL database.
                 </p>
               </div>
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -107,7 +107,7 @@ const WhyUs = () => {
               Start Free, Scale When You Need
             </h2>
             <p className="text-xl text-gray-600 mb-8">
-              Perfect for organizations with up to 5,000 monthly active users on the free tier. 
+              Perfect for organizations with up to 50,000 monthly active users for free. 
               Need more? Scale up only when you need to - no pressure, no hidden charges.
             </p>
           </div>
