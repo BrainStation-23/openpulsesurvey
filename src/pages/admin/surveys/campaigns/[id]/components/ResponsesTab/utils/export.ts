@@ -33,14 +33,10 @@ export async function exportResponses(responses: Response[]) {
   const data = exportData.map(row => {
     // Start with metadata columns
     const csvRow: Record<string, any> = {
-      'Department': row.department,
-      'Supervisor': row.supervisor,
-      'Respondent': row.user_name,
-      'Email': row.user_email,
-      'Status': row.status,
-      'Created': new Date(row.created_at).toLocaleString(),
-      'Updated': new Date(row.updated_at).toLocaleString(),
-      'Submitted': row.submitted_at ? new Date(row.submitted_at).toLocaleString() : 'N/A',
+      'Primary SBU': row.primary_sbu,
+      'Primary Manager': row.primary_manager,
+      'Respondent': row.respondent_name,
+      'Submitted At': new Date(row.submitted_at).toLocaleString()
     };
 
     // Add each question's response
