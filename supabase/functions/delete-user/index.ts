@@ -1,72 +1,64 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { corsHeaders } from "../_shared/cors.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
+
+console.log("Hello from Delete User function!")
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     )
 
+    // Get request body
     const { user_id } = await req.json()
 
     if (!user_id) {
-      throw new Error('User ID is required');
+      throw new Error('user_id is required')
     }
 
     console.log('Starting user deletion process for user:', user_id);
 
-    // Check if user exists
-    const { data: user, error: userError } = await supabaseClient.auth.admin.getUserById(user_id);
+    // Use the built-in admin.deleteUser method
+    const { error } = await supabaseClient.auth.admin.deleteUser(
+      user_id
+    )
 
-    if (userError || !user) {
-      console.error('Error fetching user:', userError);
-      throw new Error('User not found');
-    }
-
-    // Delete the user using auth admin API
-    const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(user_id);
-
-    if (deleteError) {
-      console.error('Error deleting auth user:', deleteError);
-      throw deleteError;
+    if (error) {
+      console.error('Error deleting user:', error);
+      throw error;
     }
 
     console.log('User deletion completed successfully');
 
     return new Response(
-      JSON.stringify({ 
-        message: 'User deleted successfully'
-      }),
-      { 
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+      JSON.stringify({ success: true }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       },
     )
+
   } catch (error) {
-    console.error('Function error:', error);
+    console.error('Error in delete-user function:', error)
     return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Error deleting user'
-      }),
-      { 
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+      JSON.stringify({ error: error.message }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       },
     )

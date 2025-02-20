@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeSwitcher } from "@/components/shared/surveys/ThemeSwitcher";
-import { useSurveyResponse } from "@/hooks/survey-response"; // Updated import path
+import { useSurveyResponse } from "@/hooks/survey-response";
 import { SubmitDialog } from "@/pages/admin/my-surveys/[id]/components/SubmitDialog";
 import { Json } from "@/integrations/supabase/types";
 
@@ -23,7 +23,6 @@ interface ThemeSettings {
   isPanelless: boolean;
 }
 
-// Type guard to check if a Json value is a ThemeSettings object
 function isThemeSettings(json: Json): json is ThemeSettings {
   if (typeof json !== 'object' || json === null) return false;
   
@@ -36,11 +35,11 @@ function isThemeSettings(json: Json): json is ThemeSettings {
 }
 
 export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps) {
-  const { id } = useParams();
+  const { assignmentId, instanceId } = useParams();
   const navigate = useNavigate();
 
   const { data: assignmentData, isLoading } = useQuery({
-    queryKey: ["survey-assignment-with-response", id],
+    queryKey: ["survey-assignment-with-response", assignmentId, instanceId],
     queryFn: async () => {
       const user = await supabase.auth.getUser();
       if (!user.data.user) throw new Error("User not authenticated");
@@ -62,32 +61,18 @@ export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps
             name
           )
         `)
-        .eq("id", id)
+        .eq("id", assignmentId)
         .maybeSingle();
 
       if (assignmentError) throw assignmentError;
       if (!assignment) throw new Error("Survey assignment not found");
 
-      // Get the active instance for this assignment's campaign
-      const { data: instance } = await supabase
-        .from("campaign_instances")
-        .select("id")
-        .eq("campaign_id", assignment.campaign_id)
-        .eq("status", "active")
-        .single();
-
-      // Get the assignment status using the instance
-      const { data: assignmentStatus } = await supabase
-        .rpc('get_instance_assignment_status', {
-          p_assignment_id: assignment.id,
-          p_instance_id: instance.id
-        });
-
-      // Fetch the latest response for this assignment
+      // Get the response for this specific instance
       const { data: response, error: responseError } = await supabase
         .from("survey_responses")
         .select("*")
-        .eq("assignment_id", assignment.id)
+        .eq("assignment_id", assignmentId)
+        .eq("campaign_instance_id", instanceId)
         .eq("user_id", user.data.user.id)
         .order("updated_at", { ascending: false })
         .maybeSingle();
@@ -117,11 +102,11 @@ export default function SurveyResponsePage({ viewType }: SurveyResponsePageProps
     handleSubmitSurvey,
     handleThemeChange,
   } = useSurveyResponse({
-    id: id!,
+    id: assignmentId!,
     viewType,
     surveyData: assignmentData?.assignment.survey?.json_data,
     existingResponse: assignmentData?.existingResponse,
-    campaignInstanceId: assignmentData?.assignment.campaign_id || null,
+    campaignInstanceId: instanceId || null,
     initialTheme: validThemeSettings,
   });
 

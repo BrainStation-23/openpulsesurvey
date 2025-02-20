@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -79,7 +80,7 @@ const App = () => (
             <Route index element={<Navigate to="/user/dashboard" replace />} />
             <Route path="dashboard" element={<UserDashboard />} />
             <Route path="my-surveys" element={<UserMySurveys />} />
-            <Route path="my-surveys/:id" element={<UserSurveyResponse />} />
+            <Route path="my-surveys/:assignmentId/:instanceId" element={<UserSurveyResponse />} />
             <Route path="settings" element={<UserSettings />} />
             <Route path="achievements" element={<UserAchievementsPage />} />
           </Route>
@@ -91,7 +92,7 @@ const App = () => (
             <Route path="users" element={<Users />} />
             <Route path="users/:id/edit" element={<EditUserPage />} />
             <Route path="my-surveys" element={<MySurveysPage />} />
-            <Route path="my-surveys/:id" element={<SurveyResponsePage />} />
+            <Route path="my-surveys/:assignmentId/:instanceId" element={<SurveyResponsePage />} />
             <Route path="surveys" element={<SurveysPage />} />
             <Route path="surveys/create" element={<SurveyFormPage />} />
             <Route path="surveys/:id/edit" element={<SurveyFormPage />} />

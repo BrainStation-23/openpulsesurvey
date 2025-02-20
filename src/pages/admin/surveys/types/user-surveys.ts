@@ -15,6 +15,8 @@ export type Instance = {
   starts_at: string;
   ends_at: string;
   status: Database["public"]["Enums"]["instance_status"];
+  period_number: number;
+  unique_key: string;
 };
 
 export type UserSurvey = {
