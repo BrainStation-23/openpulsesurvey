@@ -36,7 +36,7 @@ export function useAutoSave(
         const { error } = await supabase
           .from("survey_responses")
           .upsert(responseData, {
-            onConflict: 'assignment_id,user_id'
+            onConflict: 'assignment_id,user_id,campaign_instance_id'
           });
 
         if (error) throw error;
@@ -62,7 +62,7 @@ export function useAutoSave(
         const { error } = await supabase
           .from("survey_responses")
           .upsert(responseData, {
-            onConflict: 'assignment_id,user_id'
+            onConflict: 'assignment_id,user_id,campaign_instance_id'
           });
 
         if (error) throw error;

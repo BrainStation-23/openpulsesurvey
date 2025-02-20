@@ -47,9 +47,9 @@ export function useSurveyResponse({
         surveyModel.applyTheme(theme);
       }
 
-      // If there's an existing response, load it
-      if (existingResponse?.response_data) {
-        console.log("Loading existing response data");
+      // Only load existing response if it matches the current instance
+      if (existingResponse?.response_data && existingResponse.campaign_instance_id === campaignInstanceId) {
+        console.log("Loading existing response data for instance:", campaignInstanceId);
         surveyModel.data = existingResponse.response_data;
         surveyModel.start();
         
@@ -62,7 +62,7 @@ export function useSurveyResponse({
       }
 
       // If the response is submitted, make it read-only
-      if (existingResponse?.status === 'submitted') {
+      if (existingResponse?.status === 'submitted' && existingResponse.campaign_instance_id === campaignInstanceId) {
         surveyModel.mode = 'display';
       } else {
         // Add autosave for non-submitted surveys
@@ -84,12 +84,11 @@ export function useSurveyResponse({
     }
   }, [id, surveyData, existingResponse, campaignInstanceId, toast, initialTheme]);
 
-  // Handle only theme changes
+  // Handle theme changes
   useEffect(() => {
     const currentSurvey = surveyRef.current;
     if (!currentSurvey) return;
 
-    // Skip if theme hasn't actually changed
     if (JSON.stringify(currentTheme) === JSON.stringify(initialTheme)) return;
 
     console.log("Applying theme update:", currentTheme);
@@ -122,7 +121,7 @@ export function useSurveyResponse({
       const { error: responseError } = await supabase
         .from("survey_responses")
         .upsert(responseData, {
-          onConflict: 'assignment_id,user_id'
+          onConflict: 'assignment_id,user_id,campaign_instance_id'
         });
 
       if (responseError) throw responseError;
