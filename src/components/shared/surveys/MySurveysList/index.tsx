@@ -65,7 +65,7 @@ export default function MySurveysList() {
     }
   }, [userSurveys, toast]);
 
-  const handleSelectSurvey = async (id: string) => {
+  const handleSelectSurvey = async (survey: UserSurvey) => {
     // Check if user is admin
     const { data: roleData } = await supabase
       .from('user_roles')
@@ -74,9 +74,9 @@ export default function MySurveysList() {
       .single();
 
     if (roleData?.role === 'admin') {
-      navigate(`/admin/my-surveys/${id}`);
+      navigate(`/admin/my-surveys/${survey.id}/${survey.instance.id}`);
     } else {
-      navigate(`/user/my-surveys/${id}`);
+      navigate(`/user/my-surveys/${survey.id}/${survey.instance.id}`);
     }
   };
 
@@ -111,7 +111,7 @@ export default function MySurveysList() {
             <SurveyCard
               key={survey.instance.unique_key || `${survey.id}_${survey.instance.period_number}`}
               survey={survey}
-              onSelect={handleSelectSurvey}
+              onSelect={() => handleSelectSurvey(survey)}
             />
           ))}
           {filteredSurveys?.length === 0 && (
