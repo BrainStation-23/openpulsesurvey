@@ -127,6 +127,30 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_instance_status_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          run_at: string
+          updated_to_active: number
+          updated_to_completed: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          run_at: string
+          updated_to_active: number
+          updated_to_completed: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          run_at?: string
+          updated_to_active?: number
+          updated_to_completed?: number
+        }
+        Relationships: []
+      }
       campaign_instances: {
         Row: {
           campaign_id: string
@@ -1434,6 +1458,10 @@ export type Database = {
               total_count: number
             }[]
           }
+      update_instance_statuses: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       achievement_category:
