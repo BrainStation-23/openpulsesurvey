@@ -2,7 +2,13 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { InstanceCard } from "./InstanceCard";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface InstanceSelectorProps {
   selectedInstanceId?: string;
@@ -38,38 +44,40 @@ export function InstanceSelector({
   if (!instances?.length) return <div>No instances available</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h3 className="text-lg font-medium">Base Instance</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {instances.map((instance) => (
-            <InstanceCard
-              key={instance.id}
-              periodNumber={instance.period_number}
-              startsAt={instance.starts_at}
-              endsAt={instance.ends_at}
-              isSelected={instance.id === selectedInstanceId}
-              onClick={() => onSelectInstance(instance.id)}
-            />
-          ))}
+    <div className="space-y-4">
+      <div className="flex gap-4 items-center">
+        <div className="w-64">
+          <p className="text-sm font-medium mb-2">Base Instance</p>
+          <Select value={selectedInstanceId} onValueChange={onSelectInstance}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select base instance" />
+            </SelectTrigger>
+            <SelectContent>
+              {instances.map((instance) => (
+                <SelectItem key={instance.id} value={instance.id}>
+                  Period {instance.period_number} ({new Date(instance.starts_at).toLocaleDateString()} - {new Date(instance.ends_at).toLocaleDateString()})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <h3 className="text-lg font-medium">Comparison Instance</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {instances
-            .filter((instance) => instance.id !== selectedInstanceId)
-            .map((instance) => (
-              <InstanceCard
-                key={instance.id}
-                periodNumber={instance.period_number}
-                startsAt={instance.starts_at}
-                endsAt={instance.ends_at}
-                isSelected={instance.id === comparisonInstanceId}
-                onClick={() => onSelectComparison(instance.id)}
-              />
-            ))}
+        <div className="w-64">
+          <p className="text-sm font-medium mb-2">Comparison Instance</p>
+          <Select value={comparisonInstanceId} onValueChange={onSelectComparison}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select comparison instance" />
+            </SelectTrigger>
+            <SelectContent>
+              {instances
+                .filter((instance) => instance.id !== selectedInstanceId)
+                .map((instance) => (
+                  <SelectItem key={instance.id} value={instance.id}>
+                    Period {instance.period_number} ({new Date(instance.starts_at).toLocaleDateString()} - {new Date(instance.ends_at).toLocaleDateString()})
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>
