@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,8 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
       setEditedStatus(campaign.status);
     }
   }, [campaign]);
+
+  const canEditStatus = campaign?.status !== 'completed' && campaign?.status !== 'archived';
 
   const handleSave = async () => {
     if (!campaign) return;
@@ -175,6 +178,7 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
               onClick={() => setIsEditing(true)}
               variant="outline"
               size="sm"
+              disabled={campaign.status === 'completed' || campaign.status === 'archived'}
             >
               <Edit2 className="mr-2 h-4 w-4" />
               Edit
@@ -184,7 +188,7 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
       </div>
 
       <div className="flex items-center gap-4">
-        {isEditing ? (
+        {isEditing && canEditStatus ? (
           <Select
             value={editedStatus}
             onValueChange={setEditedStatus}
@@ -195,8 +199,6 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
             <SelectContent>
               <SelectItem value="draft">Draft</SelectItem>
               <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
         ) : (
