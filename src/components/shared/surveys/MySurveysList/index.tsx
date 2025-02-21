@@ -5,6 +5,21 @@ import { supabase } from "@/integrations/supabase/client";
 import SurveyFilters from "./components/SurveyFilters";
 import SurveyCard from "./components/SurveyCard";
 
+interface Survey {
+  id: string;
+  survey: {
+    id: string;
+    name: string;
+    description: string | null;
+  };
+  campaign: {
+    id: string;
+    name: string;
+    starts_at: string;
+    ends_at: string | null;
+  };
+}
+
 export default function MySurveysList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(["assigned", "in_progress"]);
@@ -19,8 +34,6 @@ export default function MySurveysList() {
         .from("survey_assignments")
         .select(`
           id,
-          status,
-          created_at,
           survey:surveys (
             id,
             name,
@@ -35,10 +48,6 @@ export default function MySurveysList() {
         `)
         .eq("user_id", user.user.id);
 
-      if (statusFilter.length > 0) {
-        query = query.in("status", statusFilter);
-      }
-
       if (searchQuery) {
         query = query.or(
           `survey.name.ilike.%${searchQuery}%,survey.description.ilike.%${searchQuery}%,campaign.name.ilike.%${searchQuery}%`
@@ -47,7 +56,7 @@ export default function MySurveysList() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data as Survey[];
     },
   });
 
