@@ -14,7 +14,7 @@ export default function MySurveysList() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<string[]>(["assigned", "in_progress"]);
   
   const { data: userSurveys, isLoading } = useQuery({
     queryKey: ["my-survey-assignments"],
@@ -86,15 +86,11 @@ export default function MySurveysList() {
       (survey.survey.description?.toLowerCase() || '').includes(searchQuery.toLowerCase());
 
     const matchesStatus = 
-      statusFilter === "all" || 
-      survey.status === statusFilter;
+      statusFilter.length === 0 || 
+      statusFilter.includes(survey.status);
 
     return matchesSearch && matchesStatus;
   });
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <div className="space-y-4">
@@ -103,6 +99,7 @@ export default function MySurveysList() {
         statusFilter={statusFilter}
         onSearchChange={setSearchQuery}
         onStatusChange={setStatusFilter}
+        isLoading={isLoading}
       />
 
       <ScrollArea className="h-[calc(100vh-14rem)]">
