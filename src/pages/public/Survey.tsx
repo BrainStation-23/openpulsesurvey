@@ -36,20 +36,46 @@ export default function PublicSurveyPage() {
       
       surveyModel.onComplete.add(async (sender) => {
         try {
-          const responseData = {
-            assignment_id: assignmentData.assignment.id,
-            user_id: assignmentData.assignment.user_id,
-            response_data: sender.data,
-            status: 'submitted' as const,
-            campaign_instance_id: assignmentData.activeInstance?.id || null,
-            submitted_at: new Date().toISOString(),
-          };
+          const userId = assignmentData.assignment.user_id;
+          const now = new Date().toISOString();
 
-          const { error: responseError } = await supabase
+          // First check for existing response
+          const { data: existingResponse } = await supabase
             .from("survey_responses")
-            .insert(responseData);
+            .select("id")
+            .eq("assignment_id", assignmentData.assignment.id)
+            .eq("user_id", userId)
+            .eq("campaign_instance_id", assignmentData.activeInstance?.id)
+            .maybeSingle();
 
-          if (responseError) throw responseError;
+          if (existingResponse) {
+            // Update existing response
+            const { error: updateError } = await supabase
+              .from("survey_responses")
+              .update({
+                response_data: sender.data,
+                status: 'submitted',
+                submitted_at: now,
+                updated_at: now
+              })
+              .eq("id", existingResponse.id);
+
+            if (updateError) throw updateError;
+          } else {
+            // Insert new response
+            const { error: insertError } = await supabase
+              .from("survey_responses")
+              .insert({
+                assignment_id: assignmentData.assignment.id,
+                user_id: userId,
+                response_data: sender.data,
+                status: 'submitted',
+                campaign_instance_id: assignmentData.activeInstance?.id || null,
+                submitted_at: now
+              });
+
+            if (insertError) throw insertError;
+          }
 
           toast({
             title: "Survey completed",
