@@ -1,4 +1,6 @@
 
+import { Json } from "@/integrations/supabase/types";
+
 export interface InstanceMetrics {
   avg_rating: number | null;
   unique_respondents: number | null;
@@ -7,8 +9,8 @@ export interface InstanceMetrics {
   starts_at: string | null;
   period_number: number | null;
   campaign_instance_id: string | null;
-  gender_breakdown: Record<string, any> | null;
-  location_breakdown: Record<string, any> | null;
+  gender_breakdown: Json | null;
+  location_breakdown: Json | null;
   completion_rate: number | null;
 }
 
