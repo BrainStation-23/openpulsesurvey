@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,22 +32,6 @@ export default function Login() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
-  const [isAzureEnabled, setIsAzureEnabled] = useState(false);
-
-  useEffect(() => {
-    const checkEnabledProviders = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        const providers = data.session?.user?.app_metadata?.providers || [];
-        setIsAzureEnabled(providers?.includes('azure'));
-      } catch (error) {
-        console.error('Error checking auth providers:', error);
-        setIsAzureEnabled(false);
-      }
-    };
-    
-    checkEnabledProviders();
-  }, []);
 
   const emailPasswordForm = useForm<z.infer<typeof emailLoginSchema>>({
     resolver: zodResolver(emailLoginSchema),
@@ -180,6 +164,8 @@ export default function Login() {
         provider: 'azure',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          // Instead of skipCreateUser, we'll handle the "User not found" error
+          // in the error handling section
         },
       });
 
@@ -298,43 +284,41 @@ export default function Login() {
             </TabsContent>
           </Tabs>
 
-          {isAzureEnabled && (
-            <>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <Separator className="w-full" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <Separator className="w-full" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleMicrosoftLogin}
-                disabled={isLoading}
-              >
-                <svg
-                  className="mr-2 h-4 w-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 48 48"
-                >
-                  <path fill="#f35325" d="M6 6h17v17H6z"/>
-                  <path fill="#81bc06" d="M24 6h17v17H24z"/>
-                  <path fill="#05a6f0" d="M6 24h17v17H6z"/>
-                  <path fill="#ffba08" d="M24 24h17v17H24z"/>
-                </svg>
-                {isLoading ? "Signing in..." : "Sign in with Microsoft"}
-              </Button>
-            </>
-          )}
+          {/* Microsoft login button moved outside of any form */}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleMicrosoftLogin}
+            disabled={isLoading}
+          >
+            <svg
+              className="mr-2 h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 48 48"
+            >
+              <path fill="#f35325" d="M6 6h17v17H6z"/>
+              <path fill="#81bc06" d="M24 6h17v17H24z"/>
+              <path fill="#05a6f0" d="M6 24h17v17H6z"/>
+              <path fill="#ffba08" d="M24 24h17v17H24z"/>
+            </svg>
+            {isLoading ? "Signing in..." : "Sign in with Microsoft"}
+          </Button>
         </CardContent>
       </Card>
 
+      {/* Keep the forgot password dialog */}
       <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
         <DialogContent>
           <DialogHeader>
