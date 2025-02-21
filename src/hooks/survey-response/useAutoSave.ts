@@ -13,12 +13,66 @@ export function useAutoSave(
 ) {
   const { toast } = useToast();
 
+  const saveResponse = async (
+    userId: string,
+    responseData: any,
+    stateData?: SurveyStateData,
+    status: ResponseStatus = 'in_progress'
+  ) => {
+    try {
+      // First try to get any existing response
+      const { data: existingResponse } = await supabase
+        .from("survey_responses")
+        .select("id")
+        .eq("assignment_id", id)
+        .eq("user_id", userId)
+        .eq("campaign_instance_id", campaignInstanceId)
+        .maybeSingle();
+
+      if (existingResponse) {
+        // Update existing response
+        const { error: updateError } = await supabase
+          .from("survey_responses")
+          .update({
+            response_data: responseData,
+            state_data: stateData || {},
+            status,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingResponse.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Insert new response
+        const { error: insertError } = await supabase
+          .from("survey_responses")
+          .insert({
+            assignment_id: id,
+            user_id: userId,
+            response_data: responseData,
+            state_data: stateData || {},
+            status,
+            campaign_instance_id: campaignInstanceId,
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      setLastSaved(new Date());
+      console.log("Successfully saved response");
+    } catch (error) {
+      console.error("Error saving response:", error);
+      throw error;
+    }
+  };
+
   const setupAutoSave = (surveyModel: Model) => {
     if (!campaignInstanceId) {
       console.error("Cannot setup autosave without campaign instance ID");
       return;
     }
 
+    // Handle page changes
     surveyModel.onCurrentPageChanged.add(async (sender) => {
       try {
         const userId = (await supabase.auth.getUser()).data.user?.id;
@@ -29,54 +83,24 @@ export function useAutoSave(
           lastUpdated: new Date().toISOString()
         } as SurveyStateData;
 
-        const responseData = {
-          assignment_id: id,
-          user_id: userId,
-          response_data: sender.data,
-          state_data: stateData,
-          status: 'in_progress' as ResponseStatus,
-          campaign_instance_id: campaignInstanceId,
-        };
-
-        console.log("Saving page state:", responseData);
-
-        const { error } = await supabase
-          .from("survey_responses")
-          .upsert(responseData, {
-            onConflict: 'assignment_id,user_id,campaign_instance_id'
-          });
-
-        if (error) throw error;
-        console.log("Successfully saved page state");
+        await saveResponse(userId, sender.data, stateData);
       } catch (error) {
         console.error("Error saving page state:", error);
+        toast({
+          title: "Error saving progress",
+          description: "There was an error saving your progress. Please try again.",
+          variant: "destructive",
+        });
       }
     });
 
+    // Handle value changes
     surveyModel.onValueChanged.add(async (sender) => {
       try {
         const userId = (await supabase.auth.getUser()).data.user?.id;
         if (!userId) throw new Error("User not authenticated");
 
-        const responseData = {
-          assignment_id: id,
-          user_id: userId,
-          response_data: sender.data,
-          status: 'in_progress' as ResponseStatus,
-          campaign_instance_id: campaignInstanceId,
-        };
-
-        console.log("Saving response data:", responseData);
-
-        const { error } = await supabase
-          .from("survey_responses")
-          .upsert(responseData, {
-            onConflict: 'assignment_id,user_id,campaign_instance_id'
-          });
-
-        if (error) throw error;
-        setLastSaved(new Date());
-        console.log("Successfully saved response data");
+        await saveResponse(userId, sender.data);
       } catch (error) {
         console.error("Error saving response:", error);
         toast({
