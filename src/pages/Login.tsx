@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,10 +37,9 @@ export default function Login() {
   useEffect(() => {
     const checkEnabledProviders = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data: { providers = [] } } = await supabase.auth.admin.listAuthProviders();
-        setIsAzureEnabled(providers?.some(provider => provider.provider === 'azure'));
+        const { data } = await supabase.auth.getSession();
+        const providers = data.session?.user?.app_metadata?.providers || [];
+        setIsAzureEnabled(providers?.includes('azure'));
       } catch (error) {
         console.error('Error checking auth providers:', error);
         setIsAzureEnabled(false);
@@ -182,8 +180,6 @@ export default function Login() {
         provider: 'azure',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
-          // Instead of skipCreateUser, we'll handle the "User not found" error
-          // in the error handling section
         },
       });
 
