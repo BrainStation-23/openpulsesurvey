@@ -32,14 +32,12 @@ export function useSurveyResponse({
   const { currentTheme, setCurrentTheme, getThemeInstance } = useTheme(initialTheme);
   const { setupAutoSave } = useAutoSave(id, campaignInstanceId, setLastSaved);
 
-  // Initialize survey once
   useEffect(() => {
     if (!surveyData || !campaignInstanceId) return;
 
     try {
       console.log("Initializing survey with initial theme:", initialTheme);
       
-      // Create survey model with initial theme
       const surveyModel = new Model(surveyData);
       const theme = getThemeInstance(initialTheme);
       if (theme) {
@@ -47,7 +45,6 @@ export function useSurveyResponse({
         surveyModel.applyTheme(theme);
       }
 
-      // Only load existing response if it matches the current instance
       const matchingResponse = existingResponse?.campaign_instance_id === campaignInstanceId;
       console.log("Checking for matching response:", { 
         existingInstanceId: existingResponse?.campaign_instance_id,
@@ -60,21 +57,18 @@ export function useSurveyResponse({
         surveyModel.data = existingResponse.response_data;
         surveyModel.start();
         
-        // Restore the last page from state data
         const stateData = existingResponse.state_data;
         if (stateData && isSurveyStateData(stateData)) {
           console.log("Restoring to page:", stateData.lastPageNo);
           surveyModel.currentPageNo = stateData.lastPageNo;
         }
 
-        // Make survey read-only if it's submitted
         if (existingResponse.status === 'submitted') {
           console.log("Setting survey to read-only mode");
           surveyModel.mode = 'display';
         }
       }
 
-      // Only set up autosave if the survey is not in read-only mode
       if (surveyModel.mode !== 'display') {
         console.log("Setting up autosave");
         setupAutoSave(surveyModel);
@@ -95,7 +89,6 @@ export function useSurveyResponse({
     }
   }, [id, surveyData, existingResponse, campaignInstanceId, toast, initialTheme]);
 
-  // Handle theme changes
   useEffect(() => {
     const currentSurvey = surveyRef.current;
     if (!currentSurvey) return;
@@ -119,22 +112,44 @@ export function useSurveyResponse({
       if (!userId) throw new Error("User not authenticated");
 
       const now = new Date().toISOString();
-      const responseData = {
-        assignment_id: id,
-        user_id: userId,
-        response_data: survey.data,
-        status: 'submitted' as ResponseStatus,
-        submitted_at: now,
-        campaign_instance_id: campaignInstanceId,
-      };
 
-      console.log("Submitting response:", responseData);
-
-      const { error: responseError } = await supabase
+      // First check for existing response
+      const { data: existingResponse } = await supabase
         .from("survey_responses")
-        .upsert(responseData);
+        .select("id")
+        .eq("assignment_id", id)
+        .eq("user_id", userId)
+        .eq("campaign_instance_id", campaignInstanceId)
+        .maybeSingle();
 
-      if (responseError) throw responseError;
+      if (existingResponse) {
+        // Update existing response
+        const { error: updateError } = await supabase
+          .from("survey_responses")
+          .update({
+            response_data: survey.data,
+            status: 'submitted' as ResponseStatus,
+            submitted_at: now,
+            updated_at: now
+          })
+          .eq("id", existingResponse.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Insert new response
+        const { error: insertError } = await supabase
+          .from("survey_responses")
+          .insert({
+            assignment_id: id,
+            user_id: userId,
+            response_data: survey.data,
+            status: 'submitted' as ResponseStatus,
+            submitted_at: now,
+            campaign_instance_id: campaignInstanceId,
+          });
+
+        if (insertError) throw insertError;
+      }
 
       toast({
         title: "Survey completed",
@@ -167,5 +182,4 @@ export function useSurveyResponse({
   };
 }
 
-// Re-export types
 export type * from './types';
