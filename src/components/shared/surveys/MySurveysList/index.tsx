@@ -6,9 +6,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
-import SurveyCard from "./SurveyCard";
 import SurveyFilters from "./components/SurveyFilters";
+import CampaignGroup from "./components/CampaignGroup";
 import { ResponseStatus, UserSurvey } from "@/pages/admin/surveys/types/user-surveys";
+
+interface CampaignGroup {
+  campaign_id: string;
+  name: string;
+  description?: string | null;
+  instances: UserSurvey[];
+}
 
 export default function MySurveysList() {
   const navigate = useNavigate();
@@ -80,7 +87,9 @@ export default function MySurveysList() {
     }
   };
 
-  const filteredSurveys = userSurveys?.filter((survey) => {
+  // Group and filter surveys
+  const groupedAndFilteredSurveys = userSurveys?.reduce<CampaignGroup[]>((groups, survey) => {
+    // Apply search and status filters at the instance level
     const matchesSearch = 
       survey.survey.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (survey.survey.description?.toLowerCase() || '').includes(searchQuery.toLowerCase());
@@ -89,7 +98,30 @@ export default function MySurveysList() {
       statusFilter.length === 0 || 
       statusFilter.includes(survey.status);
 
-    return matchesSearch && matchesStatus;
+    if (!matchesSearch || !matchesStatus) return groups;
+
+    // Find existing group or create new one
+    let group = groups.find(g => g.campaign_id === survey.campaign_id);
+    
+    if (!group) {
+      group = {
+        campaign_id: survey.campaign_id,
+        name: survey.survey.name,
+        description: survey.survey.description,
+        instances: []
+      };
+      groups.push(group);
+    }
+
+    group.instances.push(survey);
+    return groups;
+  }, []) || [];
+
+  // Sort instances within each group by period number
+  groupedAndFilteredSurveys.forEach(group => {
+    group.instances.sort((a, b) => 
+      (b.instance.period_number || 0) - (a.instance.period_number || 0)
+    );
   });
 
   return (
@@ -103,15 +135,18 @@ export default function MySurveysList() {
       />
 
       <ScrollArea className="h-[calc(100vh-14rem)]">
-        <div className="space-y-4 p-4">
-          {filteredSurveys?.map((survey) => (
-            <SurveyCard
-              key={survey.instance.unique_key || `${survey.id}_${survey.instance.period_number}`}
-              survey={survey}
-              onSelect={() => handleSelectSurvey(survey)}
+        <div className="space-y-6 p-4">
+          {groupedAndFilteredSurveys.map((group) => (
+            <CampaignGroup
+              key={group.campaign_id}
+              campaignId={group.campaign_id}
+              name={group.name}
+              description={group.description}
+              instances={group.instances}
+              onSelectSurvey={handleSelectSurvey}
             />
           ))}
-          {filteredSurveys?.length === 0 && (
+          {groupedAndFilteredSurveys.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               No surveys found matching your criteria
             </div>
