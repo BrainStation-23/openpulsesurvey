@@ -34,12 +34,12 @@ export default function MySurveysList() {
         .from("survey_assignments")
         .select(`
           id,
-          survey:surveys (
+          survey:surveys(
             id,
             name,
             description
           ),
-          campaign:survey_campaigns (
+          campaign:survey_campaigns!campaign_id(
             id,
             name,
             starts_at,
