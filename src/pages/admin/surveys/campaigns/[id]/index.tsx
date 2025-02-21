@@ -10,6 +10,7 @@ import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
 import { InstanceSelector } from "./components/InstanceSelector";
 import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
+import { InstanceCompareTab } from "./components/InstanceCompareTab";
 import { useState } from "react";
 
 export default function CampaignDetailsPage() {
@@ -98,6 +99,10 @@ export default function CampaignDetailsPage() {
             campaignId={campaign.id}
             instanceId={selectedInstanceId}
           />
+        </TabPanel>
+
+        <TabPanel value="compare">
+          <InstanceCompareTab />
         </TabPanel>
 
         <TabPanel value="analyze">
