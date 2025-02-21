@@ -124,6 +124,24 @@ export default function MySurveysList() {
     );
   });
 
+  // Sort campaigns by next due date
+  groupedAndFilteredSurveys.sort((a, b) => {
+    const aNextDue = a.instances
+      .filter(i => i.status !== 'submitted' && i.instance.ends_at)
+      .map(i => new Date(i.instance.ends_at!))
+      .sort((x, y) => x.getTime() - y.getTime())[0];
+    
+    const bNextDue = b.instances
+      .filter(i => i.status !== 'submitted' && i.instance.ends_at)
+      .map(i => new Date(i.instance.ends_at!))
+      .sort((x, y) => x.getTime() - y.getTime())[0];
+
+    if (!aNextDue && !bNextDue) return 0;
+    if (!aNextDue) return 1;
+    if (!bNextDue) return -1;
+    return aNextDue.getTime() - bNextDue.getTime();
+  });
+
   return (
     <div className="space-y-4">
       <SurveyFilters
@@ -135,7 +153,7 @@ export default function MySurveysList() {
       />
 
       <ScrollArea className="h-[calc(100vh-14rem)]">
-        <div className="space-y-6 p-4">
+        <div className="space-y-4 p-4">
           {groupedAndFilteredSurveys.map((group) => (
             <CampaignGroup
               key={group.campaign_id}
