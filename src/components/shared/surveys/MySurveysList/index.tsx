@@ -30,7 +30,8 @@ export default function MySurveysList() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error("Not authenticated");
 
-      let query = supabase
+      // First get the campaign instances
+      const { data: assignments, error: assignmentsError } = await supabase
         .from("survey_assignments")
         .select(`
           id,
@@ -44,19 +45,31 @@ export default function MySurveysList() {
             name,
             starts_at,
             ends_at
+          ),
+          responses:survey_responses(
+            status
           )
         `)
         .eq("user_id", user.user.id);
 
-      if (searchQuery) {
-        query = query.or(
-          `survey.name.ilike.%${searchQuery}%,survey.description.ilike.%${searchQuery}%,campaign.name.ilike.%${searchQuery}%`
+      if (assignmentsError) throw assignmentsError;
+
+      // Filter based on status
+      const filteredAssignments = assignments?.filter(assignment => {
+        const status = assignment.responses?.[0]?.status || 'assigned';
+        return statusFilter.includes(status);
+      });
+
+      // If there's a search query, filter further
+      if (searchQuery && filteredAssignments) {
+        return filteredAssignments.filter(assignment => 
+          assignment.survey.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          assignment.survey.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          assignment.campaign.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Survey[];
+      return filteredAssignments || [];
     },
   });
 
