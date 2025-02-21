@@ -15,11 +15,18 @@ export function QuestionComparison({ baseInstance, comparisonInstance }: Questio
   const getComparisonData = (questions: QuestionComparisonType[], valueKey: keyof QuestionComparisonType) => {
     return questions.map(question => {
       const comparisonQuestion = comparisonInstance.find(q => q.question_key === question.question_key);
+      const baseValue = question[valueKey];
+      const comparisonValue = comparisonQuestion?.[valueKey];
+
+      // Ensure values are numbers
+      const baseNumericValue = typeof baseValue === 'number' ? baseValue : 0;
+      const comparisonNumericValue = typeof comparisonValue === 'number' ? comparisonValue : 0;
+
       return {
         name: question.question_key || 'Unknown',
-        "Base Instance": question[valueKey] || 0,
-        "Comparison Instance": comparisonQuestion?.[valueKey] || 0,
-      };
+        "Base Instance": baseNumericValue,
+        "Comparison Instance": comparisonNumericValue,
+      } as const;
     });
   };
 
