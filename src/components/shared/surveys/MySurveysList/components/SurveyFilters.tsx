@@ -1,8 +1,8 @@
 
-import { Search, X } from "lucide-react";
+import { Search, X, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 
 interface SurveyFiltersProps {
   searchQuery: string;
@@ -34,16 +34,6 @@ export default function SurveyFilters({
     }
   };
 
-  const handleSelectAll = () => {
-    if (statusFilter.length === STATUS_OPTIONS.length) {
-      onStatusChange([]);
-    } else {
-      onStatusChange(STATUS_OPTIONS.map(option => option.value));
-    }
-  };
-
-  const isAllSelected = statusFilter.length === STATUS_OPTIONS.length;
-
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -70,37 +60,22 @@ export default function SurveyFilters({
       </div>
 
       <div className="border rounded-lg p-4">
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="all-statuses" 
-              checked={isAllSelected}
-              onCheckedChange={handleSelectAll}
-            />
-            <label
-              htmlFor="all-statuses"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        <div className="flex items-center gap-2 mb-2">
+          <Tag className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Filter by Status</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {STATUS_OPTIONS.map((status) => (
+            <Button
+              key={status.value}
+              variant={statusFilter.includes(status.value) ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleStatusToggle(status.value)}
+              className="rounded-full"
             >
-              All Statuses
-            </label>
-          </div>
-          <div className="grid grid-cols-2 gap-2 pt-2">
-            {STATUS_OPTIONS.map((status) => (
-              <div key={status.value} className="flex items-center space-x-2">
-                <Checkbox
-                  id={status.value}
-                  checked={statusFilter.includes(status.value)}
-                  onCheckedChange={() => handleStatusToggle(status.value)}
-                />
-                <label
-                  htmlFor={status.value}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {status.label}
-                </label>
-              </div>
-            ))}
-          </div>
+              {status.label}
+            </Button>
+          ))}
         </div>
       </div>
     </div>
