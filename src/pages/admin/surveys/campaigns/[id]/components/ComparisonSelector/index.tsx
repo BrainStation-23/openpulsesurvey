@@ -1,7 +1,6 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-export type ComparisonDimension = "none" | "gender" | "location" | "employment_type";
+import { ComparisonDimension } from "../ReportsTab/types/comparison";
 
 interface ComparisonSelectorProps {
   value: ComparisonDimension;
@@ -16,9 +15,13 @@ export function ComparisonSelector({ value, onChange }: ComparisonSelectorProps)
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="none">No Comparison</SelectItem>
+        <SelectItem value="sbu">Compare by Department</SelectItem>
         <SelectItem value="gender">Compare by Gender</SelectItem>
         <SelectItem value="location">Compare by Location</SelectItem>
         <SelectItem value="employment_type">Compare by Employment Type</SelectItem>
+        <SelectItem value="level">Compare by Level</SelectItem>
+        <SelectItem value="employee_type">Compare by Employee Type</SelectItem>
+        <SelectItem value="employee_role">Compare by Role</SelectItem>
       </SelectContent>
     </Select>
   );
