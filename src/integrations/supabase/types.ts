@@ -1520,22 +1520,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      generate_campaign_cron_schedule:
-        | {
-            Args: {
-              p_starts_at: string
-              p_recurring_frequency: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_starts_at: string
-              p_recurring_frequency: string
-              p_recurring_days?: string[]
-            }
-            Returns: string
-          }
+      generate_campaign_cron_schedule: {
+        Args: {
+          p_starts_at: string
+          p_recurring_frequency: string
+        }
+        Returns: string
+      }
       get_assignment_instance_status: {
         Args: {
           p_assignment_id: string
