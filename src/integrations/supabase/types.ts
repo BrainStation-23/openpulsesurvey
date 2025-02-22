@@ -127,6 +127,51 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_cron_jobs: {
+        Row: {
+          campaign_id: string | null
+          created_at: string | null
+          cron_schedule: string
+          id: string
+          is_active: boolean | null
+          job_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string | null
+          cron_schedule: string
+          id?: string
+          is_active?: boolean | null
+          job_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string | null
+          cron_schedule?: string
+          id?: string
+          is_active?: boolean | null
+          job_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_cron_jobs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_cron_jobs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
+        ]
+      }
       campaign_instance_status_logs: {
         Row: {
           created_at: string | null
@@ -1411,6 +1456,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      cleanup_campaign_cron_job: {
+        Args: {
+          p_campaign_id: string
+        }
+        Returns: undefined
+      }
       delete_auth_user_complete: {
         Args: {
           in_user_id: string
@@ -1426,6 +1477,14 @@ export type Database = {
       fix_all_instance_completion_rates: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      generate_campaign_cron_schedule: {
+        Args: {
+          p_starts_at: string
+          p_recurring_frequency: string
+          p_recurring_days?: string[]
+        }
+        Returns: string
       }
       get_assignment_instance_status: {
         Args: {
@@ -1516,6 +1575,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      schedule_campaign_cron_job: {
+        Args: {
+          p_campaign_id: string
+        }
+        Returns: undefined
+      }
       search_users:
         | {
             Args: {
@@ -1546,6 +1611,12 @@ export type Database = {
               total_count: number
             }[]
           }
+      update_campaign_instances: {
+        Args: {
+          p_campaign_id: string
+        }
+        Returns: undefined
+      }
       update_instance_statuses: {
         Args: Record<PropertyKey, never>
         Returns: undefined
