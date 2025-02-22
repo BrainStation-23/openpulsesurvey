@@ -798,7 +798,6 @@ export type Database = {
           instance_end_time: string | null
           is_recurring: boolean | null
           name: string
-          recurring_days: number[] | null
           recurring_frequency: string | null
           starts_at: string
           status: string
@@ -818,7 +817,6 @@ export type Database = {
           instance_end_time?: string | null
           is_recurring?: boolean | null
           name: string
-          recurring_days?: number[] | null
           recurring_frequency?: string | null
           starts_at: string
           status?: string
@@ -838,7 +836,6 @@ export type Database = {
           instance_end_time?: string | null
           is_recurring?: boolean | null
           name?: string
-          recurring_days?: number[] | null
           recurring_frequency?: string | null
           starts_at?: string
           status?: string
@@ -1523,14 +1520,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      generate_campaign_cron_schedule: {
-        Args: {
-          p_starts_at: string
-          p_recurring_frequency: string
-          p_recurring_days?: string[]
-        }
-        Returns: string
-      }
+      generate_campaign_cron_schedule:
+        | {
+            Args: {
+              p_starts_at: string
+              p_recurring_frequency: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_starts_at: string
+              p_recurring_frequency: string
+              p_recurring_days?: string[]
+            }
+            Returns: string
+          }
       get_assignment_instance_status: {
         Args: {
           p_assignment_id: string
