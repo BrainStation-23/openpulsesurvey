@@ -127,6 +127,51 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_cron_job_logs: {
+        Row: {
+          campaign_id: string | null
+          created_at: string | null
+          cron_schedule: string | null
+          error_message: string | null
+          id: string
+          job_name: string | null
+          status: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string | null
+          cron_schedule?: string | null
+          error_message?: string | null
+          id?: string
+          job_name?: string | null
+          status?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string | null
+          cron_schedule?: string | null
+          error_message?: string | null
+          id?: string
+          job_name?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_cron_job_logs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_cron_job_logs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
+        ]
+      }
       campaign_cron_jobs: {
         Row: {
           campaign_id: string | null
