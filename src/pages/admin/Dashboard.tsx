@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MetricsOverview } from "@/components/admin/dashboard/MetricsOverview";
-import { RecentActivity } from "@/components/admin/dashboard/RecentActivity";
 import { ResponseTrendChart } from "@/components/admin/dashboard/analytics/ResponseTrendChart";
 import { DepartmentCompletionChart } from "@/components/admin/dashboard/analytics/DepartmentCompletionChart";
 import { TopSurveysTable } from "@/components/admin/dashboard/analytics/TopSurveysTable";
@@ -55,9 +54,6 @@ export default function AdminDashboard() {
         <TabsContent value="overview" className="space-y-6">
           <MetricsOverview />
           <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
-            <div className={componentLayouts.narrowList}>
-              <RecentActivity />
-            </div>
             <div className={componentLayouts.mediumWidth}>
               <ResponseTrendChart />
             </div>

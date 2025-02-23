@@ -127,6 +127,96 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_cron_job_logs: {
+        Row: {
+          campaign_id: string | null
+          created_at: string | null
+          cron_schedule: string | null
+          error_message: string | null
+          id: string
+          job_name: string | null
+          status: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string | null
+          cron_schedule?: string | null
+          error_message?: string | null
+          id?: string
+          job_name?: string | null
+          status?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string | null
+          cron_schedule?: string | null
+          error_message?: string | null
+          id?: string
+          job_name?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_cron_job_logs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_cron_job_logs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
+        ]
+      }
+      campaign_cron_jobs: {
+        Row: {
+          campaign_id: string | null
+          created_at: string | null
+          cron_schedule: string
+          id: string
+          is_active: boolean | null
+          job_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string | null
+          cron_schedule: string
+          id?: string
+          is_active?: boolean | null
+          job_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string | null
+          cron_schedule?: string
+          id?: string
+          is_active?: boolean | null
+          job_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_cron_jobs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_cron_jobs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
+        ]
+      }
       campaign_instance_status_logs: {
         Row: {
           created_at: string | null
@@ -708,7 +798,6 @@ export type Database = {
           instance_end_time: string | null
           is_recurring: boolean | null
           name: string
-          recurring_days: number[] | null
           recurring_frequency: string | null
           starts_at: string
           status: string
@@ -728,7 +817,6 @@ export type Database = {
           instance_end_time?: string | null
           is_recurring?: boolean | null
           name: string
-          recurring_days?: number[] | null
           recurring_frequency?: string | null
           starts_at: string
           status?: string
@@ -748,7 +836,6 @@ export type Database = {
           instance_end_time?: string | null
           is_recurring?: boolean | null
           name?: string
-          recurring_days?: number[] | null
           recurring_frequency?: string | null
           starts_at?: string
           status?: string
@@ -1095,6 +1182,20 @@ export type Database = {
       }
     }
     Views: {
+      demographic_employee_role_analysis: {
+        Row: {
+          employee_role: string | null
+          response_count: number | null
+        }
+        Relationships: []
+      }
+      demographic_employee_type_analysis: {
+        Row: {
+          employee_type: string | null
+          response_count: number | null
+        }
+        Relationships: []
+      }
       demographic_employment_analysis: {
         Row: {
           employment_type: string | null
@@ -1105,6 +1206,13 @@ export type Database = {
       demographic_gender_analysis: {
         Row: {
           gender: string | null
+          response_count: number | null
+        }
+        Relationships: []
+      }
+      demographic_level_analysis: {
+        Row: {
+          level: string | null
           response_count: number | null
         }
         Relationships: []
@@ -1124,6 +1232,77 @@ export type Database = {
           total_assignments: number | null
         }
         Relationships: []
+      }
+      instance_comparison_metrics: {
+        Row: {
+          avg_rating: number | null
+          campaign_instance_id: string | null
+          completion_rate: number | null
+          ends_at: string | null
+          gender_breakdown: Json | null
+          location_breakdown: Json | null
+          period_number: number | null
+          starts_at: string | null
+          total_responses: number | null
+          unique_respondents: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
+            columns: ["campaign_instance_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
+            columns: ["campaign_instance_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["instance_id"]
+          },
+          {
+            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
+            columns: ["campaign_instance_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_survey_deadlines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instance_question_comparison: {
+        Row: {
+          avg_numeric_value: number | null
+          campaign_instance_id: string | null
+          period_number: number | null
+          question_key: string | null
+          response_count: number | null
+          text_responses: string[] | null
+          yes_percentage: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
+            columns: ["campaign_instance_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
+            columns: ["campaign_instance_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["instance_id"]
+          },
+          {
+            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
+            columns: ["campaign_instance_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_survey_deadlines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       managers_needing_improvement: {
         Row: {
@@ -1319,6 +1498,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      cleanup_campaign_cron_job: {
+        Args: {
+          p_campaign_id: string
+        }
+        Returns: undefined
+      }
       delete_auth_user_complete: {
         Args: {
           in_user_id: string
@@ -1334,6 +1519,13 @@ export type Database = {
       fix_all_instance_completion_rates: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      generate_campaign_cron_schedule: {
+        Args: {
+          p_starts_at: string
+          p_recurring_frequency: string
+        }
+        Returns: string
       }
       get_assignment_instance_status: {
         Args: {
@@ -1424,6 +1616,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      schedule_campaign_cron_job: {
+        Args: {
+          p_campaign_id: string
+        }
+        Returns: undefined
+      }
       search_users:
         | {
             Args: {
@@ -1454,6 +1652,12 @@ export type Database = {
               total_count: number
             }[]
           }
+      update_campaign_instances: {
+        Args: {
+          p_campaign_id: string
+        }
+        Returns: undefined
+      }
       update_instance_statuses: {
         Args: Record<PropertyKey, never>
         Returns: undefined
