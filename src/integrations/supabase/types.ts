@@ -1684,10 +1684,6 @@ export type Database = {
               total_count: number
             }[]
           }
-      update_instance_statuses: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
     }
     Enums: {
       achievement_category:
