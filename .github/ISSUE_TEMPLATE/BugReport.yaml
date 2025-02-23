@@ -1,0 +1,56 @@
+name: "Bug Report"
+description: "Report a bug or issue in the application."
+title: "[Bug]: <title>"
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "## Describe the Bug\nA clear and concise description of what the bug is."
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: "Steps to Reproduce"
+      description: "List the steps to reproduce the bug."
+      placeholder: "1. Go to...\n2. Click on...\n3. See error..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: "Expected Behavior"
+      description: "What should have happened instead?"
+      placeholder: "The application should..."
+    validations:
+      required: true
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: "Actual Behavior"
+      description: "What actually happened?"
+      placeholder: "The application instead..."
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: "Environment"
+      description: "Provide details about the environment where the issue occurred."
+      placeholder: "OS: Windows/macOS/Linux, Browser: Chrome/Firefox/Edge"
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "Screenshots or Logs"
+      description: "Attach any relevant screenshots or logs."
+      placeholder: "Drag and drop images or paste logs here."
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: "Confirmation"
+      description: "Please confirm the following before submitting the issue."
+      options:
+        - label: "I have searched for a similar issue in the repository and could not find one."
+          required: true
+        - label: "I have read the contribution guidelines."
+          required: true
