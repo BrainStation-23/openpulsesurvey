@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -73,9 +74,16 @@ export default function CampaignFormPage() {
         return;
       }
 
-      // Use 1970-01-01 as base date to store just the time component
-      const [hours, minutes] = formData.instance_end_time.split(':').map(Number);
-      const endTimeDate = new Date(Date.UTC(1970, 0, 1, hours, minutes));
+      // For recurring campaigns, use the response due time
+      // For non-recurring campaigns, use the campaign end time
+      let instanceEndTime: string | null = null;
+      
+      if (formData.is_recurring) {
+        // Use the response due time from the form
+        const [hours, minutes] = formData.instance_end_time.split(':').map(Number);
+        const endTimeDate = new Date(Date.UTC(1970, 0, 1, hours, minutes));
+        instanceEndTime = endTimeDate.toISOString();
+      }
 
       const dataToSubmit: CampaignInsert = {
         name: formData.name,
@@ -85,8 +93,8 @@ export default function CampaignFormPage() {
         is_recurring: formData.is_recurring,
         recurring_frequency: formData.recurring_frequency,
         ends_at: formData.ends_at.toISOString(),
-        instance_duration_days: formData.instance_duration_days,
-        instance_end_time: endTimeDate.toISOString(), // Storing just the time component
+        instance_duration_days: formData.is_recurring ? formData.instance_duration_days : null,
+        instance_end_time: formData.is_recurring ? instanceEndTime : null,
         campaign_type: formData.is_recurring ? 'recurring' : 'one_time',
         status: 'draft',
         created_by: session.user.id,
