@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -73,6 +74,12 @@ export default function CampaignFormPage() {
         return;
       }
 
+      // Convert instance_end_time from HH:mm format to a full timestamp
+      // Use the current date as a base and set the time component
+      const [hours, minutes] = formData.instance_end_time.split(':').map(Number);
+      const endTimeDate = new Date();
+      endTimeDate.setHours(hours, minutes, 0, 0);
+
       const dataToSubmit: CampaignInsert = {
         name: formData.name,
         description: formData.description,
@@ -82,7 +89,7 @@ export default function CampaignFormPage() {
         recurring_frequency: formData.recurring_frequency,
         ends_at: formData.ends_at.toISOString(),
         instance_duration_days: formData.instance_duration_days,
-        instance_end_time: formData.instance_end_time,
+        instance_end_time: endTimeDate.toISOString(), // Now sending as timestamptz
         campaign_type: formData.is_recurring ? 'recurring' : 'one_time',
         status: 'draft',
         created_by: session.user.id,
