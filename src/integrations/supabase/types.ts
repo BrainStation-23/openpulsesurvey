@@ -1501,12 +1501,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      cleanup_campaign_cron_job: {
-        Args: {
-          p_campaign_id: string
-        }
-        Returns: undefined
-      }
       cleanup_campaign_cron_jobs: {
         Args: {
           p_campaign_id: string
@@ -1529,22 +1523,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      generate_campaign_cron_schedule:
-        | {
-            Args: {
-              p_starts_at: string
-              p_recurring_frequency: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_starts_at: string
-              p_recurring_frequency: string
-              p_job_type: Database["public"]["Enums"]["cron_job_type"]
-            }
-            Returns: string
-          }
+      fix_missing_campaign_jobs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      generate_campaign_cron_schedule: {
+        Args: {
+          p_timestamp: string
+          p_recurring_frequency: string
+          p_job_type: Database["public"]["Enums"]["cron_job_type"]
+        }
+        Returns: string
+      }
       get_assignment_instance_status: {
         Args: {
           p_assignment_id: string
@@ -1694,12 +1684,6 @@ export type Database = {
               total_count: number
             }[]
           }
-      update_campaign_instances: {
-        Args: {
-          p_campaign_id: string
-        }
-        Returns: undefined
-      }
       update_instance_statuses: {
         Args: Record<PropertyKey, never>
         Returns: undefined
