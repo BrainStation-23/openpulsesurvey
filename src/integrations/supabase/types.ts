@@ -223,6 +223,7 @@ export type Database = {
       campaign_instance_status_logs: {
         Row: {
           created_at: string | null
+          details: Json | null
           id: string
           run_at: string
           updated_to_active: number
@@ -230,6 +231,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          details?: Json | null
           id?: string
           run_at: string
           updated_to_active: number
@@ -237,6 +239,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          details?: Json | null
           id?: string
           run_at?: string
           updated_to_active?: number
