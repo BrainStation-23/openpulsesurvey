@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -74,11 +73,9 @@ export default function CampaignFormPage() {
         return;
       }
 
-      // Create a timestamp using the campaign end date as the base, plus the instance end time
+      // Use 1970-01-01 as base date to store just the time component
       const [hours, minutes] = formData.instance_end_time.split(':').map(Number);
-      const campaignEndDate = new Date(formData.ends_at);
-      const endTimeDate = new Date(campaignEndDate);
-      endTimeDate.setHours(hours, minutes, 0, 0);
+      const endTimeDate = new Date(Date.UTC(1970, 0, 1, hours, minutes));
 
       const dataToSubmit: CampaignInsert = {
         name: formData.name,
@@ -89,7 +86,7 @@ export default function CampaignFormPage() {
         recurring_frequency: formData.recurring_frequency,
         ends_at: formData.ends_at.toISOString(),
         instance_duration_days: formData.instance_duration_days,
-        instance_end_time: endTimeDate.toISOString(), // Using end date as base for the time
+        instance_end_time: endTimeDate.toISOString(), // Storing just the time component
         campaign_type: formData.is_recurring ? 'recurring' : 'one_time',
         status: 'draft',
         created_by: session.user.id,
