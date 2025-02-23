@@ -74,10 +74,10 @@ export default function CampaignFormPage() {
         return;
       }
 
-      // Convert instance_end_time from HH:mm format to a full timestamp
-      // Use the current date as a base and set the time component
+      // Create a timestamp using the campaign end date as the base, plus the instance end time
       const [hours, minutes] = formData.instance_end_time.split(':').map(Number);
-      const endTimeDate = new Date();
+      const campaignEndDate = new Date(formData.ends_at);
+      const endTimeDate = new Date(campaignEndDate);
       endTimeDate.setHours(hours, minutes, 0, 0);
 
       const dataToSubmit: CampaignInsert = {
@@ -89,7 +89,7 @@ export default function CampaignFormPage() {
         recurring_frequency: formData.recurring_frequency,
         ends_at: formData.ends_at.toISOString(),
         instance_duration_days: formData.instance_duration_days,
-        instance_end_time: endTimeDate.toISOString(), // Now sending as timestamptz
+        instance_end_time: endTimeDate.toISOString(), // Using end date as base for the time
         campaign_type: formData.is_recurring ? 'recurring' : 'one_time',
         status: 'draft',
         created_by: session.user.id,
