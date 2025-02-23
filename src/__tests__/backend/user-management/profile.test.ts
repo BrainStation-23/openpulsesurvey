@@ -75,7 +75,7 @@ describe('Profile Management', () => {
   it('should handle profile status changes', async () => {
     const { error } = await adminSupabase
       .from('profiles')
-      .update({ status: 'inactive' })
+      .update({ status: 'disabled' }) // Changed from 'inactive' to 'disabled'
       .eq('id', userId);
 
     expect(error).toBeNull();
@@ -87,7 +87,7 @@ describe('Profile Management', () => {
       .eq('id', userId)
       .single();
 
-    expect(profile?.status).toBe('inactive');
+    expect(profile?.status).toBe('disabled');
   });
 
   it('should cascade delete profile when user is deleted', async () => {
