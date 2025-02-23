@@ -180,6 +180,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           job_name: string
+          job_type: Database["public"]["Enums"]["cron_job_type"]
           updated_at: string | null
         }
         Insert: {
@@ -189,6 +190,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           job_name: string
+          job_type?: Database["public"]["Enums"]["cron_job_type"]
           updated_at?: string | null
         }
         Update: {
@@ -198,6 +200,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           job_name?: string
+          job_type?: Database["public"]["Enums"]["cron_job_type"]
           updated_at?: string | null
         }
         Relationships: [
@@ -1504,6 +1507,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      cleanup_campaign_cron_jobs: {
+        Args: {
+          p_campaign_id: string
+        }
+        Returns: undefined
+      }
       delete_auth_user_complete: {
         Args: {
           in_user_id: string
@@ -1520,13 +1529,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      generate_campaign_cron_schedule: {
-        Args: {
-          p_starts_at: string
-          p_recurring_frequency: string
-        }
-        Returns: string
-      }
+      generate_campaign_cron_schedule:
+        | {
+            Args: {
+              p_starts_at: string
+              p_recurring_frequency: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_starts_at: string
+              p_recurring_frequency: string
+              p_job_type: Database["public"]["Enums"]["cron_job_type"]
+            }
+            Returns: string
+          }
       get_assignment_instance_status: {
         Args: {
           p_assignment_id: string
@@ -1610,6 +1628,24 @@ export type Database = {
           submitted_at: string
         }[]
       }
+      handle_campaign_end: {
+        Args: {
+          p_campaign_id: string
+        }
+        Returns: undefined
+      }
+      handle_instance_activation: {
+        Args: {
+          p_campaign_id: string
+        }
+        Returns: undefined
+      }
+      handle_instance_due_time: {
+        Args: {
+          p_campaign_id: string
+        }
+        Returns: undefined
+      }
       is_admin: {
         Args: {
           user_uid: string
@@ -1617,6 +1653,12 @@ export type Database = {
         Returns: boolean
       }
       schedule_campaign_cron_job: {
+        Args: {
+          p_campaign_id: string
+        }
+        Returns: undefined
+      }
+      schedule_campaign_jobs: {
         Args: {
           p_campaign_id: string
         }
@@ -1686,6 +1728,10 @@ export type Database = {
       campaign_status: "draft" | "active" | "completed" | "archived"
       config_status: "active" | "inactive"
       contact_message_status: "pending" | "sent" | "error" | "partially_sent"
+      cron_job_type:
+        | "instance_activation"
+        | "instance_due_time"
+        | "campaign_end"
       email_provider: "resend"
       employee_role_status: "active" | "inactive"
       employee_type_status: "active" | "inactive"
