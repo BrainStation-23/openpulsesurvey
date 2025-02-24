@@ -50,7 +50,7 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
   
   const [currentTheme, setCurrentTheme] = useState(initialTheme);
 
-  const validateSurveyJson = () => {
+  const validateSurveyJson = (): ValidationState => {
     const errors: ValidationError[] = [];
     let parsedJson: any;
 
@@ -61,7 +61,7 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
       return {
         isValid: false,
         errors: [{
-          type: 'syntax',
+          type: 'syntax' as const,
           message: `JSON Syntax Error: ${err.message}`
         }]
       };
@@ -69,39 +69,63 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
 
     // Step 2: Schema validation
     try {
-      const schemaResult = Serializer.validateSchema(parsedJson);
-      if (!schemaResult) {
+      // Check if the JSON has basic survey structure
+      if (!parsedJson.pages && !parsedJson.elements) {
         errors.push({
-          type: 'schema',
-          message: 'Invalid survey schema structure'
+          type: 'schema' as const,
+          message: 'Invalid survey schema: Missing pages or elements'
         });
       }
+
+      // Validate each question's properties using Serializer
+      const questions = parsedJson.pages 
+        ? parsedJson.pages.flatMap((page: any) => page.elements || [])
+        : parsedJson.elements || [];
+
+      questions.forEach((question: any, index: number) => {
+        if (!question.type) {
+          errors.push({
+            type: 'schema' as const,
+            message: `Question ${index + 1} is missing required 'type' property`
+          });
+        } else {
+          const questionMetadata = Serializer.findClass(question.type);
+          if (!questionMetadata) {
+            errors.push({
+              type: 'schema' as const,
+              message: `Question ${index + 1} has invalid type: ${question.type}`
+            });
+          }
+        }
+      });
     } catch (err: any) {
       errors.push({
-        type: 'schema',
+        type: 'schema' as const,
         message: `Schema Error: ${err.message}`
       });
     }
 
     // Step 3: Question validation
-    try {
-      const surveyModel = new Model(parsedJson);
-      const questionErrors = surveyModel.getQuestionErrors();
-      
-      if (questionErrors.length > 0) {
-        questionErrors.forEach(error => {
-          errors.push({
-            type: 'question',
-            message: error.getErrorType(),
-            location: error.locationInformation?.page?.name
+    if (errors.length === 0) {
+      try {
+        const surveyModel = new Model(parsedJson);
+        const questionErrors = surveyModel.getQuestionErrors();
+        
+        if (questionErrors.length > 0) {
+          questionErrors.forEach(error => {
+            errors.push({
+              type: 'question' as const,
+              message: error.getErrorType(),
+              location: error.locationInformation?.page?.name
+            });
           });
+        }
+      } catch (err: any) {
+        errors.push({
+          type: 'question' as const,
+          message: `Question Configuration Error: ${err.message}`
         });
       }
-    } catch (err: any) {
-      errors.push({
-        type: 'question',
-        message: `Question Configuration Error: ${err.message}`
-      });
     }
 
     const isValid = errors.length === 0;
