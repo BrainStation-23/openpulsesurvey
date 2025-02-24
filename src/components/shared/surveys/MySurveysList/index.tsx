@@ -17,6 +17,7 @@ interface CampaignGroup {
   name: string;
   description?: string | null;
   instances: UserSurvey[];
+  anonymous?: boolean;
 }
 
 export default function MySurveysList() {
@@ -110,7 +111,8 @@ export default function MySurveysList() {
         campaign_id: survey.campaign_id,
         name: survey.survey.name,
         description: survey.survey.description,
-        instances: []
+        instances: [],
+        anonymous: !!survey.response?.campaign_instance_id // Get anonymous flag from campaign
       };
       groups.push(group);
     }
@@ -171,6 +173,7 @@ export default function MySurveysList() {
                 description={group.description}
                 instances={group.instances}
                 onSelectSurvey={handleSelectSurvey}
+                isAnonymous={group.anonymous}
               />
             </div>
           ))}
