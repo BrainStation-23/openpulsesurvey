@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { User } from "./types";
@@ -12,6 +13,7 @@ import { SearchFilters } from "./components/UserTable/SearchFilters";
 import { ImportDialog } from "./components/ImportDialog";
 import { BulkUpdateDialog } from "./components/BulkUpdateDialog";
 import { ExportProgress } from "./components/UserTable/ExportProgress";
+import { TourButton } from "@/components/onboarding/TourButton";
 import { Button } from "@/components/ui/button";
 import { Power, MoreHorizontal, Upload, UserRoundPlus, FilePlus2, FileSpreadsheet, Download } from "lucide-react";
 import {
@@ -159,7 +161,10 @@ export default function UsersPage() {
   return (
     <div className="container mx-auto py-6 space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Users</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold">Users</h1>
+          <TourButton tourId="users_management_guide" title="Users Guide" />
+        </div>
         <div className="flex gap-2">
           <Button onClick={() => setIsCreateDialogOpen(true)}>
             <UserRoundPlus className="mr-2 h-4 w-4"/>
