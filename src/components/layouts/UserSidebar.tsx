@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { LogOut, LayoutDashboard, ClipboardList, Settings2 } from "lucide-react";
+import { LogOut, LayoutDashboard, ClipboardList, Settings2, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePendingSurveysCount } from "@/hooks/use-pending-surveys-count";
 import {
@@ -20,6 +20,11 @@ const navigationItems = [
     title: "My Surveys",
     icon: ClipboardList,
     path: "/user/my-surveys",
+  },
+  {
+    title: "My Achievements",
+    icon: Trophy,
+    path: "/user/achievements",
   },
   {
     title: "Settings",

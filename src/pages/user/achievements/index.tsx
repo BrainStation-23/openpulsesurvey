@@ -1,105 +1,73 @@
 
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { ACHIEVEMENT_TYPE_CONFIG, AchievementType } from "@/pages/admin/achievements/types";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { AchievementCard } from "./components/AchievementCard";
+
+// This would typically come from an API or database
+const achievements = [
+  {
+    id: "1",
+    name: "First Response",
+    description: "Complete your first survey",
+    unlockCriteria: "Submit your first survey response to unlock this achievement",
+    points: 10,
+    isUnlocked: true
+  },
+  {
+    id: "2",
+    name: "Quick Responder",
+    description: "Complete a survey within 24 hours of assignment",
+    unlockCriteria: "Submit any survey within 24 hours of it being assigned to you",
+    points: 20,
+    isUnlocked: false
+  },
+  {
+    id: "3",
+    name: "Feedback Champion",
+    description: "Complete 10 surveys",
+    unlockCriteria: "Successfully submit 10 different surveys",
+    points: 50,
+    isUnlocked: false
+  },
+  {
+    id: "4",
+    name: "Perfect Streak",
+    description: "Complete 5 surveys in a row before their due dates",
+    unlockCriteria: "Submit 5 consecutive surveys before their respective deadlines",
+    points: 100,
+    isUnlocked: false
+  }
+];
 
 export default function UserAchievementsPage() {
-  const { data: achievements, isLoading } = useQuery({
-    queryKey: ['user-achievements'],
-    queryFn: async () => {
-      const { data: userAchievements, error: achievementsError } = await supabase
-        .from('user_achievements')
-        .select(`
-          *,
-          achievement:achievements (*)
-        `)
-        .order('unlocked_at', { ascending: false });
-
-      if (achievementsError) throw achievementsError;
-      return userAchievements;
-    },
-  });
-
-  const { data: availableAchievements } = useQuery({
-    queryKey: ['available-achievements'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('achievements')
-        .select('*')
-        .order('points', { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
+  const navigate = useNavigate();
+  
   return (
-    <div className="space-y-8 p-8">
-      <div>
-        <h1 className="text-2xl font-bold mb-4">Your Achievements</h1>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {achievements?.map((userAchievement) => (
-            <Card key={userAchievement.id}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {userAchievement.achievement.name}
-                </CardTitle>
-                <Trophy className="h-4 w-4 text-yellow-500" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {userAchievement.achievement.description}
-                </p>
-                <div className="mt-2 flex gap-2">
-                  <Badge variant="secondary">
-                    {userAchievement.achievement.points} pts
-                  </Badge>
-                  <Badge variant="outline">
-                    {ACHIEVEMENT_TYPE_CONFIG[userAchievement.achievement.achievement_type as AchievementType].label}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+    <div>
+      <div className="flex items-center mb-6">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate(-1)}
+          className="mr-4"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-2xl font-bold">My Achievements</h1>
       </div>
-
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Available Achievements</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {availableAchievements?.filter(achievement => 
-            !achievements?.some(ua => ua.achievement_id === achievement.id)
-          ).map((achievement) => (
-            <Card key={achievement.id} className="opacity-70">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {achievement.name}
-                </CardTitle>
-                <Trophy className="h-4 w-4 text-gray-400" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {achievement.description}
-                </p>
-                <div className="mt-2 flex gap-2">
-                  <Badge variant="secondary">
-                    {achievement.points} pts
-                  </Badge>
-                  <Badge variant="outline">
-                    {ACHIEVEMENT_TYPE_CONFIG[achievement.achievement_type as AchievementType].label}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {achievements.map((achievement) => (
+          <AchievementCard
+            key={achievement.id}
+            name={achievement.name}
+            description={achievement.description}
+            isUnlocked={achievement.isUnlocked}
+            unlockCriteria={achievement.unlockCriteria}
+            points={achievement.points}
+          />
+        ))}
       </div>
     </div>
   );
