@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 // Define types based on our database schema
-type SessionStatus = 'created' | 'active' | 'paused' | 'ended';
+type SessionStatus = 'initial' | 'active' | 'paused' | 'ended';
 
 interface LiveSession {
   id: string;
@@ -40,8 +40,7 @@ export default function LiveSurveyPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Using any here temporarily until we can update the Supabase types
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('live_survey_sessions')
         .select(`
           id,
@@ -60,10 +59,10 @@ export default function LiveSurveyPage() {
       if (error) throw error;
 
       // Process the data to handle nullable fields and counts
-      return (data || []).map((session: any): LiveSession => ({
+      return (data || []).map((session): LiveSession => ({
         ...session,
         survey: session.survey || { name: 'Unknown Survey' },
-        participant_count: session.participant_count?.count || 0
+        participant_count: session.participant_count?.[0]?.count || 0
       }));
     }
   });
@@ -115,7 +114,7 @@ export default function LiveSurveyPage() {
               {sessions?.map((session) => (
                 <ResponsiveTable.Row key={session.id}>
                   <ResponsiveTable.Cell>{session.name}</ResponsiveTable.Cell>
-                  <ResponsiveTable.Cell>{session.survey.name}</ResponsiveTable.Cell>
+                  <ResponsiveTable.Cell>{session.survey?.name}</ResponsiveTable.Cell>
                   <ResponsiveTable.Cell>
                     <code className="bg-muted px-2 py-1 rounded">
                       {session.join_code}
