@@ -58,7 +58,7 @@ export default function CreateSessionDialog({
       const { data, error } = await supabase
         .from('surveys')
         .select('id, name')
-        .eq('status', 'active')
+        .eq('status', 'published')  // Changed from 'active' to 'published'
         .order('name');
       
       if (error) throw error;
@@ -79,20 +79,24 @@ export default function CreateSessionDialog({
     try {
       setIsCreating(true);
       
-      // Generate a unique 6-character join code
       const join_code = generateRandomString(6).toUpperCase();
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Prepare the data object with all required fields
+      const sessionData = {
+        name: values.name,            // Required field
+        description: values.description,
+        survey_id: values.survey_id,  // Required field
+        join_code: join_code,         // Required field
+        created_by: user.id,          // Required field
+        status: 'initial' as const    // Required field with proper type assertion
+      };
+
       const { error } = await supabase
         .from('live_survey_sessions')
-        .insert({
-          ...values,
-          join_code,
-          created_by: user.id,
-          status: 'initial'
-        });
+        .insert(sessionData);
 
       if (error) throw error;
 
