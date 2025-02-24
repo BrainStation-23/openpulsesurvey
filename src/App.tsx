@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -43,6 +44,18 @@ import CampaignFormPage from "./pages/admin/surveys/campaigns/CampaignFormPage";
 import CampaignDetailsPage from "./pages/admin/surveys/campaigns/[id]";
 import LiveSurveyPage from "./pages/admin/surveys/live";
 import PresentationView from "./pages/admin/surveys/campaigns/[id]/components/PresentationView/index";
+import PlatformConfigLayout from "./components/layouts/PlatformConfigLayout";
+import SBUsConfig from "./pages/admin/config/sbus";
+import SBUDetails from "./pages/admin/config/sbus/[id]";
+import EmailConfig from "./pages/admin/config/email";
+import LevelConfig from "./pages/admin/config/level";
+import LocationConfig from "./pages/admin/config/location";
+import EmploymentTypeConfig from "./pages/admin/config/employment-type";
+import EmployeeTypeConfig from "./pages/admin/config/employee-type";
+import EmployeeRoleConfig from "./pages/admin/config/employee-role";
+import AIPromptsConfig from "./pages/admin/config/ai-prompts";
+import AchievementsPage from "./pages/admin/achievements";
+import AchievementFormPage from "./pages/admin/achievements/AchievementFormPage";
 
 const queryClient = new QueryClient();
 
