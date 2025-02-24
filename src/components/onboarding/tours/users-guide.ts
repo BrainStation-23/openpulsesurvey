@@ -63,9 +63,9 @@ export const usersGuideTour: TourConfig = {
       placement: "bottom",
     },
     {
-      target: ".grid.grid-cols-1",
-      title: "User Information Grid",
-      content: "Each card displays key user information and provides quick access to user management actions.",
+      target: ".grid.grid-cols-1 > div:first-child",
+      title: "User Card",
+      content: "Each card shows essential user information including name, email, role, and status. You can perform quick actions directly from the card.",
       placement: "bottom",
     },
     {
@@ -75,7 +75,7 @@ export const usersGuideTour: TourConfig = {
       placement: "bottom",
     },
     {
-      target: "[role='combobox']",
+      target: "select[aria-label='Select page size']",
       title: "Page Size Selection",
       content: "Choose how many users to display per page.",
       placement: "bottom",
