@@ -2,7 +2,9 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Trophy } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
+import * as icons from "lucide-react";
+import { LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ACHIEVEMENT_TYPE_CONFIG, AchievementType } from "../types";
 import { Switch } from "@/components/ui/switch";
@@ -29,6 +31,7 @@ type Achievement = {
   achievement_type: AchievementType;
   points: number;
   icon: string;
+  icon_color: string;
   status: 'active' | 'inactive';
 };
 
@@ -37,9 +40,13 @@ export const columns: ColumnDef<Achievement>[] = [
     accessorKey: "name",
     header: "Name",
     cell: ({ row }) => {
+      const IconComponent = icons[row.original.icon as keyof typeof icons] as LucideIcon || icons.Trophy;
       return (
         <div className="flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-yellow-500" />
+          <IconComponent 
+            className="w-4 h-4" 
+            style={{ color: row.original.icon_color || '#8B5CF6' }} 
+          />
           <span>{row.original.name}</span>
         </div>
       );
@@ -91,7 +98,6 @@ export const columns: ColumnDef<Achievement>[] = [
 
           if (error) throw error;
 
-          // Optimistically update the cache
           queryClient.setQueryData(['achievements'], (oldData: Achievement[] | undefined) => {
             if (!oldData) return oldData;
             return oldData.map(achievement => 
@@ -105,7 +111,6 @@ export const columns: ColumnDef<Achievement>[] = [
         } catch (error) {
           console.error('Error toggling status:', error);
           toast.error("Failed to update achievement status");
-          // Invalidate the cache to refetch the correct data
           queryClient.invalidateQueries({ queryKey: ['achievements'] });
         } finally {
           setIsLoading(false);
@@ -143,7 +148,6 @@ export const columns: ColumnDef<Achievement>[] = [
 
           if (error) throw error;
 
-          // Optimistically update the cache
           queryClient.setQueryData(['achievements'], (oldData: Achievement[] | undefined) => {
             if (!oldData) return oldData;
             return oldData.filter(achievement => achievement.id !== row.original.id);
@@ -153,7 +157,6 @@ export const columns: ColumnDef<Achievement>[] = [
         } catch (error) {
           console.error('Error deleting achievement:', error);
           toast.error("Failed to delete achievement");
-          // Invalidate the cache to refetch the correct data
           queryClient.invalidateQueries({ queryKey: ['achievements'] });
         } finally {
           setIsDeleting(false);
