@@ -112,7 +112,7 @@ export default function MySurveysList() {
         name: survey.survey.name,
         description: survey.survey.description,
         instances: [],
-        anonymous: !!survey.response?.campaign_instance_id // Get anonymous flag from campaign
+        anonymous: survey.instance.anonymous // Get anonymous flag from instance
       };
       groups.push(group);
     }
