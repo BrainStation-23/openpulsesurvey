@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Users, Timer } from "lucide-react";
+import { Plus, Timer } from "lucide-react";
 import { format } from "date-fns";
 import { 
   Card, 
@@ -19,14 +19,11 @@ type SessionStatus = 'initial' | 'active' | 'paused' | 'ended';
 
 interface LiveSession {
   id: string;
-  survey_id: string;
   name: string;
   description: string | null;
   join_code: string;
   status: SessionStatus;
   created_at: string;
-  survey_name: string;
-  participant_count: number;
 }
 
 export default function LiveSurveyPage() {
@@ -40,29 +37,16 @@ export default function LiveSurveyPage() {
 
       const { data, error } = await supabase
         .from('live_survey_sessions')
-        .select(`
-          id,
-          survey_id,
-          name,
-          description,
-          join_code,
-          status,
-          created_at,
-          survey_name:surveys!inner(name),
-          participant_count:live_session_participants(count)
-        `)
-        .eq('created_by', user.id);
+        .select('id, name, description, join_code, status, created_at')
+        .eq('created_by', user.id)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching live sessions:', error);
         throw error;
       }
 
-      return (data || []).map((session): LiveSession => ({
-        ...session,
-        survey_name: session.survey_name?.name || 'Unknown Survey',
-        participant_count: session.participant_count?.length ? session.participant_count[0].count : 0
-      }));
+      return data || [];
     },
     staleTime: 30000, // Cache data for 30 seconds
     refetchInterval: 60000, // Refresh every minute
@@ -99,7 +83,7 @@ export default function LiveSurveyPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Active Sessions</CardTitle>
+          <CardTitle>Sessions</CardTitle>
           <CardDescription>
             View and manage your live survey sessions
           </CardDescription>
@@ -109,10 +93,8 @@ export default function LiveSurveyPage() {
             <ResponsiveTable.Header>
               <ResponsiveTable.Row>
                 <ResponsiveTable.Head>Session Name</ResponsiveTable.Head>
-                <ResponsiveTable.Head>Survey</ResponsiveTable.Head>
                 <ResponsiveTable.Head>Join Code</ResponsiveTable.Head>
                 <ResponsiveTable.Head>Status</ResponsiveTable.Head>
-                <ResponsiveTable.Head>Participants</ResponsiveTable.Head>
                 <ResponsiveTable.Head>Created</ResponsiveTable.Head>
                 <ResponsiveTable.Head>Actions</ResponsiveTable.Head>
               </ResponsiveTable.Row>
@@ -121,7 +103,6 @@ export default function LiveSurveyPage() {
               {sessions?.map((session) => (
                 <ResponsiveTable.Row key={session.id}>
                   <ResponsiveTable.Cell>{session.name}</ResponsiveTable.Cell>
-                  <ResponsiveTable.Cell>{session.survey_name}</ResponsiveTable.Cell>
                   <ResponsiveTable.Cell>
                     <code className="bg-muted px-2 py-1 rounded">
                       {session.join_code}
@@ -136,12 +117,6 @@ export default function LiveSurveyPage() {
                     }`}>
                       {session.status}
                     </span>
-                  </ResponsiveTable.Cell>
-                  <ResponsiveTable.Cell>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      {session.participant_count}
-                    </div>
                   </ResponsiveTable.Cell>
                   <ResponsiveTable.Cell>
                     <div className="flex items-center gap-1">
@@ -162,8 +137,8 @@ export default function LiveSurveyPage() {
               ))}
               {!sessions?.length && (
                 <ResponsiveTable.Row>
-                  <ResponsiveTable.Cell colSpan={7} className="text-center text-muted-foreground">
-                    No live sessions found. Create one to get started.
+                  <ResponsiveTable.Cell colSpan={5} className="text-center text-muted-foreground">
+                    No sessions found. Create one to get started.
                   </ResponsiveTable.Cell>
                 </ResponsiveTable.Row>
               )}
