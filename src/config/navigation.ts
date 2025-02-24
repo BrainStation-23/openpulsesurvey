@@ -14,7 +14,8 @@ import {
   Shield,
   BrainCircuit,
   UserRound,
-  Trophy
+  Trophy,
+  Radio
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -49,6 +50,11 @@ export const navigationItems: NavigationItem[] = [
         title: "Campaigns",
         icon: Grid,
         path: "/admin/surveys/campaigns",
+      },
+      {
+        title: "Live Survey",
+        icon: Radio,
+        path: "/admin/surveys/live",
       },
     ],
   },
