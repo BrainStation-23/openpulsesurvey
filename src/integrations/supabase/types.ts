@@ -65,6 +65,7 @@ export type Database = {
           created_at: string
           description: string
           icon: string
+          icon_color: string
           id: string
           name: string
           points: number
@@ -77,6 +78,7 @@ export type Database = {
           created_at?: string
           description: string
           icon: string
+          icon_color?: string
           id?: string
           name: string
           points?: number
@@ -89,6 +91,7 @@ export type Database = {
           created_at?: string
           description?: string
           icon?: string
+          icon_color?: string
           id?: string
           name?: string
           points?: number
