@@ -1,6 +1,6 @@
 
 import { useEffect, useMemo } from "react";
-import Joyride, { EVENTS, ACTIONS, STATUS, CallBackProps } from "react-joyride";
+import Joyride, { EVENTS, ACTIONS, STATUS, CallBackProps, Status } from "react-joyride";
 import { useTour } from "./TourContext";
 import { tours } from "./tours";
 
@@ -28,8 +28,8 @@ export function Tour() {
       goToStep(index + 1);
     }
 
-    const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
-    if (finishedStatuses.includes(status)) {
+    // Properly check the status using the STATUS enum
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       if (status === STATUS.FINISHED) {
         // Mark the tour as completed
         localStorage.setItem(`tour_completed_${currentTourId}`, "true");
