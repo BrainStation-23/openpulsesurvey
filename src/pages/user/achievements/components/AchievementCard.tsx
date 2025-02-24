@@ -3,6 +3,7 @@ import { Lock, Trophy } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
+import { format } from "date-fns";
 
 interface AchievementCardProps {
   name: string;
@@ -10,9 +11,21 @@ interface AchievementCardProps {
   isUnlocked: boolean;
   unlockCriteria: string;
   points: number;
+  iconColor: string;
+  progress?: string;
+  unlockedAt?: string;
 }
 
-export function AchievementCard({ name, description, isUnlocked, unlockCriteria, points }: AchievementCardProps) {
+export function AchievementCard({ 
+  name, 
+  description, 
+  isUnlocked, 
+  unlockCriteria, 
+  points,
+  iconColor,
+  progress,
+  unlockedAt 
+}: AchievementCardProps) {
   return (
     <HoverCard>
       <HoverCardTrigger asChild>
@@ -29,14 +42,26 @@ export function AchievementCard({ name, description, isUnlocked, unlockCriteria,
                 {name}
               </CardTitle>
               {isUnlocked ? (
-                <Trophy className="h-5 w-5 text-primary" />
+                <Trophy style={{ color: iconColor }} className="h-5 w-5" />
               ) : (
                 <Lock className="h-5 w-5 text-muted-foreground" />
               )}
             </div>
             <CardDescription className="mt-2">{description}</CardDescription>
-            <div className="mt-2 text-sm font-medium">
-              {points} points
+            <div className="mt-2 space-y-1">
+              <div className="text-sm font-medium">
+                {points} points
+              </div>
+              {progress && !isUnlocked && (
+                <div className="text-xs text-muted-foreground">
+                  Progress: {progress}
+                </div>
+              )}
+              {isUnlocked && unlockedAt && (
+                <div className="text-xs text-muted-foreground">
+                  Unlocked on {format(new Date(unlockedAt), 'MMM d, yyyy')}
+                </div>
+              )}
             </div>
           </CardHeader>
         </Card>
