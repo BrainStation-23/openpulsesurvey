@@ -1,4 +1,3 @@
-
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Edit, Trash2 } from "lucide-react";
 import * as icons from "lucide-react";
 import { LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ACHIEVEMENT_TYPE_CONFIG, AchievementType } from "../types";
+import { ACHIEVEMENT_TYPE_CONFIG, Achievement } from "../types";
 import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
@@ -23,17 +22,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-
-type Achievement = {
-  id: string;
-  name: string;
-  description: string;
-  achievement_type: AchievementType;
-  points: number;
-  icon: string;
-  icon_color: string;
-  status: 'active' | 'inactive';
-};
 
 export const columns: ColumnDef<Achievement>[] = [
   {

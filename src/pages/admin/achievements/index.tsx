@@ -6,20 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { columns } from "./components/columns";
 import { useNavigate } from "react-router-dom";
-import { AchievementType } from "./types";
-
-type Achievement = {
-  id: string;
-  name: string;
-  description: string;
-  achievement_type: AchievementType;
-  icon: string;
-  points: number;
-  status: 'active' | 'inactive';
-  condition_value: any;
-  created_at: string;
-  updated_at: string;
-};
+import { Achievement } from "./types";
 
 export default function AchievementsPage() {
   const navigate = useNavigate();
