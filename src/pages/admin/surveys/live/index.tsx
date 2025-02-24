@@ -14,14 +14,26 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 
+// Define types based on our database schema
+type SessionStatus = 'created' | 'active' | 'paused' | 'ended';
+
 interface LiveSession {
   id: string;
   survey_id: string;
   name: string;
   description: string | null;
   join_code: string;
-  status: 'created' | 'active' | 'paused' | 'ended';
+  status: SessionStatus;
   created_at: string;
+  survey: {
+    name: string;
+  } | null;
+  participant_count: {
+    count: number;
+  } | null;
+}
+
+interface ProcessedLiveSession extends Omit<LiveSession, 'survey' | 'participant_count'> {
   survey: {
     name: string;
   };
@@ -54,14 +66,15 @@ export default function LiveSurveyPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      return (data || []).map(session => ({
+
+      // Process the data to handle nullable fields and counts
+      return (data || []).map((session: LiveSession): ProcessedLiveSession => ({
         ...session,
-        participant_count: session.participant_count?.count || 0,
         survey: {
           name: session.survey?.name || 'Unknown Survey'
-        }
-      })) as LiveSession[];
+        },
+        participant_count: session.participant_count?.count || 0
+      }));
     }
   });
 
