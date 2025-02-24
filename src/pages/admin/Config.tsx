@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { navigationItems } from "@/config/navigation";
+import { TourButton } from "@/components/onboarding/TourButton";
+import { Tour } from "@/components/onboarding/Tour";
 
 export default function AdminConfig() {
   const navigate = useNavigate();
@@ -14,23 +16,26 @@ export default function AdminConfig() {
 
   return (
     <div>
-      <div className="flex items-center mb-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="mr-4"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold">Platform Configuration</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            className="mr-4"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-2xl font-bold">Platform Configuration</h1>
+        </div>
+        <TourButton tourId="platform_setup" title="Platform Setup Guide" />
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {configItems.map((item) => (
           <Card 
             key={item.path}
-            className="hover:bg-accent cursor-pointer transition-colors"
+            className={`hover:bg-accent cursor-pointer transition-colors config-${item.path.split('/').pop()}`}
             onClick={() => navigate(item.path)}
           >
             <CardHeader>
@@ -45,6 +50,7 @@ export default function AdminConfig() {
           </Card>
         ))}
       </div>
+      <Tour />
     </div>
   );
 }
