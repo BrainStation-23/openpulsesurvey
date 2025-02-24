@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Users, Timer } from "lucide-react";
@@ -24,9 +25,7 @@ interface LiveSession {
   join_code: string;
   status: SessionStatus;
   created_at: string;
-  survey: {
-    name: string;
-  } | null;
+  survey_name: string;
   participant_count: number;
 }
 
@@ -49,20 +48,24 @@ export default function LiveSurveyPage() {
           join_code,
           status,
           created_at,
-          survey:surveys(name),
+          survey_name:surveys!inner(name),
           participant_count:live_session_participants(count)
         `)
-        .eq('created_by', user.id)
-        .order('created_at', { ascending: false });
+        .eq('created_by', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching live sessions:', error);
+        throw error;
+      }
 
       return (data || []).map((session): LiveSession => ({
         ...session,
-        survey: session.survey || { name: 'Unknown Survey' },
-        participant_count: session.participant_count?.[0]?.count || 0
+        survey_name: session.survey_name?.name || 'Unknown Survey',
+        participant_count: session.participant_count?.length ? session.participant_count[0].count : 0
       }));
-    }
+    },
+    staleTime: 30000, // Cache data for 30 seconds
+    refetchInterval: 60000, // Refresh every minute
   });
 
   if (isLoading) {
@@ -118,7 +121,7 @@ export default function LiveSurveyPage() {
               {sessions?.map((session) => (
                 <ResponsiveTable.Row key={session.id}>
                   <ResponsiveTable.Cell>{session.name}</ResponsiveTable.Cell>
-                  <ResponsiveTable.Cell>{session.survey?.name}</ResponsiveTable.Cell>
+                  <ResponsiveTable.Cell>{session.survey_name}</ResponsiveTable.Cell>
                   <ResponsiveTable.Cell>
                     <code className="bg-muted px-2 py-1 rounded">
                       {session.join_code}
