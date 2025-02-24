@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -23,15 +22,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import { generateRandomString } from "@/lib/utils";
+import { SurveySelector } from "../../campaigns/components/SurveySelector";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -51,20 +44,6 @@ export default function CreateSessionDialog({
   onSuccess,
 }: CreateSessionDialogProps) {
   const [isCreating, setIsCreating] = useState(false);
-  
-  const { data: surveys } = useQuery({
-    queryKey: ['available-surveys'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('surveys')
-        .select('id, name')
-        .eq('status', 'published')  // Changed from 'active' to 'published'
-        .order('name');
-      
-      if (error) throw error;
-      return data;
-    }
-  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -114,7 +93,7 @@ export default function CreateSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Live Session</DialogTitle>
           <DialogDescription>
@@ -123,66 +102,59 @@ export default function CreateSessionDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Session Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Enter session name" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Enter session description"
-                      rows={3}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="survey_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Survey</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid gap-4 py-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Session Name</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a survey" />
-                      </SelectTrigger>
+                      <Input {...field} placeholder="Enter session name" />
                     </FormControl>
-                    <SelectContent>
-                      {surveys?.map((survey) => (
-                        <SelectItem key={survey.id} value={survey.id}>
-                          {survey.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder="Enter session description"
+                        rows={3}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-medium">Select Survey</h3>
+              <FormField
+                control={form.control}
+                name="survey_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <SurveySelector
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <Button
               type="submit"
