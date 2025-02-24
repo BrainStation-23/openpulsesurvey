@@ -107,12 +107,14 @@ export default function MySurveysList() {
     let group = groups.find(g => g.campaign_id === survey.campaign_id);
     
     if (!group) {
+      // Since instance is a jsonb column, we can access the anonymous property directly
+      const instanceData = survey.instance as any; // Type assertion needed since Instance type doesn't include anonymous
       group = {
         campaign_id: survey.campaign_id,
         name: survey.survey.name,
         description: survey.survey.description,
         instances: [],
-        anonymous: survey.instance.anonymous // Get anonymous flag from instance
+        anonymous: instanceData.anonymous
       };
       groups.push(group);
     }
