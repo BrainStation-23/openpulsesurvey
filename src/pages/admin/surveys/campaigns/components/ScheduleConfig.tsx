@@ -26,11 +26,11 @@ interface ScheduleConfigProps {
 }
 
 const frequencyOptions = [
-  { value: "daily", label: "Daily (Runs every day)" },
-  { value: "weekly", label: "Weekly (Runs every week)" },
-  { value: "monthly", label: "Monthly (Runs once a month)" },
-  { value: "quarterly", label: "Quarterly (Runs every 3 months)" },
-  { value: "yearly", label: "Yearly (Runs once a year)" },
+  { value: "daily", label: "Daily (Runs every day)", maxDays: 1 },
+  { value: "weekly", label: "Weekly (Runs every week)", maxDays: 7 },
+  { value: "monthly", label: "Monthly (Runs once a month)", maxDays: 31 },
+  { value: "quarterly", label: "Quarterly (Runs every 3 months)", maxDays: 90 },
+  { value: "yearly", label: "Yearly (Runs once a year)", maxDays: 365 },
 ];
 
 export function ScheduleConfig({ form }: ScheduleConfigProps) {
@@ -38,6 +38,28 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
     control: form.control,
     name: "is_recurring",
   });
+
+  const frequency = useWatch({
+    control: form.control,
+    name: "recurring_frequency",
+  });
+
+  // Get the maximum allowed days based on selected frequency
+  const getMaxDays = () => {
+    const option = frequencyOptions.find(opt => opt.value === frequency);
+    return option?.maxDays || 1;
+  };
+
+  // Handle frequency change to adjust instance_duration_days if needed
+  const handleFrequencyChange = (value: string) => {
+    form.setValue("recurring_frequency", value);
+    const maxDays = frequencyOptions.find(opt => opt.value === value)?.maxDays || 1;
+    const currentDuration = form.getValues("instance_duration_days");
+    
+    if (currentDuration > maxDays) {
+      form.setValue("instance_duration_days", maxDays);
+    }
+  };
 
   return (
     <Card className="p-6">
@@ -100,30 +122,52 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
 
           {isRecurring && (
             <>
-              <FormField
-                control={form.control}
-                name="recurring_frequency"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Frequency</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="recurring_frequency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Frequency</FormLabel>
+                      <Select 
+                        onValueChange={handleFrequencyChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {frequencyOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="instance_end_time"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Response Due Time</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select frequency" />
-                        </SelectTrigger>
+                        <Input 
+                          type="time" 
+                          {...field}
+                        />
                       </FormControl>
-                      <SelectContent>
-                        {frequencyOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}
@@ -133,33 +177,23 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
                     <FormLabel>Response Window (days)</FormLabel>
                     <FormControl>
                       <Input 
-                        type="number" 
-                        {...field} 
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      How many days should each instance last?
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="instance_end_time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Response Due Time</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="time" 
+                        type="number"
+                        min={1}
+                        max={getMaxDays()}
                         {...field}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          const maxDays = getMaxDays();
+                          if (value > maxDays) {
+                            field.onChange(maxDays);
+                          } else {
+                            field.onChange(value);
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormDescription>
-                      What time should responses be due each day?
+                      Maximum {getMaxDays()} days based on selected frequency
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
