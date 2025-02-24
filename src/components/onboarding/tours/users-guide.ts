@@ -63,28 +63,34 @@ export const usersGuideTour: TourConfig = {
       placement: "bottom",
     },
     {
-      target: ".container > div:last-child",
+      target: ".grid.grid-cols-1",
       title: "User Information Grid",
       content: "Each card displays key user information and provides quick access to user management actions.",
       placement: "bottom",
     },
     {
-      target: "[role='switch']",
-      title: "Active Status Toggle",
-      content: "Quickly activate or deactivate users. Inactive users cannot log in to the system.",
-      placement: "right",
+      target: ".flex.items-center.gap-2 > .checkbox",
+      title: "Bulk Selection Controls",
+      content: "Select multiple users at once to perform bulk actions. The checkbox in the header selects/deselects all users.",
+      placement: "bottom",
     },
     {
-      target: "[role='button'][aria-haspopup='menu']",
-      title: "User Actions",
-      content: "Access more actions like editing user details, resetting password, or deleting the user.",
+      target: "[role='combobox']",
+      title: "Page Size Selection",
+      content: "Choose how many users to display per page.",
+      placement: "bottom",
+    },
+    {
+      target: "nav[aria-label='pagination']",
+      title: "Pagination Controls",
+      content: "Navigate between pages of users using these controls.",
+      placement: "bottom",
+    },
+    {
+      target: ".card .dropdown-menu",
+      title: "User Actions Menu",
+      content: "Access additional actions for each user, including editing details, resetting password, or managing status.",
       placement: "left",
-    },
-    {
-      target: "[type='checkbox']",
-      title: "Bulk Selection",
-      content: "Select multiple users to perform bulk actions like status changes or deletion.",
-      placement: "right",
     }
   ]
 };
