@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Users, Timer } from "lucide-react";
@@ -13,8 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
+import CreateSessionDialog from "./components/CreateSessionDialog";
 
-// Define types based on our database schema
 type SessionStatus = 'initial' | 'active' | 'paused' | 'ended';
 
 interface LiveSession {
@@ -34,7 +33,7 @@ interface LiveSession {
 export default function LiveSurveyPage() {
   const [isCreating, setIsCreating] = useState(false);
 
-  const { data: sessions, isLoading } = useQuery({
+  const { data: sessions, isLoading, refetch } = useQuery({
     queryKey: ['live-sessions'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -58,7 +57,6 @@ export default function LiveSurveyPage() {
 
       if (error) throw error;
 
-      // Process the data to handle nullable fields and counts
       return (data || []).map((session): LiveSession => ({
         ...session,
         survey: session.survey || { name: 'Unknown Survey' },
@@ -89,6 +87,12 @@ export default function LiveSurveyPage() {
           New Live Session
         </Button>
       </div>
+
+      <CreateSessionDialog
+        open={isCreating}
+        onOpenChange={setIsCreating}
+        onSuccess={refetch}
+      />
 
       <Card>
         <CardHeader>
