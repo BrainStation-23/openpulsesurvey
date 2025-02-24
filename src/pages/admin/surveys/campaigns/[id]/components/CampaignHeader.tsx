@@ -9,7 +9,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, Check, Edit2, Play, X } from "lucide-react";
 import { format, isValid } from "date-fns";
-import { TourButton } from "@/components/onboarding/TourButton";
 import {
   Select,
   SelectContent,
@@ -154,7 +153,6 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
           )}
         </div>
         <div className="flex gap-2">
-          <TourButton tourId="campaign_details_guide" title="Campaign Details Guide" />
           <Button
             onClick={handlePresent}
             variant="outline"

@@ -41,11 +41,14 @@ export function InstanceSelector({
     enabled: !!campaignId,
   });
 
+  // Set default instance when instances are loaded
   useEffect(() => {
     if (instances?.length && !selectedInstanceId) {
+      // Find active instance
       const activeInstance = instances.find(
         (instance) => instance.status === "active"
       );
+      // If no active instance, use most recent
       const defaultInstance = activeInstance || instances[0];
       if (defaultInstance) {
         console.log("Setting default instance:", defaultInstance.id);
@@ -61,7 +64,7 @@ export function InstanceSelector({
   }
 
   return (
-    <Select value={selectedInstanceId} onValueChange={onInstanceSelect} data-test="instance-selector">
+    <Select value={selectedInstanceId} onValueChange={onInstanceSelect}>
       <SelectTrigger className="w-[280px]">
         <SelectValue placeholder="Select instance" />
       </SelectTrigger>
