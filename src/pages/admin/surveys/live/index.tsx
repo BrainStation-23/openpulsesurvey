@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Timer } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import { 
   Card, 
   CardContent, 
@@ -33,29 +34,39 @@ export default function LiveSurveyPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [showOnlyMine, setShowOnlyMine] = useState(false);
 
-  const { data: sessions, isLoading, refetch } = useQuery({
+  const { data: sessions, isLoading, error, refetch } = useQuery({
     queryKey: ['live-sessions', showOnlyMine],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast.error("Authentication required");
+          throw new Error('Not authenticated');
+        }
 
-      let query = supabase
-        .from('live_survey_sessions')
-        .select('id, name, description, join_code, status, created_at, created_by')
-        .order('created_at', { ascending: false });
+        let query = supabase
+          .from('live_survey_sessions')
+          .select('id, name, description, join_code, status, created_at, created_by')
+          .order('created_at', { ascending: false });
 
-      if (showOnlyMine) {
-        query = query.eq('created_by', user.id);
+        if (showOnlyMine) {
+          query = query.eq('created_by', user.id);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.error('Supabase error:', error);
+          toast.error(`Failed to fetch sessions: ${error.message}`);
+          throw error;
+        }
+
+        return data || [];
+      } catch (err) {
+        console.error('Error fetching live sessions:', err);
+        toast.error("Failed to load live sessions");
+        throw err;
       }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching live sessions:', error);
-        throw error;
-      }
-
-      return data || [];
     }
   });
 
@@ -66,6 +77,19 @@ export default function LiveSurveyPage() {
         <Card>
           <CardContent className="p-6">
             Loading...
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Live Survey</h1>
+        <Card>
+          <CardContent className="p-6 text-red-500">
+            Failed to load live sessions. Please try refreshing the page.
           </CardContent>
         </Card>
       </div>
