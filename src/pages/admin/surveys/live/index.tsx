@@ -16,15 +16,16 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 interface LiveSession {
   id: string;
+  survey_id: string;
   name: string;
   description: string | null;
   join_code: string;
   status: 'created' | 'active' | 'paused' | 'ended';
-  participant_count: number;
   created_at: string;
   survey: {
     name: string;
   };
+  participant_count: number;
 }
 
 export default function LiveSurveyPage() {
@@ -39,7 +40,13 @@ export default function LiveSurveyPage() {
       const { data, error } = await supabase
         .from('live_survey_sessions')
         .select(`
-          *,
+          id,
+          survey_id,
+          name,
+          description,
+          join_code,
+          status,
+          created_at,
           survey:surveys(name),
           participant_count:live_session_participants(count)
         `)
@@ -47,7 +54,14 @@ export default function LiveSurveyPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as LiveSession[];
+      
+      return (data || []).map(session => ({
+        ...session,
+        participant_count: session.participant_count?.count || 0,
+        survey: {
+          name: session.survey?.name || 'Unknown Survey'
+        }
+      })) as LiveSession[];
     }
   });
 
