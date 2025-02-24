@@ -8,7 +8,7 @@ export const campaignDetailsTour: TourConfig = {
   completionKey: "tour_completed_campaign_details",
   steps: [
     {
-      target: "button[role='tab']",
+      target: "button[role='tab'][value='overview']",
       title: "Overview Tab",
       content: "The Overview tab provides key metrics about your campaign, including completion rates, response trends, and SBU performance. Use this for a quick snapshot of campaign performance.",
       placement: "bottom",
