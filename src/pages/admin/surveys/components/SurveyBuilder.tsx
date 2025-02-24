@@ -109,14 +109,15 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
     if (errors.length === 0) {
       try {
         const surveyModel = new Model(parsedJson);
-        const questionErrors = surveyModel.getQuestionErrors();
+        surveyModel.checkForErrors(); // Using the correct method to check for errors
+        const questionErrors = surveyModel.errors || []; // Access errors through the errors property
         
         if (questionErrors.length > 0) {
           questionErrors.forEach(error => {
             errors.push({
               type: 'question' as const,
-              message: error.getErrorType(),
-              location: error.locationInformation?.page?.name
+              message: error.text || 'Unknown error', // Use error.text for the message
+              location: error.page?.name
             });
           });
         }
