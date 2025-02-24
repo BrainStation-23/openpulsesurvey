@@ -7,15 +7,22 @@ const TourContext = createContext<TourContextType | undefined>(undefined);
 export function TourProvider({ children }: { children: ReactNode }) {
   const [currentTourId, setCurrentTourId] = useState<string | null>(null);
   const [isStepOpen, setIsStepOpen] = useState(false);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   const startTour = useCallback((tourId: string) => {
     setCurrentTourId(tourId);
+    setCurrentStepIndex(0);
     setIsStepOpen(true);
   }, []);
 
   const endTour = useCallback(() => {
     setCurrentTourId(null);
     setIsStepOpen(false);
+    setCurrentStepIndex(0);
+  }, []);
+
+  const goToStep = useCallback((index: number) => {
+    setCurrentStepIndex(index);
   }, []);
 
   const getTourCompletion = useCallback((tourId: string) => {
@@ -24,8 +31,10 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
   const value = {
     currentTourId,
+    currentStepIndex,
     startTour,
     endTour,
+    goToStep,
     isTourActive: !!currentTourId,
     isStepOpen,
     getTourCompletion,

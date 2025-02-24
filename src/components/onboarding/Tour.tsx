@@ -1,21 +1,34 @@
 
 import { useEffect, useMemo } from "react";
-import Joyride, { EVENTS, ACTIONS, STATUS } from "react-joyride";
+import Joyride, { EVENTS, ACTIONS, STATUS, CallBackProps } from "react-joyride";
 import { useTour } from "./TourContext";
 import { tours } from "./tours";
 
 export function Tour() {
-  const { currentTourId, endTour, isStepOpen } = useTour();
+  const { currentTourId, currentStepIndex, endTour, goToStep, isStepOpen } = useTour();
 
   const currentTour = useMemo(() => {
     if (!currentTourId) return null;
     return tours.find((tour) => tour.id === currentTourId);
   }, [currentTourId]);
 
-  const handleJoyrideCallback = (data: any) => {
-    const { status } = data;
-    const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
+  const handleJoyrideCallback = (data: CallBackProps) => {
+    const { action, index, status, type } = data;
 
+    if (type === EVENTS.STEP_AFTER) {
+      if (action === ACTIONS.NEXT) {
+        goToStep(index + 1);
+      } else if (action === ACTIONS.PREV) {
+        goToStep(index - 1);
+      }
+    }
+
+    if (type === EVENTS.TARGET_NOT_FOUND) {
+      // Skip to the next step if target is not found
+      goToStep(index + 1);
+    }
+
+    const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
     if (finishedStatuses.includes(status)) {
       if (status === STATUS.FINISHED) {
         // Mark the tour as completed
@@ -41,9 +54,11 @@ export function Tour() {
       callback={handleJoyrideCallback}
       continuous
       hideCloseButton
+      run={isStepOpen}
       scrollToFirstStep
       showProgress
       showSkipButton
+      stepIndex={currentStepIndex}
       steps={currentTour.steps}
       styles={{
         options: {

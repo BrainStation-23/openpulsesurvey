@@ -20,9 +20,11 @@ export type TourConfig = {
 
 export type TourContextType = {
   currentTourId: string | null;
+  currentStepIndex: number;
   startTour: (tourId: string) => void;
   endTour: () => void;
   isTourActive: boolean;
   isStepOpen: boolean;
   getTourCompletion: (tourId: string) => boolean;
+  goToStep: (index: number) => void;
 };
