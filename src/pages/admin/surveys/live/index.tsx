@@ -28,15 +28,6 @@ interface LiveSession {
   survey: {
     name: string;
   } | null;
-  participant_count: {
-    count: number;
-  } | null;
-}
-
-interface ProcessedLiveSession extends Omit<LiveSession, 'survey' | 'participant_count'> {
-  survey: {
-    name: string;
-  };
   participant_count: number;
 }
 
@@ -49,7 +40,8 @@ export default function LiveSurveyPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
+      // Using any here temporarily until we can update the Supabase types
+      const { data, error } = await (supabase as any)
         .from('live_survey_sessions')
         .select(`
           id,
@@ -68,11 +60,9 @@ export default function LiveSurveyPage() {
       if (error) throw error;
 
       // Process the data to handle nullable fields and counts
-      return (data || []).map((session: LiveSession): ProcessedLiveSession => ({
+      return (data || []).map((session: any): LiveSession => ({
         ...session,
-        survey: {
-          name: session.survey?.name || 'Unknown Survey'
-        },
+        survey: session.survey || { name: 'Unknown Survey' },
         participant_count: session.participant_count?.count || 0
       }));
     }
