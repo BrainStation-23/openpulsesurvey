@@ -1,10 +1,11 @@
 
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { UserSurvey } from "@/pages/admin/surveys/types/user-surveys";
 import SurveyCard from "../SurveyCard";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 
 interface CampaignGroupProps {
   campaignId: string;
@@ -12,13 +13,15 @@ interface CampaignGroupProps {
   description?: string | null;
   instances: UserSurvey[];
   onSelectSurvey: (survey: UserSurvey) => void;
+  isAnonymous?: boolean;
 }
 
 export default function CampaignGroup({
   name,
   description,
   instances,
-  onSelectSurvey
+  onSelectSurvey,
+  isAnonymous
 }: CampaignGroupProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   
@@ -52,6 +55,15 @@ export default function CampaignGroup({
               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </Button>
             <h3 className="font-medium">{name}</h3>
+            {isAnonymous && (
+              <Badge 
+                variant="outline" 
+                className="bg-[#E5DEFF] text-primary hover:bg-[#E5DEFF] border-[#E5DEFF]"
+              >
+                <EyeOff className="h-3 w-3 mr-1" />
+                Anonymous
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-4">
             {nextDueDate && (
