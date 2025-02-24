@@ -1,6 +1,6 @@
 
 import { useEffect, useMemo } from "react";
-import Joyride, { Status, CallBackProps } from "react-joyride";
+import Joyride, { EVENTS, ACTIONS, STATUS } from "react-joyride";
 import { useTour } from "./TourContext";
 import { tours } from "./tours";
 
@@ -12,12 +12,12 @@ export function Tour() {
     return tours.find((tour) => tour.id === currentTourId);
   }, [currentTourId]);
 
-  const handleJoyrideCallback = (data: CallBackProps) => {
+  const handleJoyrideCallback = (data: any) => {
     const { status } = data;
-    const finishedStatuses: Status[] = [Status.FINISHED, Status.SKIPPED];
+    const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
 
     if (finishedStatuses.includes(status)) {
-      if (status === Status.FINISHED) {
+      if (status === STATUS.FINISHED) {
         // Mark the tour as completed
         localStorage.setItem(`tour_completed_${currentTourId}`, "true");
       }

@@ -12,7 +12,7 @@ export const tours: TourConfig[] = [
         target: "body",
         title: "Welcome to the Platform Setup",
         content: "Let's walk through the initial configuration of your platform. We'll set up essential components step by step.",
-        placement: "center",
+        placement: "bottom",
         disableBeacon: true,
       },
       {
