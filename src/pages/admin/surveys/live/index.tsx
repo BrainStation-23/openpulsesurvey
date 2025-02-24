@@ -11,6 +11,8 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import CreateSessionDialog from "./components/CreateSessionDialog";
@@ -24,22 +26,29 @@ interface LiveSession {
   join_code: string;
   status: SessionStatus;
   created_at: string;
+  created_by: string;
 }
 
 export default function LiveSurveyPage() {
   const [isCreating, setIsCreating] = useState(false);
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
 
   const { data: sessions, isLoading, refetch } = useQuery({
-    queryKey: ['live-sessions'],
+    queryKey: ['live-sessions', showOnlyMine],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('live_survey_sessions')
-        .select('id, name, description, join_code, status, created_at')
-        .eq('created_by', user.id)
+        .select('id, name, description, join_code, status, created_at, created_by')
         .order('created_at', { ascending: false });
+
+      if (showOnlyMine) {
+        query = query.eq('created_by', user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching live sessions:', error);
@@ -47,9 +56,7 @@ export default function LiveSurveyPage() {
       }
 
       return data || [];
-    },
-    staleTime: 30000, // Cache data for 30 seconds
-    refetchInterval: 60000, // Refresh every minute
+    }
   });
 
   if (isLoading) {
@@ -83,10 +90,22 @@ export default function LiveSurveyPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Sessions</CardTitle>
-          <CardDescription>
-            View and manage your live survey sessions
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Sessions</CardTitle>
+              <CardDescription>
+                View and manage your live survey sessions
+              </CardDescription>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="show-mine"
+                checked={showOnlyMine}
+                onCheckedChange={setShowOnlyMine}
+              />
+              <Label htmlFor="show-mine">Show only my sessions</Label>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <ResponsiveTable className="border rounded-md">
@@ -139,7 +158,7 @@ export default function LiveSurveyPage() {
                 <ResponsiveTable.Row>
                   <ResponsiveTable.Cell colSpan={5} className="text-center text-muted-foreground">
                     No sessions found. Create one to get started.
-                  </ResponsiveTable.Cell>
+                  </ResponsesiveTable.Cell>
                 </ResponsiveTable.Row>
               )}
             </ResponsiveTable.Body>
