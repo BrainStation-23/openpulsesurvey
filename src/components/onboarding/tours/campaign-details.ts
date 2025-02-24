@@ -8,7 +8,7 @@ export const campaignDetailsTour: TourConfig = {
   completionKey: "tour_completed_campaign_details",
   steps: [
     {
-      target: "button[role='tab'][value='overview']",
+      target: "[data-value='overview']",
       title: "Overview Tab",
       content: "The Overview tab provides key metrics about your campaign, including completion rates, response trends, and SBU performance. Use this for a quick snapshot of campaign performance.",
       placement: "bottom",
@@ -32,31 +32,31 @@ export const campaignDetailsTour: TourConfig = {
       placement: "left",
     },
     {
-      target: "button[role='tab'][value='assignments']",
+      target: "[data-value='assignments']",
       title: "Assignments Tab",
       content: "Manage survey participants here. You can assign new users, track who has responded, send reminders to those who haven't completed the survey, and monitor completion status.",
       placement: "bottom",
     },
     {
-      target: "button[role='tab'][value='responses']",
+      target: "[data-value='responses']",
       title: "Responses Tab",
       content: "View individual survey responses, filter through submissions, and export response data. This tab gives you detailed insights into each participant's answers.",
       placement: "bottom",
     },
     {
-      target: "button[role='tab'][value='reports']",
+      target: "[data-value='reports']",
       title: "Reports Tab",
       content: "Access comprehensive analytics and visualizations of your survey data. Generate detailed reports with charts and graphs to better understand response patterns and trends.",
       placement: "bottom",
     },
     {
-      target: "button[role='tab'][value='compare']",
+      target: "[data-value='compare']",
       title: "Compare Tab",
       content: "Compare results between different campaign instances to identify trends and changes over time. This helps track progress and measure improvements across survey periods.",
       placement: "bottom",
     },
     {
-      target: "button[role='tab'][value='analyze']",
+      target: "[data-value='analyze']",
       title: "AI Analysis Tab",
       content: "Get AI-powered insights from your survey responses. This feature analyzes patterns, identifies key themes, and provides automated interpretation of survey results.",
       placement: "bottom",
