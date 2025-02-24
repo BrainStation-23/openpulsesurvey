@@ -14,7 +14,7 @@ export const campaignDetailsTour: TourConfig = {
       placement: "bottom",
     },
     {
-      target: ".InstanceSelector",
+      target: "[data-test='instance-selector']",
       title: "Instance Selector",
       content: "Select different campaign instances to view data from specific time periods. Each instance represents a distinct survey period, allowing you to track changes over time.",
       placement: "bottom",
