@@ -30,6 +30,18 @@ interface Achievement {
   unlocked_at?: string;
 }
 
+// Type guard to validate condition value structure
+function isValidConditionValue(value: any): value is Achievement['condition_value'] {
+  if (typeof value !== 'object' || value === null) return false;
+  
+  // Check if at least one of the expected properties exists and is a number
+  return (
+    (typeof value.required_count === 'number' || value.required_count === undefined) &&
+    (typeof value.required_rate === 'number' || value.required_rate === undefined) &&
+    (typeof value.required_days === 'number' || value.required_days === undefined)
+  );
+}
+
 export default function UserAchievementsPage() {
   const navigate = useNavigate();
 
@@ -63,19 +75,36 @@ export default function UserAchievementsPage() {
 
       if (progressError) throw progressError;
 
-      // Combine the data
+      // Transform and validate the data
       return allAchievements.map(achievement => {
         const userAchievement = userAchievements.find(ua => ua.achievement_id === achievement.id);
         const progress = achievementProgress.find(ap => ap.achievement_id === achievement.id);
+        
+        // Parse and validate condition_value
+        let parsedConditionValue = achievement.condition_value;
+        if (typeof parsedConditionValue === 'string') {
+          try {
+            parsedConditionValue = JSON.parse(parsedConditionValue);
+          } catch (e) {
+            console.error('Error parsing condition_value:', e);
+            parsedConditionValue = {};
+          }
+        }
+
+        if (!isValidConditionValue(parsedConditionValue)) {
+          console.warn(`Invalid condition_value for achievement ${achievement.id}:`, parsedConditionValue);
+          parsedConditionValue = {};
+        }
 
         return {
           ...achievement,
+          condition_value: parsedConditionValue,
           isUnlocked: !!userAchievement,
           unlocked_at: userAchievement?.unlocked_at,
           progress: progress ? {
-            current_value: progress.current_value
+            current_value: progress.current_value as { type: string; value: number }
           } : undefined
-        };
+        } as Achievement;
       });
     }
   });
@@ -84,13 +113,13 @@ export default function UserAchievementsPage() {
     const { condition_value, achievement_type } = achievement;
     switch (achievement_type) {
       case 'survey_completion':
-        return `Complete ${condition_value.required_count} surveys`;
+        return `Complete ${condition_value.required_count || 0} surveys`;
       case 'response_rate':
-        return `Maintain a ${condition_value.required_rate}% response rate`;
+        return `Maintain a ${condition_value.required_rate || 0}% response rate`;
       case 'streak':
-        return `Maintain a streak of ${condition_value.required_days} days`;
+        return `Maintain a streak of ${condition_value.required_days || 0} days`;
       case 'campaign_completion':
-        return `Complete ${condition_value.required_count} campaigns`;
+        return `Complete ${condition_value.required_count || 0} campaigns`;
       default:
         return 'Complete the required criteria';
     }
@@ -104,13 +133,13 @@ export default function UserAchievementsPage() {
 
     switch (achievement_type) {
       case 'survey_completion':
-        return `${currentValue}/${condition_value.required_count} surveys`;
+        return `${currentValue}/${condition_value.required_count || 0} surveys`;
       case 'response_rate':
         return `${currentValue.toFixed(1)}%`;
       case 'streak':
         return `${currentValue} days`;
       case 'campaign_completion':
-        return `${currentValue}/${condition_value.required_count} campaigns`;
+        return `${currentValue}/${condition_value.required_count || 0} campaigns`;
       default:
         return undefined;
     }
