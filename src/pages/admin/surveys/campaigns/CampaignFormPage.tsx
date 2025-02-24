@@ -74,21 +74,14 @@ export default function CampaignFormPage() {
         return;
       }
 
-      // For recurring campaigns, create a proper timestamptz for instance_end_time
+      // For recurring campaigns, create a proper timestamptz preserving local timezone
       let instanceEndTime: string | null = null;
       
-      if (formData.is_recurring) {
+      if (formData.is_recurring && formData.instance_end_time) {
         const [hours, minutes] = formData.instance_end_time.split(':').map(Number);
-        // Create a timestamptz at UTC midnight plus the specified hours and minutes
-        const now = new Date();
-        const endTimeDate = new Date(Date.UTC(
-          now.getUTCFullYear(),
-          now.getUTCMonth(),
-          now.getUTCDate(),
-          hours,
-          minutes,
-          0
-        ));
+        // Create date in local timezone and set the time
+        const endTimeDate = new Date();
+        endTimeDate.setHours(hours, minutes, 0, 0);
         instanceEndTime = endTimeDate.toISOString();
       }
 
