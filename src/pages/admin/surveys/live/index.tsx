@@ -158,7 +158,7 @@ export default function LiveSurveyPage() {
                 <ResponsiveTable.Row>
                   <ResponsiveTable.Cell colSpan={5} className="text-center text-muted-foreground">
                     No sessions found. Create one to get started.
-                  </ResponsesiveTable.Cell>
+                  </ResponsiveTable.Cell>
                 </ResponsiveTable.Row>
               )}
             </ResponsiveTable.Body>
