@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { LiveSession, LiveSessionQuestion, QuestionStatus } from "../../../types";
+import { LiveSession, LiveSessionQuestion, QuestionStatus, QuestionData } from "../../../types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { QuestionCard } from "./QuestionCard";
@@ -94,6 +94,21 @@ export function QuestionManager({ session }: QuestionManagerProps) {
     }
   };
 
+  // Transform Supabase data to match QuestionData type
+  const transformQuestion = (rawQuestion: any): LiveSessionQuestion => {
+    const questionData: QuestionData = {
+      title: rawQuestion.question_data.title || "Untitled Question",
+      type: rawQuestion.question_data.type || "unknown",
+      ...rawQuestion.question_data
+    };
+
+    return {
+      ...rawQuestion,
+      question_data: questionData,
+      status: rawQuestion.status as QuestionStatus
+    };
+  };
+
   // Fetch questions
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -105,7 +120,7 @@ export function QuestionManager({ session }: QuestionManagerProps) {
           .order("display_order", { ascending: true });
 
         if (error) throw error;
-        setQuestions(data || []);
+        setQuestions(data ? data.map(transformQuestion) : []);
       } catch (error) {
         console.error("Error fetching questions:", error);
         toast({
@@ -133,11 +148,11 @@ export function QuestionManager({ session }: QuestionManagerProps) {
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setQuestions((prev) => [...prev, payload.new as LiveSessionQuestion]);
+            setQuestions((prev) => [...prev, transformQuestion(payload.new)]);
           } else if (payload.eventType === "UPDATE") {
             setQuestions((prev) =>
               prev.map((q) =>
-                q.id === payload.new.id ? payload.new as LiveSessionQuestion : q
+                q.id === payload.new.id ? transformQuestion(payload.new) : q
               )
             );
           } else if (payload.eventType === "DELETE") {
@@ -199,12 +214,12 @@ export function QuestionManager({ session }: QuestionManagerProps) {
                     });
                   }
                 }}
-                onReorder={async (newOrder: number) => {
+                onReorder={async (questionId: string, newOrder: number) => {
                   try {
                     const { error } = await supabase
                       .from("live_session_questions")
                       .update({ display_order: newOrder })
-                      .eq("id", question.id);
+                      .eq("id", questionId);
 
                     if (error) throw error;
                   } catch (error) {
