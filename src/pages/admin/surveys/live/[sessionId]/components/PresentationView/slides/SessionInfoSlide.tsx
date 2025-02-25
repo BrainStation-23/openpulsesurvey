@@ -14,7 +14,7 @@ export function SessionInfoSlide({ session, participants, isActive }: SessionInf
     <div className={`slide ${isActive ? 'active' : ''}`}>
       <div className="flex flex-col items-center justify-center h-full space-y-8">
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold">{session.title}</h1>
+          <h1 className="text-4xl font-bold">{session.name}</h1>
           {session.description && (
             <p className="text-xl text-muted-foreground">{session.description}</p>
           )}

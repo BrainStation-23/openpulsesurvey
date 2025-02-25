@@ -17,9 +17,13 @@ export function ActiveQuestionSlide({ questions, responses, isActive }: ActiveQu
         <div className="flex flex-col h-full">
           <Card className="p-6 flex-1">
             <div className="space-y-4">
-              <h2 className="text-2xl font-semibold">{activeQuestion.title}</h2>
-              {activeQuestion.description && (
-                <p className="text-muted-foreground">{activeQuestion.description}</p>
+              <h2 className="text-2xl font-semibold">
+                {activeQuestion.question_data.title}
+              </h2>
+              {activeQuestion.question_data.description && (
+                <p className="text-muted-foreground">
+                  {activeQuestion.question_data.description}
+                </p>
               )}
               
               <div className="mt-8">
