@@ -49,10 +49,16 @@ export function useLiveSession(joinCode: string) {
           .single();
 
         if (!questionError && questions) {
+          const questionData = questions.question_data as {
+            title: string;
+            type: string;
+            choices?: { text: string; value: string; }[];
+          };
+
           setActiveQuestion({
             id: questions.id,
             question_key: questions.question_key,
-            question_data: questions.question_data
+            question_data: questionData
           });
         }
       } catch (error: any) {
@@ -85,10 +91,16 @@ export function useLiveSession(joinCode: string) {
         },
         (payload: any) => {
           if (payload.new && payload.new.status === "active") {
+            const questionData = payload.new.question_data as {
+              title: string;
+              type: string;
+              choices?: { text: string; value: string; }[];
+            };
+
             setActiveQuestion({
               id: payload.new.id,
               question_key: payload.new.question_key,
-              question_data: payload.new.question_data
+              question_data: questionData
             });
           }
         }
