@@ -1,0 +1,8 @@
+
+.slide {
+  @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+}
+
+.slide.active {
+  @apply opacity-100;
+}
