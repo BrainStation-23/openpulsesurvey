@@ -140,9 +140,14 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
           <Card className="p-6 flex-1">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-semibold">
-                  {currentActiveQuestion.question_data.title}
-                </h2>
+                <div>
+                  <h2 className="text-2xl font-semibold">
+                    {currentActiveQuestion.question_data.title}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Status: {currentActiveQuestion.status.charAt(0).toUpperCase() + currentActiveQuestion.status.slice(1)}
+                  </p>
+                </div>
                 {currentActiveQuestion.status === "pending" && (
                   <Button
                     onClick={handleEnableQuestion}
