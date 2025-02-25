@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { LiveSession, LiveSessionQuestion, QuestionStatus, QuestionData } from "../../../types";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,29 +59,62 @@ export function QuestionManager({ session }: QuestionManagerProps) {
     const newOrder = overQuestion.display_order;
 
     try {
-      // Start a batch operation
+      // Update all affected questions directly using SQL
       if (oldOrder < newOrder) {
-        // Moving down: update all questions between old and new position
-        const { error } = await supabase.rpc('reorder_questions', {
-          p_session_id: session.id,
-          p_question_id: activeQuestion.id,
-          p_old_order: oldOrder,
-          p_new_order: newOrder,
-          p_direction: 'down'
-        });
-        
+        // Moving down
+        const { error } = await supabase
+          .from('live_session_questions')
+          .update({ display_order: oldOrder })
+          .eq('id', activeQuestion.id)
+          .select();
+
         if (error) throw error;
+
+        // Update all questions in between
+        const { error: updateError } = await supabase
+          .from('live_session_questions')
+          .update({ display_order: supabase.sql`display_order - 1` })
+          .eq('session_id', session.id)
+          .gt('display_order', oldOrder)
+          .lte('display_order', newOrder)
+          .neq('id', activeQuestion.id);
+
+        if (updateError) throw updateError;
+
+        // Set final position
+        const { error: finalError } = await supabase
+          .from('live_session_questions')
+          .update({ display_order: newOrder })
+          .eq('id', activeQuestion.id);
+
+        if (finalError) throw finalError;
       } else {
-        // Moving up: update all questions between new and old position
-        const { error } = await supabase.rpc('reorder_questions', {
-          p_session_id: session.id,
-          p_question_id: activeQuestion.id,
-          p_old_order: oldOrder,
-          p_new_order: newOrder,
-          p_direction: 'up'
-        });
-        
+        // Moving up
+        const { error } = await supabase
+          .from('live_session_questions')
+          .update({ display_order: oldOrder })
+          .eq('id', activeQuestion.id);
+
         if (error) throw error;
+
+        // Update all questions in between
+        const { error: updateError } = await supabase
+          .from('live_session_questions')
+          .update({ display_order: supabase.sql`display_order + 1` })
+          .eq('session_id', session.id)
+          .gte('display_order', newOrder)
+          .lt('display_order', oldOrder)
+          .neq('id', activeQuestion.id);
+
+        if (updateError) throw updateError;
+
+        // Set final position
+        const { error: finalError } = await supabase
+          .from('live_session_questions')
+          .update({ display_order: newOrder })
+          .eq('id', activeQuestion.id);
+
+        if (finalError) throw finalError;
       }
     } catch (error) {
       console.error("Error during drag and drop:", error);
@@ -311,23 +345,7 @@ export function QuestionManager({ session }: QuestionManagerProps) {
                         });
                       }
                     }}
-                    onReorder={async (questionId: string, newOrder: number) => {
-                      try {
-                        const { error } = await supabase
-                          .from("live_session_questions")
-                          .update({ display_order: newOrder })
-                          .eq("id", questionId);
-
-                        if (error) throw error;
-                      } catch (error) {
-                        console.error("Error reordering questions:", error);
-                        toast({
-                          title: "Error",
-                          description: "Failed to reorder questions",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
+                    onReorder={onReorder}
                     sessionStatus={session.status}
                   />
                 ))}
