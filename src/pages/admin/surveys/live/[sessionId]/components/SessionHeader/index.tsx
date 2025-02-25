@@ -16,9 +16,10 @@ import { ParticipantCounter } from "./ParticipantCounter";
 interface SessionHeaderProps {
   session: LiveSession;
   onStatusChange: (status: SessionStatus) => Promise<void>;
+  isUpdating: boolean;
 }
 
-export function SessionHeader({ session, onStatusChange }: SessionHeaderProps) {
+export function SessionHeader({ session, onStatusChange, isUpdating }: SessionHeaderProps) {
   const [isCopied, setIsCopied] = useState(false);
 
   const copyJoinCode = async () => {
@@ -59,9 +60,10 @@ export function SessionHeader({ session, onStatusChange }: SessionHeaderProps) {
                 onClick={() => onStatusChange("active")}
                 variant="default"
                 className="gap-2"
+                disabled={isUpdating}
               >
                 <PlayCircle className="h-4 w-4" />
-                Start Session
+                {isUpdating ? "Starting..." : "Start Session"}
               </Button>
             )}
             
@@ -71,17 +73,19 @@ export function SessionHeader({ session, onStatusChange }: SessionHeaderProps) {
                   onClick={() => onStatusChange("paused")}
                   variant="outline"
                   className="gap-2"
+                  disabled={isUpdating}
                 >
                   <PauseCircle className="h-4 w-4" />
-                  Pause
+                  {isUpdating ? "Pausing..." : "Pause"}
                 </Button>
                 <Button
                   onClick={() => onStatusChange("ended")}
                   variant="destructive"
                   className="gap-2"
+                  disabled={isUpdating}
                 >
                   <StopCircle className="h-4 w-4" />
-                  End
+                  {isUpdating ? "Ending..." : "End"}
                 </Button>
               </>
             )}
@@ -92,17 +96,19 @@ export function SessionHeader({ session, onStatusChange }: SessionHeaderProps) {
                   onClick={() => onStatusChange("active")}
                   variant="default"
                   className="gap-2"
+                  disabled={isUpdating}
                 >
                   <PlayCircle className="h-4 w-4" />
-                  Resume
+                  {isUpdating ? "Resuming..." : "Resume"}
                 </Button>
                 <Button
                   onClick={() => onStatusChange("ended")}
                   variant="destructive"
                   className="gap-2"
+                  disabled={isUpdating}
                 >
                   <StopCircle className="h-4 w-4" />
-                  End
+                  {isUpdating ? "Ending..." : "End"}
                 </Button>
               </>
             )}
