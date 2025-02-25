@@ -17,7 +17,14 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
   const renderResponseVisualization = () => {
     if (!currentActiveQuestion || !responses.length) return null;
 
-    const processedResponses = responses.map(r => r.response_data.response);
+    const processedResponses = responses.map(r => {
+      const response = r.response_data.response;
+      // Convert to number if it's a string number
+      if (typeof response === 'string' && !isNaN(Number(response))) {
+        return Number(response);
+      }
+      return response;
+    });
     
     switch (currentActiveQuestion.question_data.type) {
       case 'boolean': {
@@ -26,8 +33,8 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
         const total = yesCount + noCount;
         
         const data = [
-          { value: true, count: yesCount, percentage: (yesCount / total) * 100, timestamp: Date.now() },
-          { value: false, count: noCount, percentage: (noCount / total) * 100, timestamp: Date.now() }
+          { value: true, count: yesCount, percentage: total > 0 ? (yesCount / total) * 100 : 0, timestamp: Date.now() },
+          { value: false, count: noCount, percentage: total > 0 ? (noCount / total) * 100 : 0, timestamp: Date.now() }
         ];
         
         return <LivePieChart data={data} total={total} />;
@@ -35,16 +42,18 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
       
       case 'rating': {
         const validResponses = processedResponses.filter((r): r is number => 
-          typeof r === 'number' && r >= 1 && r <= 5
-        );
+          (typeof r === 'number' || (typeof r === 'string' && !isNaN(Number(r)))) &&
+          Number(r) >= 1 && Number(r) <= 5
+        ).map(r => Number(r));
         
         const total = validResponses.length;
         const counts = Array.from({ length: 5 }, (_, i) => {
-          const count = validResponses.filter(r => r === i + 1).length;
+          const rating = i + 1;
+          const count = validResponses.filter(r => r === rating).length;
           return {
-            rating: i + 1,
+            rating,
             count,
-            percentage: (count / total) * 100,
+            percentage: total > 0 ? (count / total) * 100 : 0,
             timestamp: Date.now()
           };
         });

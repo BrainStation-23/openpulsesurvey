@@ -30,10 +30,8 @@ export function LiveBarChart({ data }: LiveBarChartProps) {
             animationDuration={300}
             label={{
               position: 'right',
-              content: ({ value, x, y, width, height }) => {
-                const numericValue = Number(value);
-                const totalCount = data.reduce((sum, d) => sum + d.count, 0);
-                const percentage = ((numericValue / totalCount) * 100).toFixed(1);
+              content: ({ value, x, y, width, height, payload }) => {
+                const percentage = payload.percentage.toFixed(1);
                 
                 return (
                   <g>
@@ -44,7 +42,7 @@ export function LiveBarChart({ data }: LiveBarChartProps) {
                       dominantBaseline="middle"
                       className="fill-current text-sm"
                     >
-                      {numericValue} ({percentage}%)
+                      {value} ({percentage}%)
                     </text>
                   </g>
                 );
