@@ -7,6 +7,20 @@ interface LiveBarChartProps {
   data: LiveBarChartData[];
 }
 
+interface CustomLabelProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  value?: number;
+  payload?: {
+    rating: number;
+    count: number;
+    percentage: number;
+    timestamp: number;
+  };
+}
+
 export function LiveBarChart({ data }: LiveBarChartProps) {
   const [animatedData, setAnimatedData] = useState(data);
 
@@ -30,19 +44,23 @@ export function LiveBarChart({ data }: LiveBarChartProps) {
             animationDuration={300}
             label={{
               position: 'right',
-              content: ({ value, x, y, width, height, payload }) => {
-                const percentage = payload.percentage.toFixed(1);
+              content: (props: CustomLabelProps) => {
+                if (!props.payload || !props.x || !props.y || !props.width || !props.height) {
+                  return null;
+                }
+                
+                const percentage = props.payload.percentage.toFixed(1);
                 
                 return (
                   <g>
                     <text
-                      x={Number(x) + Number(width) + 10}
-                      y={Number(y) + Number(height) / 2}
+                      x={props.x + props.width + 10}
+                      y={props.y + props.height / 2}
                       textAnchor="start"
                       dominantBaseline="middle"
                       className="fill-current text-sm"
                     >
-                      {value} ({percentage}%)
+                      {props.value} ({percentage}%)
                     </text>
                   </g>
                 );
