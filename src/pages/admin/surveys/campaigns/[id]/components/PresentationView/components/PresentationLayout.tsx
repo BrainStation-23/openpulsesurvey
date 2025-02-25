@@ -1,3 +1,4 @@
+
 import { cn } from "@/lib/utils";
 import { PropsWithChildren } from "react";
 
@@ -15,7 +16,7 @@ export function PresentationLayout({ children, progress, isFullscreen, className
 
   return (
     <div className={cn(
-      "relative h-full bg-background transition-colors duration-300",
+      "relative min-h-full bg-background transition-colors duration-300",
       isFullscreen && "fixed inset-0 z-50 bg-background",
       className
     )}>
@@ -27,7 +28,7 @@ export function PresentationLayout({ children, progress, isFullscreen, className
         />
       </div>
 
-      {/* Controls container - positioned relative to presentation area */}
+      {/* Controls container */}
       <div className={cn(
         "absolute top-0 left-0 right-0 p-4 flex justify-between items-center transition-opacity duration-300 bg-gradient-to-b from-black/20 to-transparent z-[55]",
         isFullscreen ? "opacity-0 hover:opacity-100" : "opacity-100"
@@ -38,8 +39,8 @@ export function PresentationLayout({ children, progress, isFullscreen, className
       </div>
 
       {/* Main content */}
-      <div className="relative h-full overflow-hidden pt-4"> {/* Added pt-16 to account for the controls */}
-        <div className="h-full p-8">
+      <div className="relative min-h-full pt-16">
+        <div className="h-full p-8 overflow-y-auto">
           <div className="relative max-w-full mx-auto h-full">
             {content}
           </div>
