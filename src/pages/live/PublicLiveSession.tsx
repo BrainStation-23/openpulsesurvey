@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { cn } from "@/lib/utils";
 
 interface ActiveQuestion {
   id: string;
@@ -158,6 +160,87 @@ export default function PublicLiveSession() {
     }
   };
 
+  const renderResponseInput = () => {
+    if (!activeQuestion) return null;
+
+    switch (activeQuestion.question_data.type) {
+      case 'boolean':
+        return (
+          <div className="flex gap-4 justify-center">
+            <Button
+              onClick={() => setResponse('true')}
+              variant={response === 'true' ? 'default' : 'outline'}
+              disabled={isSubmitting}
+            >
+              Yes
+            </Button>
+            <Button
+              onClick={() => setResponse('false')}
+              variant={response === 'false' ? 'default' : 'outline'}
+              disabled={isSubmitting}
+            >
+              No
+            </Button>
+          </div>
+        );
+
+      case 'rating':
+        return (
+          <div className="flex gap-2 justify-center flex-wrap">
+            {[1, 2, 3, 4, 5].map((number) => (
+              <Button
+                key={number}
+                onClick={() => setResponse(number.toString())}
+                variant={response === number.toString() ? 'default' : 'outline'}
+                disabled={isSubmitting}
+                className="w-12 h-12"
+              >
+                {number}
+              </Button>
+            ))}
+          </div>
+        );
+
+      case 'multiple_choice':
+        if (!activeQuestion.question_data.choices) return null;
+        return (
+          <RadioGroup
+            value={response}
+            onValueChange={setResponse}
+            className="space-y-2"
+            disabled={isSubmitting}
+          >
+            {activeQuestion.question_data.choices.map((choice) => (
+              <div key={choice.value} className="flex items-center space-x-2">
+                <RadioGroupItem value={choice.value} id={choice.value} />
+                <label
+                  htmlFor={choice.value}
+                  className={cn(
+                    "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+                    response === choice.value && "text-primary"
+                  )}
+                >
+                  {choice.text}
+                </label>
+              </div>
+            ))}
+          </RadioGroup>
+        );
+
+      case 'text':
+      default:
+        return (
+          <Input
+            type="text"
+            value={response}
+            onChange={(e) => setResponse(e.target.value)}
+            placeholder="Your answer"
+            disabled={isSubmitting}
+          />
+        );
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -181,13 +264,7 @@ export default function PublicLiveSession() {
               <h2 className="text-xl font-semibold mb-4">{activeQuestion.question_data.title}</h2>
               
               <div className="space-y-4">
-                <Input
-                  type="text"
-                  value={response}
-                  onChange={(e) => setResponse(e.target.value)}
-                  placeholder="Your answer"
-                  disabled={isSubmitting}
-                />
+                {renderResponseInput()}
 
                 <Button
                   onClick={handleSubmitResponse}
