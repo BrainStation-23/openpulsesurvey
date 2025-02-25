@@ -1,12 +1,26 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { LiveSessionQuestion } from "../../../../types";
+import type { LiveSessionQuestion, QuestionData } from "../../../../types";
 
 export function useLiveResponses(sessionId: string) {
   const [responses, setResponses] = useState<any[]>([]);
   const [participants, setParticipants] = useState<number>(0);
   const [activeQuestions, setActiveQuestions] = useState<LiveSessionQuestion[]>([]);
+
+  const transformQuestionData = (rawQuestion: any): LiveSessionQuestion => {
+    const questionData: QuestionData = {
+      title: rawQuestion.question_data.title || "Untitled Question",
+      type: rawQuestion.question_data.type || "unknown",
+      ...rawQuestion.question_data
+    };
+
+    return {
+      ...rawQuestion,
+      question_data: questionData,
+      status: rawQuestion.status as "pending" | "active" | "completed"
+    };
+  };
 
   useEffect(() => {
     // Initial fetch of responses
@@ -38,7 +52,8 @@ export function useLiveResponses(sessionId: string) {
         .order('display_order', { ascending: true });
 
       if (questionData) {
-        setActiveQuestions(questionData);
+        const transformedQuestions = questionData.map(transformQuestionData);
+        setActiveQuestions(transformedQuestions);
       }
     };
 
@@ -97,7 +112,8 @@ export function useLiveResponses(sessionId: string) {
             .order('display_order', { ascending: true });
 
           if (questionData) {
-            setActiveQuestions(questionData);
+            const transformedQuestions = questionData.map(transformQuestionData);
+            setActiveQuestions(transformedQuestions);
           }
         }
       )
