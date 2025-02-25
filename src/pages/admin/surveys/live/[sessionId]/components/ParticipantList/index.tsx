@@ -1,12 +1,16 @@
 
-import { ParticipantRow } from "./ParticipantRow";
-import { ResponseStatus } from "./ResponseStatus";
+import { LiveSession } from "../../../types";
 
-export function ParticipantList() {
-  // TODO: Implement participant list with real-time updates
+interface ParticipantListProps {
+  session: LiveSession;
+}
+
+export function ParticipantList({ session }: ParticipantListProps) {
   return (
-    <div>
-      Participant List Component
+    <div className="border rounded-lg p-4">
+      <h2 className="text-lg font-semibold mb-4">Participants</h2>
+      {/* Implementation coming soon */}
+      <div className="text-muted-foreground">Participant list will be implemented here</div>
     </div>
   );
 }

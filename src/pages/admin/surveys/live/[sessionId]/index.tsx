@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -8,7 +7,7 @@ import { SessionHeader } from "./components/SessionHeader";
 import { QuestionManager } from "./components/QuestionManager";
 import { PresentationView } from "./components/PresentationView";
 import { ParticipantList } from "./components/ParticipantList";
-import { LiveSession, SessionStatus } from "../../types";
+import { LiveSession, SessionStatus } from "../types";
 
 export default function LiveSessionControlPage() {
   const { sessionId } = useParams();

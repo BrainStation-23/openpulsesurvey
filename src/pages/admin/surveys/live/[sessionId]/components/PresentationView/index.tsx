@@ -1,16 +1,16 @@
 
-import { ChartContainer } from "./ChartContainer";
-import { ResponseVisualizer } from "./ResponseVisualizer";
-import { FullScreenToggle } from "./FullScreenToggle";
+import { LiveSession } from "../../../types";
 
-export function PresentationView() {
-  // TODO: Implement presentation view with real-time updates
+interface PresentationViewProps {
+  session: LiveSession;
+}
+
+export function PresentationView({ session }: PresentationViewProps) {
   return (
-    <div>
-      <FullScreenToggle />
-      <ChartContainer>
-        <ResponseVisualizer />
-      </ChartContainer>
+    <div className="border rounded-lg p-4">
+      <h2 className="text-lg font-semibold mb-4">Presentation View</h2>
+      {/* Implementation coming soon */}
+      <div className="text-muted-foreground">Response visualization will be implemented here</div>
     </div>
   );
 }

@@ -1,15 +1,16 @@
 
-import { QuestionCard } from "./QuestionCard";
-import { QuestionControls } from "./QuestionControls";
+import { LiveSession } from "../../../types";
 
-export function QuestionManager() {
-  // TODO: Implement question management logic
+interface QuestionManagerProps {
+  session: LiveSession;
+}
+
+export function QuestionManager({ session }: QuestionManagerProps) {
   return (
-    <div className="space-y-4">
-      <QuestionControls />
-      <div className="grid gap-4">
-        Questions list will go here
-      </div>
+    <div className="border rounded-lg p-4">
+      <h2 className="text-lg font-semibold mb-4">Questions</h2>
+      {/* Implementation coming soon */}
+      <div className="text-muted-foreground">Question management interface will be implemented here</div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import {
   CheckCircle 
 } from "lucide-react";
 import { useState } from "react";
-import { LiveSession, SessionStatus } from "../../../../types";
+import { LiveSession, SessionStatus } from "../../../types";
 import { JoinCodeDisplay } from "./JoinCodeDisplay";
 import { ParticipantCounter } from "./ParticipantCounter";
 
