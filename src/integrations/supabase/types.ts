@@ -561,20 +561,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "live_session_participants_participant_id_fkey"
-            columns: ["participant_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "live_session_participants_participant_id_fkey"
-            columns: ["participant_id"]
-            isOneToOne: false
-            referencedRelation: "silent_employees"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "live_session_participants_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
