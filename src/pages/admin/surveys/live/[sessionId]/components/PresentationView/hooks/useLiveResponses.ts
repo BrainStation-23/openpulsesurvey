@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { LiveSessionQuestion } from "../../../types";
+import type { LiveSessionQuestion } from "../../../../types";
 
 export function useLiveResponses(sessionId: string) {
   const [responses, setResponses] = useState<any[]>([]);
