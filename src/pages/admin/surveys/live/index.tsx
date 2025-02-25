@@ -5,6 +5,27 @@ import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useState } from "react";
+import { SurveySelector } from "../../surveys/campaigns/components/SurveySelector";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useForm } from "react-hook-form";
+import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import crypto from "crypto-random-string";
+
+const createSessionSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  survey_id: z.string().min(1, "Please select a survey")
+});
+
+type CreateSessionSchema = z.infer<typeof createSessionSchema>;
 
 type LiveSession = {
   id: string;
@@ -15,7 +36,18 @@ type LiveSession = {
 };
 
 export default function LiveSurveyPage() {
-  const { data: sessions, isLoading } = useQuery({
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const { toast } = useToast();
+  const form = useForm<CreateSessionSchema>({
+    resolver: zodResolver(createSessionSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      survey_id: ""
+    }
+  });
+
+  const { data: sessions, isLoading, refetch } = useQuery({
     queryKey: ["live-sessions"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -41,12 +73,115 @@ export default function LiveSurveyPage() {
     }
   };
 
+  const onSubmit = async (values: CreateSessionSchema) => {
+    try {
+      const joinCode = crypto({ length: 6, type: 'distinguishable' });
+      
+      const { error } = await supabase
+        .from('live_survey_sessions')
+        .insert({
+          name: values.name,
+          description: values.description,
+          survey_id: values.survey_id,
+          join_code: joinCode,
+          status: 'initial',
+          created_by: (await supabase.auth.getUser()).data.user?.id
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Live session created successfully"
+      });
+
+      setIsCreateOpen(false);
+      form.reset();
+      refetch();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Live Survey</h1>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Sessions</CardTitle>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                New Session
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create Live Survey Session</DialogTitle>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Session Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter session name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter session description"
+                            className="resize-none"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="survey_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select Survey</FormLabel>
+                        <FormControl>
+                          <SurveySelector
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex justify-end">
+                    <Button type="submit">Create Session</Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
           <ResponsiveTable>
