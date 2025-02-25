@@ -1,36 +1,30 @@
+
 import { Input } from "@/components/ui/input";
-import { Search, X, Tag, Calendar, CheckSquare } from "lucide-react";
+import { Search, X, Tag } from "lucide-react";
 import { useState } from "react";
 import { SurveyCard } from "./SurveyCard";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { TagFilter } from "../../../components/TagFilter";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DatePickerWithRange } from "@/components/ui/date-range-picker";
-import type { DateRange } from "react-day-picker";
 
 interface SurveySelectorProps {
   value: string;
   onChange: (value: string) => void;
 }
 
-type SurveyStatus = "draft" | "published" | "archived" | "all";
-
 export function SurveySelector({ value, onChange }: SurveySelectorProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = useState<SurveyStatus>("all");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   const { data: surveys, isLoading } = useQuery({
-    queryKey: ["surveys", searchQuery, selectedTags, statusFilter, dateRange],
+    queryKey: ["surveys", searchQuery, selectedTags],
     queryFn: async () => {
       let query = supabase
         .from("surveys")
-        .select("id, name, description, tags, status, created_at")
+        .select("id, name, description, tags")
+        .eq('status', 'published')
         .order("created_at", { ascending: false });
 
       if (searchQuery) {
@@ -41,18 +35,6 @@ export function SurveySelector({ value, onChange }: SurveySelectorProps) {
 
       if (selectedTags.length > 0) {
         query = query.contains("tags", selectedTags);
-      }
-
-      if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter);
-      }
-
-      if (dateRange?.from) {
-        query = query.gte("created_at", dateRange.from.toISOString());
-      }
-
-      if (dateRange?.to) {
-        query = query.lte("created_at", dateRange.to.toISOString());
       }
 
       const { data, error } = await query;
@@ -75,11 +57,9 @@ export function SurveySelector({ value, onChange }: SurveySelectorProps) {
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedTags([]);
-    setStatusFilter("all");
-    setDateRange(undefined);
   };
 
-  const hasActiveFilters = searchQuery || selectedTags.length > 0 || statusFilter !== "all" || dateRange;
+  const hasActiveFilters = searchQuery || selectedTags.length > 0;
 
   return (
     <div className="space-y-4">
@@ -105,35 +85,6 @@ export function SurveySelector({ value, onChange }: SurveySelectorProps) {
               Clear Filters
             </Button>
           )}
-        </div>
-
-        {/* Filter Controls */}
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center gap-2">
-            <CheckSquare className="h-4 w-4 text-muted-foreground" />
-            <Select 
-              value={statusFilter} 
-              onValueChange={(value: SurveyStatus) => setStatusFilter(value)}
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <DatePickerWithRange
-              value={dateRange}
-              onChange={(value) => setDateRange(value)}
-            />
-          </div>
         </div>
 
         {/* Tags Section */}
