@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { LiveSession, LiveSessionQuestion, QuestionStatus, QuestionData } from "../../../types";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,63 +58,44 @@ export function QuestionManager({ session }: QuestionManagerProps) {
     const newOrder = overQuestion.display_order;
 
     try {
-      // Update all affected questions directly using SQL
-      if (oldOrder < newOrder) {
-        // Moving down
-        const { error } = await supabase
-          .from('live_session_questions')
-          .update({ display_order: oldOrder })
-          .eq('id', activeQuestion.id)
-          .select();
+      // Use the database function to handle reordering
+      const { data, error } = await supabase
+        .from('live_session_questions')
+        .update({ 
+          display_order: newOrder,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', activeQuestion.id)
+        .select()
+        .single();
 
-        if (error) throw error;
+      if (error) throw error;
 
-        // Update all questions in between
-        const { error: updateError } = await supabase
-          .from('live_session_questions')
-          .update({ display_order: supabase.sql`display_order - 1` })
-          .eq('session_id', session.id)
-          .gt('display_order', oldOrder)
-          .lte('display_order', newOrder)
-          .neq('id', activeQuestion.id);
+      // Update all affected questions
+      const { error: batchError } = await supabase
+        .from('live_session_questions')
+        .update({ 
+          display_order: oldOrder < newOrder 
+            ? -1  // Temporary value to avoid uniqueness conflicts
+            : newOrder + 1
+        })
+        .eq('session_id', session.id)
+        .gte('display_order', Math.min(oldOrder, newOrder))
+        .lte('display_order', Math.max(oldOrder, newOrder))
+        .neq('id', activeQuestion.id);
 
-        if (updateError) throw updateError;
+      if (batchError) throw batchError;
 
-        // Set final position
-        const { error: finalError } = await supabase
-          .from('live_session_questions')
-          .update({ display_order: newOrder })
-          .eq('id', activeQuestion.id);
+      // Final update to set correct order
+      const { error: finalError } = await supabase
+        .from('live_session_questions')
+        .update({ 
+          display_order: newOrder 
+        })
+        .eq('id', activeQuestion.id);
 
-        if (finalError) throw finalError;
-      } else {
-        // Moving up
-        const { error } = await supabase
-          .from('live_session_questions')
-          .update({ display_order: oldOrder })
-          .eq('id', activeQuestion.id);
+      if (finalError) throw finalError;
 
-        if (error) throw error;
-
-        // Update all questions in between
-        const { error: updateError } = await supabase
-          .from('live_session_questions')
-          .update({ display_order: supabase.sql`display_order + 1` })
-          .eq('session_id', session.id)
-          .gte('display_order', newOrder)
-          .lt('display_order', oldOrder)
-          .neq('id', activeQuestion.id);
-
-        if (updateError) throw updateError;
-
-        // Set final position
-        const { error: finalError } = await supabase
-          .from('live_session_questions')
-          .update({ display_order: newOrder })
-          .eq('id', activeQuestion.id);
-
-        if (finalError) throw finalError;
-      }
     } catch (error) {
       console.error("Error during drag and drop:", error);
       toast({

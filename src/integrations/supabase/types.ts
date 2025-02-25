@@ -1869,6 +1869,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      reorder_questions: {
+        Args: {
+          p_session_id: string
+          p_question_id: string
+          p_old_order: number
+          p_new_order: number
+          p_direction: string
+        }
+        Returns: boolean
+      }
       schedule_campaign_cron_job: {
         Args: {
           p_campaign_id: string
