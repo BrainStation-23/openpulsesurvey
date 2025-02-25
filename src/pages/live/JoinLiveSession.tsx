@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { generateRandomName } from "@/utils/nameGenerator";
+import { RefreshCw } from "lucide-react";
 
 export default function JoinLiveSession() {
   const { joinCode } = useParams();
@@ -12,6 +14,10 @@ export default function JoinLiveSession() {
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState("");
   const [isJoining, setIsJoining] = useState(false);
+
+  const handleGenerateRandomName = () => {
+    setDisplayName(generateRandomName());
+  };
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +46,6 @@ export default function JoinLiveSession() {
         throw new Error("This session is no longer accepting participants");
       }
 
-      // Generate a UUID for the participant
       const participantId = crypto.randomUUID();
 
       const { data: participant, error: participantError } = await supabase
@@ -55,6 +60,12 @@ export default function JoinLiveSession() {
         .single();
 
       if (participantError) throw participantError;
+
+      // Store participant info in localStorage
+      localStorage.setItem(`live_session_${joinCode}`, JSON.stringify({
+        participantId,
+        displayName: displayName.trim()
+      }));
 
       navigate(`/live/${joinCode}`);
     } catch (error: any) {
@@ -78,13 +89,23 @@ export default function JoinLiveSession() {
 
         <form onSubmit={handleJoin} className="space-y-4">
           <div className="space-y-2">
-            <Input
-              type="text"
-              placeholder="Your display name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              disabled={isJoining}
-            />
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                placeholder="Your display name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                disabled={isJoining}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGenerateRandomName}
+                disabled={isJoining}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           <Button
