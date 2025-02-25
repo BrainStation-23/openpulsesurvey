@@ -40,12 +40,16 @@ export default function JoinLiveSession() {
         throw new Error("This session is no longer accepting participants");
       }
 
+      // Generate a UUID for the participant
+      const participantId = crypto.randomUUID();
+
       const { data: participant, error: participantError } = await supabase
         .from("live_session_participants")
         .insert({
+          participant_id: participantId,
           session_id: session.id,
           display_name: displayName.trim(),
-          status: "connected",
+          status: "connected"
         })
         .select()
         .single();
