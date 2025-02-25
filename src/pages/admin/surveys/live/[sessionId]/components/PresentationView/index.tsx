@@ -1,5 +1,4 @@
 
-import { useState, useEffect } from "react";
 import { LiveSession } from "../../../types";
 import { SessionInfoSlide } from "./slides/SessionInfoSlide";
 import { ActiveQuestionSlide } from "./slides/ActiveQuestionSlide";
@@ -23,10 +22,10 @@ export function PresentationView({ session }: PresentationViewProps) {
     isFullscreen,
     toggleFullscreen,
     handleBack,
-    totalSlides
+    totalSlides,
   } = usePresentationNavigation();
 
-  const { responses, participants, activeQuestions, currentActiveQuestion } = useLiveResponses(session.id);
+  const { getQuestionResponses, participants, activeQuestions, currentActiveQuestion } = useLiveResponses(session.id);
 
   // Determine if there are pending or active/completed questions
   const hasPendingQuestions = activeQuestions.some(q => q.status === "pending");
@@ -49,6 +48,10 @@ export function PresentationView({ session }: PresentationViewProps) {
         .eq("id", nextPendingQuestion.id);
 
       if (error) throw error;
+
+      // Move to the slide of the newly activated question
+      const questionSlideIndex = activeQuestions.findIndex(q => q.id === nextPendingQuestion.id) + 1;
+      setCurrentSlide(questionSlideIndex);
 
       toast({
         title: "Question enabled",
@@ -125,11 +128,14 @@ export function PresentationView({ session }: PresentationViewProps) {
         isActive={currentSlide === 0}
       />
       
-      <ActiveQuestionSlide
-        currentActiveQuestion={currentActiveQuestion}
-        responses={responses}
-        isActive={currentSlide === 1}
-      />
+      {activeQuestions.map((question, index) => (
+        <ActiveQuestionSlide
+          key={question.id}
+          currentActiveQuestion={question}
+          responses={getQuestionResponses(question.question_key)}
+          isActive={currentSlide === index + 1}
+        />
+      ))}
     </PresentationLayout>
   );
 }

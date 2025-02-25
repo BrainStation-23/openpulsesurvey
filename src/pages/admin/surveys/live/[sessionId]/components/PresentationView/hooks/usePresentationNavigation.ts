@@ -9,9 +9,6 @@ export function usePresentationNavigation() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   
-  // For now, we have 2 slides: Session Info and Active Questions
-  const totalSlides = 2;
-
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -66,6 +63,6 @@ export function usePresentationNavigation() {
     isFullscreen,
     toggleFullscreen,
     handleBack,
-    totalSlides
+    totalSlides: 1 // This will be updated by PresentationView based on activeQuestions.length + 1
   };
 }

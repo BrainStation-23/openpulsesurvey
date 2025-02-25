@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { LiveSessionQuestion, QuestionData } from "../../../../types";
 
 export function useLiveResponses(sessionId: string) {
-  const [responses, setResponses] = useState<any[]>([]);
+  const [responsesMap, setResponsesMap] = useState<Record<string, any[]>>({});
   const [participants, setParticipants] = useState<number>(0);
   const [activeQuestions, setActiveQuestions] = useState<LiveSessionQuestion[]>([]);
   const [currentActiveQuestion, setCurrentActiveQuestion] = useState<LiveSessionQuestion | null>(null);
@@ -23,21 +23,27 @@ export function useLiveResponses(sessionId: string) {
     };
   };
 
-  // Fetch responses for the current active question
-  const fetchResponsesForQuestion = async (questionKey: string) => {
+  // Fetch responses for all questions
+  const fetchAllResponses = async () => {
     const { data: responseData } = await supabase
       .from('live_session_responses')
       .select('*')
-      .eq('session_id', sessionId)
-      .eq('question_key', questionKey);
+      .eq('session_id', sessionId);
       
     if (responseData) {
-      setResponses(responseData);
+      // Group responses by question key
+      const groupedResponses = responseData.reduce((acc: Record<string, any[]>, response) => {
+        const key = response.question_key;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(response);
+        return acc;
+      }, {});
+      
+      setResponsesMap(groupedResponses);
     }
   };
 
   useEffect(() => {
-    // Initial fetch of data
     const fetchInitialData = async () => {
       // Get participant count
       const { count } = await supabase
@@ -48,7 +54,7 @@ export function useLiveResponses(sessionId: string) {
         
       setParticipants(count || 0);
 
-      // Fetch active questions
+      // Fetch questions
       const { data: questionData } = await supabase
         .from('live_session_questions')
         .select('*')
@@ -59,19 +65,17 @@ export function useLiveResponses(sessionId: string) {
         const transformedQuestions = questionData.map(transformQuestionData);
         setActiveQuestions(transformedQuestions);
         
-        // Set current active question and fetch its responses
         const activeQuestion = transformedQuestions.find(q => q.status === 'active');
         setCurrentActiveQuestion(activeQuestion || null);
-        
-        if (activeQuestion) {
-          await fetchResponsesForQuestion(activeQuestion.question_key);
-        }
       }
+
+      // Fetch all responses
+      await fetchAllResponses();
     };
 
     fetchInitialData();
 
-    // Subscribe to new responses and question changes
+    // Subscribe to changes
     const channel = supabase
       .channel(`room:${sessionId}`)
       .on(
@@ -83,9 +87,15 @@ export function useLiveResponses(sessionId: string) {
           filter: `session_id=eq.${sessionId}`
         },
         async (payload) => {
-          if (payload.eventType === 'INSERT' && 
-              currentActiveQuestion?.question_key === payload.new.question_key) {
-            setResponses((current) => [...current, payload.new]);
+          if (payload.eventType === 'INSERT') {
+            const response = payload.new;
+            setResponsesMap(current => ({
+              ...current,
+              [response.question_key]: [
+                ...(current[response.question_key] || []),
+                response
+              ]
+            }));
           }
         }
       )
@@ -98,7 +108,6 @@ export function useLiveResponses(sessionId: string) {
           filter: `session_id=eq.${sessionId}`
         },
         async () => {
-          // Update participant count on any change
           const { count } = await supabase
             .from('live_session_participants')
             .select('*', { count: 'exact', head: true })
@@ -117,7 +126,6 @@ export function useLiveResponses(sessionId: string) {
           filter: `session_id=eq.${sessionId}`
         },
         async (payload) => {
-          // Refetch questions on any change
           const { data: questionData } = await supabase
             .from('live_session_questions')
             .select('*')
@@ -128,26 +136,9 @@ export function useLiveResponses(sessionId: string) {
             const transformedQuestions = questionData.map(transformQuestionData);
             setActiveQuestions(transformedQuestions);
 
-            // Update current active question if status changed
-            if (payload.eventType === 'UPDATE' && payload.new.status === 'active') {
-              const newActiveQuestion = transformedQuestions.find(q => q.id === payload.new.id);
-              setCurrentActiveQuestion(newActiveQuestion || null);
-              
-              // Fetch responses for the newly activated question
-              if (newActiveQuestion) {
-                await fetchResponsesForQuestion(newActiveQuestion.question_key);
-              }
-            } else if (payload.eventType === 'UPDATE' && payload.old.status === 'active') {
-              // If previously active question was completed, find new active question if any
+            if (payload.eventType === 'UPDATE') {
               const activeQuestion = transformedQuestions.find(q => q.status === 'active');
               setCurrentActiveQuestion(activeQuestion || null);
-              
-              // Fetch responses for the new active question if it exists
-              if (activeQuestion) {
-                await fetchResponsesForQuestion(activeQuestion.question_key);
-              } else {
-                setResponses([]); // Clear responses if no active question
-              }
             }
           }
         }
@@ -159,5 +150,10 @@ export function useLiveResponses(sessionId: string) {
     };
   }, [sessionId]);
 
-  return { responses, participants, activeQuestions, currentActiveQuestion };
+  return { 
+    getQuestionResponses: (questionKey: string) => responsesMap[questionKey] || [],
+    participants, 
+    activeQuestions, 
+    currentActiveQuestion 
+  };
 }
