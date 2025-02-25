@@ -20,3 +20,15 @@ export interface LiveWordCloudData extends LiveChartData {
   value: number;
   percentage: number;
 }
+
+export interface LiveSessionQuestion {
+  id: string;
+  question_key: string;
+  question_data: {
+    title: string;
+    type: string;
+    description?: string;
+    [key: string]: any;
+  };
+  status: string;
+}

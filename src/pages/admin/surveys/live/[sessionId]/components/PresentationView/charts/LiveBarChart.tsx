@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Text } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 import { LiveBarChartData } from './types';
 
 interface LiveBarChartProps {
@@ -30,17 +30,25 @@ export function LiveBarChart({ data }: LiveBarChartProps) {
             animationDuration={300}
             label={{
               position: 'right',
-              content: ({ value, x, y, width, height }) => (
-                <Text
-                  x={x + width + 10}
-                  y={y + height / 2}
-                  textAnchor="start"
-                  dominantBaseline="middle"
-                  className="fill-current text-sm"
-                >
-                  {value} ({(value / data.reduce((sum, d) => sum + d.count, 0) * 100).toFixed(1)}%)
-                </Text>
-              ),
+              content: ({ value, x, y, width, height }) => {
+                const numericValue = Number(value);
+                const totalCount = data.reduce((sum, d) => sum + d.count, 0);
+                const percentage = ((numericValue / totalCount) * 100).toFixed(1);
+                
+                return (
+                  <g>
+                    <text
+                      x={Number(x) + Number(width) + 10}
+                      y={Number(y) + Number(height) / 2}
+                      textAnchor="start"
+                      dominantBaseline="middle"
+                      className="fill-current text-sm"
+                    >
+                      {numericValue} ({percentage}%)
+                    </text>
+                  </g>
+                );
+              }
             }}
           >
             {animatedData.map((entry, index) => (

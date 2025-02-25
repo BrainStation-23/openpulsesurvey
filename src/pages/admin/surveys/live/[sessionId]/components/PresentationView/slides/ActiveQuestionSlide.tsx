@@ -1,11 +1,11 @@
 
-import { LiveSessionQuestion } from "../../../../types";
 import { Card } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { LivePieChart } from "../charts/LivePieChart";
 import { LiveBarChart } from "../charts/LiveBarChart";
 import { LiveWordCloud } from "../charts/LiveWordCloud";
+import { LiveSessionQuestion } from "../charts/types";
 
 interface ActiveQuestionSlideProps {
   currentActiveQuestion: LiveSessionQuestion | null;

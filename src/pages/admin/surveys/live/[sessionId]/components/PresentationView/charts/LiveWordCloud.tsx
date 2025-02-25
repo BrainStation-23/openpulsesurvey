@@ -1,6 +1,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
+import cloud from 'd3-cloud';
 import { LiveWordCloudData } from './types';
 
 interface LiveWordCloudProps {
@@ -30,7 +31,7 @@ export function LiveWordCloud({
       ])
       .range([14, 50]);
 
-    const layout = d3.layout.cloud()
+    const layout = cloud()
       .size([dimensions.width, dimensions.height])
       .words(data.map(d => ({
         text: d.text,
@@ -44,7 +45,7 @@ export function LiveWordCloud({
 
     layout.start();
 
-    function draw(words: d3.layout.cloud.Word[]) {
+    function draw(words: cloud.Word[]) {
       svg
         .append("g")
         .attr("transform", `translate(${dimensions.width / 2},${dimensions.height / 2})`)

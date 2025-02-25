@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Label } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { LivePieChartData } from './types';
 
 interface LivePieChartProps {
@@ -31,29 +31,43 @@ export function LivePieChart({ data, total }: LivePieChartProps) {
             paddingAngle={5}
             dataKey="count"
             animationDuration={300}
+            label={({ cx, cy, midAngle, innerRadius, outerRadius, value, percent }) => {
+              const RADIAN = Math.PI / 180;
+              const radius = 25 + innerRadius + (outerRadius - innerRadius);
+              const x = cx + radius * Math.cos(-midAngle * RADIAN);
+              const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+              return (
+                <text
+                  x={x}
+                  y={y}
+                  textAnchor={x > cx ? 'start' : 'end'}
+                  dominantBaseline="middle"
+                  className="fill-current text-sm"
+                >
+                  {value} ({(percent * 100).toFixed(1)}%)
+                </text>
+              );
+            }}
           >
             {animatedData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
-            <Label
-              content={({ viewBox: { cx, cy } }) => (
-                <text
-                  x={cx}
-                  y={cy}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  className="fill-current font-medium"
-                >
-                  <tspan x={cx} dy="-1em" className="text-2xl">
-                    {total}
-                  </tspan>
-                  <tspan x={cx} dy="1.5em" className="text-sm text-muted-foreground">
-                    Total Responses
-                  </tspan>
-                </text>
-              )}
-            />
           </Pie>
+          <text
+            x="50%"
+            y="50%"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="fill-current font-medium"
+          >
+            <tspan x="50%" dy="-1em" className="text-2xl">
+              {total}
+            </tspan>
+            <tspan x="50%" dy="1.5em" className="text-sm text-muted-foreground">
+              Total Responses
+            </tspan>
+          </text>
         </PieChart>
       </ResponsiveContainer>
     </div>
