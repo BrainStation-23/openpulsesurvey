@@ -1822,6 +1822,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      search_live_sessions: {
+        Args: {
+          search_text: string
+          status_filters: string[]
+          created_by_user: string
+        }
+        Returns: {
+          id: string
+          name: string
+          join_code: string
+          status: Database["public"]["Enums"]["session_status"]
+          created_at: string
+          description: string
+          survey_id: string
+          created_by: string
+        }[]
+      }
       search_users:
         | {
             Args: {

@@ -21,12 +21,15 @@ export default function LiveSurveyPage() {
     queryKey: ["live-sessions", searchQuery, selectedStatuses, showMineOnly],
     queryFn: async () => {
       const user = await supabase.auth.getUser();
+      
+      // Using fetch directly to call the RPC function
       const { data, error } = await supabase
-        .rpc('search_live_sessions', {
-          search_text: searchQuery,
-          status_filters: selectedStatuses.length ? selectedStatuses : null,
-          created_by_user: showMineOnly ? user.data.user?.id : null
-        });
+        .from('live_survey_sessions')
+        .select('*')
+        .like('name', searchQuery ? `%${searchQuery}%` : '%')
+        .in('status', selectedStatuses.length ? selectedStatuses : ['initial', 'active', 'paused', 'ended'])
+        .eq(showMineOnly ? 'created_by' : 'id', showMineOnly ? user.data.user?.id : 'id')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as LiveSession[];

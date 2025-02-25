@@ -17,4 +17,5 @@ export type LiveSession = {
   created_at: string;
   description?: string;
   survey_id: string;
+  created_by: string;
 };
