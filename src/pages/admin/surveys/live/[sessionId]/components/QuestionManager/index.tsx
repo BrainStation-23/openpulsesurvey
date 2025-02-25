@@ -191,6 +191,10 @@ export function QuestionManager({ session }: QuestionManagerProps) {
     }
   };
 
+  const hasActiveOrCompletedQuestions = questions.some(
+    q => q.status === "active" || q.status === "completed"
+  );
+
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
@@ -256,6 +260,8 @@ export function QuestionManager({ session }: QuestionManagerProps) {
       <QuestionControls
         onFilterChange={setStatusFilter}
         currentFilter={statusFilter}
+        onResetAll={handleResetAll}
+        hasActiveOrCompletedQuestions={hasActiveOrCompletedQuestions}
         questionCounts={getQuestionCounts()}
       />
       
