@@ -528,7 +528,7 @@ export type Database = {
       live_session_participants: {
         Row: {
           created_at: string
-          display_name: string | null
+          display_name: string
           id: string
           joined_at: string
           last_active_at: string
@@ -539,7 +539,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          display_name?: string | null
+          display_name: string
           id?: string
           joined_at?: string
           last_active_at?: string
@@ -550,7 +550,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          display_name?: string | null
+          display_name?: string
           id?: string
           joined_at?: string
           last_active_at?: string
