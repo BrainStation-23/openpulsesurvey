@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { LiveSession, LiveSessionQuestion, QuestionStatus, QuestionData } from "../../../types";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +5,19 @@ import { useToast } from "@/components/ui/use-toast";
 import { QuestionCard } from "./QuestionCard";
 import { QuestionControls } from "./QuestionControls";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DndContext,
+  DragEndEvent,
+  MouseSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 
 interface QuestionManagerProps {
   session: LiveSession;
@@ -17,7 +29,59 @@ export function QuestionManager({ session }: QuestionManagerProps) {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "active" | "completed">("all");
 
-  // Calculate question counts
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 8,
+      },
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) return;
+
+    const activeQuestion = questions.find(q => q.id === active.id);
+    const overQuestion = questions.find(q => q.id === over.id);
+    
+    if (!activeQuestion || !overQuestion) return;
+
+    try {
+      await onReorder(
+        activeQuestion.id,
+        overQuestion.display_order
+      );
+    } catch (error) {
+      console.error("Error during drag and drop:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reorder questions",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const transformQuestion = (rawQuestion: any): LiveSessionQuestion => {
+    const questionData: QuestionData = {
+      title: rawQuestion.question_data.title || "Untitled Question",
+      type: rawQuestion.question_data.type || "unknown",
+      ...rawQuestion.question_data
+    };
+
+    return {
+      ...rawQuestion,
+      question_data: questionData,
+      status: rawQuestion.status as QuestionStatus
+    };
+  };
+
   const getQuestionCounts = () => {
     return {
       all: questions.length,
@@ -27,7 +91,6 @@ export function QuestionManager({ session }: QuestionManagerProps) {
     };
   };
 
-  // Enable next pending question
   const handleEnableNext = async () => {
     const nextPendingQuestion = questions
       .filter(q => q.status === "pending")
@@ -60,7 +123,6 @@ export function QuestionManager({ session }: QuestionManagerProps) {
     }
   };
 
-  // Reset all questions to pending
   const handleResetAll = async () => {
     const activeOrCompletedQuestions = questions.filter(
       q => q.status === "active" || q.status === "completed"
@@ -94,22 +156,24 @@ export function QuestionManager({ session }: QuestionManagerProps) {
     }
   };
 
-  // Transform Supabase data to match QuestionData type
-  const transformQuestion = (rawQuestion: any): LiveSessionQuestion => {
-    const questionData: QuestionData = {
-      title: rawQuestion.question_data.title || "Untitled Question",
-      type: rawQuestion.question_data.type || "unknown",
-      ...rawQuestion.question_data
-    };
+  const onReorder = async (questionId: string, newOrder: number) => {
+    try {
+      const { error } = await supabase
+        .from("live_session_questions")
+        .update({ display_order: newOrder })
+        .eq("id", questionId);
 
-    return {
-      ...rawQuestion,
-      question_data: questionData,
-      status: rawQuestion.status as QuestionStatus
-    };
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error reordering questions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reorder questions",
+        variant: "destructive",
+      });
+    }
   };
 
-  // Fetch questions
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
@@ -189,51 +253,62 @@ export function QuestionManager({ session }: QuestionManagerProps) {
           ) : filteredQuestions.length === 0 ? (
             <div className="text-center text-muted-foreground">No questions found</div>
           ) : (
-            filteredQuestions.map((question) => (
-              <QuestionCard
-                key={question.id}
-                question={question}
-                onStatusChange={async (status: QuestionStatus) => {
-                  try {
-                    const { error } = await supabase
-                      .from("live_session_questions")
-                      .update({
-                        status,
-                        enabled_at: status === "active" ? new Date().toISOString() : null,
-                        disabled_at: status === "completed" ? new Date().toISOString() : null
-                      })
-                      .eq("id", question.id);
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={filteredQuestions.map(q => q.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {filteredQuestions.map((question) => (
+                  <QuestionCard
+                    key={question.id}
+                    question={question}
+                    onStatusChange={async (status: QuestionStatus) => {
+                      try {
+                        const { error } = await supabase
+                          .from("live_session_questions")
+                          .update({
+                            status,
+                            enabled_at: status === "active" ? new Date().toISOString() : null,
+                            disabled_at: status === "completed" ? new Date().toISOString() : null
+                          })
+                          .eq("id", question.id);
 
-                    if (error) throw error;
-                  } catch (error) {
-                    console.error("Error updating question status:", error);
-                    toast({
-                      title: "Error",
-                      description: "Failed to update question status",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-                onReorder={async (questionId: string, newOrder: number) => {
-                  try {
-                    const { error } = await supabase
-                      .from("live_session_questions")
-                      .update({ display_order: newOrder })
-                      .eq("id", questionId);
+                        if (error) throw error;
+                      } catch (error) {
+                        console.error("Error updating question status:", error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to update question status",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    onReorder={async (questionId: string, newOrder: number) => {
+                      try {
+                        const { error } = await supabase
+                          .from("live_session_questions")
+                          .update({ display_order: newOrder })
+                          .eq("id", questionId);
 
-                    if (error) throw error;
-                  } catch (error) {
-                    console.error("Error reordering questions:", error);
-                    toast({
-                      title: "Error",
-                      description: "Failed to reorder questions",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-                sessionStatus={session.status}
-              />
-            ))
+                        if (error) throw error;
+                      } catch (error) {
+                        console.error("Error reordering questions:", error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to reorder questions",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    sessionStatus={session.status}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       </ScrollArea>
