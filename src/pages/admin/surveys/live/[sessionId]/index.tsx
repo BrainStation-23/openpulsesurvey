@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { cn } from "@/lib/utils";
+import { ThemeSettings } from "@/hooks/survey-response/types";
 
 export default function LiveSessionControlPage() {
   const { sessionId } = useParams();
