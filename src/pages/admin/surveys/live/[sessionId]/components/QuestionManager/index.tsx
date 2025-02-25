@@ -256,10 +256,7 @@ export function QuestionManager({ session }: QuestionManagerProps) {
       <QuestionControls
         onFilterChange={setStatusFilter}
         currentFilter={statusFilter}
-        sessionStatus={session.status}
         questionCounts={getQuestionCounts()}
-        onEnableNext={handleEnableNext}
-        onResetAll={handleResetAll}
       />
       
       <ScrollArea className="h-[500px] p-4">
