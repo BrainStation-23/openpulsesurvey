@@ -16,13 +16,17 @@ interface QuestionControlsProps {
     active: number;
     completed: number;
   };
+  onEnableNext: () => void;
+  onResetAll: () => void;
 }
 
 export function QuestionControls({ 
   onFilterChange, 
   currentFilter,
   sessionStatus,
-  questionCounts = { all: 0, pending: 0, active: 0, completed: 0 }
+  questionCounts = { all: 0, pending: 0, active: 0, completed: 0 },
+  onEnableNext,
+  onResetAll
 }: QuestionControlsProps) {
   const isSessionActive = sessionStatus === "active";
 
@@ -59,7 +63,8 @@ export function QuestionControls({
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={!isSessionActive}
+                  disabled={!isSessionActive || questionCounts.pending === 0}
+                  onClick={onEnableNext}
                   className="flex items-center gap-2"
                 >
                   <PlayCircle className="h-4 w-4" />
@@ -67,7 +72,11 @@ export function QuestionControls({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {!isSessionActive ? "Session must be active to enable questions" : "Enable next pending question"}
+                {!isSessionActive ? 
+                  "Session must be active to enable questions" : 
+                  questionCounts.pending === 0 ? 
+                  "No pending questions available" :
+                  "Enable next pending question"}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -78,7 +87,8 @@ export function QuestionControls({
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={!isSessionActive}
+                  disabled={!isSessionActive || questionCounts.active + questionCounts.completed === 0}
+                  onClick={onResetAll}
                   className="flex items-center gap-2"
                 >
                   <RotateCcw className="h-4 w-4" />
@@ -86,7 +96,11 @@ export function QuestionControls({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {!isSessionActive ? "Session must be active to reset questions" : "Reset all questions to pending"}
+                {!isSessionActive ? 
+                  "Session must be active to reset questions" : 
+                  questionCounts.active + questionCounts.completed === 0 ?
+                  "No questions to reset" :
+                  "Reset all questions to pending"}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

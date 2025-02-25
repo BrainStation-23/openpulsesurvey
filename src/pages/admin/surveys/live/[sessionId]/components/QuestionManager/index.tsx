@@ -1,12 +1,11 @@
 
 import { useEffect, useState } from "react";
-import { LiveSession, LiveSessionQuestion, QuestionData, QuestionStatus } from "../../../types";
+import { LiveSession, LiveSessionQuestion, QuestionStatus } from "../../../types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { QuestionCard } from "./QuestionCard";
 import { QuestionControls } from "./QuestionControls";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Json } from "@/integrations/supabase/types";
 
 interface QuestionManagerProps {
   session: LiveSession;
@@ -18,25 +17,6 @@ export function QuestionManager({ session }: QuestionManagerProps) {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "active" | "completed">("all");
 
-  // Helper function to transform database question to LiveSessionQuestion
-  const transformQuestion = (dbQuestion: any): LiveSessionQuestion => {
-    const rawData = dbQuestion.question_data as Json;
-    const questionData = typeof rawData === 'object' ? rawData as QuestionData : {
-      title: "Untitled Question",
-      type: "unknown"
-    };
-    
-    return {
-      ...dbQuestion,
-      question_data: {
-        title: questionData.title || "Untitled Question",
-        type: questionData.type || "unknown",
-        ...questionData
-      },
-      status: dbQuestion.status as QuestionStatus
-    };
-  };
-
   // Calculate question counts
   const getQuestionCounts = () => {
     return {
@@ -45,6 +25,73 @@ export function QuestionManager({ session }: QuestionManagerProps) {
       active: questions.filter(q => q.status === "active").length,
       completed: questions.filter(q => q.status === "completed").length,
     };
+  };
+
+  // Enable next pending question
+  const handleEnableNext = async () => {
+    const nextPendingQuestion = questions
+      .filter(q => q.status === "pending")
+      .sort((a, b) => a.display_order - b.display_order)[0];
+
+    if (!nextPendingQuestion) return;
+
+    try {
+      const { error } = await supabase
+        .from("live_session_questions")
+        .update({
+          status: "active",
+          enabled_at: new Date().toISOString()
+        })
+        .eq("id", nextPendingQuestion.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Question enabled",
+        description: `Question "${nextPendingQuestion.question_data.title}" is now active`,
+      });
+    } catch (error) {
+      console.error("Error enabling question:", error);
+      toast({
+        title: "Error",
+        description: "Failed to enable question",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Reset all questions to pending
+  const handleResetAll = async () => {
+    const activeOrCompletedQuestions = questions.filter(
+      q => q.status === "active" || q.status === "completed"
+    );
+
+    if (activeOrCompletedQuestions.length === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from("live_session_questions")
+        .update({
+          status: "pending",
+          enabled_at: null,
+          disabled_at: null
+        })
+        .in("id", activeOrCompletedQuestions.map(q => q.id));
+
+      if (error) throw error;
+
+      toast({
+        title: "Questions reset",
+        description: "All questions have been reset to pending status",
+      });
+    } catch (error) {
+      console.error("Error resetting questions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reset questions",
+        variant: "destructive",
+      });
+    }
   };
 
   // Fetch questions
@@ -58,7 +105,7 @@ export function QuestionManager({ session }: QuestionManagerProps) {
           .order("display_order", { ascending: true });
 
         if (error) throw error;
-        setQuestions(data ? data.map(transformQuestion) : []);
+        setQuestions(data || []);
       } catch (error) {
         console.error("Error fetching questions:", error);
         toast({
@@ -86,11 +133,11 @@ export function QuestionManager({ session }: QuestionManagerProps) {
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setQuestions((prev) => [...prev, transformQuestion(payload.new)]);
+            setQuestions((prev) => [...prev, payload.new as LiveSessionQuestion]);
           } else if (payload.eventType === "UPDATE") {
             setQuestions((prev) =>
               prev.map((q) =>
-                q.id === payload.new.id ? transformQuestion(payload.new) : q
+                q.id === payload.new.id ? payload.new as LiveSessionQuestion : q
               )
             );
           } else if (payload.eventType === "DELETE") {
@@ -105,51 +152,6 @@ export function QuestionManager({ session }: QuestionManagerProps) {
     };
   }, [session.id, toast]);
 
-  const updateQuestionStatus = async (questionId: string, status: QuestionStatus) => {
-    try {
-      const { error } = await supabase
-        .from("live_session_questions")
-        .update({
-          status,
-          enabled_at: status === "active" ? new Date().toISOString() : undefined,
-          disabled_at: status === "completed" ? new Date().toISOString() : undefined,
-        })
-        .eq("id", questionId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Question updated",
-        description: `Question status changed to ${status}`,
-      });
-    } catch (error) {
-      console.error("Error updating question:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update question status",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const reorderQuestions = async (questionId: string, newOrder: number) => {
-    try {
-      const { error } = await supabase
-        .from("live_session_questions")
-        .update({ display_order: newOrder })
-        .eq("id", questionId);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error reordering questions:", error);
-      toast({
-        title: "Error",
-        description: "Failed to reorder questions",
-        variant: "destructive",
-      });
-    }
-  };
-
   const filteredQuestions = questions.filter(
     (q) => statusFilter === "all" || q.status === statusFilter
   );
@@ -161,6 +163,8 @@ export function QuestionManager({ session }: QuestionManagerProps) {
         currentFilter={statusFilter}
         sessionStatus={session.status}
         questionCounts={getQuestionCounts()}
+        onEnableNext={handleEnableNext}
+        onResetAll={handleResetAll}
       />
       
       <ScrollArea className="h-[500px] p-4">
@@ -174,8 +178,44 @@ export function QuestionManager({ session }: QuestionManagerProps) {
               <QuestionCard
                 key={question.id}
                 question={question}
-                onStatusChange={updateQuestionStatus}
-                onReorder={reorderQuestions}
+                onStatusChange={async (status: QuestionStatus) => {
+                  try {
+                    const { error } = await supabase
+                      .from("live_session_questions")
+                      .update({
+                        status,
+                        enabled_at: status === "active" ? new Date().toISOString() : null,
+                        disabled_at: status === "completed" ? new Date().toISOString() : null
+                      })
+                      .eq("id", question.id);
+
+                    if (error) throw error;
+                  } catch (error) {
+                    console.error("Error updating question status:", error);
+                    toast({
+                      title: "Error",
+                      description: "Failed to update question status",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                onReorder={async (newOrder: number) => {
+                  try {
+                    const { error } = await supabase
+                      .from("live_session_questions")
+                      .update({ display_order: newOrder })
+                      .eq("id", question.id);
+
+                    if (error) throw error;
+                  } catch (error) {
+                    console.error("Error reordering questions:", error);
+                    toast({
+                      title: "Error",
+                      description: "Failed to reorder questions",
+                      variant: "destructive",
+                    });
+                  }
+                }}
                 sessionStatus={session.status}
               />
             ))
