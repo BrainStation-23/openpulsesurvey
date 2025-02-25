@@ -1,25 +1,58 @@
 
 import { Card } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, PlayCircle } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { LivePieChart } from "../charts/LivePieChart";
 import { LiveBarChart } from "../charts/LiveBarChart";
 import { LiveWordCloud } from "../charts/LiveWordCloud";
 import { LiveSessionQuestion } from "../charts/types";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ActiveQuestionSlideProps {
   currentActiveQuestion: LiveSessionQuestion | null;
   responses: any[];
   isActive: boolean;
+  isSessionActive: boolean;
 }
 
-export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive }: ActiveQuestionSlideProps) {
+export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive, isSessionActive }: ActiveQuestionSlideProps) {
+  const { toast } = useToast();
+
+  const handleEnableQuestion = async () => {
+    if (!currentActiveQuestion) return;
+
+    try {
+      const { error } = await supabase
+        .from("live_session_questions")
+        .update({
+          status: "active",
+          enabled_at: new Date().toISOString()
+        })
+        .eq("id", currentActiveQuestion.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Question enabled",
+        description: `Question "${currentActiveQuestion.question_data.title}" is now active`,
+      });
+    } catch (error) {
+      console.error("Error enabling question:", error);
+      toast({
+        title: "Error",
+        description: "Failed to enable question",
+        variant: "destructive",
+      });
+    }
+  };
+
   const renderResponseVisualization = () => {
     if (!currentActiveQuestion || !responses.length) return null;
 
     const processedResponses = responses.map(r => {
       const response = r.response_data.response;
-      // Convert to number if it's a string number
       if (typeof response === 'string' && !isNaN(Number(response))) {
         return Number(response);
       }
@@ -106,9 +139,22 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
         <div className="flex flex-col h-full">
           <Card className="p-6 flex-1">
             <div className="space-y-4">
-              <h2 className="text-2xl font-semibold">
-                {currentActiveQuestion.question_data.title}
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-semibold">
+                  {currentActiveQuestion.question_data.title}
+                </h2>
+                {currentActiveQuestion.status === "pending" && (
+                  <Button
+                    onClick={handleEnableQuestion}
+                    disabled={!isSessionActive}
+                    className="gap-2"
+                  >
+                    <PlayCircle className="h-4 w-4" />
+                    Enable Question
+                  </Button>
+                )}
+              </div>
+              
               {typeof currentActiveQuestion.question_data.description === 'string' && (
                 <p className="text-muted-foreground">
                   {currentActiveQuestion.question_data.description}

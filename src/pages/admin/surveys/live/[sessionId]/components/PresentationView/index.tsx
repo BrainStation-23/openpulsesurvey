@@ -6,8 +6,7 @@ import { PresentationLayout } from "./components/PresentationLayout";
 import { PresentationControls } from "./components/PresentationControls";
 import { usePresentationNavigation } from "./hooks/usePresentationNavigation";
 import { useLiveResponses } from "./hooks/useLiveResponses";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useEffect } from "react";
 import "./styles.css";
 
 interface PresentationViewProps {
@@ -15,7 +14,6 @@ interface PresentationViewProps {
 }
 
 export function PresentationView({ session }: PresentationViewProps) {
-  const { toast } = useToast();
   const {
     currentSlide,
     setCurrentSlide,
@@ -23,82 +21,15 @@ export function PresentationView({ session }: PresentationViewProps) {
     toggleFullscreen,
     handleBack,
     totalSlides,
+    setTotalSlides
   } = usePresentationNavigation();
 
-  const { getQuestionResponses, participants, activeQuestions, currentActiveQuestion } = useLiveResponses(session.id);
+  const { getQuestionResponses, participants, activeQuestions } = useLiveResponses(session.id);
 
-  // Determine if there are pending or active/completed questions
-  const hasPendingQuestions = activeQuestions.some(q => q.status === "pending");
-  const hasActiveOrCompletedQuestions = activeQuestions.some(q => ["active", "completed"].includes(q.status));
-
-  const handleEnableNext = async () => {
-    const nextPendingQuestion = activeQuestions
-      .filter(q => q.status === "pending")
-      .sort((a, b) => a.display_order - b.display_order)[0];
-
-    if (!nextPendingQuestion) return;
-
-    try {
-      const { error } = await supabase
-        .from("live_session_questions")
-        .update({
-          status: "active",
-          enabled_at: new Date().toISOString()
-        })
-        .eq("id", nextPendingQuestion.id);
-
-      if (error) throw error;
-
-      // Move to the slide of the newly activated question
-      const questionSlideIndex = activeQuestions.findIndex(q => q.id === nextPendingQuestion.id) + 1;
-      setCurrentSlide(questionSlideIndex);
-
-      toast({
-        title: "Question enabled",
-        description: `Question "${nextPendingQuestion.question_data.title}" is now active`,
-      });
-    } catch (error) {
-      console.error("Error enabling question:", error);
-      toast({
-        title: "Error",
-        description: "Failed to enable question",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleResetAll = async () => {
-    const questionsToReset = activeQuestions.filter(
-      q => q.status === "active" || q.status === "completed"
-    );
-
-    if (questionsToReset.length === 0) return;
-
-    try {
-      const { error } = await supabase
-        .from("live_session_questions")
-        .update({
-          status: "pending",
-          enabled_at: null,
-          disabled_at: null
-        })
-        .in("id", questionsToReset.map(q => q.id));
-
-      if (error) throw error;
-
-      toast({
-        title: "Questions reset",
-        description: "All questions have been reset to pending status",
-      });
-    } catch (error) {
-      console.error("Error resetting questions:", error);
-      toast({
-        title: "Error",
-        description: "Failed to reset questions",
-        variant: "destructive",
-      });
-    }
-  };
+  // Update total slides when questions change
+  useEffect(() => {
+    setTotalSlides(activeQuestions.length + 1); // +1 for the info slide
+  }, [activeQuestions.length, setTotalSlides]);
 
   return (
     <PresentationLayout 
@@ -110,16 +41,11 @@ export function PresentationView({ session }: PresentationViewProps) {
         onPrevious={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
         onNext={() => setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1))}
         onFullscreen={toggleFullscreen}
-        onEnableNext={handleEnableNext}
-        onResetAll={handleResetAll}
         isFirstSlide={currentSlide === 0}
         isLastSlide={currentSlide === totalSlides - 1}
         isFullscreen={isFullscreen}
         currentSlide={currentSlide + 1}
         totalSlides={totalSlides}
-        isSessionActive={session.status === "active"}
-        hasPendingQuestions={hasPendingQuestions}
-        hasActiveOrCompletedQuestions={hasActiveOrCompletedQuestions}
       />
       
       <SessionInfoSlide 
@@ -134,6 +60,7 @@ export function PresentationView({ session }: PresentationViewProps) {
           currentActiveQuestion={question}
           responses={getQuestionResponses(question.question_key)}
           isActive={currentSlide === index + 1}
+          isSessionActive={session.status === "active"}
         />
       ))}
     </PresentationLayout>
