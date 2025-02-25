@@ -525,6 +525,168 @@ export type Database = {
         }
         Relationships: []
       }
+      live_session_participants: {
+        Row: {
+          created_at: string
+          id: string
+          joined_at: string
+          last_active_at: string
+          participant_id: string
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          joined_at?: string
+          last_active_at?: string
+          participant_id: string
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          joined_at?: string
+          last_active_at?: string
+          participant_id?: string
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_session_participants_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_session_participants_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_session_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_survey_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_session_responses: {
+        Row: {
+          created_at: string
+          id: string
+          participant_id: string
+          response_data: Json
+          session_id: string
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          participant_id: string
+          response_data?: Json
+          session_id: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          participant_id?: string
+          response_data?: Json
+          session_id?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_session_responses_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_session_responses_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_session_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_survey_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_survey_sessions: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          join_code: string
+          name: string
+          status: Database["public"]["Enums"]["session_status"]
+          survey_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          join_code: string
+          name: string
+          status?: Database["public"]["Enums"]["session_status"]
+          survey_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          join_code?: string
+          name?: string
+          status?: Database["public"]["Enums"]["session_status"]
+          survey_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_survey_sessions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_survey_sessions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_survey_sessions_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           address: string | null
@@ -1743,7 +1905,7 @@ export type Database = {
         | "yearly"
       response_status: "assigned" | "in_progress" | "submitted" | "expired"
       scenario_status: "active" | "inactive" | "draft"
-      session_status: "initial" | "playing" | "submitted"
+      session_status: "initial" | "active" | "paused" | "ended"
       survey_status: "draft" | "published" | "archived"
       user_role: "admin" | "user"
     }
