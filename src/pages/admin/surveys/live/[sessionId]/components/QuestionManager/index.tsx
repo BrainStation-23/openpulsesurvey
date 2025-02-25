@@ -1,11 +1,12 @@
 
 import { useEffect, useState } from "react";
-import { LiveSession, LiveSessionQuestion, QuestionData } from "../../../types";
+import { LiveSession, LiveSessionQuestion, QuestionData, QuestionStatus } from "../../../types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { QuestionCard } from "./QuestionCard";
 import { QuestionControls } from "./QuestionControls";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Json } from "@/integrations/supabase/types";
 
 interface QuestionManagerProps {
   session: LiveSession;
@@ -19,7 +20,12 @@ export function QuestionManager({ session }: QuestionManagerProps) {
 
   // Helper function to transform database question to LiveSessionQuestion
   const transformQuestion = (dbQuestion: any): LiveSessionQuestion => {
-    const questionData = dbQuestion.question_data as QuestionData;
+    const rawData = dbQuestion.question_data as Json;
+    const questionData = typeof rawData === 'object' ? rawData as QuestionData : {
+      title: "Untitled Question",
+      type: "unknown"
+    };
+    
     return {
       ...dbQuestion,
       question_data: {
@@ -91,15 +97,13 @@ export function QuestionManager({ session }: QuestionManagerProps) {
 
   const updateQuestionStatus = async (questionId: string, status: QuestionStatus) => {
     try {
-      const updates: Partial<LiveSessionQuestion> = {
-        status,
-        enabled_at: status === "active" ? new Date().toISOString() : undefined,
-        disabled_at: status === "completed" ? new Date().toISOString() : undefined,
-      };
-
       const { error } = await supabase
         .from("live_session_questions")
-        .update(updates)
+        .update({
+          status,
+          enabled_at: status === "active" ? new Date().toISOString() : undefined,
+          disabled_at: status === "completed" ? new Date().toISOString() : undefined,
+        })
         .eq("id", questionId);
 
       if (error) throw error;
