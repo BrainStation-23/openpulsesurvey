@@ -4,7 +4,7 @@ import { Json } from "@/integrations/supabase/types";
 import type { Survey as BaseSurvey } from "@/pages/admin/surveys/types";
 
 // Define the theme settings interface to match the survey schema
-interface ThemeSettings {
+export interface ThemeSettings {
   baseTheme: string;
   isDark: boolean;
   isPanelless: boolean;
