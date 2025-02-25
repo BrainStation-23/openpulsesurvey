@@ -6,7 +6,7 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Play, Pause, Ban } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useState } from "react";
 import { SurveySelector } from "../../surveys/campaigns/components/SurveySelector";
@@ -33,10 +33,13 @@ type LiveSession = {
   join_code: string;
   status: "initial" | "active" | "paused" | "ended";
   created_at: string;
+  description?: string;
+  survey_id: string;
 };
 
 export default function LiveSurveyPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<LiveSession | null>(null);
   const { toast } = useToast();
   const form = useForm<CreateSessionSchema>({
     resolver: zodResolver(createSessionSchema),
@@ -73,29 +76,84 @@ export default function LiveSurveyPage() {
     }
   };
 
-  const onSubmit = async (values: CreateSessionSchema) => {
+  const handleEdit = (session: LiveSession) => {
+    form.reset({
+      name: session.name,
+      description: session.description || "",
+      survey_id: session.survey_id
+    });
+    setEditingSession(session);
+    setIsCreateOpen(true);
+  };
+
+  const handleStatusChange = async (sessionId: string, newStatus: LiveSession["status"]) => {
     try {
-      const joinCode = crypto({ length: 6, type: 'distinguishable' });
-      
       const { error } = await supabase
         .from('live_survey_sessions')
-        .insert({
-          name: values.name,
-          description: values.description,
-          survey_id: values.survey_id,
-          join_code: joinCode,
-          status: 'initial',
-          created_by: (await supabase.auth.getUser()).data.user?.id
-        });
+        .update({ status: newStatus })
+        .eq('id', sessionId);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Live session created successfully"
+        description: `Session status updated to ${newStatus}`
       });
 
+      refetch();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    }
+  };
+
+  const onSubmit = async (values: CreateSessionSchema) => {
+    try {
+      if (editingSession) {
+        // Update existing session
+        const { error } = await supabase
+          .from('live_survey_sessions')
+          .update({
+            name: values.name,
+            description: values.description,
+            survey_id: values.survey_id,
+          })
+          .eq('id', editingSession.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Live session updated successfully"
+        });
+      } else {
+        // Create new session
+        const joinCode = crypto({ length: 6, type: 'distinguishable' });
+        
+        const { error } = await supabase
+          .from('live_survey_sessions')
+          .insert({
+            name: values.name,
+            description: values.description,
+            survey_id: values.survey_id,
+            join_code: joinCode,
+            status: 'initial',
+            created_by: (await supabase.auth.getUser()).data.user?.id
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Live session created successfully"
+        });
+      }
+
       setIsCreateOpen(false);
+      setEditingSession(null);
       form.reset();
       refetch();
     } catch (error: any) {
@@ -107,13 +165,19 @@ export default function LiveSurveyPage() {
     }
   };
 
+  const handleDialogClose = () => {
+    setIsCreateOpen(false);
+    setEditingSession(null);
+    form.reset();
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Live Survey</h1>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Sessions</CardTitle>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <Dialog open={isCreateOpen} onOpenChange={handleDialogClose}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -122,7 +186,9 @@ export default function LiveSurveyPage() {
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create Live Survey Session</DialogTitle>
+                <DialogTitle>
+                  {editingSession ? "Edit Live Survey Session" : "Create Live Survey Session"}
+                </DialogTitle>
               </DialogHeader>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -176,7 +242,9 @@ export default function LiveSurveyPage() {
                   />
 
                   <div className="flex justify-end">
-                    <Button type="submit">Create Session</Button>
+                    <Button type="submit">
+                      {editingSession ? "Update Session" : "Create Session"}
+                    </Button>
                   </div>
                 </form>
               </Form>
@@ -225,7 +293,44 @@ export default function LiveSurveyPage() {
                       {format(new Date(session.created_at), "MMM d, yyyy")}
                     </ResponsiveTable.Cell>
                     <ResponsiveTable.Cell className="text-right">
-                      {/* Action buttons will be added here */}
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleEdit(session)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        {session.status !== 'ended' && (
+                          <>
+                            {session.status !== 'active' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleStatusChange(session.id, 'active')}
+                              >
+                                <Play className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {session.status === 'active' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleStatusChange(session.id, 'paused')}
+                              >
+                                <Pause className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleStatusChange(session.id, 'ended')}
+                            >
+                              <Ban className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </ResponsiveTable.Cell>
                   </ResponsiveTable.Row>
                 ))
