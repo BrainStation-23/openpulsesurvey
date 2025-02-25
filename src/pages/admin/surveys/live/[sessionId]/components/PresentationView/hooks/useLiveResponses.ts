@@ -23,19 +23,22 @@ export function useLiveResponses(sessionId: string) {
     };
   };
 
-  useEffect(() => {
-    // Initial fetch of responses
-    const fetchInitialData = async () => {
-      // Fetch responses
-      const { data: responseData } = await supabase
-        .from('live_session_responses')
-        .select('*')
-        .eq('session_id', sessionId);
-        
-      if (responseData) {
-        setResponses(responseData);
-      }
+  // Fetch responses for the current active question
+  const fetchResponsesForQuestion = async (questionKey: string) => {
+    const { data: responseData } = await supabase
+      .from('live_session_responses')
+      .select('*')
+      .eq('session_id', sessionId)
+      .eq('question_key', questionKey);
+      
+    if (responseData) {
+      setResponses(responseData);
+    }
+  };
 
+  useEffect(() => {
+    // Initial fetch of data
+    const fetchInitialData = async () => {
       // Get participant count
       const { count } = await supabase
         .from('live_session_participants')
@@ -56,15 +59,19 @@ export function useLiveResponses(sessionId: string) {
         const transformedQuestions = questionData.map(transformQuestionData);
         setActiveQuestions(transformedQuestions);
         
-        // Set current active question
+        // Set current active question and fetch its responses
         const activeQuestion = transformedQuestions.find(q => q.status === 'active');
         setCurrentActiveQuestion(activeQuestion || null);
+        
+        if (activeQuestion) {
+          await fetchResponsesForQuestion(activeQuestion.question_key);
+        }
       }
     };
 
     fetchInitialData();
 
-    // Subscribe to new responses
+    // Subscribe to new responses and question changes
     const channel = supabase
       .channel(`room:${sessionId}`)
       .on(
@@ -75,8 +82,9 @@ export function useLiveResponses(sessionId: string) {
           table: 'live_session_responses',
           filter: `session_id=eq.${sessionId}`
         },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
+        async (payload) => {
+          if (payload.eventType === 'INSERT' && 
+              currentActiveQuestion?.question_key === payload.new.question_key) {
             setResponses((current) => [...current, payload.new]);
           }
         }
@@ -124,10 +132,22 @@ export function useLiveResponses(sessionId: string) {
             if (payload.eventType === 'UPDATE' && payload.new.status === 'active') {
               const newActiveQuestion = transformedQuestions.find(q => q.id === payload.new.id);
               setCurrentActiveQuestion(newActiveQuestion || null);
+              
+              // Fetch responses for the newly activated question
+              if (newActiveQuestion) {
+                await fetchResponsesForQuestion(newActiveQuestion.question_key);
+              }
             } else if (payload.eventType === 'UPDATE' && payload.old.status === 'active') {
               // If previously active question was completed, find new active question if any
               const activeQuestion = transformedQuestions.find(q => q.status === 'active');
               setCurrentActiveQuestion(activeQuestion || null);
+              
+              // Fetch responses for the new active question if it exists
+              if (activeQuestion) {
+                await fetchResponsesForQuestion(activeQuestion.question_key);
+              } else {
+                setResponses([]); // Clear responses if no active question
+              }
             }
           }
         }
