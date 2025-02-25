@@ -528,29 +528,35 @@ export type Database = {
       live_session_participants: {
         Row: {
           created_at: string
+          display_name: string | null
           id: string
           joined_at: string
           last_active_at: string
           participant_id: string
           session_id: string
+          status: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          display_name?: string | null
           id?: string
           joined_at?: string
           last_active_at?: string
           participant_id: string
           session_id: string
+          status?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          display_name?: string | null
           id?: string
           joined_at?: string
           last_active_at?: string
           participant_id?: string
           session_id?: string
+          status?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -577,12 +583,61 @@ export type Database = {
           },
         ]
       }
+      live_session_questions: {
+        Row: {
+          created_at: string
+          disabled_at: string | null
+          display_order: number
+          enabled_at: string | null
+          id: string
+          question_data: Json
+          question_key: string
+          session_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          disabled_at?: string | null
+          display_order?: number
+          enabled_at?: string | null
+          id?: string
+          question_data?: Json
+          question_key: string
+          session_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          disabled_at?: string | null
+          display_order?: number
+          enabled_at?: string | null
+          id?: string
+          question_data?: Json
+          question_key?: string
+          session_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_session_questions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_survey_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_session_responses: {
         Row: {
           created_at: string
           id: string
           participant_id: string
+          question_key: string | null
           response_data: Json
+          response_time: string | null
           session_id: string
           submitted_at: string
           updated_at: string
@@ -591,7 +646,9 @@ export type Database = {
           created_at?: string
           id?: string
           participant_id: string
+          question_key?: string | null
           response_data?: Json
+          response_time?: string | null
           session_id: string
           submitted_at?: string
           updated_at?: string
@@ -600,7 +657,9 @@ export type Database = {
           created_at?: string
           id?: string
           participant_id?: string
+          question_key?: string | null
           response_data?: Json
+          response_time?: string | null
           session_id?: string
           submitted_at?: string
           updated_at?: string
