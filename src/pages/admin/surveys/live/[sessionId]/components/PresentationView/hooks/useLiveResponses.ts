@@ -7,6 +7,7 @@ export function useLiveResponses(sessionId: string) {
   const [responses, setResponses] = useState<any[]>([]);
   const [participants, setParticipants] = useState<number>(0);
   const [activeQuestions, setActiveQuestions] = useState<LiveSessionQuestion[]>([]);
+  const [currentActiveQuestion, setCurrentActiveQuestion] = useState<LiveSessionQuestion | null>(null);
 
   const transformQuestionData = (rawQuestion: any): LiveSessionQuestion => {
     const questionData: QuestionData = {
@@ -54,6 +55,10 @@ export function useLiveResponses(sessionId: string) {
       if (questionData) {
         const transformedQuestions = questionData.map(transformQuestionData);
         setActiveQuestions(transformedQuestions);
+        
+        // Set current active question
+        const activeQuestion = transformedQuestions.find(q => q.status === 'active');
+        setCurrentActiveQuestion(activeQuestion || null);
       }
     };
 
@@ -103,7 +108,7 @@ export function useLiveResponses(sessionId: string) {
           table: 'live_session_questions',
           filter: `session_id=eq.${sessionId}`
         },
-        async () => {
+        async (payload) => {
           // Refetch questions on any change
           const { data: questionData } = await supabase
             .from('live_session_questions')
@@ -114,6 +119,16 @@ export function useLiveResponses(sessionId: string) {
           if (questionData) {
             const transformedQuestions = questionData.map(transformQuestionData);
             setActiveQuestions(transformedQuestions);
+
+            // Update current active question if status changed
+            if (payload.eventType === 'UPDATE' && payload.new.status === 'active') {
+              const newActiveQuestion = transformedQuestions.find(q => q.id === payload.new.id);
+              setCurrentActiveQuestion(newActiveQuestion || null);
+            } else if (payload.eventType === 'UPDATE' && payload.old.status === 'active') {
+              // If previously active question was completed, find new active question if any
+              const activeQuestion = transformedQuestions.find(q => q.status === 'active');
+              setCurrentActiveQuestion(activeQuestion || null);
+            }
           }
         }
       )
@@ -124,5 +139,5 @@ export function useLiveResponses(sessionId: string) {
     };
   }, [sessionId]);
 
-  return { responses, participants, activeQuestions };
+  return { responses, participants, activeQuestions, currentActiveQuestion };
 }
