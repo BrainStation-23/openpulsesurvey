@@ -23,7 +23,7 @@ export function SurveySelector({ value, onChange }: SurveySelectorProps) {
     queryFn: async () => {
       let query = supabase
         .from("surveys")
-        .select("id, name, description, tags")
+        .select("id, name, description, tags, status")
         .eq('status', 'published')
         .order("created_at", { ascending: false });
 
