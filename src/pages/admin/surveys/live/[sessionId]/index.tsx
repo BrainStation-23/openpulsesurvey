@@ -7,12 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { SessionHeader } from "./components/SessionHeader";
 import { QuestionManager } from "./components/QuestionManager";
 import { PresentationView } from "./components/PresentationView";
-import { LiveSession, SessionStatus } from "../types";
+import { LiveSession, SessionStatus, Survey, ThemeSettings } from "../types";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
-import { cn } from "@/lib/utils";
-import { ThemeSettings } from "@/hooks/survey-response/types";
 
 export default function LiveSessionControlPage() {
   const { sessionId } = useParams();
@@ -20,8 +18,8 @@ export default function LiveSessionControlPage() {
   const { toast } = useToast();
   const [sessionData, setSessionData] = useState<LiveSession | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isQuestionsCollapsed, setIsQuestionsCollapsed] = useState(false);
 
+  // Fetch session data
   const { data: session, isLoading, refetch } = useQuery({
     queryKey: ["live-session", sessionId],
     queryFn: async () => {
@@ -36,6 +34,7 @@ export default function LiveSessionControlPage() {
 
       if (error) throw error;
 
+      // Transform the data to match our LiveSession type
       const transformedData: LiveSession = {
         ...data,
         survey: data.survey ? {
@@ -49,12 +48,14 @@ export default function LiveSessionControlPage() {
     },
   });
 
+  // Update local state when query data changes
   useEffect(() => {
     if (session) {
       setSessionData(session);
     }
   }, [session]);
 
+  // Set up real-time subscription with error handling and reconnection
   useEffect(() => {
     if (!sessionId) return;
 
@@ -71,12 +72,13 @@ export default function LiveSessionControlPage() {
           },
           (payload) => {
             console.log("Received real-time update:", payload);
+            // Merge new data with existing data to preserve all fields
             setSessionData((current) => {
               if (!current) return payload.new as LiveSession;
               return {
                 ...current,
                 ...payload.new,
-                survey: current.survey
+                survey: current.survey // Preserve survey data since it's not included in real-time updates
               } as LiveSession;
             });
           }
@@ -85,7 +87,7 @@ export default function LiveSessionControlPage() {
           console.log("Subscription status:", status);
           if (status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR) {
             console.error("Subscription error, retrying...");
-            setTimeout(setupSubscription, 5000);
+            setTimeout(setupSubscription, 5000); // Retry after 5 seconds
           }
         });
 
@@ -100,11 +102,13 @@ export default function LiveSessionControlPage() {
     };
   }, [sessionId]);
 
+  // Update session status with optimistic updates
   const updateSessionStatus = async (newStatus: SessionStatus) => {
     if (!sessionData || isUpdating) return;
 
     setIsUpdating(true);
     
+    // Optimistically update local state
     const previousStatus = sessionData.status;
     setSessionData(prev => prev ? { ...prev, status: newStatus } : null);
 
@@ -116,6 +120,7 @@ export default function LiveSessionControlPage() {
 
       if (error) throw error;
 
+      // Refetch to ensure we have latest data
       refetch();
 
       toast({
@@ -123,6 +128,7 @@ export default function LiveSessionControlPage() {
         description: `Session is now ${newStatus}`,
       });
     } catch (error) {
+      // Revert optimistic update on error
       setSessionData(prev => prev ? { ...prev, status: previousStatus } : null);
       
       console.error("Error updating session:", error);
@@ -159,71 +165,31 @@ export default function LiveSessionControlPage() {
   const currentSession = sessionData || session;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
-      <div className="flex-none p-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/admin/surveys/live")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">Live Session Control</h1>
-        </div>
-
-        <SessionHeader 
-          session={currentSession}
-          onStatusChange={updateSessionStatus}
-          isUpdating={isUpdating}
-        />
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("/admin/surveys/live")}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-2xl font-bold">Live Session Control</h1>
       </div>
 
-      <div className="flex-1 min-h-0 relative">
-        <div className="absolute inset-0 flex">
-          <div
-            className={cn(
-              "h-full transition-all duration-300 ease-in-out bg-background border-r",
-              isQuestionsCollapsed ? "w-[40px]" : "w-[40%]"
-            )}
-          >
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "absolute top-1/2 -translate-y-1/2 z-10 transition-all duration-300",
-                isQuestionsCollapsed 
-                  ? "-right-10 bg-background shadow-lg hover:bg-accent" 
-                  : "-right-5 hover:bg-accent"
-              )}
-              onClick={() => setIsQuestionsCollapsed(!isQuestionsCollapsed)}
-            >
-              {isQuestionsCollapsed ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
-              )}
-            </Button>
-
-            <div className={cn(
-              "w-full h-full transition-opacity duration-300",
-              isQuestionsCollapsed ? "opacity-0" : "opacity-100"
-            )}>
-              <QuestionManager
-                session={currentSession}
-              />
-            </div>
-          </div>
-
-          <div className={cn(
-            "h-full transition-all duration-300 ease-in-out",
-            isQuestionsCollapsed ? "flex-1" : "flex-1"
-          )}>
-            <PresentationView
-              session={currentSession}
-            />
-          </div>
-        </div>
+      <SessionHeader 
+        session={currentSession}
+        onStatusChange={updateSessionStatus}
+        isUpdating={isUpdating}
+      />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <QuestionManager
+          session={currentSession}
+        />
+        <PresentationView
+          session={currentSession}
+        />
       </div>
     </div>
   );
