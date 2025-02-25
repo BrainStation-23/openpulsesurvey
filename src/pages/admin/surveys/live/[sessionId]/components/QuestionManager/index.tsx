@@ -53,11 +53,35 @@ export function QuestionManager({ session }: QuestionManagerProps) {
     
     if (!activeQuestion || !overQuestion) return;
 
+    // Get old and new positions
+    const oldOrder = activeQuestion.display_order;
+    const newOrder = overQuestion.display_order;
+
     try {
-      await onReorder(
-        activeQuestion.id,
-        overQuestion.display_order
-      );
+      // Start a batch operation
+      if (oldOrder < newOrder) {
+        // Moving down: update all questions between old and new position
+        const { error } = await supabase.rpc('reorder_questions', {
+          p_session_id: session.id,
+          p_question_id: activeQuestion.id,
+          p_old_order: oldOrder,
+          p_new_order: newOrder,
+          p_direction: 'down'
+        });
+        
+        if (error) throw error;
+      } else {
+        // Moving up: update all questions between new and old position
+        const { error } = await supabase.rpc('reorder_questions', {
+          p_session_id: session.id,
+          p_question_id: activeQuestion.id,
+          p_old_order: oldOrder,
+          p_new_order: newOrder,
+          p_direction: 'up'
+        });
+        
+        if (error) throw error;
+      }
     } catch (error) {
       console.error("Error during drag and drop:", error);
       toast({
