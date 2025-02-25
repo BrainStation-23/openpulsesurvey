@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -8,6 +8,7 @@ export function usePresentationNavigation() {
   const { toast } = useToast();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [totalSlides, setTotalSlides] = useState(1); // Add state for totalSlides
   
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -18,20 +19,21 @@ export function usePresentationNavigation() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") {
-        setCurrentSlide((prev) => Math.max(0, prev - 1));
-      } else if (e.key === "ArrowRight") {
-        setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1));
-      } else if (e.key === "f") {
-        toggleFullscreen();
-      }
-    };
+  // Move handleKeyDown logic to useCallback to access latest totalSlides
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "ArrowLeft") {
+      setCurrentSlide((prev) => Math.max(0, prev - 1));
+    } else if (e.key === "ArrowRight") {
+      setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1));
+    } else if (e.key === "f") {
+      toggleFullscreen();
+    }
+  }, [totalSlides]);
 
+  useEffect(() => {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [handleKeyDown]);
 
   const toggleFullscreen = async () => {
     try {
@@ -63,6 +65,7 @@ export function usePresentationNavigation() {
     isFullscreen,
     toggleFullscreen,
     handleBack,
-    totalSlides: 1 // This will be updated by PresentationView based on activeQuestions.length + 1
+    totalSlides,
+    setTotalSlides // Export setTotalSlides so PresentationView can update it
   };
 }
