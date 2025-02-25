@@ -35,26 +35,16 @@ export default function JoinLiveSession() {
       // First, get the session details
       const { data: session, error: sessionError } = await supabase
         .from("live_survey_sessions")
-        .select("id, status")
+        .select("id")
         .eq("join_code", joinCode)
         .single();
 
-      if (sessionError) {
-        console.error("Session fetch error:", sessionError);
-        throw new Error("Session not found or no longer active");
-      }
-
-      if (!session) {
+      if (sessionError || !session) {
         throw new Error("Session not found");
-      }
-
-      if (session.status !== "initial" && session.status !== "active") {
-        throw new Error("This session is no longer accepting participants");
       }
 
       console.log("Joining session:", {
         sessionId: session.id,
-        sessionStatus: session.status,
         joinCode
       });
 
@@ -74,12 +64,7 @@ export default function JoinLiveSession() {
 
       if (participantError) {
         console.error("Participant insert error:", participantError);
-        
-        // Check for specific error types
-        if (participantError.code === "42501") { // RLS policy violation
-          throw new Error("Unable to join session due to permission restrictions");
-        }
-        throw participantError;
+        throw new Error("Unable to join the session");
       }
 
       if (!participant) {
@@ -96,7 +81,7 @@ export default function JoinLiveSession() {
     } catch (error: any) {
       console.error("Join session error:", error);
       toast({
-        title: "Error joining session",
+        title: "Error",
         description: error.message || "Unable to join the session",
         variant: "destructive",
       });
