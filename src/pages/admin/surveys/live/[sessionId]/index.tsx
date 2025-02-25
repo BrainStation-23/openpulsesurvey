@@ -10,7 +10,7 @@ import { PresentationView } from "./components/PresentationView";
 import { LiveSession, SessionStatus } from "../types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { RealtimeChannelSnapshot } from "@supabase/supabase-js";
+import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 
 export default function LiveSessionControlPage() {
   const { sessionId } = useParams();
@@ -72,9 +72,9 @@ export default function LiveSessionControlPage() {
             });
           }
         )
-        .subscribe((status: RealtimeChannelSnapshot<string>) => {
+        .subscribe((status) => {
           console.log("Subscription status:", status);
-          if (status === 'CHANNEL_ERROR') {
+          if (status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR) {
             console.error("Subscription error, retrying...");
             setTimeout(setupSubscription, 5000); // Retry after 5 seconds
           }
