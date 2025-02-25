@@ -24,13 +24,19 @@ export default function LiveSurveyPage() {
       
       const defaultStatuses: SessionStatus[] = ["initial", "active", "paused", "ended"];
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('live_survey_sessions')
         .select('*')
         .like('name', searchQuery ? `%${searchQuery}%` : '%')
         .in('status', selectedStatuses.length ? selectedStatuses : defaultStatuses)
-        .eq(showMineOnly ? 'created_by' : 'id', showMineOnly ? user.data.user?.id : 'id')
         .order('created_at', { ascending: false });
+
+      // Only apply the created_by filter when showMineOnly is true
+      if (showMineOnly) {
+        query = query.eq('created_by', user.data.user?.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as LiveSession[];
