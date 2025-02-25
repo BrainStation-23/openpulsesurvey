@@ -35,7 +35,7 @@ export default function LiveSurveyPage() {
       case "ended":
         return "secondary";
       case "paused":
-        return "warning";
+        return "destructive";
       default:
         return "default";
     }
