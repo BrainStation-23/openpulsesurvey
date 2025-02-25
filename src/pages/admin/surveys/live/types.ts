@@ -1,9 +1,19 @@
 
 import { z } from "zod";
 import { Json } from "@/integrations/supabase/types";
+import type { Survey as BaseSurvey } from "@/pages/admin/surveys/types";
 
-// Import Survey type from the correct location
-import type { Survey } from "@/pages/admin/surveys/types";
+// Define the theme settings interface to match the survey schema
+interface ThemeSettings {
+  baseTheme: string;
+  isDark: boolean;
+  isPanelless: boolean;
+}
+
+// Extend the base Survey type to ensure theme_settings is properly typed
+export interface Survey extends Omit<BaseSurvey, 'theme_settings'> {
+  theme_settings: ThemeSettings | null;
+}
 
 export type SessionStatus = "initial" | "active" | "paused" | "ended";
 
@@ -26,6 +36,7 @@ export interface LiveSession {
   survey_id: string;
   created_by: string;
   created_at: string;
+  updated_at?: string;
   survey?: Survey;
 }
 

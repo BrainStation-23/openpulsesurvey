@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SessionHeader } from "./components/SessionHeader";
 import { QuestionManager } from "./components/QuestionManager";
 import { PresentationView } from "./components/PresentationView";
-import { LiveSession, SessionStatus } from "../types";
+import { LiveSession, SessionStatus, Survey } from "../types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
@@ -33,7 +33,17 @@ export default function LiveSessionControlPage() {
         .single();
 
       if (error) throw error;
-      return data as LiveSession;
+
+      // Transform the data to match our LiveSession type
+      const transformedData: LiveSession = {
+        ...data,
+        survey: data.survey ? {
+          ...data.survey,
+          theme_settings: data.survey.theme_settings as Survey['theme_settings']
+        } : undefined
+      };
+
+      return transformedData;
     },
   });
 
