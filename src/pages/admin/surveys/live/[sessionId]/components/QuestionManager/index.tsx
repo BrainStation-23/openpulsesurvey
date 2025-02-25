@@ -37,6 +37,16 @@ export function QuestionManager({ session }: QuestionManagerProps) {
     };
   };
 
+  // Calculate question counts
+  const getQuestionCounts = () => {
+    return {
+      all: questions.length,
+      pending: questions.filter(q => q.status === "pending").length,
+      active: questions.filter(q => q.status === "active").length,
+      completed: questions.filter(q => q.status === "completed").length,
+    };
+  };
+
   // Fetch questions
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -150,6 +160,7 @@ export function QuestionManager({ session }: QuestionManagerProps) {
         onFilterChange={setStatusFilter}
         currentFilter={statusFilter}
         sessionStatus={session.status}
+        questionCounts={getQuestionCounts()}
       />
       
       <ScrollArea className="h-[500px] p-4">
