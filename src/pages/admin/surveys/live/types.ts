@@ -1,5 +1,6 @@
 
 import { z } from "zod";
+import { Json } from "@/integrations/supabase/types";
 
 export type SessionStatus = "initial" | "active" | "paused" | "ended";
 
@@ -24,15 +25,17 @@ export type LiveSession = {
   created_by: string;
 };
 
+export interface QuestionData {
+  title: string;
+  type: string;
+  [key: string]: unknown;
+}
+
 export type LiveSessionQuestion = {
   id: string;
   session_id: string;
   question_key: string;
-  question_data: {
-    title: string;
-    type: string;
-    // Add other question-specific fields as needed
-  };
+  question_data: QuestionData;
   status: QuestionStatus;
   display_order: number;
   enabled_at?: string;

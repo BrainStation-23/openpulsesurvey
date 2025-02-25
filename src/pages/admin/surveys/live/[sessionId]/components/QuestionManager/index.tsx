@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { LiveSession, LiveSessionQuestion } from "../../../types";
+import { LiveSession, LiveSessionQuestion, QuestionData } from "../../../types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { QuestionCard } from "./QuestionCard";
@@ -17,6 +17,20 @@ export function QuestionManager({ session }: QuestionManagerProps) {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "active" | "completed">("all");
 
+  // Helper function to transform database question to LiveSessionQuestion
+  const transformQuestion = (dbQuestion: any): LiveSessionQuestion => {
+    const questionData = dbQuestion.question_data as QuestionData;
+    return {
+      ...dbQuestion,
+      question_data: {
+        title: questionData.title || "Untitled Question",
+        type: questionData.type || "unknown",
+        ...questionData
+      },
+      status: dbQuestion.status as QuestionStatus
+    };
+  };
+
   // Fetch questions
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -28,7 +42,7 @@ export function QuestionManager({ session }: QuestionManagerProps) {
           .order("display_order", { ascending: true });
 
         if (error) throw error;
-        setQuestions(data || []);
+        setQuestions(data ? data.map(transformQuestion) : []);
       } catch (error) {
         console.error("Error fetching questions:", error);
         toast({
@@ -56,11 +70,11 @@ export function QuestionManager({ session }: QuestionManagerProps) {
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setQuestions((prev) => [...prev, payload.new as LiveSessionQuestion]);
+            setQuestions((prev) => [...prev, transformQuestion(payload.new)]);
           } else if (payload.eventType === "UPDATE") {
             setQuestions((prev) =>
               prev.map((q) =>
-                q.id === payload.new.id ? (payload.new as LiveSessionQuestion) : q
+                q.id === payload.new.id ? transformQuestion(payload.new) : q
               )
             );
           } else if (payload.eventType === "DELETE") {
@@ -75,7 +89,7 @@ export function QuestionManager({ session }: QuestionManagerProps) {
     };
   }, [session.id, toast]);
 
-  const updateQuestionStatus = async (questionId: string, status: "pending" | "active" | "completed") => {
+  const updateQuestionStatus = async (questionId: string, status: QuestionStatus) => {
     try {
       const updates: Partial<LiveSessionQuestion> = {
         status,
