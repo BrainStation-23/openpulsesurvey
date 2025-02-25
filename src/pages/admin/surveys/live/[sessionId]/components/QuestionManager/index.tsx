@@ -17,6 +17,7 @@ import {
 import {
   SortableContext,
   verticalListSortingStrategy,
+  arrayMove
 } from "@dnd-kit/sortable";
 
 interface QuestionManagerProps {
@@ -48,53 +49,31 @@ export function QuestionManager({ session }: QuestionManagerProps) {
     
     if (!over || active.id === over.id) return;
 
-    const activeQuestion = questions.find(q => q.id === active.id);
-    const overQuestion = questions.find(q => q.id === over.id);
+    const oldIndex = questions.findIndex(q => q.id === active.id);
+    const newIndex = questions.findIndex(q => q.id === over.id);
     
-    if (!activeQuestion || !overQuestion) return;
-
-    // Get old and new positions
-    const oldOrder = activeQuestion.display_order;
-    const newOrder = overQuestion.display_order;
+    if (oldIndex === -1 || newIndex === -1) return;
 
     try {
-      // Use the database function to handle reordering
-      const { data, error } = await supabase
-        .from('live_session_questions')
-        .update({ 
-          display_order: newOrder,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', activeQuestion.id)
-        .select()
-        .single();
+      const reorderedQuestions = arrayMove(questions, oldIndex, newIndex);
+      
+      for (let i = 0; i < reorderedQuestions.length; i++) {
+        const question = reorderedQuestions[i];
+        const { error } = await supabase
+          .from('live_session_questions')
+          .update({ 
+            display_order: i + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', question.id);
 
-      if (error) throw error;
+        if (error) throw error;
+      }
 
-      // Update all affected questions
-      const { error: batchError } = await supabase
-        .from('live_session_questions')
-        .update({ 
-          display_order: oldOrder < newOrder 
-            ? -1  // Temporary value to avoid uniqueness conflicts
-            : newOrder + 1
-        })
-        .eq('session_id', session.id)
-        .gte('display_order', Math.min(oldOrder, newOrder))
-        .lte('display_order', Math.max(oldOrder, newOrder))
-        .neq('id', activeQuestion.id);
-
-      if (batchError) throw batchError;
-
-      // Final update to set correct order
-      const { error: finalError } = await supabase
-        .from('live_session_questions')
-        .update({ 
-          display_order: newOrder 
-        })
-        .eq('id', activeQuestion.id);
-
-      if (finalError) throw finalError;
+      setQuestions(reorderedQuestions.map((q, index) => ({
+        ...q,
+        display_order: index + 1
+      })));
 
     } catch (error) {
       console.error("Error during drag and drop:", error);
@@ -237,7 +216,6 @@ export function QuestionManager({ session }: QuestionManagerProps) {
 
     fetchQuestions();
 
-    // Set up real-time subscription
     const channel = supabase
       .channel(`questions:${session.id}`)
       .on(
