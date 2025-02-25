@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Play, Pause, Ban } from "lucide-react";
+import { Pencil, Play, Pause, Ban, Trash2 } from "lucide-react";
 import { LiveSession } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +46,30 @@ export function SessionsTable({ sessions, isLoading, onEdit, onStatusChange }: S
       });
 
       onStatusChange();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    }
+  };
+
+  const handleDelete = async (sessionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('live_survey_sessions')
+        .delete()
+        .eq('id', sessionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Session deleted successfully"
+      });
+
+      onStatusChange(); // Refresh the list
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -134,6 +158,13 @@ export function SessionsTable({ sessions, isLoading, onEdit, onStatusChange }: S
                       </Button>
                     </>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(session.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </ResponsiveTable.Cell>
             </ResponsiveTable.Row>
