@@ -7,6 +7,8 @@ import { PresentationLayout } from "./components/PresentationLayout";
 import { PresentationControls } from "./components/PresentationControls";
 import { usePresentationNavigation } from "./hooks/usePresentationNavigation";
 import { useLiveResponses } from "./hooks/useLiveResponses";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 import "./styles.css";
 
 interface PresentationViewProps {
@@ -14,6 +16,7 @@ interface PresentationViewProps {
 }
 
 export function PresentationView({ session }: PresentationViewProps) {
+  const { toast } = useToast();
   const {
     currentSlide,
     setCurrentSlide,
@@ -23,20 +26,75 @@ export function PresentationView({ session }: PresentationViewProps) {
     totalSlides
   } = usePresentationNavigation();
 
-  const { responses, participants, currentActiveQuestion } = useLiveResponses(session.id);
+  const { responses, participants, activeQuestions, currentActiveQuestion } = useLiveResponses(session.id);
 
   // Determine if there are pending or active/completed questions
-  const hasPendingQuestions = Boolean(responses?.some(r => r.status === "pending"));
-  const hasActiveOrCompletedQuestions = Boolean(responses?.some(r => ["active", "completed"].includes(r.status)));
+  const hasPendingQuestions = activeQuestions.some(q => q.status === "pending");
+  const hasActiveOrCompletedQuestions = activeQuestions.some(q => ["active", "completed"].includes(q.status));
 
   const handleEnableNext = async () => {
-    // Placeholder for enable next functionality
-    console.log("Enable next question");
+    const nextPendingQuestion = activeQuestions
+      .filter(q => q.status === "pending")
+      .sort((a, b) => a.display_order - b.display_order)[0];
+
+    if (!nextPendingQuestion) return;
+
+    try {
+      const { error } = await supabase
+        .from("live_session_questions")
+        .update({
+          status: "active",
+          enabled_at: new Date().toISOString()
+        })
+        .eq("id", nextPendingQuestion.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Question enabled",
+        description: `Question "${nextPendingQuestion.question_data.title}" is now active`,
+      });
+    } catch (error) {
+      console.error("Error enabling question:", error);
+      toast({
+        title: "Error",
+        description: "Failed to enable question",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleResetAll = async () => {
-    // Placeholder for reset all functionality
-    console.log("Reset all questions");
+    const questionsToReset = activeQuestions.filter(
+      q => q.status === "active" || q.status === "completed"
+    );
+
+    if (questionsToReset.length === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from("live_session_questions")
+        .update({
+          status: "pending",
+          enabled_at: null,
+          disabled_at: null
+        })
+        .in("id", questionsToReset.map(q => q.id));
+
+      if (error) throw error;
+
+      toast({
+        title: "Questions reset",
+        description: "All questions have been reset to pending status",
+      });
+    } catch (error) {
+      console.error("Error resetting questions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reset questions",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
