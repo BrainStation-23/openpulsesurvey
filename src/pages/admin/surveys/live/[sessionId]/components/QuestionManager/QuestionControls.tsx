@@ -2,7 +2,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tooltip } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PlayCircle, RotateCcw } from "lucide-react";
 import { SessionStatus } from "../../../types";
 
@@ -53,29 +53,43 @@ export function QuestionControls({
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
-          <Tooltip content={!isSessionActive ? "Session must be active to enable questions" : "Enable next pending question"}>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!isSessionActive}
-              className="flex items-center gap-2"
-            >
-              <PlayCircle className="h-4 w-4" />
-              Enable Next
-            </Button>
-          </Tooltip>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!isSessionActive}
+                  className="flex items-center gap-2"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                  Enable Next
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {!isSessionActive ? "Session must be active to enable questions" : "Enable next pending question"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           
-          <Tooltip content={!isSessionActive ? "Session must be active to reset questions" : "Reset all questions to pending"}>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!isSessionActive}
-              className="flex items-center gap-2"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset All
-            </Button>
-          </Tooltip>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!isSessionActive}
+                  className="flex items-center gap-2"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset All
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {!isSessionActive ? "Session must be active to reset questions" : "Reset all questions to pending"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
     </Card>
