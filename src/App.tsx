@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +19,8 @@ import Dashboard from "./pages/Dashboard";
 
 import PublicSurveyPage from "./pages/public/Survey";
 import ThankYouPage from "./pages/public/ThankYou";
+import PublicLiveSession from "./pages/live/PublicLiveSession";
+import JoinLiveSession from "./pages/live/JoinLiveSession";
 
 // User pages
 import UserDashboard from "./pages/user/Dashboard";
@@ -78,6 +79,10 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
+            
+            {/* Public live survey routes */}
+            <Route path="/live/:joinCode" element={<PublicLiveSession />} />
+            <Route path="/live/:joinCode/join" element={<JoinLiveSession />} />
             
             <Route path="/public/survey/:token" element={<PublicSurveyPage />} />
             <Route path="/public/survey/:token/thank-you" element={<ThankYouPage />} />
