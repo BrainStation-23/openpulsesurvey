@@ -1,12 +1,11 @@
 
-import { LiveSessionQuestion } from "../../../../types";
 import { Card } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { BooleanCharts } from "../../../ReportsTab/charts/BooleanCharts";
-import { WordCloud } from "../../../ReportsTab/charts/WordCloud";
-import { NpsChart } from "../../../ReportsTab/charts/NpsChart";
-import { SatisfactionDonutChart } from "../../../ReportsTab/charts/SatisfactionDonutChart";
+import { LivePieChart } from "../charts/LivePieChart";
+import { LiveBarChart } from "../charts/LiveBarChart";
+import { LiveWordCloud } from "../charts/LiveWordCloud";
+import { LiveSessionQuestion } from "../charts/types";
 
 interface ActiveQuestionSlideProps {
   currentActiveQuestion: LiveSessionQuestion | null;
@@ -22,11 +21,35 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
     
     switch (currentActiveQuestion.question_data.type) {
       case 'boolean': {
-        const data = {
-          yes: processedResponses.filter(r => r === 'true' || r === true).length,
-          no: processedResponses.filter(r => r === 'false' || r === false).length
-        };
-        return <BooleanCharts data={data} />;
+        const yesCount = processedResponses.filter(r => r === 'true' || r === true).length;
+        const noCount = processedResponses.filter(r => r === 'false' || r === false).length;
+        const total = yesCount + noCount;
+        
+        const data = [
+          { value: true, count: yesCount, percentage: (yesCount / total) * 100, timestamp: Date.now() },
+          { value: false, count: noCount, percentage: (noCount / total) * 100, timestamp: Date.now() }
+        ];
+        
+        return <LivePieChart data={data} total={total} />;
+      }
+      
+      case 'rating': {
+        const validResponses = processedResponses.filter((r): r is number => 
+          typeof r === 'number' && r >= 1 && r <= 5
+        );
+        
+        const total = validResponses.length;
+        const counts = Array.from({ length: 5 }, (_, i) => {
+          const count = validResponses.filter(r => r === i + 1).length;
+          return {
+            rating: i + 1,
+            count,
+            percentage: (count / total) * 100,
+            timestamp: Date.now()
+          };
+        });
+        
+        return <LiveBarChart data={counts} />;
       }
       
       case 'text':
@@ -39,61 +62,33 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
               .split(/\s+/)
               .filter(word => word.length > 2)
           )
-          .reduce((acc: { text: string; value: number; }[], word) => {
+          .reduce((acc: { text: string; value: number; percentage: number; timestamp: number }[], word) => {
             const existing = acc.find(w => w.text === word);
             if (existing) {
               existing.value++;
             } else {
-              acc.push({ text: word, value: 1 });
+              acc.push({ 
+                text: word, 
+                value: 1, 
+                percentage: 0,
+                timestamp: Date.now()
+              });
             }
             return acc;
           }, [])
+          .map(word => ({
+            ...word,
+            percentage: (word.value / processedResponses.length) * 100
+          }))
           .sort((a, b) => b.value - a.value)
-          .slice(0, 50);
+          .slice(0, 30);
           
-        return <WordCloud words={words} />;
-      }
-      
-      case 'rating': {
-        const isNps = currentActiveQuestion.question_data.rateMax === 10;
-        if (isNps) {
-          const ratingCounts = Array(11).fill(0);
-          processedResponses.forEach(rating => {
-            if (typeof rating === 'number' && rating >= 0 && rating <= 10) {
-              ratingCounts[rating]++;
-            }
-          });
-          const data = ratingCounts.map((count, rating) => ({ rating, count }));
-          return <NpsChart data={data} />;
-        } else {
-          const validResponses = processedResponses
-            .filter((r): r is number => typeof r === 'number' && r >= 1 && r <= 5);
-          
-          const data = {
-            unsatisfied: validResponses.filter(r => r <= 2).length,
-            neutral: validResponses.filter(r => r === 3).length,
-            satisfied: validResponses.filter(r => r >= 4).length,
-            total: validResponses.length,
-            median: calculateMedian(validResponses)
-          };
-          return <SatisfactionDonutChart data={data} />;
-        }
+        return <LiveWordCloud data={words} />;
       }
       
       default:
         return null;
     }
-  };
-
-  const calculateMedian = (ratings: number[]) => {
-    if (ratings.length === 0) return 0;
-    const sorted = [...ratings].sort((a, b) => a - b);
-    const middle = Math.floor(sorted.length / 2);
-    
-    if (sorted.length % 2 === 0) {
-      return (sorted[middle - 1] + sorted[middle]) / 2;
-    }
-    return sorted[middle];
   };
 
   return (
