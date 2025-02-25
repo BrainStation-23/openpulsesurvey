@@ -4,12 +4,13 @@ import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { SessionStatus } from "../types";
 
 interface SessionFiltersProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  selectedStatuses: string[];
-  onStatusChange: (status: string) => void;
+  selectedStatuses: SessionStatus[];
+  onStatusChange: (status: SessionStatus) => void;
   showMineOnly: boolean;
   onShowMineChange: (value: boolean) => void;
 }
@@ -22,9 +23,9 @@ export function SessionFilters({
   showMineOnly,
   onShowMineChange,
 }: SessionFiltersProps) {
-  const statuses = ["initial", "active", "paused", "ended"];
+  const statuses: SessionStatus[] = ["initial", "active", "paused", "ended"];
 
-  const getStatusVariant = (status: string) => {
+  const getStatusVariant = (status: SessionStatus) => {
     return selectedStatuses.includes(status) ? "default" : "outline";
   };
 

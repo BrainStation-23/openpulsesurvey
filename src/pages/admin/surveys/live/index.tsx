@@ -7,14 +7,14 @@ import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SessionDialog } from "./components/SessionDialog";
 import { SessionsTable } from "./components/SessionsTable";
-import { LiveSession } from "./types";
+import { LiveSession, SessionStatus } from "./types";
 import { SessionFilters } from "./components/SessionFilters";
 
 export default function LiveSurveyPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<LiveSession | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<SessionStatus[]>([]);
   const [showMineOnly, setShowMineOnly] = useState(false);
 
   const { data: sessions, isLoading, refetch } = useQuery({
@@ -22,12 +22,13 @@ export default function LiveSurveyPage() {
     queryFn: async () => {
       const user = await supabase.auth.getUser();
       
-      // Using fetch directly to call the RPC function
+      const defaultStatuses: SessionStatus[] = ["initial", "active", "paused", "ended"];
+      
       const { data, error } = await supabase
         .from('live_survey_sessions')
         .select('*')
         .like('name', searchQuery ? `%${searchQuery}%` : '%')
-        .in('status', selectedStatuses.length ? selectedStatuses : ['initial', 'active', 'paused', 'ended'])
+        .in('status', selectedStatuses.length ? selectedStatuses : defaultStatuses)
         .eq(showMineOnly ? 'created_by' : 'id', showMineOnly ? user.data.user?.id : 'id')
         .order('created_at', { ascending: false });
 
@@ -46,7 +47,7 @@ export default function LiveSurveyPage() {
     setIsCreateOpen(true);
   };
 
-  const handleStatusToggle = (status: string) => {
+  const handleStatusToggle = (status: SessionStatus) => {
     setSelectedStatuses(prev =>
       prev.includes(status)
         ? prev.filter(s => s !== status)

@@ -1,6 +1,8 @@
 
 import { z } from "zod";
 
+export type SessionStatus = "initial" | "active" | "paused" | "ended";
+
 export const createSessionSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
@@ -13,7 +15,7 @@ export type LiveSession = {
   id: string;
   name: string;
   join_code: string;
-  status: "initial" | "active" | "paused" | "ended";
+  status: SessionStatus;
   created_at: string;
   description?: string;
   survey_id: string;
