@@ -8,18 +8,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { SessionDialog } from "./components/SessionDialog";
 import { SessionsTable } from "./components/SessionsTable";
 import { LiveSession } from "./types";
+import { SessionFilters } from "./components/SessionFilters";
 
 export default function LiveSurveyPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<LiveSession | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [showMineOnly, setShowMineOnly] = useState(false);
 
   const { data: sessions, isLoading, refetch } = useQuery({
-    queryKey: ["live-sessions"],
+    queryKey: ["live-sessions", searchQuery, selectedStatuses, showMineOnly],
     queryFn: async () => {
+      const user = await supabase.auth.getUser();
       const { data, error } = await supabase
-        .from("live_survey_sessions")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .rpc('search_live_sessions', {
+          search_text: searchQuery,
+          status_filters: selectedStatuses.length ? selectedStatuses : null,
+          created_by_user: showMineOnly ? user.data.user?.id : null
+        });
 
       if (error) throw error;
       return data as LiveSession[];
@@ -36,6 +43,14 @@ export default function LiveSurveyPage() {
     setIsCreateOpen(true);
   };
 
+  const handleStatusToggle = (status: string) => {
+    setSelectedStatuses(prev =>
+      prev.includes(status)
+        ? prev.filter(s => s !== status)
+        : [...prev, status]
+    );
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Live Survey</h1>
@@ -47,7 +62,15 @@ export default function LiveSurveyPage() {
             New Session
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          <SessionFilters
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            selectedStatuses={selectedStatuses}
+            onStatusChange={handleStatusToggle}
+            showMineOnly={showMineOnly}
+            onShowMineChange={setShowMineOnly}
+          />
           <SessionsTable
             sessions={sessions}
             isLoading={isLoading}
