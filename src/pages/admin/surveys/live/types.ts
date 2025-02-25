@@ -11,8 +11,9 @@ interface ThemeSettings {
 }
 
 // Extend the base Survey type to ensure theme_settings is properly typed
-export interface Survey extends Omit<BaseSurvey, 'theme_settings'> {
+export interface Survey extends Omit<BaseSurvey, 'theme_settings' | 'json_data'> {
   theme_settings: ThemeSettings | null;
+  json_data: Record<string, any>;
 }
 
 export type SessionStatus = "initial" | "active" | "paused" | "ended";
