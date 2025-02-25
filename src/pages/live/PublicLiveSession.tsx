@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 interface ActiveQuestion {
   id: string;
@@ -12,7 +13,7 @@ interface ActiveQuestion {
   question_data: {
     title: string;
     type: string;
-    choices?: { text: string; value: string }[];
+    choices?: { text: string; value: string; }[];
   };
 }
 
@@ -69,7 +70,13 @@ export default function PublicLiveSession() {
           .single();
 
         if (!questionError && questions) {
-          setActiveQuestion(questions);
+          // Transform the data to match ActiveQuestion interface
+          const transformedQuestion: ActiveQuestion = {
+            id: questions.id,
+            question_key: questions.question_key,
+            question_data: questions.question_data as ActiveQuestion['question_data']
+          };
+          setActiveQuestion(transformedQuestion);
         }
       } catch (error: any) {
         toast({
@@ -99,9 +106,15 @@ export default function PublicLiveSession() {
           table: "live_session_questions",
           filter: `session_id=eq.${sessionId}`,
         },
-        (payload) => {
+        (payload: any) => {
           if (payload.new && payload.new.status === "active") {
-            setActiveQuestion(payload.new as ActiveQuestion);
+            // Transform the payload data to match ActiveQuestion interface
+            const transformedQuestion: ActiveQuestion = {
+              id: payload.new.id,
+              question_key: payload.new.question_key,
+              question_data: payload.new.question_data as ActiveQuestion['question_data']
+            };
+            setActiveQuestion(transformedQuestion);
             setResponse("");
           }
         }
