@@ -10,6 +10,7 @@ export default function PublicLiveSession() {
   const { joinCode } = useParams();
   const [response, setResponse] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   
   const {
     isLoading,
@@ -19,15 +20,22 @@ export default function PublicLiveSession() {
   } = useLiveSession(joinCode!);
 
   const handleSubmitResponse = async () => {
-    if (!response.trim()) return;
+    if (!response.trim() || hasSubmitted) return;
     
     setIsSubmitting(true);
     const success = await submitResponse(response);
     if (success) {
       setResponse("");
+      setHasSubmitted(true);
     }
     setIsSubmitting(false);
   };
+
+  // Reset submission state when question changes
+  useEffect(() => {
+    setHasSubmitted(false);
+    setResponse("");
+  }, [activeQuestion?.id]);
 
   if (isLoading) {
     return (
@@ -52,20 +60,30 @@ export default function PublicLiveSession() {
               <h2 className="text-xl font-semibold mb-4">{activeQuestion.question_data.title}</h2>
               
               <div className="space-y-4">
-                <ResponseInput
-                  question={activeQuestion}
-                  value={response}
-                  onChange={setResponse}
-                  isDisabled={isSubmitting}
-                />
+                {hasSubmitted ? (
+                  <div className="text-center py-4">
+                    <p className="text-green-600 dark:text-green-400 font-medium">
+                      Response submitted successfully! Waiting for the next question...
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <ResponseInput
+                      question={activeQuestion}
+                      value={response}
+                      onChange={setResponse}
+                      isDisabled={isSubmitting}
+                    />
 
-                <Button
-                  onClick={handleSubmitResponse}
-                  disabled={!response.trim() || isSubmitting}
-                  className="w-full"
-                >
-                  {isSubmitting ? "Submitting..." : "Submit Response"}
-                </Button>
+                    <Button
+                      onClick={handleSubmitResponse}
+                      disabled={!response.trim() || isSubmitting || hasSubmitted}
+                      className="w-full"
+                    >
+                      {isSubmitting ? "Submitting..." : "Submit Response"}
+                    </Button>
+                  </>
+                )}
               </div>
             </Card>
           ) : (

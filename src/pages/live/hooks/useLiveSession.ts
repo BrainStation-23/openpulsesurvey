@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +59,26 @@ export function useLiveSession(joinCode: string) {
             question_key: questions.question_key,
             question_data: questionData
           });
+
+          if (participantInfo) {
+            const { data: existingResponse } = await supabase
+              .from("live_session_responses")
+              .select("id")
+              .match({
+                session_id: session.id,
+                participant_id: participantInfo.participantId,
+                question_key: questions.question_key
+              })
+              .single();
+
+            if (existingResponse) {
+              toast({
+                title: "Notice",
+                description: "You have already submitted a response for this question.",
+              });
+              return;
+            }
+          }
         }
       } catch (error: any) {
         toast({
@@ -74,7 +93,7 @@ export function useLiveSession(joinCode: string) {
     };
 
     setupSession();
-  }, [joinCode, toast, navigate]);
+  }, [joinCode, toast, navigate, participantInfo]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -113,9 +132,28 @@ export function useLiveSession(joinCode: string) {
   }, [sessionId]);
 
   const submitResponse = async (response: string) => {
-    if (!activeQuestion || !participantInfo || !response.trim()) return;
+    if (!activeQuestion || !participantInfo || !response.trim()) return false;
 
     try {
+      const { data: existingResponse } = await supabase
+        .from("live_session_responses")
+        .select("id")
+        .match({
+          session_id: sessionId,
+          participant_id: participantInfo.participantId,
+          question_key: activeQuestion.question_key
+        })
+        .single();
+
+      if (existingResponse) {
+        toast({
+          title: "Error",
+          description: "You have already submitted a response for this question.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
       const { error } = await supabase
         .from("live_session_responses")
         .insert({
@@ -125,7 +163,17 @@ export function useLiveSession(joinCode: string) {
           response_data: { response }
         });
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23505') {
+          toast({
+            title: "Error",
+            description: "You have already submitted a response for this question.",
+            variant: "destructive",
+          });
+          return false;
+        }
+        throw error;
+      }
 
       toast({
         title: "Success",
