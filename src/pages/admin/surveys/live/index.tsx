@@ -10,7 +10,7 @@ type LiveSession = {
   id: string;
   name: string;
   join_code: string;
-  status: "initial" | "active" | "completed";
+  status: "initial" | "active" | "paused" | "ended";
   created_at: string;
 };
 
@@ -32,8 +32,10 @@ export default function LiveSurveyPage() {
     switch (status) {
       case "active":
         return "success";
-      case "completed":
+      case "ended":
         return "secondary";
+      case "paused":
+        return "warning";
       default:
         return "default";
     }
