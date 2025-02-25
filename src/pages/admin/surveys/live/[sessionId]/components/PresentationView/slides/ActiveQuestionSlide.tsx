@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { AlertCircle, PlayCircle } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -9,6 +8,7 @@ import { LiveSessionQuestion } from "../charts/types";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useEffect } from "react";
 
 interface ActiveQuestionSlideProps {
   currentActiveQuestion: LiveSessionQuestion | null;
@@ -24,7 +24,20 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
     if (!currentActiveQuestion) return;
 
     try {
-      const { error } = await supabase
+      // First mark other active questions as completed
+      const { error: completionError } = await supabase
+        .from("live_session_questions")
+        .update({
+          status: "completed",
+          disabled_at: new Date().toISOString()
+        })
+        .eq("session_id", currentActiveQuestion.session_id)
+        .eq("status", "active");
+
+      if (completionError) throw completionError;
+
+      // Then activate the current question
+      const { error: activationError } = await supabase
         .from("live_session_questions")
         .update({
           status: "active",
@@ -32,7 +45,7 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
         })
         .eq("id", currentActiveQuestion.id);
 
-      if (error) throw error;
+      if (activationError) throw activationError;
 
       toast({
         title: "Question enabled",
@@ -47,6 +60,31 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
       });
     }
   };
+
+  // Subscribe to question status changes
+  useEffect(() => {
+    if (!currentActiveQuestion) return;
+
+    const channel = supabase
+      .channel(`question_status_${currentActiveQuestion.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'live_session_questions',
+          filter: `id=eq.${currentActiveQuestion.id}`
+        },
+        (payload) => {
+          console.log('Question status update:', payload);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentActiveQuestion?.id]);
 
   const renderResponseVisualization = () => {
     if (!currentActiveQuestion || !responses.length) return null;
