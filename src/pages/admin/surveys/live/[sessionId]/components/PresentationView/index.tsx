@@ -14,8 +14,6 @@ interface PresentationViewProps {
 }
 
 export function PresentationView({ session }: PresentationViewProps) {
-  const [activeQuestions, setActiveQuestions] = useState<any[]>([]);
-  
   const {
     currentSlide,
     setCurrentSlide,
@@ -25,7 +23,7 @@ export function PresentationView({ session }: PresentationViewProps) {
     totalSlides
   } = usePresentationNavigation();
 
-  const { responses, participants } = useLiveResponses(session.id);
+  const { responses, participants, currentActiveQuestion } = useLiveResponses(session.id);
 
   return (
     <PresentationLayout 
@@ -51,7 +49,7 @@ export function PresentationView({ session }: PresentationViewProps) {
       />
       
       <ActiveQuestionSlide
-        questions={activeQuestions}
+        currentActiveQuestion={currentActiveQuestion}
         responses={responses}
         isActive={currentSlide === 1}
       />
