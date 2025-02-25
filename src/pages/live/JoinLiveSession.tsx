@@ -35,16 +35,26 @@ export default function JoinLiveSession() {
       // First, get the session details
       const { data: session, error: sessionError } = await supabase
         .from("live_survey_sessions")
-        .select("id")
+        .select("id, status")
         .eq("join_code", joinCode)
         .single();
 
-      if (sessionError || !session) {
+      if (sessionError) {
+        console.error("Session fetch error:", sessionError);
+        throw new Error("Session not found or no longer active");
+      }
+
+      if (!session) {
         throw new Error("Session not found");
+      }
+
+      if (session.status !== "initial" && session.status !== "active") {
+        throw new Error("This session is no longer accepting participants");
       }
 
       console.log("Joining session:", {
         sessionId: session.id,
+        sessionStatus: session.status,
         joinCode
       });
 
@@ -81,7 +91,7 @@ export default function JoinLiveSession() {
     } catch (error: any) {
       console.error("Join session error:", error);
       toast({
-        title: "Error",
+        title: "Error joining session",
         description: error.message || "Unable to join the session",
         variant: "destructive",
       });
