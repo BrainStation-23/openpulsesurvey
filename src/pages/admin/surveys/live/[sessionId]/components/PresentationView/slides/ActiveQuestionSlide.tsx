@@ -20,7 +20,7 @@ export function ActiveQuestionSlide({ questions, responses, isActive }: ActiveQu
               <h2 className="text-2xl font-semibold">
                 {activeQuestion.question_data.title}
               </h2>
-              {activeQuestion.question_data.description && (
+              {typeof activeQuestion.question_data.description === 'string' && (
                 <p className="text-muted-foreground">
                   {activeQuestion.question_data.description}
                 </p>
