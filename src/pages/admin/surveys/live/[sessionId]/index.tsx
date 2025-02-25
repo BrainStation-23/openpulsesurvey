@@ -1,16 +1,19 @@
+
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SessionHeader } from "./components/SessionHeader";
 import { QuestionManager } from "./components/QuestionManager";
 import { PresentationView } from "./components/PresentationView";
-import { ParticipantList } from "./components/ParticipantList";
 import { LiveSession, SessionStatus } from "../types";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 export default function LiveSessionControlPage() {
   const { sessionId } = useParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [sessionData, setSessionData] = useState<LiveSession | null>(null);
 
@@ -102,20 +105,26 @@ export default function LiveSessionControlPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("/admin/surveys/live")}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-2xl font-bold">Live Session Control</h1>
+      </div>
+
       <SessionHeader 
         session={sessionData || session}
         onStatusChange={updateSessionStatus}
       />
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          <QuestionManager
-            session={sessionData || session}
-          />
-          <ParticipantList
-            session={sessionData || session}
-          />
-        </div>
+        <QuestionManager
+          session={sessionData || session}
+        />
         <PresentationView
           session={sessionData || session}
         />
