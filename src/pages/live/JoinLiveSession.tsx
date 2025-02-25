@@ -32,22 +32,35 @@ export default function JoinLiveSession() {
 
     setIsJoining(true);
     try {
+      // First, get the session details
       const { data: session, error: sessionError } = await supabase
         .from("live_survey_sessions")
         .select("id, status")
         .eq("join_code", joinCode)
         .single();
 
-      if (sessionError || !session) {
+      if (sessionError) {
+        console.error("Session fetch error:", sessionError);
         throw new Error("Session not found or no longer active");
+      }
+
+      if (!session) {
+        throw new Error("Session not found");
       }
 
       if (session.status !== "initial" && session.status !== "active") {
         throw new Error("This session is no longer accepting participants");
       }
 
+      console.log("Joining session:", {
+        sessionId: session.id,
+        sessionStatus: session.status,
+        joinCode
+      });
+
       const participantId = crypto.randomUUID();
 
+      // Try to insert the participant
       const { data: participant, error: participantError } = await supabase
         .from("live_session_participants")
         .insert({
@@ -59,7 +72,19 @@ export default function JoinLiveSession() {
         .select()
         .single();
 
-      if (participantError) throw participantError;
+      if (participantError) {
+        console.error("Participant insert error:", participantError);
+        
+        // Check for specific error types
+        if (participantError.code === "42501") { // RLS policy violation
+          throw new Error("Unable to join session due to permission restrictions");
+        }
+        throw participantError;
+      }
+
+      if (!participant) {
+        throw new Error("Failed to create participant record");
+      }
 
       // Store participant info in localStorage
       localStorage.setItem(`live_session_${joinCode}`, JSON.stringify({
@@ -69,6 +94,7 @@ export default function JoinLiveSession() {
 
       navigate(`/live/${joinCode}`);
     } catch (error: any) {
+      console.error("Join session error:", error);
       toast({
         title: "Error joining session",
         description: error.message || "Unable to join the session",
