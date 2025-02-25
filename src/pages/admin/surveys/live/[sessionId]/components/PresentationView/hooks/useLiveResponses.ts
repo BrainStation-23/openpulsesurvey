@@ -1,14 +1,17 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { LiveSessionQuestion } from "../../../types";
 
 export function useLiveResponses(sessionId: string) {
   const [responses, setResponses] = useState<any[]>([]);
   const [participants, setParticipants] = useState<number>(0);
+  const [activeQuestions, setActiveQuestions] = useState<LiveSessionQuestion[]>([]);
 
   useEffect(() => {
     // Initial fetch of responses
     const fetchInitialData = async () => {
+      // Fetch responses
       const { data: responseData } = await supabase
         .from('live_session_responses')
         .select('*')
@@ -26,6 +29,17 @@ export function useLiveResponses(sessionId: string) {
         .eq('status', 'connected');
         
       setParticipants(count || 0);
+
+      // Fetch active questions
+      const { data: questionData } = await supabase
+        .from('live_session_questions')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('display_order', { ascending: true });
+
+      if (questionData) {
+        setActiveQuestions(questionData);
+      }
     };
 
     fetchInitialData();
@@ -66,6 +80,27 @@ export function useLiveResponses(sessionId: string) {
           setParticipants(count || 0);
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'live_session_questions',
+          filter: `session_id=eq.${sessionId}`
+        },
+        async () => {
+          // Refetch questions on any change
+          const { data: questionData } = await supabase
+            .from('live_session_questions')
+            .select('*')
+            .eq('session_id', sessionId)
+            .order('display_order', { ascending: true });
+
+          if (questionData) {
+            setActiveQuestions(questionData);
+          }
+        }
+      )
       .subscribe();
 
     return () => {
@@ -73,5 +108,5 @@ export function useLiveResponses(sessionId: string) {
     };
   }, [sessionId]);
 
-  return { responses, participants };
+  return { responses, participants, activeQuestions };
 }
