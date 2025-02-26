@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { AlertCircle, PlayCircle } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -8,7 +9,7 @@ import { LiveSessionQuestion } from "../charts/types";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface ActiveQuestionSlideProps {
   currentActiveQuestion: LiveSessionQuestion | null;
@@ -19,12 +20,33 @@ interface ActiveQuestionSlideProps {
 
 export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive, isSessionActive }: ActiveQuestionSlideProps) {
   const { toast } = useToast();
+  const [isEnabling, setIsEnabling] = useState(false);
 
   const handleEnableQuestion = async () => {
     if (!currentActiveQuestion) return;
-
+    
+    setIsEnabling(true);
     try {
-      // First mark other active questions as completed
+      // First check if there are any pending questions with lower display_order
+      const { data: previousQuestions, error: checkError } = await supabase
+        .from("live_session_questions")
+        .select("id")
+        .eq("session_id", currentActiveQuestion.session_id)
+        .eq("status", "pending")
+        .lt("display_order", currentActiveQuestion.display_order);
+
+      if (checkError) throw checkError;
+
+      if (previousQuestions && previousQuestions.length > 0) {
+        toast({
+          title: "Cannot enable question",
+          description: "Please enable previous questions first",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Mark any currently active questions as completed
       const { error: completionError } = await supabase
         .from("live_session_questions")
         .update({
@@ -36,7 +58,7 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
 
       if (completionError) throw completionError;
 
-      // Then activate the current question
+      // Activate the current question
       const { error: activationError } = await supabase
         .from("live_session_questions")
         .update({
@@ -58,6 +80,8 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
         description: "Failed to enable question",
         variant: "destructive",
       });
+    } finally {
+      setIsEnabling(false);
     }
   };
 
@@ -189,11 +213,11 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
                 {currentActiveQuestion.status === "pending" && (
                   <Button
                     onClick={handleEnableQuestion}
-                    disabled={!isSessionActive}
+                    disabled={!isSessionActive || isEnabling}
                     className="gap-2"
                   >
                     <PlayCircle className="h-4 w-4" />
-                    Enable Question
+                    {isEnabling ? "Enabling..." : "Enable Question"}
                   </Button>
                 )}
               </div>

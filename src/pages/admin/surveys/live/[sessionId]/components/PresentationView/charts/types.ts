@@ -32,4 +32,5 @@ export interface LiveSessionQuestion {
     [key: string]: any;
   };
   status: string;
+  display_order: number;
 }
