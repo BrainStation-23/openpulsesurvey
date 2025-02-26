@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -62,6 +61,8 @@ import EmployeeRoleConfig from "./pages/admin/config/employee-role";
 import AIPromptsConfig from "./pages/admin/config/ai-prompts";
 import AchievementsPage from "./pages/admin/achievements";
 import AchievementFormPage from "./pages/admin/achievements/AchievementFormPage";
+import CreateIssueBoard from "./pages/admin/surveys/issue-boards/CreateIssueBoard";
+import EditIssueBoard from "./pages/admin/surveys/issue-boards/EditIssueBoard";
 
 const queryClient = new QueryClient();
 
@@ -119,7 +120,11 @@ const App = () => (
               <Route path="surveys/campaigns/:id/present" element={<PresentationView />} />
               <Route path="surveys/live" element={<LiveSurveyPage />} />
               <Route path="surveys/live/:sessionId" element={<LiveSessionControlPage />} />
+              
               <Route path="surveys/issue-boards" element={<AdminIssueBoards />} />
+              <Route path="surveys/issue-boards/create" element={<CreateIssueBoard />} />
+              <Route path="surveys/issue-boards/:id" element={<EditIssueBoard />} />
+              
               <Route path="config" element={<PlatformConfigLayout />}>
                 <Route index element={<AdminConfig />} />
                 <Route path="sbus" element={<SBUsConfig />} />
