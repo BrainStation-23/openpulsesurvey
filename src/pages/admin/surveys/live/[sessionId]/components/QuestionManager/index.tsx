@@ -265,7 +265,7 @@ export function QuestionManager({ session }: QuestionManagerProps) {
         questionCounts={getQuestionCounts()}
       />
       
-      <ScrollArea className="h-[500px] p-4">
+      <ScrollArea className="h-full p-4">
         <div className="space-y-4">
           {loading ? (
             <div className="text-center text-muted-foreground">Loading questions...</div>
