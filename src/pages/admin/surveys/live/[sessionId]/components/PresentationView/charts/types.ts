@@ -23,6 +23,7 @@ export interface LiveWordCloudData extends LiveChartData {
 
 export interface LiveSessionQuestion {
   id: string;
+  session_id: string;
   question_key: string;
   question_data: {
     title: string;
