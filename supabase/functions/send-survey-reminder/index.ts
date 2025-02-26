@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
@@ -15,6 +14,7 @@ const corsHeaders = {
 interface ReminderRequest {
   instanceId: string;
   campaignId: string;
+  assignmentIds: string[];
   frontendUrl: string;
 }
 
@@ -149,8 +149,8 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Supabase credentials are not configured");
     }
 
-    const { instanceId, campaignId, frontendUrl }: ReminderRequest = await req.json();
-    console.log("Reminder request:", { instanceId, campaignId, frontendUrl });
+    const { instanceId, campaignId, assignmentIds, frontendUrl }: ReminderRequest = await req.json();
+    console.log("Reminder request:", { instanceId, campaignId, assignmentIds, frontendUrl });
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -169,23 +169,24 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("No email configuration found");
     }
 
-    // Get instance details
-    const { data: instance, error: instanceError } = await supabase
-      .from('campaign_instances')
-      .select('*')
-      .eq('id', instanceId)
-      .single();
+    // Get instance details if provided
+    let instance;
+    if (instanceId) {
+      const { data, error: instanceError } = await supabase
+        .from('campaign_instances')
+        .select('*')
+        .eq('id', instanceId)
+        .single();
 
-    if (instanceError) {
-      console.error("Instance error:", instanceError);
-      throw new Error("Failed to fetch instance details");
+      if (instanceError) {
+        console.error("Instance error:", instanceError);
+        throw new Error("Failed to fetch instance details");
+      }
+
+      instance = data;
     }
 
-    if (!instance) {
-      throw new Error("Instance not found");
-    }
-
-    // Get pending assignments with user and survey details
+    // Get only the selected assignments with user and survey details
     const { data: assignments, error: assignmentsError } = await supabase
       .from('survey_assignments')
       .select(`
@@ -201,28 +202,17 @@ const handler = async (req: Request): Promise<Response> => {
           name
         )
       `)
-      .eq('campaign_id', campaignId)
-      .is('last_reminder_sent', null);
+      .in('id', assignmentIds);
 
     if (assignmentsError) {
       console.error("Assignments error:", assignmentsError);
       throw new Error("Failed to fetch assignments");
     }
 
-    // Filter out assignments that already have responses for this instance
-    const { data: responses } = await supabase
-      .from('survey_responses')
-      .select('assignment_id')
-      .eq('campaign_instance_id', instanceId)
-      .eq('status', 'submitted');
-
-    const submittedAssignmentIds = new Set(responses?.map(r => r.assignment_id) || []);
-    const pendingAssignments = assignments?.filter(a => !submittedAssignmentIds.has(a.id)) || [];
-
-    if (!pendingAssignments.length) {
+    if (!assignments?.length) {
       return new Response(
         JSON.stringify({ 
-          message: "No pending assignments found",
+          message: "No assignments found",
           successCount: 0,
           failureCount: 0,
           skippedCount: 0
@@ -234,11 +224,11 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`Processing ${pendingAssignments.length} pending assignments in batches...`);
+    console.log(`Processing ${assignments.length} selected assignments in batches...`);
 
-    // Process all assignments with rate limiting
+    // Process selected assignments with rate limiting
     const { successCount, failureCount, skippedCount } = await processBatch(
-      pendingAssignments,
+      assignments,
       emailConfig,
       instance,
       frontendUrl
@@ -246,10 +236,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(
       JSON.stringify({ 
-        message: `Processed ${pendingAssignments.length} assignments with rate limiting`,
+        message: `Processed ${assignments.length} assignments with rate limiting`,
         successCount,
         failureCount,
-        skippedCount,
+        skippedCount
       }),
       { 
         status: failureCount > 0 ? 500 : 200,
@@ -261,7 +251,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.error("Error in send-survey-reminder function:", error);
     return new Response(
       JSON.stringify({ 
-        error: "Failed to send email reminder",
+        error: "Failed to send reminders",
         details: error.message,
         successCount: 0,
         failureCount: 1,

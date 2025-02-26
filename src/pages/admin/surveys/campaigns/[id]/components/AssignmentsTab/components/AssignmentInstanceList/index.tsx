@@ -83,11 +83,12 @@ export function AssignmentInstanceList({
   });
 
   const sendReminderMutation = useMutation({
-    mutationFn: async ({ instanceId, campaignId }: { instanceId?: string; campaignId: string }) => {
+    mutationFn: async ({ instanceId, campaignId, assignmentIds }: { instanceId?: string; campaignId: string; assignmentIds: string[] }) => {
       const { error } = await supabase.functions.invoke("send-survey-reminder", {
         body: {
           instanceId,
           campaignId,
+          assignmentIds,
           frontendUrl: window.location.origin,
         },
       });
@@ -207,6 +208,7 @@ export function AssignmentInstanceList({
                         sendReminderMutation.mutate({
                           campaignId,
                           instanceId: selectedInstanceId,
+                          assignmentIds: selectedAssignments,
                         })
                       }
                       disabled={sendReminderMutation.isPending || eligibleAssignmentsCount === 0}
