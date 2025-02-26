@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ResponseInput } from "./components/ResponseInput";
@@ -9,11 +10,15 @@ import { useLiveSession } from "./hooks/useLiveSession";
 import { ResponseVisualization } from "../admin/surveys/live/[sessionId]/components/PresentationView/slides/QuestionSlide/components/ResponseVisualization";
 import { MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function PublicLiveSession() {
   const { joinCode } = useParams();
+  const navigate = useNavigate();
   const [response, setResponse] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isValidating, setIsValidating] = useState(true);
   const { theme, setTheme } = useTheme();
   
   const {
@@ -26,6 +31,45 @@ export default function PublicLiveSession() {
     hasSubmitted,
     completedQuestions
   } = useLiveSession(joinCode!);
+
+  useEffect(() => {
+    const validateSession = async () => {
+      setIsValidating(true);
+      try {
+        // Check if session exists and is active
+        const { data: session, error } = await supabase
+          .from("live_survey_sessions")
+          .select("id, status")
+          .eq("join_code", joinCode)
+          .single();
+
+        if (error || !session) {
+          navigate("/live");
+          return;
+        }
+
+        if (session.status === "ended") {
+          navigate("/live");
+          return;
+        }
+
+        // Check if user has already joined
+        const storedInfo = localStorage.getItem(`live_session_${joinCode}`);
+        if (!storedInfo) {
+          // Redirect to join page if no participant info
+          navigate(`/live/${joinCode}/join`);
+          return;
+        }
+      } catch (error) {
+        console.error("Error validating session:", error);
+        navigate("/live");
+      } finally {
+        setIsValidating(false);
+      }
+    };
+
+    validateSession();
+  }, [joinCode, navigate]);
 
   const handleSubmitResponse = async () => {
     if (!response.trim() || hasSubmitted) return;
@@ -41,6 +85,17 @@ export default function PublicLiveSession() {
   useEffect(() => {
     setResponse("");
   }, [activeQuestion?.id]);
+
+  if (isValidating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <LoadingSpinner className="mx-auto" />
+          <p className="text-muted-foreground">Validating session...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
