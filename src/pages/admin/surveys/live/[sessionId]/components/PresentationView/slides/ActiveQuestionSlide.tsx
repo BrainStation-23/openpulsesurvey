@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { AlertCircle, PlayCircle } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -27,26 +26,7 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
     
     setIsEnabling(true);
     try {
-      // First check if there are any pending questions with lower display_order
-      const { data: previousQuestions, error: checkError } = await supabase
-        .from("live_session_questions")
-        .select("id")
-        .eq("session_id", currentActiveQuestion.session_id)
-        .eq("status", "pending")
-        .lt("display_order", currentActiveQuestion.display_order);
-
-      if (checkError) throw checkError;
-
-      if (previousQuestions && previousQuestions.length > 0) {
-        toast({
-          title: "Cannot enable question",
-          description: "Please enable previous questions first",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Mark any currently active questions as completed
+      // First mark any currently active questions as completed
       const { error: completionError } = await supabase
         .from("live_session_questions")
         .update({
@@ -58,7 +38,7 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
 
       if (completionError) throw completionError;
 
-      // Activate the current question
+      // Enable this specific question
       const { error: activationError } = await supabase
         .from("live_session_questions")
         .update({
