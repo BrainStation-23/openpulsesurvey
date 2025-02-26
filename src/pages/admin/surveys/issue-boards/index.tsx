@@ -1,10 +1,9 @@
-
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter, Pencil, Trash2 } from "lucide-react";
+import { Plus, Filter, Pencil, Trash2, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ColumnDef } from "@tanstack/react-table";
 import { IssueBoardDialog } from "./components/IssueBoardDialog";
@@ -21,10 +20,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { IssueBoard } from "./types";
+import { BoardPermissionsDialog } from "./components/BoardPermissionsDialog";
+import type { IssueBoardPermission } from "./types";
 
 export default function AdminIssueBoards() {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [selectedBoard, setSelectedBoard] = React.useState<IssueBoard | null>(null);
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = React.useState(false);
+  const [selectedBoardForPermissions, setSelectedBoardForPermissions] = React.useState<IssueBoard | null>(null);
   const queryClient = useQueryClient();
 
   const handleCreate = () => {
@@ -41,7 +44,15 @@ export default function AdminIssueBoards() {
     deleteBoardMutation.mutate(id);
   };
 
-  // Moved columns inside component to access handlers
+  const handlePermissions = (board: IssueBoard) => {
+    setSelectedBoardForPermissions(board);
+    setPermissionsDialogOpen(true);
+  };
+
+  const handlePermissionsSubmit = (permissions: Partial<IssueBoardPermission>[]) => {
+    updatePermissionsMutation.mutate(permissions);
+  };
+
   const columns: ColumnDef<IssueBoard>[] = [
     {
       accessorKey: "name",
@@ -72,6 +83,13 @@ export default function AdminIssueBoards() {
         const board = row.original;
         return (
           <div className="flex items-center gap-2 justify-end">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handlePermissions(board)}
+            >
+              <Lock className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -215,6 +233,41 @@ export default function AdminIssueBoards() {
     },
   });
 
+  const updatePermissionsMutation = useMutation({
+    mutationFn: async (permissions: Partial<IssueBoardPermission>[]) => {
+      if (!selectedBoardForPermissions) return;
+      
+      await supabase
+        .from('issue_board_permissions')
+        .delete()
+        .eq('board_id', selectedBoardForPermissions.id);
+      
+      if (permissions.length > 0) {
+        const { error } = await supabase
+          .from('issue_board_permissions')
+          .insert(permissions);
+        
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['boardPermissions'] });
+      toast({
+        title: "Success",
+        description: "Permissions updated successfully",
+      });
+      setPermissionsDialogOpen(false);
+      setSelectedBoardForPermissions(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update permissions: " + error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = (values: Pick<IssueBoard, 'name' | 'description' | 'status'>) => {
     if (selectedBoard) {
       updateBoardMutation.mutate(values);
@@ -222,6 +275,21 @@ export default function AdminIssueBoards() {
       createBoardMutation.mutate(values);
     }
   };
+
+  const { data: boardPermissions } = useQuery({
+    queryKey: ['boardPermissions', selectedBoardForPermissions?.id],
+    queryFn: async () => {
+      if (!selectedBoardForPermissions) return [];
+      const { data, error } = await supabase
+        .from('issue_board_permissions')
+        .select('*')
+        .eq('board_id', selectedBoardForPermissions.id);
+
+      if (error) throw error;
+      return data as IssueBoardPermission[];
+    },
+    enabled: !!selectedBoardForPermissions,
+  });
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -253,6 +321,14 @@ export default function AdminIssueBoards() {
         onSubmit={handleSubmit}
         initialValues={selectedBoard || undefined}
         mode={selectedBoard ? "edit" : "create"}
+      />
+
+      <BoardPermissionsDialog
+        open={permissionsDialogOpen}
+        onOpenChange={setPermissionsDialogOpen}
+        board={selectedBoardForPermissions!}
+        onSubmit={handlePermissionsSubmit}
+        permissions={boardPermissions}
       />
     </div>
   );
