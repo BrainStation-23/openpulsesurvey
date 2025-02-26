@@ -49,6 +49,7 @@ export function useLiveSession(joinCode: string) {
   const [participantInfo, setParticipantInfo] = useState<ParticipantInfo | null>(null);
   const [questionResponses, setQuestionResponses] = useState<any[]>([]);
   const [participants, setParticipants] = useState<LobbyParticipant[]>([]);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const { submitResponse: submitResponseBase } = useResponseSubmission(sessionId);
 
@@ -63,6 +64,7 @@ export function useLiveSession(joinCode: string) {
 
   const handleQuestionUpdate = useCallback((question: ActiveQuestion | null) => {
     setActiveQuestion(question);
+    setHasSubmitted(false); // Reset submission state when question changes
     if (!question) {
       setQuestionResponses([]);
     }
@@ -78,6 +80,29 @@ export function useLiveSession(joinCode: string) {
     handleQuestionUpdate,
     handleResponsesUpdate
   );
+
+  // Check for existing response when question changes
+  useEffect(() => {
+    const checkExistingResponse = async () => {
+      if (!sessionId || !activeQuestion || !participantInfo) return;
+
+      const { data: existingResponse } = await supabase
+        .from("live_session_responses")
+        .select("id")
+        .match({
+          session_id: sessionId,
+          participant_id: participantInfo.participantId,
+          question_key: activeQuestion.question_key
+        })
+        .single();
+
+      if (existingResponse) {
+        setHasSubmitted(true);
+      }
+    };
+
+    checkExistingResponse();
+  }, [sessionId, activeQuestion, participantInfo]);
 
   // Set up presence subscription
   useEffect(() => {
@@ -168,7 +193,29 @@ export function useLiveSession(joinCode: string) {
   }, [joinCode, toast, navigate]);
 
   const submitResponse = async (response: string) => {
-    return submitResponseBase(response, activeQuestion, participantInfo);
+    if (!activeQuestion || !participantInfo) return false;
+
+    // Check if response already exists
+    const { data: existingResponse } = await supabase
+      .from("live_session_responses")
+      .select("id")
+      .match({
+        session_id: sessionId,
+        participant_id: participantInfo.participantId,
+        question_key: activeQuestion.question_key
+      })
+      .single();
+
+    if (existingResponse) {
+      setHasSubmitted(true);
+      return true; // Return true to trigger success UI state
+    }
+
+    const success = await submitResponseBase(response, activeQuestion, participantInfo);
+    if (success) {
+      setHasSubmitted(true);
+    }
+    return success;
   };
 
   return {
@@ -178,6 +225,7 @@ export function useLiveSession(joinCode: string) {
     participantInfo,
     questionResponses,
     participants,
-    submitResponse
+    submitResponse,
+    hasSubmitted // Export hasSubmitted state
   };
 }

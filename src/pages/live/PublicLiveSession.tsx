@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,6 @@ export default function PublicLiveSession() {
   const { joinCode } = useParams();
   const [response, setResponse] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
   const { theme, setTheme } = useTheme();
   
   const {
@@ -23,7 +21,8 @@ export default function PublicLiveSession() {
     participantInfo,
     submitResponse,
     questionResponses,
-    participants
+    participants,
+    hasSubmitted
   } = useLiveSession(joinCode!);
 
   const handleSubmitResponse = async () => {
@@ -33,14 +32,12 @@ export default function PublicLiveSession() {
     const success = await submitResponse(response);
     if (success) {
       setResponse("");
-      setHasSubmitted(true);
     }
     setIsSubmitting(false);
   };
 
-  // Reset submission state when question changes
+  // Reset response when question changes
   useEffect(() => {
-    setHasSubmitted(false);
     setResponse("");
   }, [activeQuestion?.id]);
 
@@ -56,7 +53,6 @@ export default function PublicLiveSession() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-primary text-primary-foreground shrink-0">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -86,9 +82,7 @@ export default function PublicLiveSession() {
         </div>
       </header>
 
-      {/* Main Content Container */}
       <div className="flex-1 flex">
-        {/* Main Content Area */}
         <div className="flex-1 p-4 overflow-y-auto">
           <div className="max-w-3xl mx-auto">
             {activeQuestion ? (
@@ -169,7 +163,6 @@ export default function PublicLiveSession() {
           </div>
         </div>
 
-        {/* Fixed Lobby Sidebar */}
         <div className="w-[300px] border-l shrink-0 hidden md:block">
           <div className="h-full overflow-y-auto">
             <Lobby 
@@ -181,7 +174,6 @@ export default function PublicLiveSession() {
         </div>
       </div>
 
-      {/* Fixed Footer */}
       <footer className="border-t py-4 bg-background shrink-0">
         <div className="container mx-auto px-4">
           <div className="text-center text-sm text-muted-foreground">
