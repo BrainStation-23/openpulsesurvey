@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ResponseInput } from "./components/ResponseInput";
 import { Lobby } from "./components/Lobby";
+import { CompletedQuestions } from "./components/CompletedQuestions";
 import { useLiveSession } from "./hooks/useLiveSession";
 import { ResponseVisualization } from "../admin/surveys/live/[sessionId]/components/PresentationView/slides/QuestionSlide/components/ResponseVisualization";
 import { MoonIcon, SunIcon } from "lucide-react";
@@ -22,7 +23,8 @@ export default function PublicLiveSession() {
     submitResponse,
     questionResponses,
     participants,
-    hasSubmitted
+    hasSubmitted,
+    completedQuestions
   } = useLiveSession(joinCode!);
 
   const handleSubmitResponse = async () => {
@@ -36,7 +38,6 @@ export default function PublicLiveSession() {
     setIsSubmitting(false);
   };
 
-  // Reset response when question changes
   useEffect(() => {
     setResponse("");
   }, [activeQuestion?.id]);
@@ -160,6 +161,8 @@ export default function PublicLiveSession() {
                 </div>
               </Card>
             )}
+
+            <CompletedQuestions questions={completedQuestions} />
           </div>
         </div>
 

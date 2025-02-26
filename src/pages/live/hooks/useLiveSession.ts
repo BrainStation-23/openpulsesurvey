@@ -1,9 +1,9 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ActiveQuestion, ParticipantInfo } from "../types";
+import { CompletedQuestion } from "./types/completed-questions";
 import { useResponseSubmission } from "./useResponseSubmission";
 import { useSessionSubscription } from "./useSessionSubscription";
 
@@ -13,7 +13,6 @@ export interface LobbyParticipant {
   joined_at: string;
 }
 
-// Helper function to convert database question to ActiveQuestion type
 function convertToActiveQuestion(dbQuestion: any): ActiveQuestion | null {
   if (!dbQuestion) return null;
   
@@ -50,6 +49,7 @@ export function useLiveSession(joinCode: string) {
   const [questionResponses, setQuestionResponses] = useState<any[]>([]);
   const [participants, setParticipants] = useState<LobbyParticipant[]>([]);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [completedQuestions, setCompletedQuestions] = useState<CompletedQuestion[]>([]);
 
   const { submitResponse: submitResponseBase } = useResponseSubmission(sessionId);
 
@@ -64,7 +64,7 @@ export function useLiveSession(joinCode: string) {
 
   const handleQuestionUpdate = useCallback((question: ActiveQuestion | null) => {
     setActiveQuestion(question);
-    setHasSubmitted(false); // Reset submission state when question changes
+    setHasSubmitted(false);
     if (!question) {
       setQuestionResponses([]);
     }
@@ -81,7 +81,70 @@ export function useLiveSession(joinCode: string) {
     handleResponsesUpdate
   );
 
-  // Check for existing response when question changes
+  const fetchCompletedQuestions = useCallback(async () => {
+    if (!sessionId || !participantInfo) return;
+
+    const { data: questions, error } = await supabase
+      .from("live_session_questions")
+      .select(`
+        *,
+        responses:live_session_responses(*)
+      `)
+      .eq("session_id", sessionId)
+      .eq("status", "completed")
+      .order("display_order", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching completed questions:", error);
+      return;
+    }
+
+    const convertedQuestions: CompletedQuestion[] = questions
+      .map(q => {
+        const convertedQuestion = convertToActiveQuestion(q);
+        if (!convertedQuestion) return null;
+
+        return {
+          ...convertedQuestion,
+          responses: q.responses || [],
+          completedAt: q.disabled_at || q.updated_at
+        };
+      })
+      .filter((q): q is CompletedQuestion => q !== null);
+
+    setCompletedQuestions(convertedQuestions);
+  }, [sessionId, participantInfo]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const channel = supabase
+      .channel(`questions_${sessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'live_session_questions',
+          filter: `session_id=eq.${sessionId}`
+        },
+        (payload) => {
+          if (payload.new.status === 'completed') {
+            fetchCompletedQuestions();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId, fetchCompletedQuestions]);
+
+  useEffect(() => {
+    fetchCompletedQuestions();
+  }, [fetchCompletedQuestions]);
+
   useEffect(() => {
     const checkExistingResponse = async () => {
       if (!sessionId || !activeQuestion || !participantInfo) return;
@@ -104,7 +167,6 @@ export function useLiveSession(joinCode: string) {
     checkExistingResponse();
   }, [sessionId, activeQuestion, participantInfo]);
 
-  // Set up presence subscription
   useEffect(() => {
     if (!sessionId || !participantInfo) return;
 
@@ -134,7 +196,6 @@ export function useLiveSession(joinCode: string) {
     };
   }, [sessionId, participantInfo, toast]);
 
-  // Initial session setup
   useEffect(() => {
     const setupSession = async () => {
       try {
@@ -154,7 +215,6 @@ export function useLiveSession(joinCode: string) {
 
         setSessionId(session.id);
 
-        // Get current active question if any
         const { data: question, error: questionError } = await supabase
           .from("live_session_questions")
           .select("*")
@@ -167,7 +227,6 @@ export function useLiveSession(joinCode: string) {
           if (convertedQuestion) {
             setActiveQuestion(convertedQuestion);
 
-            // Get responses for this question
             const { data: responses } = await supabase
               .from("live_session_responses")
               .select("*")
@@ -195,7 +254,6 @@ export function useLiveSession(joinCode: string) {
   const submitResponse = async (response: string) => {
     if (!activeQuestion || !participantInfo) return false;
 
-    // Check if response already exists
     const { data: existingResponse } = await supabase
       .from("live_session_responses")
       .select("id")
@@ -208,7 +266,7 @@ export function useLiveSession(joinCode: string) {
 
     if (existingResponse) {
       setHasSubmitted(true);
-      return true; // Return true to trigger success UI state
+      return true;
     }
 
     const success = await submitResponseBase(response, activeQuestion, participantInfo);
@@ -226,6 +284,7 @@ export function useLiveSession(joinCode: string) {
     questionResponses,
     participants,
     submitResponse,
-    hasSubmitted // Export hasSubmitted state
+    hasSubmitted,
+    completedQuestions
   };
 }
