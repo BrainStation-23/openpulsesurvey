@@ -1,6 +1,4 @@
-
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { PropsWithChildren } from "react";
 
 interface PresentationLayoutProps extends PropsWithChildren {
@@ -17,11 +15,11 @@ export function PresentationLayout({ children, progress, isFullscreen, className
 
   return (
     <div className={cn(
-      "relative flex flex-col h-full bg-background transition-colors duration-300",
+      "relative h-full bg-background transition-colors duration-300",
       isFullscreen && "fixed inset-0 z-50 bg-background",
       className
     )}>
-      {/* Progress bar - fixed height */}
+      {/* Progress bar */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gray-200 z-[60]">
         <div 
           className="h-full bg-primary transition-all duration-300 ease-in-out"
@@ -29,9 +27,9 @@ export function PresentationLayout({ children, progress, isFullscreen, className
         />
       </div>
 
-      {/* Controls container - fixed height */}
+      {/* Controls container - positioned relative to presentation area */}
       <div className={cn(
-        "sticky top-0 z-[55] p-4 flex justify-between items-center transition-opacity duration-300 bg-gradient-to-b from-black/20 to-transparent",
+        "absolute top-0 left-0 right-0 p-4 flex justify-between items-center transition-opacity duration-300 bg-gradient-to-b from-black/20 to-transparent z-[55]",
         isFullscreen ? "opacity-0 hover:opacity-100" : "opacity-100"
       )}>
         <div className="flex-1">
@@ -39,14 +37,14 @@ export function PresentationLayout({ children, progress, isFullscreen, className
         </div>
       </div>
 
-      {/* Main content - scrollable */}
-      <ScrollArea className="flex-1 w-full">
-        <div className="p-8">
-          <div className="relative max-w-full mx-auto">
+      {/* Main content */}
+      <div className="relative h-full overflow-hidden pt-4"> {/* Added pt-16 to account for the controls */}
+        <div className="h-full p-8">
+          <div className="relative max-w-full mx-auto h-full">
             {content}
           </div>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
