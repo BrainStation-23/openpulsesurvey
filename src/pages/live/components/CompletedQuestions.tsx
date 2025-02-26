@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CompletedQuestionsProps {
   questions: CompletedQuestion[];
@@ -17,9 +18,43 @@ interface CompletedQuestionsProps {
 
 export function CompletedQuestions({ questions }: CompletedQuestionsProps) {
   const [selectedQuestion, setSelectedQuestion] = useState<CompletedQuestion | null>(null);
+  const [completedQuestionsWithResponses, setCompletedQuestionsWithResponses] = useState<CompletedQuestion[]>([]);
 
   useEffect(() => {
-    console.log('CompletedQuestions - questions received:', questions);
+    const fetchQuestionsWithResponses = async () => {
+      try {
+        const questionsWithResponses = await Promise.all(
+          questions.map(async (question) => {
+            const { data: responses, error } = await supabase
+              .from("live_session_responses")
+              .select("*")
+              .eq("session_id", question.session_id)
+              .eq("question_key", question.question_key);
+
+            if (error) {
+              console.error("Error fetching responses:", error);
+              return {
+                ...question,
+                responses: []
+              };
+            }
+
+            return {
+              ...question,
+              responses: responses || []
+            };
+          })
+        );
+
+        setCompletedQuestionsWithResponses(questionsWithResponses);
+      } catch (error) {
+        console.error("Error processing questions:", error);
+      }
+    };
+
+    if (questions.length > 0) {
+      fetchQuestionsWithResponses();
+    }
   }, [questions]);
 
   if (!questions.length) {
@@ -35,7 +70,7 @@ export function CompletedQuestions({ questions }: CompletedQuestionsProps) {
             <p className="text-sm font-medium text-muted-foreground mb-2">Previous Questions</p>
             <ScrollArea className="w-full">
               <div className="flex gap-2 pb-2">
-                {questions.map((question) => (
+                {completedQuestionsWithResponses.map((question) => (
                   <button
                     key={question.id}
                     onClick={() => setSelectedQuestion(question)}
