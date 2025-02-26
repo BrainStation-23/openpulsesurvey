@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ResponseInput } from "./components/ResponseInput";
+import { Lobby } from "./components/Lobby";
 import { useLiveSession } from "./hooks/useLiveSession";
 import { ResponseVisualization } from "../admin/surveys/live/[sessionId]/components/PresentationView/slides/QuestionSlide/components/ResponseVisualization";
 
@@ -18,7 +19,8 @@ export default function PublicLiveSession() {
     activeQuestion,
     participantInfo,
     submitResponse,
-    questionResponses
+    questionResponses,
+    participants
   } = useLiveSession(joinCode!);
 
   const handleSubmitResponse = async () => {
@@ -52,57 +54,63 @@ export default function PublicLiveSession() {
   return (
     <div className="min-h-screen">
       <div className="container mx-auto p-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-4 text-sm text-muted-foreground">
-            Joined as: {participantInfo?.displayName}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <div className="mb-4 text-sm text-muted-foreground">
+              Joined as: {participantInfo?.displayName}
+            </div>
 
-          {activeQuestion ? (
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">{activeQuestion.question_data.title}</h2>
-              
-              <div className="space-y-6">
-                {hasSubmitted ? (
-                  <div className="space-y-6">
-                    <div className="text-center">
-                      <p className="text-green-600 dark:text-green-400 font-medium mb-4">
-                        Response submitted successfully! Waiting for the next question...
-                      </p>
+            {activeQuestion ? (
+              <Card className="p-6">
+                <h2 className="text-xl font-semibold mb-4">{activeQuestion.question_data.title}</h2>
+                
+                <div className="space-y-6">
+                  {hasSubmitted ? (
+                    <div className="space-y-6">
+                      <div className="text-center">
+                        <p className="text-green-600 dark:text-green-400 font-medium mb-4">
+                          Response submitted successfully! Waiting for the next question...
+                        </p>
+                      </div>
+                      
+                      <div className="border-t pt-6">
+                        <h3 className="text-lg font-medium mb-4">Current Results</h3>
+                        <ResponseVisualization
+                          question={activeQuestion}
+                          responses={questionResponses}
+                        />
+                      </div>
                     </div>
-                    
-                    <div className="border-t pt-6">
-                      <h3 className="text-lg font-medium mb-4">Current Results</h3>
-                      <ResponseVisualization
+                  ) : (
+                    <>
+                      <ResponseInput
                         question={activeQuestion}
-                        responses={questionResponses}
+                        value={response}
+                        onChange={setResponse}
+                        isDisabled={isSubmitting}
                       />
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <ResponseInput
-                      question={activeQuestion}
-                      value={response}
-                      onChange={setResponse}
-                      isDisabled={isSubmitting}
-                    />
 
-                    <Button
-                      onClick={handleSubmitResponse}
-                      disabled={!response.trim() || isSubmitting || hasSubmitted}
-                      className="w-full"
-                    >
-                      {isSubmitting ? "Submitting..." : "Submit Response"}
-                    </Button>
-                  </>
-                )}
-              </div>
-            </Card>
-          ) : (
-            <Card className="p-6 text-center">
-              <p className="text-muted-foreground">Waiting for the next question...</p>
-            </Card>
-          )}
+                      <Button
+                        onClick={handleSubmitResponse}
+                        disabled={!response.trim() || isSubmitting || hasSubmitted}
+                        className="w-full"
+                      >
+                        {isSubmitting ? "Submitting..." : "Submit Response"}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </Card>
+            ) : (
+              <Card className="p-6 text-center">
+                <p className="text-muted-foreground">Waiting for the next question...</p>
+              </Card>
+            )}
+          </div>
+          
+          <div>
+            <Lobby participants={participants} />
+          </div>
         </div>
       </div>
     </div>
