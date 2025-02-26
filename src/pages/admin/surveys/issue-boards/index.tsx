@@ -50,7 +50,6 @@ const columns: ColumnDef<IssueBoard>[] = [
     id: "actions",
     cell: ({ row }) => {
       const board = row.original;
-      
       return (
         <div className="flex items-center gap-2 justify-end">
           <Button
@@ -109,12 +108,15 @@ export default function AdminIssueBoards() {
   });
 
   const createBoardMutation = useMutation({
-    mutationFn: async (values: Partial<IssueBoard>) => {
+    mutationFn: async (values: Pick<IssueBoard, 'name' | 'description' | 'status'>) => {
+      const user = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from('issue_boards')
         .insert({
-          ...values,
-          created_by: (await supabase.auth.getUser()).data.user?.id,
+          name: values.name,
+          description: values.description,
+          status: values.status,
+          created_by: user.data.user!.id,
         })
         .select()
         .single();
@@ -123,7 +125,7 @@ export default function AdminIssueBoards() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['issueBoards']);
+      queryClient.invalidateQueries({ queryKey: ['issueBoards'] });
       toast({
         title: "Success",
         description: "Board created successfully",
@@ -140,10 +142,14 @@ export default function AdminIssueBoards() {
   });
 
   const updateBoardMutation = useMutation({
-    mutationFn: async (values: Partial<IssueBoard>) => {
+    mutationFn: async (values: Pick<IssueBoard, 'name' | 'description' | 'status'>) => {
       const { data, error } = await supabase
         .from('issue_boards')
-        .update(values)
+        .update({
+          name: values.name,
+          description: values.description,
+          status: values.status,
+        })
         .eq('id', selectedBoard?.id)
         .select()
         .single();
@@ -152,7 +158,7 @@ export default function AdminIssueBoards() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['issueBoards']);
+      queryClient.invalidateQueries({ queryKey: ['issueBoards'] });
       toast({
         title: "Success",
         description: "Board updated successfully",
@@ -179,7 +185,7 @@ export default function AdminIssueBoards() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['issueBoards']);
+      queryClient.invalidateQueries({ queryKey: ['issueBoards'] });
       toast({
         title: "Success",
         description: "Board deleted successfully",
@@ -208,7 +214,7 @@ export default function AdminIssueBoards() {
     deleteBoardMutation.mutate(id);
   };
 
-  const handleSubmit = (values: Partial<IssueBoard>) => {
+  const handleSubmit = (values: Pick<IssueBoard, 'name' | 'description' | 'status'>) => {
     if (selectedBoard) {
       updateBoardMutation.mutate(values);
     } else {
