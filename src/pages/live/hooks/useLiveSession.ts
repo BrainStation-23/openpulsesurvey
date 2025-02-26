@@ -1,9 +1,10 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ActiveQuestion, ParticipantInfo } from "../types";
-import { CompletedQuestion } from "./types/completed-questions";
+import { CompletedQuestion } from "../types/completed-questions";
 import { useResponseSubmission } from "./useResponseSubmission";
 import { useSessionSubscription } from "./useSessionSubscription";
 
