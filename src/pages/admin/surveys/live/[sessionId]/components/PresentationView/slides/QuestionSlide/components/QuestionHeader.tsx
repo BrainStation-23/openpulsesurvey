@@ -1,16 +1,11 @@
 
-import { PlayCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { LiveSessionQuestion } from "../../../charts/types";
 
 interface QuestionHeaderProps {
   question: LiveSessionQuestion;
-  isSessionActive: boolean;
-  isEnabling: boolean;
-  onEnable: () => void;
 }
 
-export function QuestionHeader({ question, isSessionActive, isEnabling, onEnable }: QuestionHeaderProps) {
+export function QuestionHeader({ question }: QuestionHeaderProps) {
   return (
     <div className="flex items-center justify-between">
       <div>
@@ -21,16 +16,6 @@ export function QuestionHeader({ question, isSessionActive, isEnabling, onEnable
           Status: {question.status.charAt(0).toUpperCase() + question.status.slice(1)}
         </p>
       </div>
-      {question.status === "pending" && (
-        <Button
-          onClick={onEnable}
-          disabled={!isSessionActive || isEnabling}
-          className="gap-2"
-        >
-          <PlayCircle className="h-4 w-4" />
-          {isEnabling ? "Enabling..." : "Enable Question"}
-        </Button>
-      )}
     </div>
   );
 }

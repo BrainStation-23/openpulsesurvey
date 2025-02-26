@@ -5,7 +5,6 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { LiveSessionQuestion } from "../../charts/types";
 import { QuestionHeader } from "./components/QuestionHeader";
 import { ResponseVisualization } from "./components/ResponseVisualization";
-import { useQuestionStatus } from "./hooks/useQuestionStatus";
 
 interface QuestionSlideProps {
   question: LiveSessionQuestion | null;
@@ -20,20 +19,13 @@ export function QuestionSlide({
   isActive, 
   isSessionActive 
 }: QuestionSlideProps) {
-  const { isEnabling, handleEnableQuestion } = useQuestionStatus(question);
-
   return (
     <div className={`slide ${isActive ? 'active' : ''}`}>
       {question ? (
         <div className="flex flex-col h-full">
           <Card className="p-6 flex-1">
             <div className="space-y-4">
-              <QuestionHeader
-                question={question}
-                isSessionActive={isSessionActive}
-                isEnabling={isEnabling}
-                onEnable={handleEnableQuestion}
-              />
+              <QuestionHeader question={question} />
               
               {typeof question.question_data.description === 'string' && (
                 <p className="text-muted-foreground">
