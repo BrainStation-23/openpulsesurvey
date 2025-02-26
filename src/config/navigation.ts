@@ -15,7 +15,8 @@ import {
   BrainCircuit,
   UserRound,
   Trophy,
-  Radio
+  Radio,
+  Kanban
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -55,6 +56,11 @@ export const navigationItems: NavigationItem[] = [
         title: "Live Survey",
         icon: Radio,
         path: "/admin/surveys/live",
+      },
+      {
+        title: "Issue Boards",
+        icon: Kanban,
+        path: "/admin/surveys/issue-boards",
       },
     ],
   },
