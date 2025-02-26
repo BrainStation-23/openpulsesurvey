@@ -34,8 +34,11 @@ export function useLiveSession(joinCode: string) {
     setParticipantInfo(JSON.parse(storedInfo));
   }, [joinCode, navigate]);
 
-  const handleQuestionUpdate = useCallback((question: ActiveQuestion) => {
+  const handleQuestionUpdate = useCallback((question: ActiveQuestion | null) => {
     setActiveQuestion(question);
+    if (!question) {
+      setQuestionResponses([]);
+    }
   }, []);
 
   const handleResponsesUpdate = useCallback((responses: any[]) => {
@@ -79,6 +82,7 @@ export function useLiveSession(joinCode: string) {
     };
   }, [sessionId, participantInfo, toast]);
 
+  // Initial session setup
   useEffect(() => {
     const setupSession = async () => {
       try {
@@ -98,34 +102,23 @@ export function useLiveSession(joinCode: string) {
 
         setSessionId(session.id);
 
-        const { data: questions, error: questionError } = await supabase
+        // Get current active question if any
+        const { data: question, error: questionError } = await supabase
           .from("live_session_questions")
           .select("*")
           .eq("session_id", session.id)
           .eq("status", "active")
           .single();
 
-        if (!questionError && questions) {
-          const questionData = questions.question_data as {
-            title: string;
-            type: string;
-            choices?: { text: string; value: string; }[];
-          };
+        if (!questionError && question) {
+          setActiveQuestion(question);
 
-          setActiveQuestion({
-            id: questions.id,
-            question_key: questions.question_key,
-            question_data: questionData,
-            session_id: session.id,
-            status: questions.status,
-            display_order: questions.display_order
-          });
-
+          // Get responses for this question
           const { data: responses } = await supabase
             .from("live_session_responses")
             .select("*")
             .eq("session_id", session.id)
-            .eq("question_key", questions.question_key);
+            .eq("question_key", question.question_key);
 
           setQuestionResponses(responses || []);
         }
