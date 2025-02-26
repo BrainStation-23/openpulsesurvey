@@ -1,13 +1,12 @@
-
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { IssueBoardTabs } from "../components/IssueBoardTabs";
+import { IssueBoardTabs } from "./components/IssueBoardTabs";
 import { supabase } from "@/integrations/supabase/client";
-import type { IssueBoard, IssueBoardPermission } from "../types";
+import type { IssueBoard, IssueBoardPermission } from "./types";
 
 export default function EditIssueBoard() {
   const { id } = useParams();
