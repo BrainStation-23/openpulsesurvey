@@ -55,9 +55,9 @@ export default function PublicLiveSession() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-primary text-primary-foreground">
+      <header className="border-b bg-primary text-primary-foreground shrink-0">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-semibold">Live Session</h1>
@@ -86,11 +86,11 @@ export default function PublicLiveSession() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="container mx-auto p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Main Content Area */}
-          <div className="md:col-span-2 space-y-6">
+      {/* Main Content Container */}
+      <div className="flex-1 flex">
+        {/* Main Content Area */}
+        <div className="flex-1 p-4 overflow-y-auto">
+          <div className="max-w-3xl mx-auto">
             {activeQuestion ? (
               <Card className="overflow-hidden">
                 <div className="p-6 space-y-6">
@@ -167,9 +167,11 @@ export default function PublicLiveSession() {
               </Card>
             )}
           </div>
-          
-          {/* Lobby Sidebar */}
-          <div className="md:block">
+        </div>
+
+        {/* Fixed Lobby Sidebar */}
+        <div className="w-[300px] border-l shrink-0 hidden md:block">
+          <div className="h-full overflow-y-auto">
             <Lobby 
               participants={participants} 
               questionResponses={questionResponses}
@@ -179,8 +181,8 @@ export default function PublicLiveSession() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t mt-auto py-4">
+      {/* Fixed Footer */}
+      <footer className="border-t py-4 bg-background shrink-0">
         <div className="container mx-auto px-4">
           <div className="text-center text-sm text-muted-foreground">
             © {new Date().getFullYear()} Survey System. All rights reserved.
