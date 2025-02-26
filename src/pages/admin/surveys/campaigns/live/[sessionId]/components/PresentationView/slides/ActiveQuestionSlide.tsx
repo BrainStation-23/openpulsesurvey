@@ -106,7 +106,7 @@ export function ActiveQuestionSlide({ currentActiveQuestion, responses, isActive
                 </p>
               )}
               
-              <div className="mt-8">
+              <div className="mt-8 h-full flex  items-center justify-center">
                 {responses.length > 0 ? (
                   <div className="w-full max-w-4xl mx-auto">
                     {renderResponseVisualization()}
