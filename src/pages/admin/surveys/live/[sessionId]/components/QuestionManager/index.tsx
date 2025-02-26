@@ -87,15 +87,16 @@ export function QuestionManager({ session }: QuestionManagerProps) {
 
   const transformQuestion = (rawQuestion: any): LiveSessionQuestion => {
     const questionData: QuestionData = {
-      title: rawQuestion.question_data.title || "Untitled Question",
       type: rawQuestion.question_data.type || "unknown",
       ...rawQuestion.question_data
     };
 
     return {
       ...rawQuestion,
+      title: rawQuestion.title || "Untitled Question",
       question_data: questionData,
-      status: rawQuestion.status as QuestionStatus
+      status: rawQuestion.status as QuestionStatus,
+      question_key: rawQuestion.question_key || `q_${crypto.randomUUID().split('-')[0]}`
     };
   };
 

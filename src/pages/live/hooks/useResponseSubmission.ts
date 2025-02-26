@@ -14,14 +14,13 @@ export function useResponseSubmission(sessionId: string | null) {
     if (!activeQuestion || !participantInfo || !response.trim()) return false;
 
     try {
+      // Using simple equality check with the simplified question_key
       const { data: existingResponse } = await supabase
         .from("live_session_responses")
         .select("id")
-        .match({
-          session_id: sessionId,
-          participant_id: participantInfo.participantId,
-          question_key: activeQuestion.question_key
-        })
+        .eq("session_id", sessionId)
+        .eq("participant_id", participantInfo.participantId)
+        .eq("question_key", activeQuestion.question_key)
         .single();
 
       if (existingResponse) {

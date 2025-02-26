@@ -580,6 +580,7 @@ export type Database = {
           question_key: string
           session_id: string
           status: string
+          title: string | null
           updated_at: string
         }
         Insert: {
@@ -592,6 +593,7 @@ export type Database = {
           question_key: string
           session_id: string
           status?: string
+          title?: string | null
           updated_at?: string
         }
         Update: {
@@ -604,6 +606,7 @@ export type Database = {
           question_key?: string
           session_id?: string
           status?: string
+          title?: string | null
           updated_at?: string
         }
         Relationships: [

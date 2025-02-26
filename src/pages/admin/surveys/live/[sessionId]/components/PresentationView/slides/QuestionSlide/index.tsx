@@ -27,11 +27,10 @@ export function QuestionSlide({
             <div className="space-y-4">
               <QuestionHeader question={question} />
               
-              {typeof question.question_data.description === 'string' && (
-                <p className="text-muted-foreground">
-                  {question.question_data.description}
-                </p>
-              )}
+              {/* Use the new title field for description */}
+              <p className="text-muted-foreground">
+                {question.title}
+              </p>
               
               <div className="mt-8">
                 <ResponseVisualization
