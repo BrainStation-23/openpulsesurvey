@@ -243,9 +243,28 @@ export default function AdminIssueBoards() {
         .eq('board_id', selectedBoardForPermissions.id);
       
       if (permissions.length > 0) {
+        const permissionsWithBoardId = permissions.map(permission => ({
+          ...permission,
+          board_id: selectedBoardForPermissions.id,
+          can_view: permission.can_view || false,
+          can_create: permission.can_create || false,
+          can_vote: permission.can_vote || false
+        })) as {
+          board_id: string;
+          can_view: boolean;
+          can_create: boolean;
+          can_vote: boolean;
+          sbu_id?: string;
+          level_id?: string;
+          location_id?: string;
+          employment_type_id?: string;
+          employee_type_id?: string;
+          employee_role_id?: string;
+        }[];
+
         const { error } = await supabase
           .from('issue_board_permissions')
-          .insert(permissions);
+          .insert(permissionsWithBoardId);
         
         if (error) throw error;
       }
