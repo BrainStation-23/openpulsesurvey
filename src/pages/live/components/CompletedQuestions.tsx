@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useState } from "react";
 
 interface CompletedQuestionsProps {
@@ -26,7 +26,7 @@ export function CompletedQuestions({ questions }: CompletedQuestionsProps) {
         <div className="container mx-auto px-4">
           <div className="py-2">
             <p className="text-sm font-medium text-muted-foreground mb-2">Previous Questions</p>
-            <ScrollArea className="w-full" orientation="horizontal">
+            <ScrollArea className="w-full">
               <div className="flex gap-2 pb-2">
                 {questions.map((question) => (
                   <button
@@ -40,8 +40,9 @@ export function CompletedQuestions({ questions }: CompletedQuestionsProps) {
                   </button>
                 ))}
               </div>
-            </ScrollArea>
-          </div>
+              <ScrollBar orientation="horizontal" />
+            </div>
+          </ScrollArea>
         </div>
       </div>
 
