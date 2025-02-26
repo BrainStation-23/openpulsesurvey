@@ -3,7 +3,7 @@ import { LiveSession } from "../../../../types";
 import { Card } from "@/components/ui/card";
 import { Copy, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { QRCode } from "qrcode.react";
+import QRCode from "qrcode.react"; // Changed from { QRCode } to default import
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 
