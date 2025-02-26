@@ -505,13 +505,13 @@ export type Database = {
           can_view: boolean
           can_vote: boolean
           created_at: string
-          employee_role_id: string | null
-          employee_type_id: string | null
-          employment_type_id: string | null
+          employee_role_ids: string[] | null
+          employee_type_ids: string[] | null
+          employment_type_ids: string[] | null
           id: string
-          level_id: string | null
-          location_id: string | null
-          sbu_id: string | null
+          level_ids: string[] | null
+          location_ids: string[] | null
+          sbu_ids: string[] | null
           updated_at: string
         }
         Insert: {
@@ -520,13 +520,13 @@ export type Database = {
           can_view?: boolean
           can_vote?: boolean
           created_at?: string
-          employee_role_id?: string | null
-          employee_type_id?: string | null
-          employment_type_id?: string | null
+          employee_role_ids?: string[] | null
+          employee_type_ids?: string[] | null
+          employment_type_ids?: string[] | null
           id?: string
-          level_id?: string | null
-          location_id?: string | null
-          sbu_id?: string | null
+          level_ids?: string[] | null
+          location_ids?: string[] | null
+          sbu_ids?: string[] | null
           updated_at?: string
         }
         Update: {
@@ -535,13 +535,13 @@ export type Database = {
           can_view?: boolean
           can_vote?: boolean
           created_at?: string
-          employee_role_id?: string | null
-          employee_type_id?: string | null
-          employment_type_id?: string | null
+          employee_role_ids?: string[] | null
+          employee_type_ids?: string[] | null
+          employment_type_ids?: string[] | null
           id?: string
-          level_id?: string | null
-          location_id?: string | null
-          sbu_id?: string | null
+          level_ids?: string[] | null
+          location_ids?: string[] | null
+          sbu_ids?: string[] | null
           updated_at?: string
         }
         Relationships: [
@@ -550,48 +550,6 @@ export type Database = {
             columns: ["board_id"]
             isOneToOne: false
             referencedRelation: "issue_boards"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "issue_board_permissions_employee_role_id_fkey"
-            columns: ["employee_role_id"]
-            isOneToOne: false
-            referencedRelation: "employee_roles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "issue_board_permissions_employee_type_id_fkey"
-            columns: ["employee_type_id"]
-            isOneToOne: false
-            referencedRelation: "employee_types"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "issue_board_permissions_employment_type_id_fkey"
-            columns: ["employment_type_id"]
-            isOneToOne: false
-            referencedRelation: "employment_types"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "issue_board_permissions_level_id_fkey"
-            columns: ["level_id"]
-            isOneToOne: false
-            referencedRelation: "levels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "issue_board_permissions_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "issue_board_permissions_sbu_id_fkey"
-            columns: ["sbu_id"]
-            isOneToOne: false
-            referencedRelation: "sbus"
             referencedColumns: ["id"]
           },
         ]
