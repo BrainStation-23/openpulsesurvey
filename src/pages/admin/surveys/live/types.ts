@@ -42,9 +42,9 @@ export interface LiveSession {
 }
 
 export interface QuestionData {
+  title: string;
   type: string;
-  choices?: { text: string; value: string; }[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface LiveSessionQuestion {
@@ -52,7 +52,6 @@ export interface LiveSessionQuestion {
   session_id: string;
   question_key: string;
   question_data: QuestionData;
-  title: string;
   status: QuestionStatus;
   display_order: number;
   enabled_at?: string;
