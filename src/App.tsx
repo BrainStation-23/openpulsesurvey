@@ -30,6 +30,7 @@ import UserSettings from "./pages/user/Settings";
 import UserMySurveys from "./pages/user/my-surveys";
 import UserSurveyResponse from "./pages/user/my-surveys/[id]";
 import UserAchievementsPage from "./pages/user/achievements";
+import UserIssueBoards from "./pages/user/issue-boards";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -47,6 +48,7 @@ import CampaignFormPage from "./pages/admin/surveys/campaigns/CampaignFormPage";
 import CampaignDetailsPage from "./pages/admin/surveys/campaigns/[id]";
 import LiveSurveyPage from "./pages/admin/surveys/live";
 import LiveSessionControlPage from "./pages/admin/surveys/live/[sessionId]";
+import AdminIssueBoards from "./pages/admin/surveys/issue-boards";
 import PresentationView from "./pages/admin/surveys/campaigns/[id]/components/PresentationView/index";
 import PlatformConfigLayout from "./components/layouts/PlatformConfigLayout";
 import SBUsConfig from "./pages/admin/config/sbus";
@@ -97,6 +99,7 @@ const App = () => (
               <Route path="my-surveys/:assignmentId/:instanceId" element={<UserSurveyResponse />} />
               <Route path="settings" element={<UserSettings />} />
               <Route path="achievements" element={<UserAchievementsPage />} />
+              <Route path="issue-boards" element={<UserIssueBoards />} />
             </Route>
             
             <Route path="/admin" element={<AdminLayout />}>
@@ -116,6 +119,7 @@ const App = () => (
               <Route path="surveys/campaigns/:id/present" element={<PresentationView />} />
               <Route path="surveys/live" element={<LiveSurveyPage />} />
               <Route path="surveys/live/:sessionId" element={<LiveSessionControlPage />} />
+              <Route path="surveys/issue-boards" element={<AdminIssueBoards />} />
               <Route path="config" element={<PlatformConfigLayout />}>
                 <Route index element={<AdminConfig />} />
                 <Route path="sbus" element={<SBUsConfig />} />
