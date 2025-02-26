@@ -1,7 +1,7 @@
 
 import { LiveSession } from "../../../types";
 import { SessionInfoSlide } from "./slides/SessionInfoSlide";
-import { ActiveQuestionSlide } from "./slides/ActiveQuestionSlide";
+import { QuestionSlide } from "./slides/QuestionSlide";
 import { PresentationLayout } from "./components/PresentationLayout";
 import { PresentationControls } from "./components/PresentationControls";
 import { usePresentationNavigation } from "./hooks/usePresentationNavigation";
@@ -55,7 +55,7 @@ export function PresentationView({ session }: PresentationViewProps) {
       />
       
       {activeQuestions.map((question, index) => (
-        <ActiveQuestionSlide
+        <QuestionSlide
           key={question.id}
           currentActiveQuestion={question}
           responses={getQuestionResponses(question.question_key)}
