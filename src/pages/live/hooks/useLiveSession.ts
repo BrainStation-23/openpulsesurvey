@@ -13,6 +13,33 @@ export interface LobbyParticipant {
   joined_at: string;
 }
 
+// Helper function to convert database question to ActiveQuestion type
+function convertToActiveQuestion(dbQuestion: any): ActiveQuestion | null {
+  if (!dbQuestion) return null;
+  
+  try {
+    const questionData = typeof dbQuestion.question_data === 'string' 
+      ? JSON.parse(dbQuestion.question_data)
+      : dbQuestion.question_data;
+
+    return {
+      id: dbQuestion.id,
+      question_key: dbQuestion.question_key,
+      question_data: {
+        title: questionData.title,
+        type: questionData.type,
+        choices: questionData.choices
+      },
+      session_id: dbQuestion.session_id,
+      status: dbQuestion.status,
+      display_order: dbQuestion.display_order
+    };
+  } catch (error) {
+    console.error("Error converting question data:", error);
+    return null;
+  }
+}
+
 export function useLiveSession(joinCode: string) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -111,16 +138,19 @@ export function useLiveSession(joinCode: string) {
           .single();
 
         if (!questionError && question) {
-          setActiveQuestion(question);
+          const convertedQuestion = convertToActiveQuestion(question);
+          if (convertedQuestion) {
+            setActiveQuestion(convertedQuestion);
 
-          // Get responses for this question
-          const { data: responses } = await supabase
-            .from("live_session_responses")
-            .select("*")
-            .eq("session_id", session.id)
-            .eq("question_key", question.question_key);
+            // Get responses for this question
+            const { data: responses } = await supabase
+              .from("live_session_responses")
+              .select("*")
+              .eq("session_id", session.id)
+              .eq("question_key", question.question_key);
 
-          setQuestionResponses(responses || []);
+            setQuestionResponses(responses || []);
+          }
         }
       } catch (error: any) {
         toast({

@@ -3,6 +3,34 @@ import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ActiveQuestion } from "../types";
+import { Json } from "@/integrations/supabase/types";
+
+// Helper function to convert database question to ActiveQuestion type
+function convertToActiveQuestion(dbQuestion: any): ActiveQuestion | null {
+  if (!dbQuestion) return null;
+  
+  try {
+    const questionData = typeof dbQuestion.question_data === 'string' 
+      ? JSON.parse(dbQuestion.question_data)
+      : dbQuestion.question_data;
+
+    return {
+      id: dbQuestion.id,
+      question_key: dbQuestion.question_key,
+      question_data: {
+        title: questionData.title,
+        type: questionData.type,
+        choices: questionData.choices
+      },
+      session_id: dbQuestion.session_id,
+      status: dbQuestion.status,
+      display_order: dbQuestion.display_order
+    };
+  } catch (error) {
+    console.error("Error converting question data:", error);
+    return null;
+  }
+}
 
 export function useSessionSubscription(
   sessionId: string | null,
@@ -27,24 +55,24 @@ export function useSessionSubscription(
           filter: `session_id=eq.${sessionId}`,
         },
         (payload: any) => {
-          const question = payload.new;
+          const convertedQuestion = convertToActiveQuestion(payload.new);
           
           switch (payload.eventType) {
             case "UPDATE":
-              if (question.status === "active") {
-                onQuestionUpdate(question);
+              if (convertedQuestion?.status === "active") {
+                onQuestionUpdate(convertedQuestion);
                 onResponsesUpdate([]); // Reset responses for new question
               } else if (
-                question.status === "completed" &&
-                activeQuestion?.id === question.id
+                payload.new.status === "completed" &&
+                activeQuestion?.id === payload.new.id
               ) {
                 onQuestionUpdate(null);
               }
               break;
 
             case "INSERT":
-              if (question.status === "active") {
-                onQuestionUpdate(question);
+              if (convertedQuestion?.status === "active") {
+                onQuestionUpdate(convertedQuestion);
                 onResponsesUpdate([]);
               }
               break;
