@@ -3,7 +3,7 @@ import { LiveSession } from "../../../../types";
 import { Card } from "@/components/ui/card";
 import { Copy, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import QRCode from "qrcode.react"; // Changed from { QRCode } to default import
+import QRCode from "qrcode.react";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 
@@ -16,11 +16,13 @@ interface SessionInfoSlideProps {
 export function SessionInfoSlide({ session, participants, isActive }: SessionInfoSlideProps) {
   const [copied, setCopied] = useState(false);
   
-  // Get the base URL from window.location in a way that works in all environments
   const baseUrl = window.location.origin;
   const joinUrl = `${baseUrl}/live/${session.join_code}`;
 
-  const handleCopyUrl = useCallback(async () => {
+  const handleCopyUrl = useCallback(async (e: React.MouseEvent) => {
+    // Prevent event from bubbling up to parent elements
+    e.stopPropagation();
+    
     try {
       await navigator.clipboard.writeText(joinUrl);
       setCopied(true);
@@ -32,8 +34,8 @@ export function SessionInfoSlide({ session, participants, isActive }: SessionInf
   }, [joinUrl]);
 
   return (
-    <div className={`slide ${isActive ? 'active' : ''}`}>
-      <div className="flex flex-col items-center justify-center h-full space-y-8">
+    <div className={`slide ${isActive ? 'active' : ''} relative`}>
+      <div className="flex flex-col items-center justify-center h-full space-y-8 pointer-events-none">
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold">{session.name}</h1>
           {session.description && (
@@ -41,8 +43,7 @@ export function SessionInfoSlide({ session, participants, isActive }: SessionInf
           )}
         </div>
 
-        {/* QR Code - Primary Focus */}
-        <div className="p-4 bg-white rounded-lg">
+        <div className="p-4 bg-white rounded-lg pointer-events-auto">
           <QRCode 
             value={joinUrl}
             size={300}
@@ -52,8 +53,7 @@ export function SessionInfoSlide({ session, participants, isActive }: SessionInf
           />
         </div>
 
-        {/* Join URL with Copy Button */}
-        <Card className="p-6 w-full max-w-2xl">
+        <Card className="p-6 w-full max-w-2xl pointer-events-auto relative z-50">
           <div className="space-y-4">
             <div className="text-2xl font-semibold text-center">Join URL</div>
             <div className="flex items-center gap-2 bg-muted p-3 rounded-md">
@@ -80,7 +80,6 @@ export function SessionInfoSlide({ session, participants, isActive }: SessionInf
           </div>
         </Card>
 
-        {/* Participant Counter */}
         <div className="flex items-center gap-2 text-xl text-muted-foreground">
           <Users className="h-6 w-6" />
           <span>{participants} Participants</span>
