@@ -2,17 +2,11 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { IssueBoard, IssueBoardPermission } from "../types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { MultiSelectDropdown } from "./MultiSelectDropdown";
 
 interface BoardPermissionsFormProps {
   board: IssueBoard;
@@ -97,7 +91,7 @@ export function BoardPermissionsForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(permissions.map(p => ({ ...p, board_id: board.id })));
+    onSubmit(permissions);
   };
 
   return (
@@ -119,120 +113,54 @@ export function BoardPermissionsForm({
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">SBU</label>
-                <Select
-                  value={permission.sbu_id}
-                  onValueChange={(value) => updatePermission(index, 'sbu_id', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select SBU" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sbus?.map((sbu) => (
-                      <SelectItem key={sbu.id} value={sbu.id}>
-                        {sbu.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-1 gap-4">
+              <MultiSelectDropdown
+                options={sbus || []}
+                value={permission.sbu_ids || []}
+                onChange={(value) => updatePermission(index, 'sbu_ids', value)}
+                placeholder="Select SBUs"
+                label="Strategic Business Units"
+              />
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Level</label>
-                <Select
-                  value={permission.level_id}
-                  onValueChange={(value) => updatePermission(index, 'level_id', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {levels?.map((level) => (
-                      <SelectItem key={level.id} value={level.id}>
-                        {level.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <MultiSelectDropdown
+                options={levels || []}
+                value={permission.level_ids || []}
+                onChange={(value) => updatePermission(index, 'level_ids', value)}
+                placeholder="Select Levels"
+                label="Levels"
+              />
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Location</label>
-                <Select
-                  value={permission.location_id}
-                  onValueChange={(value) => updatePermission(index, 'location_id', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations?.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <MultiSelectDropdown
+                options={locations || []}
+                value={permission.location_ids || []}
+                onChange={(value) => updatePermission(index, 'location_ids', value)}
+                placeholder="Select Locations"
+                label="Locations"
+              />
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Employment Type</label>
-                <Select
-                  value={permission.employment_type_id}
-                  onValueChange={(value) => updatePermission(index, 'employment_type_id', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Employment Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employmentTypes?.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <MultiSelectDropdown
+                options={employmentTypes || []}
+                value={permission.employment_type_ids || []}
+                onChange={(value) => updatePermission(index, 'employment_type_ids', value)}
+                placeholder="Select Employment Types"
+                label="Employment Types"
+              />
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Employee Type</label>
-                <Select
-                  value={permission.employee_type_id}
-                  onValueChange={(value) => updatePermission(index, 'employee_type_id', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Employee Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employeeTypes?.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <MultiSelectDropdown
+                options={employeeTypes || []}
+                value={permission.employee_type_ids || []}
+                onChange={(value) => updatePermission(index, 'employee_type_ids', value)}
+                placeholder="Select Employee Types"
+                label="Employee Types"
+              />
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Employee Role</label>
-                <Select
-                  value={permission.employee_role_id}
-                  onValueChange={(value) => updatePermission(index, 'employee_role_id', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Employee Role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employeeRoles?.map((role) => (
-                      <SelectItem key={role.id} value={role.id}>
-                        {role.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <MultiSelectDropdown
+                options={employeeRoles || []}
+                value={permission.employee_role_ids || []}
+                onChange={(value) => updatePermission(index, 'employee_role_ids', value)}
+                placeholder="Select Employee Roles"
+                label="Employee Roles"
+              />
             </div>
 
             <div className="flex gap-6">
