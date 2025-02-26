@@ -3,50 +3,64 @@ import { Card } from "@/components/ui/card";
 import { CompletedQuestion } from "../types/completed-questions";
 import { ResponseVisualization } from "../../admin/surveys/live/[sessionId]/components/PresentationView/slides/QuestionSlide/components/ResponseVisualization";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react";
 
 interface CompletedQuestionsProps {
   questions: CompletedQuestion[];
 }
 
 export function CompletedQuestions({ questions }: CompletedQuestionsProps) {
+  const [selectedQuestion, setSelectedQuestion] = useState<CompletedQuestion | null>(null);
+
   if (!questions.length) return null;
 
   return (
-    <div className="mt-8">
-      <h3 className="text-lg font-semibold mb-4">Previous Questions</h3>
-      <Accordion type="single" collapsible className="space-y-4">
-        {questions.map((question) => (
-          <AccordionItem 
-            key={question.id} 
-            value={question.id}
-            className="border rounded-lg overflow-hidden"
-          >
-            <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
-              <div className="flex items-center justify-between w-full">
-                <span className="text-left font-medium">
-                  {question.question_data.title}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {new Date(question.completedAt).toLocaleTimeString()}
-                </span>
+    <>
+      <div className="fixed bottom-[60px] left-0 right-0 border-t bg-background">
+        <div className="container mx-auto px-4">
+          <div className="py-2">
+            <p className="text-sm font-medium text-muted-foreground mb-2">Previous Questions</p>
+            <ScrollArea className="w-full" orientation="horizontal">
+              <div className="flex gap-2 pb-2">
+                {questions.map((question) => (
+                  <button
+                    key={question.id}
+                    onClick={() => setSelectedQuestion(question)}
+                    className="shrink-0 px-4 py-2 bg-muted rounded-md hover:bg-muted/80 transition-colors"
+                  >
+                    <span className="text-sm font-medium">
+                      {question.question_data.title}
+                    </span>
+                  </button>
+                ))}
               </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="p-6 bg-card">
-                <ResponseVisualization
-                  question={question}
-                  responses={question.responses}
-                />
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-    </div>
+            </ScrollArea>
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={!!selectedQuestion} onOpenChange={() => setSelectedQuestion(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedQuestion?.question_data.title}</DialogTitle>
+          </DialogHeader>
+          
+          {selectedQuestion && (
+            <div className="mt-4">
+              <ResponseVisualization
+                question={selectedQuestion}
+                responses={selectedQuestion.responses}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
