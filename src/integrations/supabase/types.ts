@@ -498,6 +498,247 @@ export type Database = {
         }
         Relationships: []
       }
+      issue_board_permissions: {
+        Row: {
+          board_id: string
+          can_create: boolean
+          can_view: boolean
+          can_vote: boolean
+          created_at: string
+          employee_role_id: string | null
+          employee_type_id: string | null
+          employment_type_id: string | null
+          id: string
+          level_id: string | null
+          location_id: string | null
+          sbu_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          board_id: string
+          can_create?: boolean
+          can_view?: boolean
+          can_vote?: boolean
+          created_at?: string
+          employee_role_id?: string | null
+          employee_type_id?: string | null
+          employment_type_id?: string | null
+          id?: string
+          level_id?: string | null
+          location_id?: string | null
+          sbu_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          board_id?: string
+          can_create?: boolean
+          can_view?: boolean
+          can_vote?: boolean
+          created_at?: string
+          employee_role_id?: string | null
+          employee_type_id?: string | null
+          employment_type_id?: string | null
+          id?: string
+          level_id?: string | null
+          location_id?: string | null
+          sbu_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_board_permissions_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "issue_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_board_permissions_employee_role_id_fkey"
+            columns: ["employee_role_id"]
+            isOneToOne: false
+            referencedRelation: "employee_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_board_permissions_employee_type_id_fkey"
+            columns: ["employee_type_id"]
+            isOneToOne: false
+            referencedRelation: "employee_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_board_permissions_employment_type_id_fkey"
+            columns: ["employment_type_id"]
+            isOneToOne: false
+            referencedRelation: "employment_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_board_permissions_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_board_permissions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_board_permissions_sbu_id_fkey"
+            columns: ["sbu_id"]
+            isOneToOne: false
+            referencedRelation: "sbus"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      issue_boards: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["issue_board_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["issue_board_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["issue_board_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_boards_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_boards_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      issue_votes: {
+        Row: {
+          created_at: string
+          id: string
+          issue_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          issue_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          issue_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_votes_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      issues: {
+        Row: {
+          board_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          status: Database["public"]["Enums"]["issue_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          board_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["issue_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          board_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["issue_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issues_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "issue_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issues_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issues_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       levels: {
         Row: {
           color_code: string | null
@@ -1703,6 +1944,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      check_user_board_access: {
+        Args: {
+          p_user_id: string
+          p_board_id: string
+          p_access_type: string
+        }
+        Returns: boolean
+      }
       cleanup_campaign_cron_jobs: {
         Args: {
           p_campaign_id: string
@@ -1948,6 +2197,8 @@ export type Database = {
       gender_type: "male" | "female" | "other"
       grading_criteria_status: "active" | "inactive"
       instance_status: "upcoming" | "active" | "completed"
+      issue_board_status: "active" | "disabled"
+      issue_status: "open" | "closed"
       level_status: "active" | "inactive"
       profile_status: "active" | "disabled"
       prompt_category:
