@@ -8,42 +8,42 @@ import { ResponseVisualization } from "./components/ResponseVisualization";
 import { useQuestionStatus } from "./hooks/useQuestionStatus";
 
 interface QuestionSlideProps {
-  currentActiveQuestion: LiveSessionQuestion | null;
+  question: LiveSessionQuestion | null;
   responses: any[];
   isActive: boolean;
   isSessionActive: boolean;
 }
 
 export function QuestionSlide({ 
-  currentActiveQuestion, 
+  question, 
   responses, 
   isActive, 
   isSessionActive 
 }: QuestionSlideProps) {
-  const { isEnabling, handleEnableQuestion } = useQuestionStatus(currentActiveQuestion);
+  const { isEnabling, handleEnableQuestion } = useQuestionStatus(question);
 
   return (
     <div className={`slide ${isActive ? 'active' : ''}`}>
-      {currentActiveQuestion ? (
+      {question ? (
         <div className="flex flex-col h-full">
           <Card className="p-6 flex-1">
             <div className="space-y-4">
               <QuestionHeader
-                question={currentActiveQuestion}
+                question={question}
                 isSessionActive={isSessionActive}
                 isEnabling={isEnabling}
                 onEnable={handleEnableQuestion}
               />
               
-              {typeof currentActiveQuestion.question_data.description === 'string' && (
+              {typeof question.question_data.description === 'string' && (
                 <p className="text-muted-foreground">
-                  {currentActiveQuestion.question_data.description}
+                  {question.question_data.description}
                 </p>
               )}
               
               <div className="mt-8">
                 <ResponseVisualization
-                  question={currentActiveQuestion}
+                  question={question}
                   responses={responses}
                 />
               </div>

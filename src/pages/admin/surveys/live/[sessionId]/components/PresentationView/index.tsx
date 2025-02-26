@@ -57,7 +57,7 @@ export function PresentationView({ session }: PresentationViewProps) {
       {activeQuestions.map((question, index) => (
         <QuestionSlide
           key={question.id}
-          currentActiveQuestion={question}
+          question={question}
           responses={getQuestionResponses(question.question_key)}
           isActive={currentSlide === index + 1}
           isSessionActive={session.status === "active"}
