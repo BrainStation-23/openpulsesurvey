@@ -41,8 +41,8 @@ export function CompletedQuestions({ questions }: CompletedQuestionsProps) {
                 ))}
               </div>
               <ScrollBar orientation="horizontal" />
-            </div>
-          </ScrollArea>
+            </ScrollArea>
+          </div>
         </div>
       </div>
 
