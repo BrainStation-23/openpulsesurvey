@@ -7,6 +7,9 @@ export interface ActiveQuestion {
     type: string;
     choices?: { text: string; value: string; }[];
   };
+  session_id: string;
+  status: string;
+  display_order: number;
 }
 
 export interface ParticipantInfo {

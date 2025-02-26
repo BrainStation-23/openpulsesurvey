@@ -59,7 +59,10 @@ export function useLiveSession(joinCode: string) {
           setActiveQuestion({
             id: questions.id,
             question_key: questions.question_key,
-            question_data: questionData
+            question_data: questionData,
+            session_id: session.id,
+            status: questions.status,
+            display_order: questions.display_order
           });
 
           // Fetch responses for the active question
@@ -110,7 +113,10 @@ export function useLiveSession(joinCode: string) {
             setActiveQuestion({
               id: payload.new.id,
               question_key: payload.new.question_key,
-              question_data: questionData
+              question_data: questionData,
+              session_id: sessionId,
+              status: payload.new.status,
+              display_order: payload.new.display_order
             });
           }
         }
