@@ -15,18 +15,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { IssueBoard } from "../types";
 
 const issueBoardFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  status: z.enum(['active', 'disabled']).default('active')  // Changed from 'archived' to 'disabled'
+  status: z.enum(['active', 'disabled']).default('active')
 });
 
 type IssueBoardFormValues = z.infer<typeof issueBoardFormSchema>;
 
 interface IssueBoardFormProps {
   onSubmit: (values: IssueBoardFormValues) => void;
-  initialValues?: Partial<IssueBoardFormValues>;
+  initialValues?: Partial<IssueBoard>;
   submitLabel?: string;
 }
 
@@ -88,7 +89,7 @@ export function IssueBoardForm({
                 <Checkbox
                   checked={field.value === 'active'}
                   onCheckedChange={(checked) => {
-                    field.onChange(checked ? 'active' : 'disabled');  // Changed from 'archived' to 'disabled'
+                    field.onChange(checked ? 'active' : 'disabled');
                   }}
                 />
               </FormControl>
