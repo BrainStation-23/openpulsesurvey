@@ -85,7 +85,6 @@ const App = () => (
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             
-            {/* Public live survey routes */}
             <Route path="/live" element={<LiveEntryPage />} />
             <Route path="/live/:joinCode" element={<PublicLiveSession />} />
             <Route path="/live/:joinCode/join" element={<JoinLiveSession />} />
