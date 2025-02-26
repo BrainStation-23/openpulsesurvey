@@ -109,7 +109,11 @@ export default function PublicLiveSession() {
           </div>
           
           <div>
-            <Lobby participants={participants} />
+            <Lobby 
+              participants={participants} 
+              questionResponses={questionResponses}
+              activeQuestionKey={activeQuestion?.question_key}
+            />
           </div>
         </div>
       </div>
