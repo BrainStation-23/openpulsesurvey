@@ -90,7 +90,7 @@ export function useLiveSession(joinCode: string) {
   }, [joinCode, toast, navigate]);
 
   useEffect(() => {
-    if (!sessionId || !activeQuestion) return;
+    if (!sessionId) return;
 
     const channel = supabase
       .channel(`session_${sessionId}`)
@@ -100,10 +100,10 @@ export function useLiveSession(joinCode: string) {
           event: "*",
           schema: "public",
           table: "live_session_questions",
-          filter: `session_id=eq.${sessionId}`,
+          filter: `session_id=eq.${sessionId} AND status=eq.active`,
         },
         (payload: any) => {
-          if (payload.new && payload.new.status === "active") {
+          if (payload.new) {
             const questionData = payload.new.question_data as {
               title: string;
               type: string;
@@ -118,6 +118,9 @@ export function useLiveSession(joinCode: string) {
               status: payload.new.status,
               display_order: payload.new.display_order
             });
+
+            // Reset responses when a new question becomes active
+            setQuestionResponses([]);
           }
         }
       )
@@ -127,9 +130,11 @@ export function useLiveSession(joinCode: string) {
           event: "*",
           schema: "public",
           table: "live_session_responses",
-          filter: `session_id=eq.${sessionId} AND question_key=eq.${activeQuestion.question_key}`,
+          filter: `session_id=eq.${sessionId}`,
         },
-        async () => {
+        async (payload: any) => {
+          if (!activeQuestion) return;
+          
           // Refresh responses when new ones come in
           const { data: responses } = await supabase
             .from("live_session_responses")
@@ -145,7 +150,7 @@ export function useLiveSession(joinCode: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [sessionId, activeQuestion]);
+  }, [sessionId, activeQuestion?.question_key]);
 
   const submitResponse = async (response: string) => {
     if (!activeQuestion || !participantInfo || !response.trim()) return false;
