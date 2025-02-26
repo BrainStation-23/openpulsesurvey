@@ -49,6 +49,13 @@ export default function AdminIssueBoards() {
     setPermissionsDialogOpen(true);
   };
 
+  const handlePermissionsDialogClose = (open: boolean) => {
+    setPermissionsDialogOpen(open);
+    if (!open) {
+      setSelectedBoardForPermissions(null);
+    }
+  };
+
   const handlePermissionsSubmit = (permissions: Partial<IssueBoardPermission>[]) => {
     updatePermissionsMutation.mutate(permissions);
   };
@@ -344,8 +351,8 @@ export default function AdminIssueBoards() {
 
       <BoardPermissionsDialog
         open={permissionsDialogOpen}
-        onOpenChange={setPermissionsDialogOpen}
-        board={selectedBoardForPermissions!}
+        onOpenChange={handlePermissionsDialogClose}
+        board={selectedBoardForPermissions}
         onSubmit={handlePermissionsSubmit}
         permissions={boardPermissions}
       />
