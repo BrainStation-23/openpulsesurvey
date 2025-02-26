@@ -43,7 +43,7 @@ export function QuestionSlideLayout({
           )}
         </div>
 
-        <div className="flex-1 flex items-center justify-center min-h-0">
+        <div className="flex-1 flex justify-center min-h-0 overflow-y-auto">
           <div className="w-full">
             {children}
           </div>
