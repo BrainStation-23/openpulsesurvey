@@ -20,13 +20,13 @@ export function Lobby({ participants, questionResponses, activeQuestionKey }: Lo
   };
 
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-2 mb-4">
+    <Card className="h-full flex flex-col">
+      <div className="flex items-center gap-2 p-4">
         <Users className="h-5 w-5" />
         <h3 className="font-semibold">Participants ({participants.length})</h3>
       </div>
-      <ScrollArea className="h-[200px] w-full">
-        <div className="space-y-2">
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-2">
           {participants.map((participant, i) => (
             <div key={participant.participant_id}>
               <div className="flex items-center justify-between py-2">

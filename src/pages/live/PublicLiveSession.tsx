@@ -59,7 +59,7 @@ export default function PublicLiveSession() {
     <div className="flex flex-col min-h-screen bg-background">
       <SessionHeader joinCode={joinCode} participantInfo={participantInfo} />
 
-      <div className="flex-1 flex">
+      <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 p-4 overflow-y-auto">
           <div className="max-w-3xl mx-auto">
             {activeQuestion ? (
@@ -87,14 +87,12 @@ export default function PublicLiveSession() {
           </div>
         </div>
 
-        <div className="w-[300px] border-l shrink-0 hidden md:block">
-          <div className="h-full overflow-y-auto">
-            <Lobby 
-              participants={participants} 
-              questionResponses={questionResponses}
-              activeQuestionKey={activeQuestion?.question_key}
-            />
-          </div>
+        <div className="w-[300px] border-l hidden md:flex">
+          <Lobby 
+            participants={participants} 
+            questionResponses={questionResponses}
+            activeQuestionKey={activeQuestion?.question_key}
+          />
         </div>
       </div>
 
