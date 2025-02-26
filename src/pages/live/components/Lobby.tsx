@@ -20,7 +20,7 @@ export function Lobby({ participants, questionResponses, activeQuestionKey }: Lo
   };
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full w-full flex flex-col">
       <div className="flex items-center gap-2 p-4">
         <Users className="h-5 w-5" />
         <h3 className="font-semibold">Participants ({participants.length})</h3>
