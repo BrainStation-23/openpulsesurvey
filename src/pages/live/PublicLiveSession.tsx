@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -85,7 +86,7 @@ export default function PublicLiveSession() {
 
       <div className="flex-1 flex">
         <div className="flex-1 p-4 overflow-y-auto">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl mx-auto space-y-8">
             {activeQuestion ? (
               <Card className="overflow-hidden">
                 <div className="p-6 space-y-6">
@@ -162,6 +163,7 @@ export default function PublicLiveSession() {
               </Card>
             )}
 
+            {/* Completed Questions Section */}
             <CompletedQuestions questions={completedQuestions} />
           </div>
         </div>
