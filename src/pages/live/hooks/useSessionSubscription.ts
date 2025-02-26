@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,10 +17,11 @@ function convertToActiveQuestion(dbQuestion: any): ActiveQuestion | null {
       id: dbQuestion.id,
       question_key: dbQuestion.question_key,
       question_data: {
-        title: questionData.title,
         type: questionData.type,
-        choices: questionData.choices
+        choices: questionData.choices,
+        ...questionData
       },
+      title: dbQuestion.title || questionData.title || "Untitled Question",
       session_id: dbQuestion.session_id,
       status: dbQuestion.status,
       display_order: dbQuestion.display_order

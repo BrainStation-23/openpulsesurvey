@@ -27,7 +27,6 @@ export function QuestionSlide({
             <div className="space-y-4">
               <QuestionHeader question={question} />
               
-              {/* Use the new title field for description */}
               <p className="text-muted-foreground">
                 {question.title}
               </p>

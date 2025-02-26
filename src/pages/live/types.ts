@@ -5,8 +5,9 @@ export interface ActiveQuestion {
   question_data: {
     type: string;
     choices?: { text: string; value: string; }[];
+    [key: string]: any;
   };
-  title: string; // New field separate from question_data
+  title: string;
   session_id: string;
   status: string;
   display_order: number;

@@ -28,7 +28,7 @@ export function ActiveQuestionCard({
     <Card className="overflow-hidden">
       <div className="p-6 space-y-6">
         <h2 className="text-xl font-semibold">
-          {activeQuestion.question_data.title}
+          {activeQuestion.title}
         </h2>
         
         <div className="space-y-6">
