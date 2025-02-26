@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface CompletedQuestionsProps {
   questions: CompletedQuestion[];
@@ -18,7 +18,14 @@ interface CompletedQuestionsProps {
 export function CompletedQuestions({ questions }: CompletedQuestionsProps) {
   const [selectedQuestion, setSelectedQuestion] = useState<CompletedQuestion | null>(null);
 
-  if (!questions.length) return null;
+  useEffect(() => {
+    console.log('CompletedQuestions - questions received:', questions);
+  }, [questions]);
+
+  if (!questions.length) {
+    console.log('CompletedQuestions - No questions available');
+    return null;
+  }
 
   return (
     <>
