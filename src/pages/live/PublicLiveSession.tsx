@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ResponseInput } from "./components/ResponseInput";
 import { useLiveSession } from "./hooks/useLiveSession";
+import { ResponseVisualization } from "../admin/surveys/live/[sessionId]/components/PresentationView/slides/QuestionSlide/components/ResponseVisualization";
 
 export default function PublicLiveSession() {
   const { joinCode } = useParams();
@@ -16,7 +17,8 @@ export default function PublicLiveSession() {
     isLoading,
     activeQuestion,
     participantInfo,
-    submitResponse
+    submitResponse,
+    questionResponses
   } = useLiveSession(joinCode!);
 
   const handleSubmitResponse = async () => {
@@ -59,12 +61,22 @@ export default function PublicLiveSession() {
             <Card className="p-6">
               <h2 className="text-xl font-semibold mb-4">{activeQuestion.question_data.title}</h2>
               
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {hasSubmitted ? (
-                  <div className="text-center py-4">
-                    <p className="text-green-600 dark:text-green-400 font-medium">
-                      Response submitted successfully! Waiting for the next question...
-                    </p>
+                  <div className="space-y-6">
+                    <div className="text-center">
+                      <p className="text-green-600 dark:text-green-400 font-medium mb-4">
+                        Response submitted successfully! Waiting for the next question...
+                      </p>
+                    </div>
+                    
+                    <div className="border-t pt-6">
+                      <h3 className="text-lg font-medium mb-4">Current Results</h3>
+                      <ResponseVisualization
+                        question={activeQuestion}
+                        responses={questionResponses}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <>

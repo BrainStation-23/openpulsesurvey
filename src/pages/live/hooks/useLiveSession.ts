@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +12,7 @@ export function useLiveSession(joinCode: string) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [activeQuestion, setActiveQuestion] = useState<ActiveQuestion | null>(null);
   const [participantInfo, setParticipantInfo] = useState<ParticipantInfo | null>(null);
+  const [questionResponses, setQuestionResponses] = useState<any[]>([]);
 
   useEffect(() => {
     const storedInfo = localStorage.getItem(`live_session_${joinCode}`);
@@ -60,25 +62,14 @@ export function useLiveSession(joinCode: string) {
             question_data: questionData
           });
 
-          if (participantInfo) {
-            const { data: existingResponse } = await supabase
-              .from("live_session_responses")
-              .select("id")
-              .match({
-                session_id: session.id,
-                participant_id: participantInfo.participantId,
-                question_key: questions.question_key
-              })
-              .single();
+          // Fetch responses for the active question
+          const { data: responses } = await supabase
+            .from("live_session_responses")
+            .select("*")
+            .eq("session_id", session.id)
+            .eq("question_key", questions.question_key);
 
-            if (existingResponse) {
-              toast({
-                title: "Notice",
-                description: "You have already submitted a response for this question.",
-              });
-              return;
-            }
-          }
+          setQuestionResponses(responses || []);
         }
       } catch (error: any) {
         toast({
@@ -93,10 +84,10 @@ export function useLiveSession(joinCode: string) {
     };
 
     setupSession();
-  }, [joinCode, toast, navigate, participantInfo]);
+  }, [joinCode, toast, navigate]);
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId || !activeQuestion) return;
 
     const channel = supabase
       .channel(`session_${sessionId}`)
@@ -124,12 +115,31 @@ export function useLiveSession(joinCode: string) {
           }
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "live_session_responses",
+          filter: `session_id=eq.${sessionId} AND question_key=eq.${activeQuestion.question_key}`,
+        },
+        async () => {
+          // Refresh responses when new ones come in
+          const { data: responses } = await supabase
+            .from("live_session_responses")
+            .select("*")
+            .eq("session_id", sessionId)
+            .eq("question_key", activeQuestion.question_key);
+            
+          setQuestionResponses(responses || []);
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [sessionId]);
+  }, [sessionId, activeQuestion]);
 
   const submitResponse = async (response: string) => {
     if (!activeQuestion || !participantInfo || !response.trim()) return false;
@@ -195,6 +205,7 @@ export function useLiveSession(joinCode: string) {
     sessionId,
     activeQuestion,
     participantInfo,
+    questionResponses,
     submitResponse
   };
 }
