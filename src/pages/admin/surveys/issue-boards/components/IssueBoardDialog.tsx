@@ -9,11 +9,17 @@ import {
 import { IssueBoardForm } from "./IssueBoardForm";
 import type { IssueBoard } from "../types";
 
+type IssueBoardFormValues = {
+  name: string;
+  description?: string;
+  status: 'active' | 'disabled';  // Changed from 'archived' to 'disabled'
+};
+
 interface IssueBoardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: Partial<IssueBoard>) => void;
-  initialValues?: Partial<IssueBoard>;
+  onSubmit: (values: IssueBoardFormValues) => void;
+  initialValues?: Partial<IssueBoardFormValues>;
   mode: "create" | "edit";
 }
 

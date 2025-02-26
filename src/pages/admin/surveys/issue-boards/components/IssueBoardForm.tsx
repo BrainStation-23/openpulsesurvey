@@ -19,7 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 const issueBoardFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  status: z.enum(['active', 'archived']).default('active')
+  status: z.enum(['active', 'disabled']).default('active')  // Changed from 'archived' to 'disabled'
 });
 
 type IssueBoardFormValues = z.infer<typeof issueBoardFormSchema>;
@@ -88,7 +88,7 @@ export function IssueBoardForm({
                 <Checkbox
                   checked={field.value === 'active'}
                   onCheckedChange={(checked) => {
-                    field.onChange(checked ? 'active' : 'archived');
+                    field.onChange(checked ? 'active' : 'disabled');  // Changed from 'archived' to 'disabled'
                   }}
                 />
               </FormControl>
