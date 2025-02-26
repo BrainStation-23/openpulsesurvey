@@ -3,7 +3,7 @@ export type IssueBoard = {
   id: string;
   name: string;
   description: string | null;
-  status: 'active' | 'archived';
+  status: 'active' | 'disabled';  // Changed from 'archived' to 'disabled'
   created_at: string;
   created_by: string;
 };

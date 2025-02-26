@@ -22,77 +22,92 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { IssueBoard } from "./types";
 
-const columns: ColumnDef<IssueBoard>[] = [
-  {
-    accessorKey: "name",
-    header: "Board Name",
-  },
-  {
-    accessorKey: "description",
-    header: "Description",
-    cell: ({ row }) => row.original.description || "-",
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => (
-      <span className={`capitalize ${row.original.status === 'active' ? 'text-green-600' : 'text-gray-500'}`}>
-        {row.original.status}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "created_at",
-    header: "Created",
-    cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => {
-      const board = row.original;
-      return (
-        <div className="flex items-center gap-2 justify-end">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleEdit(board)}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Board</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete {board.name}? This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => handleDelete(board.id)}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      );
-    },
-  },
-];
-
 export default function AdminIssueBoards() {
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [selectedBoard, setSelectedBoard] = React.useState<IssueBoard | null>(null);
   const queryClient = useQueryClient();
+
+  const handleCreate = () => {
+    setSelectedBoard(null);
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (board: IssueBoard) => {
+    setSelectedBoard(board);
+    setDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    deleteBoardMutation.mutate(id);
+  };
+
+  // Moved columns inside component to access handlers
+  const columns: ColumnDef<IssueBoard>[] = [
+    {
+      accessorKey: "name",
+      header: "Board Name",
+    },
+    {
+      accessorKey: "description",
+      header: "Description",
+      cell: ({ row }) => row.original.description || "-",
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <span className={`capitalize ${row.original.status === 'active' ? 'text-green-600' : 'text-gray-500'}`}>
+          {row.original.status}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "created_at",
+      header: "Created",
+      cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const board = row.original;
+        return (
+          <div className="flex items-center gap-2 justify-end">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleEdit(board)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Board</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete {board.name}? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => handleDelete(board.id)}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        );
+      },
+    },
+  ];
 
   const { data: issueBoards, isLoading } = useQuery({
     queryKey: ['issueBoards'],
@@ -115,7 +130,7 @@ export default function AdminIssueBoards() {
         .insert({
           name: values.name,
           description: values.description,
-          status: values.status,
+          status: values.status || 'active',
           created_by: user.data.user!.id,
         })
         .select()
@@ -148,7 +163,7 @@ export default function AdminIssueBoards() {
         .update({
           name: values.name,
           description: values.description,
-          status: values.status,
+          status: values.status || 'active',
         })
         .eq('id', selectedBoard?.id)
         .select()
@@ -199,20 +214,6 @@ export default function AdminIssueBoards() {
       });
     },
   });
-
-  const handleCreate = () => {
-    setSelectedBoard(null);
-    setDialogOpen(true);
-  };
-
-  const handleEdit = (board: IssueBoard) => {
-    setSelectedBoard(board);
-    setDialogOpen(true);
-  };
-
-  const handleDelete = (id: string) => {
-    deleteBoardMutation.mutate(id);
-  };
 
   const handleSubmit = (values: Pick<IssueBoard, 'name' | 'description' | 'status'>) => {
     if (selectedBoard) {
