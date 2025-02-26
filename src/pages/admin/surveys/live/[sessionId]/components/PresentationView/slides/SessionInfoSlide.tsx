@@ -65,13 +65,13 @@ export function SessionInfoSlide({ session, participants, isActive }: SessionInf
                 aria-label="Session join URL"
               />
               <Button
-                variant="ghost"
-                size="icon"
+                variant="outline"
                 onClick={handleCopyUrl}
-                className="shrink-0"
+                className="shrink-0 flex items-center gap-2"
                 aria-label="Copy join URL"
               >
                 <Copy className="h-5 w-5" />
+                Copy
               </Button>
             </div>
             <div className="text-center text-sm text-muted-foreground">
