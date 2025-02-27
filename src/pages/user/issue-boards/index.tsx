@@ -25,7 +25,7 @@ export default function UserIssueBoards() {
           status,
           created_at,
           created_by,
-          issue_board_permissions!inner (
+          issue_board_permissions (
             can_view,
             can_create,
             can_vote,
@@ -123,9 +123,9 @@ export default function UserIssueBoards() {
             created_at: board.created_at,
             created_by: board.created_by,
             permissions: {
-              can_view: board.issue_board_permissions[0].can_view,
-              can_create: board.issue_board_permissions[0].can_create,
-              can_vote: board.issue_board_permissions[0].can_vote
+              can_view: board.issue_board_permissions[0]?.can_view ?? false,
+              can_create: board.issue_board_permissions[0]?.can_create ?? false,
+              can_vote: board.issue_board_permissions[0]?.can_vote ?? false
             }
           };
           console.log('Mapped board:', mappedBoard);
