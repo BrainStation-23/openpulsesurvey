@@ -30,8 +30,12 @@ export function IssueBoard({ boardId }: BoardViewProps) {
     );
   }
 
-  const permissions = board.permissions[0] || {};
-  const { can_create = false, can_vote = false } = permissions;
+  // Get the first permission set or use default values
+  const permissions = board.permissions[0] || {
+    can_create: false,
+    can_vote: false,
+    can_view: false
+  };
 
   return (
     <div className="space-y-6">
@@ -39,14 +43,14 @@ export function IssueBoard({ boardId }: BoardViewProps) {
       
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Issues</h2>
-        {can_create && (
+        {permissions.can_create && (
           <CreateIssueButton boardId={boardId} />
         )}
       </div>
 
       <IssuesList 
         boardId={boardId} 
-        canVote={can_vote} 
+        canVote={permissions.can_vote} 
       />
     </div>
   );

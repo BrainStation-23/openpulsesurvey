@@ -22,7 +22,7 @@ export function IssuesList({ boardId, canVote }: IssuesListProps) {
     );
   }
 
-  if (!issues?.length) {
+  if (!issues || issues.length === 0) {
     return (
       <div className="text-center p-8 text-muted-foreground">
         No issues have been created yet.
@@ -37,7 +37,7 @@ export function IssuesList({ boardId, canVote }: IssuesListProps) {
           key={issue.id}
           issue={issue}
           canVote={canVote}
-          hasVoted={issue.has_voted?.length > 0}
+          hasVoted={Boolean(issue.has_voted && issue.has_voted.length > 0)}
           onVote={vote}
         />
       ))}

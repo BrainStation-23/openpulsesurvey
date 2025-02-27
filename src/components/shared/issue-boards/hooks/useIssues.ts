@@ -1,7 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Issue } from "@/pages/user/issue-boards/types";
+import type { Issue } from "../types";
 
 export function useIssues(boardId: string) {
   return useQuery({

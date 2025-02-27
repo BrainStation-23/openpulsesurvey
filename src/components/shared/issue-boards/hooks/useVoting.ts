@@ -7,10 +7,14 @@ export function useVoting() {
 
   return useMutation({
     mutationFn: async (issueId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data: existingVote, error: checkError } = await supabase
         .from('issue_votes')
         .select('id')
         .eq('issue_id', issueId)
+        .eq('user_id', user.id)
         .single();
 
       if (checkError && checkError.code !== 'PGRST116') {
@@ -26,7 +30,10 @@ export function useVoting() {
       } else {
         const { error } = await supabase
           .from('issue_votes')
-          .insert({ issue_id: issueId });
+          .insert({ 
+            issue_id: issueId,
+            user_id: user.id
+          });
         if (error) throw error;
       }
     },
