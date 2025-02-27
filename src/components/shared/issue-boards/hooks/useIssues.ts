@@ -47,6 +47,17 @@ export function useIssues(boardId: string) {
           query.refetch();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'issue_votes'
+        },
+        () => {
+          query.refetch();
+        }
+      )
       .subscribe();
 
     return () => {
