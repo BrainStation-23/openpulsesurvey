@@ -29,6 +29,16 @@ export default function AdminIssueBoards() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [showMyBoards, setShowMyBoards] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Get current user ID
+  React.useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+    getCurrentUser();
+  }, []);
 
   const handleCreate = () => {
     navigate("/admin/surveys/issue-boards/create");
@@ -157,7 +167,6 @@ export default function AdminIssueBoards() {
   const { data: issueBoards, isLoading } = useQuery({
     queryKey: ['issueBoards'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from('issue_boards')
         .select('*')
@@ -202,13 +211,12 @@ export default function AdminIssueBoards() {
         (board.description?.toLowerCase() || "").includes(search.toLowerCase());
       
       if (showMyBoards) {
-        const { data: { user } } = supabase.auth.getUser();
-        return matchesSearch && board.created_by === user?.id;
+        return matchesSearch && board.created_by === currentUserId;
       }
       
       return matchesSearch;
     });
-  }, [issueBoards, search, showMyBoards]);
+  }, [issueBoards, search, showMyBoards, currentUserId]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
