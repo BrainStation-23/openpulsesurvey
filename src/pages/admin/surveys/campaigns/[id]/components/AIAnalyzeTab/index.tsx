@@ -23,12 +23,12 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 
-  // Fetch campaign data
-  const { data: campaignData } = useQuery({
-    queryKey: ['campaign-analysis-data', campaignId, instanceId],
+  // Fetch optimized analysis data
+  const { data: analysisData } = useQuery({
+    queryKey: ['instance-analysis-data', campaignId, instanceId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .rpc('get_campaign_analysis_data', {
+        .rpc('get_instance_analysis_data', {
           p_campaign_id: campaignId,
           p_instance_id: instanceId || null
         });
@@ -36,10 +36,11 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
       if (error) throw error;
       return data;
     },
+    enabled: !!instanceId
   });
   
   const handleAnalyze = async () => {
-    if (!selectedPrompt?.id || !campaignData) return;
+    if (!selectedPrompt?.id || !analysisData) return;
     
     try {
       setIsAnalyzing(true);
@@ -49,7 +50,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
           instanceId,
           promptId: selectedPrompt.id,
           promptText: selectedPrompt.text,
-          campaignData
+          analysisData // Now sending the optimized data structure
         },
       });
 

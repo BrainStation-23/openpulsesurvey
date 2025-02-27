@@ -18,11 +18,11 @@ serve(async (req) => {
   }
 
   try {
-    const { campaignId, instanceId, promptId, promptText, campaignData } = await req.json();
+    const { campaignId, instanceId, promptId, promptText, analysisData } = await req.json();
     console.log("Received parameters:", { campaignId, instanceId, promptId });
 
     // Validate required parameters
-    if (!campaignId || !promptId || !promptText || !campaignData) {
+    if (!campaignId || !promptId || !promptText || !analysisData) {
       throw new Error('Missing required parameters');
     }
 
@@ -38,13 +38,36 @@ serve(async (req) => {
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     const model = genAI.getGenerativeModel({ model: modelName });
 
+    // Format the data for better AI understanding
+    const formattedData = {
+      overview: {
+        completion_rate: analysisData.instance_info.completion_rate,
+        total_assignments: analysisData.instance_info.total_assignments,
+        completed_responses: analysisData.instance_info.completed_responses
+      },
+      demographic_insights: {
+        by_department: analysisData.demographic_stats.department,
+        by_gender: analysisData.demographic_stats.gender,
+        by_location: analysisData.demographic_stats.location,
+        by_employment_type: analysisData.demographic_stats.employment_type
+      },
+      response_trends: analysisData.completion_trends,
+      question_analysis: analysisData.question_stats
+    };
+
     // Prepare the context for the AI
     const context = `
-      Campaign Information:
-      ${JSON.stringify(campaignData, null, 2)}
+      Analysis Data:
+      ${JSON.stringify(formattedData, null, 2)}
 
       Please analyze this data and provide insights based on the following prompt:
       ${promptText}
+
+      Focus on:
+      1. Overall response rates and completion trends
+      2. Demographic patterns and variations
+      3. Question-specific insights (ratings and yes/no questions)
+      4. Key trends and notable findings
     `;
 
     console.log("Generating content with Gemini...");
