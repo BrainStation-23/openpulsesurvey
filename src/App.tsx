@@ -48,6 +48,7 @@ import CampaignDetailsPage from "./pages/admin/surveys/campaigns/[id]";
 import LiveSurveyPage from "./pages/admin/surveys/live";
 import LiveSessionControlPage from "./pages/admin/surveys/live/[sessionId]";
 import AdminIssueBoards from "./pages/admin/surveys/issue-boards";
+import AdminIssueBoardView from "./pages/admin/surveys/issue-boards/[id]";
 import PresentationView from "./pages/admin/surveys/campaigns/[id]/components/PresentationView/index";
 import PlatformConfigLayout from "./components/layouts/PlatformConfigLayout";
 import SBUsConfig from "./pages/admin/config/sbus";
@@ -123,6 +124,7 @@ const App = () => (
               <Route path="surveys/issue-boards" element={<AdminIssueBoards />} />
               <Route path="surveys/issue-boards/create" element={<CreateIssueBoard />} />
               <Route path="surveys/issue-boards/:id" element={<EditIssueBoard />} />
+              <Route path="surveys/issue-boards/:id/view" element={<AdminIssueBoardView />} />
               
               <Route path="config" element={<PlatformConfigLayout />}>
                 <Route index element={<AdminConfig />} />
