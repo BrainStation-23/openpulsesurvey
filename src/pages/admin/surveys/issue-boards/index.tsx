@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -9,6 +9,8 @@ import { Plus, Pencil, Trash2, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +27,8 @@ import type { IssueBoard } from "./types";
 export default function AdminIssueBoards() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [showMyBoards, setShowMyBoards] = useState(false);
 
   const handleCreate = () => {
     navigate("/admin/surveys/issue-boards/create");
@@ -42,6 +46,31 @@ export default function AdminIssueBoards() {
     deleteBoardMutation.mutate(id);
   };
 
+  const toggleStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string, status: 'active' | 'disabled' }) => {
+      const { error } = await supabase
+        .from('issue_boards')
+        .update({ status: status === 'active' ? 'disabled' : 'active' })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['issueBoards'] });
+      toast({
+        title: "Success",
+        description: "Board status updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: "Failed to update board status: " + error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const columns: ColumnDef<IssueBoard>[] = [
     {
       accessorKey: "name",
@@ -56,9 +85,18 @@ export default function AdminIssueBoards() {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => (
-        <span className={`capitalize ${row.original.status === 'active' ? 'text-green-600' : 'text-gray-500'}`}>
-          {row.original.status}
-        </span>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={row.original.status === 'active'}
+            onCheckedChange={() => toggleStatus.mutate({
+              id: row.original.id,
+              status: row.original.status
+            })}
+          />
+          <span className={`capitalize ${row.original.status === 'active' ? 'text-green-600' : 'text-gray-500'}`}>
+            {row.original.status}
+          </span>
+        </div>
       ),
     },
     {
@@ -119,6 +157,7 @@ export default function AdminIssueBoards() {
   const { data: issueBoards, isLoading } = useQuery({
     queryKey: ['issueBoards'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from('issue_boards')
         .select('*')
@@ -154,6 +193,23 @@ export default function AdminIssueBoards() {
     },
   });
 
+  // Filter the data based on search and showMyBoards
+  const filteredData = React.useMemo(() => {
+    if (!issueBoards) return [];
+    
+    return issueBoards.filter(board => {
+      const matchesSearch = board.name.toLowerCase().includes(search.toLowerCase()) ||
+        (board.description?.toLowerCase() || "").includes(search.toLowerCase());
+      
+      if (showMyBoards) {
+        const { data: { user } } = supabase.auth.getUser();
+        return matchesSearch && board.created_by === user?.id;
+      }
+      
+      return matchesSearch;
+    });
+  }, [issueBoards, search, showMyBoards]);
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -167,9 +223,24 @@ export default function AdminIssueBoards() {
       </div>
 
       <Card className="p-6">
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <Input
+            placeholder="Search boards..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1"
+          />
+          <Button
+            variant={showMyBoards ? "default" : "outline"}
+            onClick={() => setShowMyBoards(!showMyBoards)}
+          >
+            My Boards
+          </Button>
+        </div>
+        
         <DataTable 
           columns={columns} 
-          data={issueBoards || []} 
+          data={filteredData} 
           isLoading={isLoading}
         />
       </Card>
