@@ -18,17 +18,36 @@ serve(async (req) => {
   }
 
   try {
-    const { campaignId, instanceId, promptId, promptText, analysisData } = await req.json();
-    console.log("Received parameters:", { campaignId, instanceId, promptId });
+    const { promptId, promptText, analysisData } = await req.json();
+    console.log("Received parameters:", { promptId, promptText });
+    console.log("Analysis data:", analysisData);
 
     // Validate required parameters
-    if (!campaignId || !promptId || !promptText || !analysisData) {
+    if (!promptId || !promptText || !analysisData) {
       throw new Error('Missing required parameters');
     }
 
+    // Format the data for better AI understanding
+    const formattedData = {
+      overview: {
+        survey_info: {
+          name: analysisData.campaign.survey.name,
+          description: analysisData.campaign.survey.description
+        },
+        completion_rate: analysisData.summary.completion_rate,
+        total_responses: analysisData.summary.total_responses
+      },
+      responses: analysisData.responses.map((response: any) => ({
+        user_info: {
+          sbu: response.user.sbus?.[0]?.sbu?.name || 'Unassigned',
+        },
+        response_data: response.response_data
+      }))
+    };
+
     // Validate Gemini API key and model name
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-    const modelName = Deno.env.get('GEMINI_MODEL_NAME') || 'gemini-2.0-flash-lite';
+    const modelName = Deno.env.get('GEMINI_MODEL_NAME') || 'gemini-pro';
     
     if (!geminiApiKey) {
       throw new Error('GEMINI_API_KEY not configured');
@@ -38,36 +57,19 @@ serve(async (req) => {
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     const model = genAI.getGenerativeModel({ model: modelName });
 
-    // Format the data for better AI understanding
-    const formattedData = {
-      overview: {
-        completion_rate: analysisData.instance_info.completion_rate,
-        total_assignments: analysisData.instance_info.total_assignments,
-        completed_responses: analysisData.instance_info.completed_responses
-      },
-      demographic_insights: {
-        by_department: analysisData.demographic_stats.department,
-        by_gender: analysisData.demographic_stats.gender,
-        by_location: analysisData.demographic_stats.location,
-        by_employment_type: analysisData.demographic_stats.employment_type
-      },
-      response_trends: analysisData.completion_trends,
-      question_analysis: analysisData.question_stats
-    };
-
     // Prepare the context for the AI
     const context = `
       Analysis Data:
       ${JSON.stringify(formattedData, null, 2)}
 
-      Please analyze this data and provide insights based on the following prompt:
+      Please analyze this survey data and provide insights based on the following prompt:
       ${promptText}
 
       Focus on:
-      1. Overall response rates and completion trends
-      2. Demographic patterns and variations
-      3. Question-specific insights (ratings and yes/no questions)
-      4. Key trends and notable findings
+      1. Overall response rates and completion statistics
+      2. Key patterns in responses
+      3. Notable findings and recommendations
+      4. Areas that might need attention
     `;
 
     console.log("Generating content with Gemini...");
@@ -81,8 +83,6 @@ serve(async (req) => {
       JSON.stringify({ 
         content: formattedText,
         metadata: {
-          campaignId,
-          instanceId,
           promptId,
           timestamp: new Date().toISOString()
         }
