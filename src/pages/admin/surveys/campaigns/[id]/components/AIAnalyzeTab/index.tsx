@@ -28,7 +28,8 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
   const { data: analysisData, isLoading: isLoadingData } = useQuery({
     queryKey: ['instance-analysis-data', campaignId, instanceId],
     queryFn: async () => {
-      // Use a raw stored procedure call since this is a database function
+      console.log('Fetching analysis data for:', { campaignId, instanceId });
+      
       const { data, error } = await supabase
         .schema('public')
         .rpc('get_instance_analysis_data', {
@@ -36,10 +37,16 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
           p_instance_id: instanceId
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching analysis data:', error);
+        throw error;
+      }
+      
+      console.log('Analysis data received:', data);
       return data;
     },
-    enabled: !!instanceId
+    enabled: !!instanceId,
+    retry: false // Disable retries so we can see the error clearly
   });
   
   const handleAnalyze = async () => {
