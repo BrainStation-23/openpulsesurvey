@@ -652,6 +652,7 @@ export type Database = {
           status: Database["public"]["Enums"]["issue_status"]
           title: string
           updated_at: string
+          vote_count: number
         }
         Insert: {
           board_id: string
@@ -662,6 +663,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["issue_status"]
           title: string
           updated_at?: string
+          vote_count?: number
         }
         Update: {
           board_id?: string
@@ -672,6 +674,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["issue_status"]
           title?: string
           updated_at?: string
+          vote_count?: number
         }
         Relationships: [
           {
