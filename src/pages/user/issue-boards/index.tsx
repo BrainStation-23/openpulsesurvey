@@ -11,10 +11,12 @@ import type { UserIssueBoard } from "./types";
 export default function UserIssueBoards() {
   const navigate = useNavigate();
   
-  const { data: boards, isLoading } = useQuery({
+  const { data: boards, isLoading, error } = useQuery({
     queryKey: ['user-issue-boards'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      console.log('Fetching issue boards...');
+      
+      const { data: boardsData, error: boardsError } = await supabase
         .from('issue_boards')
         .select(`
           id,
@@ -37,7 +39,12 @@ export default function UserIssueBoards() {
         `)
         .eq('status', 'active');
 
-      if (error) throw error;
+      if (boardsError) {
+        console.error('Error fetching boards:', boardsError);
+        throw boardsError;
+      }
+
+      console.log('Fetched boards:', boardsData);
 
       // Get current user's profile
       const { data: profile, error: profileError } = await supabase
@@ -55,52 +62,86 @@ export default function UserIssueBoards() {
         `)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw profileError;
+      }
+
+      console.log('Fetched user profile:', profile);
 
       // Filter boards based on user's attributes
-      return data
+      const filteredBoards = boardsData
         .filter(board => {
           const permissions = board.issue_board_permissions[0];
-          if (!permissions) return false;
+          console.log(`Checking permissions for board ${board.name}:`, permissions);
+          
+          if (!permissions) {
+            console.log(`No permissions found for board ${board.name}`);
+            return false;
+          }
 
           // Check if arrays are null or empty (meaning everyone has access)
           const isEmptyOrNull = (arr?: any[]) => !arr || arr.length === 0;
 
           // Helper to check if user attribute matches or permission is open to all
-          const hasAccess = (userValue: string | null | undefined, permissionArray?: string[]) => {
-            return isEmptyOrNull(permissionArray) || (userValue && permissionArray?.includes(userValue));
+          const hasAccess = (userValue: string | null | undefined, permissionArray?: string[], attributeName?: string) => {
+            const hasAccess = isEmptyOrNull(permissionArray) || (userValue && permissionArray?.includes(userValue));
+            console.log(`${attributeName} access check:`, { userValue, permissionArray, hasAccess });
+            return hasAccess;
           };
 
           // Check access for each attribute
-          const hasLevelAccess = hasAccess(profile.level_id, permissions.level_ids);
-          const hasLocationAccess = hasAccess(profile.location_id, permissions.location_ids);
-          const hasEmploymentTypeAccess = hasAccess(profile.employment_type_id, permissions.employment_type_ids);
-          const hasEmployeeTypeAccess = hasAccess(profile.employee_type_id, permissions.employee_type_ids);
-          const hasEmployeeRoleAccess = hasAccess(profile.employee_role_id, permissions.employee_role_ids);
+          const hasLevelAccess = hasAccess(profile.level_id, permissions.level_ids, 'Level');
+          const hasLocationAccess = hasAccess(profile.location_id, permissions.location_ids, 'Location');
+          const hasEmploymentTypeAccess = hasAccess(profile.employment_type_id, permissions.employment_type_ids, 'Employment Type');
+          const hasEmployeeTypeAccess = hasAccess(profile.employee_type_id, permissions.employee_type_ids, 'Employee Type');
+          const hasEmployeeRoleAccess = hasAccess(profile.employee_role_id, permissions.employee_role_ids, 'Employee Role');
           
           // Special check for SBU since it's an array of objects
           const hasSBUAccess = isEmptyOrNull(permissions.sbu_ids) || 
             profile.user_sbus?.some(us => permissions.sbu_ids?.includes(us.sbu_id));
+          
+          console.log('SBU access check:', {
+            userSBUs: profile.user_sbus,
+            permissionSBUs: permissions.sbu_ids,
+            hasSBUAccess
+          });
 
           // User needs to match at least one criteria
-          return hasLevelAccess || hasLocationAccess || hasEmploymentTypeAccess || 
-                 hasEmployeeTypeAccess || hasEmployeeRoleAccess || hasSBUAccess;
+          const hasAccess = hasLevelAccess || hasLocationAccess || hasEmploymentTypeAccess || 
+                         hasEmployeeTypeAccess || hasEmployeeRoleAccess || hasSBUAccess;
+          
+          console.log(`Final access decision for board ${board.name}:`, hasAccess);
+          return hasAccess;
         })
-        .map(board => ({
-          id: board.id,
-          name: board.name,
-          description: board.description,
-          status: board.status,
-          created_at: board.created_at,
-          created_by: board.created_by,
-          permissions: {
-            can_view: board.issue_board_permissions[0].can_view,
-            can_create: board.issue_board_permissions[0].can_create,
-            can_vote: board.issue_board_permissions[0].can_vote
-          }
-        })) as UserIssueBoard[];
+        .map(board => {
+          const mappedBoard = {
+            id: board.id,
+            name: board.name,
+            description: board.description,
+            status: board.status,
+            created_at: board.created_at,
+            created_by: board.created_by,
+            permissions: {
+              can_view: board.issue_board_permissions[0].can_view,
+              can_create: board.issue_board_permissions[0].can_create,
+              can_vote: board.issue_board_permissions[0].can_vote
+            }
+          };
+          console.log('Mapped board:', mappedBoard);
+          return mappedBoard;
+        }) as UserIssueBoard[];
+
+      console.log('Final filtered and mapped boards:', filteredBoards);
+      return filteredBoards;
     }
   });
+
+  console.log('Component render state:', { isLoading, error, boardsCount: boards?.length });
+
+  if (error) {
+    console.error('Query error:', error);
+  }
 
   if (isLoading) {
     return (
