@@ -26,14 +26,17 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
-    // Validate Gemini API key
+    // Validate Gemini API key and model name
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    const modelName = Deno.env.get('GEMINI_MODEL_NAME') || 'gemini-2.0-flash-lite';
+    
     if (!geminiApiKey) {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
+    console.log("Using Gemini model:", modelName);
     const genAI = new GoogleGenerativeAI(geminiApiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+    const model = genAI.getGenerativeModel({ model: modelName });
 
     // Prepare the context for the AI
     const context = `
