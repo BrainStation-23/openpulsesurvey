@@ -63,24 +63,24 @@ export default function UserIssueBoards() {
           const permissions = board.issue_board_permissions[0];
           if (!permissions) return false;
 
-          // Check if user matches any permission criteria
-          const hasLevelAccess = !permissions.level_ids?.length || 
-            (profile.level_id && permissions.level_ids.includes(profile.level_id));
+          // Check if arrays are null or empty (meaning everyone has access)
+          const isEmptyOrNull = (arr?: any[]) => !arr || arr.length === 0;
+
+          // Helper to check if user attribute matches or permission is open to all
+          const hasAccess = (userValue: string | null | undefined, permissionArray?: string[]) => {
+            return isEmptyOrNull(permissionArray) || (userValue && permissionArray?.includes(userValue));
+          };
+
+          // Check access for each attribute
+          const hasLevelAccess = hasAccess(profile.level_id, permissions.level_ids);
+          const hasLocationAccess = hasAccess(profile.location_id, permissions.location_ids);
+          const hasEmploymentTypeAccess = hasAccess(profile.employment_type_id, permissions.employment_type_ids);
+          const hasEmployeeTypeAccess = hasAccess(profile.employee_type_id, permissions.employee_type_ids);
+          const hasEmployeeRoleAccess = hasAccess(profile.employee_role_id, permissions.employee_role_ids);
           
-          const hasLocationAccess = !permissions.location_ids?.length || 
-            (profile.location_id && permissions.location_ids.includes(profile.location_id));
-          
-          const hasEmploymentTypeAccess = !permissions.employment_type_ids?.length || 
-            (profile.employment_type_id && permissions.employment_type_ids.includes(profile.employment_type_id));
-          
-          const hasEmployeeTypeAccess = !permissions.employee_type_ids?.length || 
-            (profile.employee_type_id && permissions.employee_type_ids.includes(profile.employee_type_id));
-          
-          const hasEmployeeRoleAccess = !permissions.employee_role_ids?.length || 
-            (profile.employee_role_id && permissions.employee_role_ids.includes(profile.employee_role_id));
-          
-          const hasSBUAccess = !permissions.sbu_ids?.length || 
-            profile.user_sbus.some(us => permissions.sbu_ids.includes(us.sbu_id));
+          // Special check for SBU since it's an array of objects
+          const hasSBUAccess = isEmptyOrNull(permissions.sbu_ids) || 
+            profile.user_sbus?.some(us => permissions.sbu_ids?.includes(us.sbu_id));
 
           // User needs to match at least one criteria
           return hasLevelAccess || hasLocationAccess || hasEmploymentTypeAccess || 
