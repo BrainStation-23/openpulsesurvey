@@ -20,7 +20,12 @@ export default function IssueBoardDetail() {
       const { data, error } = await supabase
         .from('issue_boards')
         .select(`
-          *,
+          id,
+          name,
+          description,
+          status,
+          created_at,
+          created_by,
           issue_board_permissions (
             can_view,
             can_create,
@@ -49,7 +54,16 @@ export default function IssueBoardDetail() {
       // First get all issues
       const { data: issues, error: issuesError } = await supabase
         .from('issues')
-        .select('*')
+        .select(`
+          id,
+          title,
+          description,
+          created_at,
+          created_by,
+          board_id,
+          vote_count,
+          status
+        `)
         .eq('board_id', id)
         .order('vote_count', { ascending: false });
 

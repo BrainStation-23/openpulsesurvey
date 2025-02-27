@@ -1,5 +1,11 @@
 
-export interface UserIssueBoard extends IssueBoard {
+export interface UserIssueBoard {
+  id: string;
+  name: string;
+  description: string | null;
+  status: 'active' | 'disabled';
+  created_at: string;
+  created_by: string;
   permissions: {
     can_view: boolean;
     can_create: boolean;

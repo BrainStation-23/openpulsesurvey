@@ -17,7 +17,12 @@ export default function UserIssueBoards() {
       const { data, error } = await supabase
         .from('issue_boards')
         .select(`
-          *,
+          id,
+          name,
+          description,
+          status,
+          created_at,
+          created_by,
           issue_board_permissions (
             can_view,
             can_create,
