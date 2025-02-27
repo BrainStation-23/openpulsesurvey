@@ -23,7 +23,8 @@ export function QuestionSlide({
     <div className={`slide ${isActive ? 'active' : ''}`}>
       {question ? (
         <div className="flex flex-col h-full">
-          <Card className="p-6 flex-1">
+          <Card className="p-6 flex justify-center items-center h-full ">
+
             <div className="space-y-4">
               <QuestionHeader question={question} />
               
