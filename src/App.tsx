@@ -30,6 +30,7 @@ import UserMySurveys from "./pages/user/my-surveys";
 import UserSurveyResponse from "./pages/user/my-surveys/[id]";
 import UserAchievementsPage from "./pages/user/achievements";
 import UserIssueBoards from "./pages/user/issue-boards";
+import UserIssueBoardView from "./pages/user/issue-boards/[id]";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -101,6 +102,7 @@ const App = () => (
               <Route path="settings" element={<UserSettings />} />
               <Route path="achievements" element={<UserAchievementsPage />} />
               <Route path="issue-boards" element={<UserIssueBoards />} />
+              <Route path="issue-boards/:id" element={<UserIssueBoardView />} />
             </Route>
             
             <Route path="/admin" element={<AdminLayout />}>
