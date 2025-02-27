@@ -28,12 +28,13 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
   const { data: analysisData, isLoading: isLoadingData } = useQuery({
     queryKey: ['instance-analysis-data', campaignId, instanceId],
     queryFn: async () => {
+      // Use a raw stored procedure call since this is a database function
       const { data, error } = await supabase
-        .from('get_instance_analysis_data')
-        .select('*')
-        .filter('p_campaign_id', 'eq', campaignId)
-        .filter('p_instance_id', 'eq', instanceId)
-        .single();
+        .schema('public')
+        .rpc('get_instance_analysis_data', {
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId
+        });
 
       if (error) throw error;
       return data;
