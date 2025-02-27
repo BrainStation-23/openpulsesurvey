@@ -84,18 +84,18 @@ export default function UserIssueBoards() {
           const isEmptyOrNull = (arr?: any[]) => !arr || arr.length === 0;
 
           // Helper to check if user attribute matches or permission is open to all
-          const hasAccess = (userValue: string | null | undefined, permissionArray?: string[], attributeName?: string) => {
+          const checkAccess = (userValue: string | null | undefined, permissionArray?: string[], attributeName?: string) => {
             const hasAccess = isEmptyOrNull(permissionArray) || (userValue && permissionArray?.includes(userValue));
             console.log(`${attributeName} access check:`, { userValue, permissionArray, hasAccess });
             return hasAccess;
           };
 
           // Check access for each attribute
-          const hasLevelAccess = hasAccess(profile.level_id, permissions.level_ids, 'Level');
-          const hasLocationAccess = hasAccess(profile.location_id, permissions.location_ids, 'Location');
-          const hasEmploymentTypeAccess = hasAccess(profile.employment_type_id, permissions.employment_type_ids, 'Employment Type');
-          const hasEmployeeTypeAccess = hasAccess(profile.employee_type_id, permissions.employee_type_ids, 'Employee Type');
-          const hasEmployeeRoleAccess = hasAccess(profile.employee_role_id, permissions.employee_role_ids, 'Employee Role');
+          const hasLevelAccess = checkAccess(profile.level_id, permissions.level_ids, 'Level');
+          const hasLocationAccess = checkAccess(profile.location_id, permissions.location_ids, 'Location');
+          const hasEmploymentTypeAccess = checkAccess(profile.employment_type_id, permissions.employment_type_ids, 'Employment Type');
+          const hasEmployeeTypeAccess = checkAccess(profile.employee_type_id, permissions.employee_type_ids, 'Employee Type');
+          const hasEmployeeRoleAccess = checkAccess(profile.employee_role_id, permissions.employee_role_ids, 'Employee Role');
           
           // Special check for SBU since it's an array of objects
           const hasSBUAccess = isEmptyOrNull(permissions.sbu_ids) || 
