@@ -23,24 +23,82 @@ export default function UserIssueBoards() {
           status,
           created_at,
           created_by,
-          issue_board_permissions (
+          issue_board_permissions!inner (
             can_view,
             can_create,
-            can_vote
+            can_vote,
+            level_ids,
+            location_ids,
+            employment_type_ids,
+            employee_type_ids,
+            employee_role_ids,
+            sbu_ids
           )
         `)
         .eq('status', 'active');
 
       if (error) throw error;
-      
-      return data.map((board: any) => ({
-        ...board,
-        permissions: board.issue_board_permissions[0] || {
-          can_view: false,
-          can_create: false,
-          can_vote: false
-        }
-      })) as UserIssueBoard[];
+
+      // Get current user's profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          level_id,
+          location_id,
+          employment_type_id,
+          employee_type_id,
+          employee_role_id,
+          user_sbus (
+            sbu_id
+          )
+        `)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Filter boards based on user's attributes
+      return data
+        .filter(board => {
+          const permissions = board.issue_board_permissions[0];
+          if (!permissions) return false;
+
+          // Check if user matches any permission criteria
+          const hasLevelAccess = !permissions.level_ids?.length || 
+            (profile.level_id && permissions.level_ids.includes(profile.level_id));
+          
+          const hasLocationAccess = !permissions.location_ids?.length || 
+            (profile.location_id && permissions.location_ids.includes(profile.location_id));
+          
+          const hasEmploymentTypeAccess = !permissions.employment_type_ids?.length || 
+            (profile.employment_type_id && permissions.employment_type_ids.includes(profile.employment_type_id));
+          
+          const hasEmployeeTypeAccess = !permissions.employee_type_ids?.length || 
+            (profile.employee_type_id && permissions.employee_type_ids.includes(profile.employee_type_id));
+          
+          const hasEmployeeRoleAccess = !permissions.employee_role_ids?.length || 
+            (profile.employee_role_id && permissions.employee_role_ids.includes(profile.employee_role_id));
+          
+          const hasSBUAccess = !permissions.sbu_ids?.length || 
+            profile.user_sbus.some(us => permissions.sbu_ids.includes(us.sbu_id));
+
+          // User needs to match at least one criteria
+          return hasLevelAccess || hasLocationAccess || hasEmploymentTypeAccess || 
+                 hasEmployeeTypeAccess || hasEmployeeRoleAccess || hasSBUAccess;
+        })
+        .map(board => ({
+          id: board.id,
+          name: board.name,
+          description: board.description,
+          status: board.status,
+          created_at: board.created_at,
+          created_by: board.created_by,
+          permissions: {
+            can_view: board.issue_board_permissions[0].can_view,
+            can_create: board.issue_board_permissions[0].can_create,
+            can_vote: board.issue_board_permissions[0].can_vote
+          }
+        })) as UserIssueBoard[];
     }
   });
 
