@@ -2,10 +2,10 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
-import type { Board } from "../types";
+import type { UserIssueBoard } from "../types";
 
 interface BoardHeaderProps {
-  board: Board;
+  board: UserIssueBoard;
   onBack: () => void;
 }
 
@@ -15,7 +15,7 @@ export function BoardHeader({ board, onBack }: BoardHeaderProps) {
       <Button variant="ghost" size="icon" onClick={onBack}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <h1 className="text-xl font-semibold">{board.title}</h1>
+      <h1 className="text-xl font-semibold">{board.name}</h1>
     </div>
   );
 }
