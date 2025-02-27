@@ -24,29 +24,59 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
   const { toast } = useToast();
   const [analysis, setAnalysis] = useState<{ content: string } | null>(null);
 
-  // Fetch optimized analysis data
+  // Fetch basic campaign and response data
   const { data: analysisData, isLoading: isLoadingData } = useQuery({
     queryKey: ['instance-analysis-data', campaignId, instanceId],
     queryFn: async () => {
       console.log('Fetching analysis data for:', { campaignId, instanceId });
       
-      const { data, error } = await supabase
-        .schema('public')
-        .rpc('get_instance_analysis_data', {
-          p_campaign_id: campaignId,
-          p_instance_id: instanceId
-        });
+      // Get campaign info
+      const { data: campaignData, error: campaignError } = await supabase
+        .from('survey_campaigns')
+        .select('*, survey:surveys(name, description)')
+        .eq('id', campaignId)
+        .single();
 
-      if (error) {
-        console.error('Error fetching analysis data:', error);
-        throw error;
-      }
-      
-      console.log('Analysis data received:', data);
-      return data;
+      if (campaignError) throw campaignError;
+
+      // Get instance info
+      const { data: instanceData, error: instanceError } = await supabase
+        .from('campaign_instances')
+        .select('*')
+        .eq('id', instanceId)
+        .single();
+
+      if (instanceError) throw instanceError;
+
+      // Get response data
+      const { data: responseData, error: responseError } = await supabase
+        .from('survey_responses')
+        .select(`
+          *,
+          user:profiles!survey_responses_user_id_fkey(
+            first_name,
+            last_name,
+            email,
+            sbus:user_sbus(
+              sbu:sbus(name)
+            )
+          )
+        `)
+        .eq('campaign_instance_id', instanceId);
+
+      if (responseError) throw responseError;
+
+      return {
+        campaign: campaignData,
+        instance: instanceData,
+        responses: responseData,
+        summary: {
+          total_responses: responseData?.length || 0,
+          completion_rate: instanceData?.completion_rate || 0
+        }
+      };
     },
-    enabled: !!instanceId,
-    retry: false // Disable retries so we can see the error clearly
+    enabled: !!instanceId && !!campaignId
   });
   
   const handleAnalyze = async () => {
