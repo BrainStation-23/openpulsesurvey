@@ -31,12 +31,6 @@ export function useVoting() {
           .eq('id', existingVote.id);
           
         if (deleteError) throw deleteError;
-
-        // Update the vote count in the issues table
-        const { error: updateError } = await supabase
-          .rpc('decrement_vote_count', { issue_id: issueId });
-          
-        if (updateError) throw updateError;
       } else {
         // If no vote exists, add one
         const { error: insertError } = await supabase
@@ -47,12 +41,6 @@ export function useVoting() {
           });
           
         if (insertError) throw insertError;
-
-        // Update the vote count in the issues table
-        const { error: updateError } = await supabase
-          .rpc('increment_vote_count', { issue_id: issueId });
-          
-        if (updateError) throw updateError;
       }
     },
     onSuccess: (_, issueId) => {
