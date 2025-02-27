@@ -1993,6 +1993,13 @@ export type Database = {
           count: number
         }[]
       }
+      get_instance_analysis_data: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+        }
+        Returns: Json
+      }
       get_instance_assignment_status: {
         Args: {
           p_assignment_id: string

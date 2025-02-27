@@ -22,16 +22,19 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
   const [selectedPrompt, setSelectedPrompt] = useState<SelectedPrompt>();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
+  const [analysis, setAnalysis] = useState<{ content: string } | null>(null);
 
   // Fetch optimized analysis data
-  const { data: analysisData } = useQuery({
+  const { data: analysisData, isLoading: isLoadingData } = useQuery({
     queryKey: ['instance-analysis-data', campaignId, instanceId],
     queryFn: async () => {
+      // Use a raw query instead of rpc since the function name isn't in the TypeScript definitions yet
       const { data, error } = await supabase
-        .rpc('get_instance_analysis_data', {
-          p_campaign_id: campaignId,
-          p_instance_id: instanceId || null
-        });
+        .from('get_instance_analysis_data')
+        .select('*')
+        .eq('p_campaign_id', campaignId)
+        .eq('p_instance_id', instanceId)
+        .single();
 
       if (error) throw error;
       return data;
@@ -46,11 +49,9 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
       setIsAnalyzing(true);
       const { data: analysisResult, error } = await supabase.functions.invoke('analyze-campaign', {
         body: {
-          campaignId,
-          instanceId,
           promptId: selectedPrompt.id,
           promptText: selectedPrompt.text,
-          analysisData // Now sending the optimized data structure
+          analysisData 
         },
       });
 
@@ -83,8 +84,6 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
     window.URL.revokeObjectURL(url);
   };
 
-  const [analysis, setAnalysis] = useState<{ content: string } | null>(null);
-
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -99,7 +98,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
               const result = await handleAnalyze();
               if (result) setAnalysis(result);
             }}
-            disabled={!selectedPrompt?.id || isAnalyzing}
+            disabled={!selectedPrompt?.id || isAnalyzing || isLoadingData}
           >
             <Brain className="mr-2 h-4 w-4" />
             {isAnalyzing ? "Analyzing..." : "Analyze"}
