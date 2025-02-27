@@ -1919,6 +1919,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      decrement_vote_count: {
+        Args: {
+          issue_id: string
+        }
+        Returns: undefined
+      }
       delete_auth_user_complete: {
         Args: {
           in_user_id: string
@@ -2045,6 +2051,12 @@ export type Database = {
       handle_instance_due_time: {
         Args: {
           p_campaign_id: string
+        }
+        Returns: undefined
+      }
+      increment_vote_count: {
+        Args: {
+          issue_id: string
         }
         Returns: undefined
       }
