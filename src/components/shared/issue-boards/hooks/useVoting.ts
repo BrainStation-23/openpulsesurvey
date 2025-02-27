@@ -11,24 +11,21 @@ export function useVoting() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // First check if the user has already voted
-      const { data: existingVote, error: checkError } = await supabase
+      // First check if the user has already voted - get all matching votes
+      const { data: votes, error: checkError } = await supabase
         .from('issue_votes')
         .select('id')
         .eq('issue_id', issueId)
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', user.id);
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
-      }
+      if (checkError) throw checkError;
 
-      if (existingVote) {
+      if (votes && votes.length > 0) {
         // If vote exists, remove it (unvote)
         const { error: deleteError } = await supabase
           .from('issue_votes')
           .delete()
-          .eq('id', existingVote.id);
+          .eq('id', votes[0].id);
           
         if (deleteError) throw deleteError;
       } else {
