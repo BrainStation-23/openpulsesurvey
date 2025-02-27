@@ -1,28 +1,21 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import type { BoardHeaderProps } from "../types";
+import { ChevronLeft } from "lucide-react";
+import type { Board } from "../types";
+
+interface BoardHeaderProps {
+  board: Board;
+  onBack: () => void;
+}
 
 export function BoardHeader({ board, onBack }: BoardHeaderProps) {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-4">
-        {onBack && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onBack}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-        )}
-        <h1 className="text-2xl font-bold">{board.name}</h1>
-      </div>
-      {board.description && (
-        <p className="text-muted-foreground">{board.description}</p>
-      )}
+    <div className="flex items-center gap-4">
+      <Button variant="ghost" size="icon" onClick={onBack}>
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <h1 className="text-xl font-semibold">{board.title}</h1>
     </div>
   );
 }

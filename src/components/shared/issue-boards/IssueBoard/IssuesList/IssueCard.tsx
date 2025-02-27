@@ -109,16 +109,16 @@ export function IssueCard({
 
   return (
     <>
-      <Card className="flex flex-col h-[250px]">
-        <CardHeader className="flex-none">
-          <div className="flex items-start justify-between gap-4">
-            <h3 className="font-semibold line-clamp-2">{issue.title}</h3>
+      <Card className="flex flex-col h-[200px]">
+        <CardHeader className="flex-none py-3">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-medium text-sm line-clamp-2">{issue.title}</h3>
             {canEdit && (
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex gap-1 flex-shrink-0">
                 <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Edit2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Edit2 className="h-3 w-3" />
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -167,21 +167,22 @@ export function IssueCard({
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="h-8 w-8"
                   onClick={() => deleteIssueMutation.mutate()}
                   disabled={deleteIssueMutation.isPending}
                 >
-                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <Trash2 className="h-3 w-3 text-destructive" />
                 </Button>
               </div>
             )}
           </div>
         </CardHeader>
-        <CardContent className="flex-1 overflow-auto">
+        <CardContent className="flex-1 overflow-auto py-2">
           {issue.description && (
-            <p className="text-sm text-muted-foreground">{issue.description}</p>
+            <p className="text-xs text-muted-foreground">{issue.description}</p>
           )}
         </CardContent>
-        <CardFooter className="flex-none pt-4 border-t">
+        <CardFooter className="flex-none pt-3 border-t">
           <VoteButton
             issueId={issue.id}
             voteCount={issue.vote_count}

@@ -30,7 +30,6 @@ export function IssueBoard({ boardId }: BoardViewProps) {
     );
   }
 
-  // Get the first permission set or use default values
   const permissions = board.permissions[0] || {
     can_create: false,
     can_vote: false,
@@ -38,11 +37,10 @@ export function IssueBoard({ boardId }: BoardViewProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <BoardHeader board={board} onBack={handleBack} />
       
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Issues</h2>
+      <div className="flex justify-end">
         {permissions.can_create && (
           <CreateIssueButton boardId={boardId} />
         )}
