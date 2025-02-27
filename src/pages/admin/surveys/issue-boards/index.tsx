@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "@/components/ui/use-toast";
@@ -32,6 +32,10 @@ export default function AdminIssueBoards() {
 
   const handleEdit = (board: IssueBoard) => {
     navigate(`/admin/surveys/issue-boards/${board.id}`);
+  };
+
+  const handleView = (board: IssueBoard) => {
+    navigate(`/admin/surveys/issue-boards/${board.id}/view`);
   };
 
   const handleDelete = (id: string) => {
@@ -68,6 +72,13 @@ export default function AdminIssueBoards() {
         const board = row.original;
         return (
           <div className="flex items-center gap-2 justify-end">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleView(board)}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
