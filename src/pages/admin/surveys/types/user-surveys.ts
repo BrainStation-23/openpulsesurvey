@@ -17,6 +17,7 @@ export type Instance = {
   status: Database["public"]["Enums"]["instance_status"];
   period_number: number;
   unique_key: string;
+  anonymous: boolean;  // Add the anonymous property
 };
 
 export type UserSurvey = {

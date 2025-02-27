@@ -65,6 +65,7 @@ export type Database = {
           created_at: string
           description: string
           icon: string
+          icon_color: string
           id: string
           name: string
           points: number
@@ -77,6 +78,7 @@ export type Database = {
           created_at?: string
           description: string
           icon: string
+          icon_color?: string
           id?: string
           name: string
           points?: number
@@ -89,6 +91,7 @@ export type Database = {
           created_at?: string
           description?: string
           icon?: string
+          icon_color?: string
           id?: string
           name?: string
           points?: number
@@ -495,6 +498,208 @@ export type Database = {
         }
         Relationships: []
       }
+      issue_board_permissions: {
+        Row: {
+          board_id: string
+          can_create: boolean
+          can_view: boolean
+          can_vote: boolean
+          created_at: string
+          employee_role_ids: string[] | null
+          employee_type_ids: string[] | null
+          employment_type_ids: string[] | null
+          id: string
+          level_ids: string[] | null
+          location_ids: string[] | null
+          sbu_ids: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          board_id: string
+          can_create?: boolean
+          can_view?: boolean
+          can_vote?: boolean
+          created_at?: string
+          employee_role_ids?: string[] | null
+          employee_type_ids?: string[] | null
+          employment_type_ids?: string[] | null
+          id?: string
+          level_ids?: string[] | null
+          location_ids?: string[] | null
+          sbu_ids?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          board_id?: string
+          can_create?: boolean
+          can_view?: boolean
+          can_vote?: boolean
+          created_at?: string
+          employee_role_ids?: string[] | null
+          employee_type_ids?: string[] | null
+          employment_type_ids?: string[] | null
+          id?: string
+          level_ids?: string[] | null
+          location_ids?: string[] | null
+          sbu_ids?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_board_permissions_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "issue_boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      issue_boards: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["issue_board_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["issue_board_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["issue_board_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_boards_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_boards_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      issue_votes: {
+        Row: {
+          created_at: string
+          id: string
+          issue_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          issue_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          issue_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_votes_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      issues: {
+        Row: {
+          board_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          status: Database["public"]["Enums"]["issue_status"]
+          title: string
+          updated_at: string
+          vote_count: number
+        }
+        Insert: {
+          board_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["issue_status"]
+          title: string
+          updated_at?: string
+          vote_count?: number
+        }
+        Update: {
+          board_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["issue_status"]
+          title?: string
+          updated_at?: string
+          vote_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issues_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "issue_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issues_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issues_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       levels: {
         Row: {
           color_code: string | null
@@ -521,6 +726,202 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      live_session_participants: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          joined_at: string
+          last_active_at: string
+          participant_id: string
+          session_id: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          joined_at?: string
+          last_active_at?: string
+          participant_id: string
+          session_id: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          joined_at?: string
+          last_active_at?: string
+          participant_id?: string
+          session_id?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_session_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_survey_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_session_questions: {
+        Row: {
+          created_at: string
+          disabled_at: string | null
+          display_order: number
+          enabled_at: string | null
+          id: string
+          question_data: Json
+          question_key: string
+          session_id: string
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          disabled_at?: string | null
+          display_order?: number
+          enabled_at?: string | null
+          id?: string
+          question_data?: Json
+          question_key: string
+          session_id: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          disabled_at?: string | null
+          display_order?: number
+          enabled_at?: string | null
+          id?: string
+          question_data?: Json
+          question_key?: string
+          session_id?: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_session_questions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_survey_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_session_responses: {
+        Row: {
+          created_at: string
+          id: string
+          participant_id: string
+          question_key: string | null
+          response_data: Json
+          response_time: string | null
+          session_id: string
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          participant_id: string
+          question_key?: string | null
+          response_data?: Json
+          response_time?: string | null
+          session_id: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          participant_id?: string
+          question_key?: string | null
+          response_data?: Json
+          response_time?: string | null
+          session_id?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_session_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_survey_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_survey_sessions: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          join_code: string
+          name: string
+          status: Database["public"]["Enums"]["session_status"]
+          survey_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          join_code: string
+          name: string
+          status?: Database["public"]["Enums"]["session_status"]
+          survey_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          join_code?: string
+          name?: string
+          status?: Database["public"]["Enums"]["session_status"]
+          survey_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_survey_sessions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_survey_sessions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_survey_sessions_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       locations: {
         Row: {
@@ -1504,6 +1905,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      check_user_board_access: {
+        Args: {
+          p_user_id: string
+          p_board_id: string
+          p_access_type: string
+        }
+        Returns: boolean
+      }
       cleanup_campaign_cron_jobs: {
         Args: {
           p_campaign_id: string
@@ -1645,6 +2054,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      reorder_questions: {
+        Args: {
+          p_session_id: string
+          p_question_id: string
+          p_old_order: number
+          p_new_order: number
+          p_direction: string
+        }
+        Returns: boolean
+      }
       schedule_campaign_cron_job: {
         Args: {
           p_campaign_id: string
@@ -1656,6 +2075,23 @@ export type Database = {
           p_campaign_id: string
         }
         Returns: undefined
+      }
+      search_live_sessions: {
+        Args: {
+          search_text: string
+          status_filters: string[]
+          created_by_user: string
+        }
+        Returns: {
+          id: string
+          name: string
+          join_code: string
+          status: Database["public"]["Enums"]["session_status"]
+          created_at: string
+          description: string
+          survey_id: string
+          created_by: string
+        }[]
       }
       search_users:
         | {
@@ -1722,6 +2158,8 @@ export type Database = {
       gender_type: "male" | "female" | "other"
       grading_criteria_status: "active" | "inactive"
       instance_status: "upcoming" | "active" | "completed"
+      issue_board_status: "active" | "disabled"
+      issue_status: "open" | "closed"
       level_status: "active" | "inactive"
       profile_status: "active" | "disabled"
       prompt_category:
@@ -1740,7 +2178,7 @@ export type Database = {
         | "yearly"
       response_status: "assigned" | "in_progress" | "submitted" | "expired"
       scenario_status: "active" | "inactive" | "draft"
-      session_status: "initial" | "playing" | "submitted"
+      session_status: "initial" | "active" | "paused" | "ended"
       survey_status: "draft" | "published" | "archived"
       user_role: "admin" | "user"
     }

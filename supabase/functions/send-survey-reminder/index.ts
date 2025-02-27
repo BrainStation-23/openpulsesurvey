@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
@@ -15,119 +14,28 @@ const corsHeaders = {
 interface ReminderRequest {
   instanceId: string;
   campaignId: string;
+  assignmentIds: string[];
   frontendUrl: string;
 }
 
-const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+// Helper function to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  try {
-    console.log("Starting reminder process...");
+// Process emails in batches with rate limiting
+async function processBatch(assignments: any[], emailConfig: any, instance: any, frontendUrl: string) {
+  const BATCH_SIZE = 2; // Process 2 emails at a time (Resend's limit)
+  const DELAY_BETWEEN_BATCHES = 1100; // Wait 1.1 seconds between batches (slightly more than required to be safe)
+  
+  let successCount = 0;
+  let failureCount = 0;
+  let skippedCount = 0;
+
+  for (let i = 0; i < assignments.length; i += BATCH_SIZE) {
+    const batch = assignments.slice(i, i + BATCH_SIZE);
     
-    if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY is not configured");
-    }
-
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("Supabase credentials are not configured");
-    }
-
-    const { instanceId, campaignId, frontendUrl }: ReminderRequest = await req.json();
-    console.log("Reminder request:", { instanceId, campaignId, frontendUrl });
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Get the email configuration
-    const { data: emailConfig, error: configError } = await supabase
-      .from('email_config')
-      .select('*')
-      .maybeSingle();
-
-    if (configError) {
-      console.error("Email config error:", configError);
-      throw new Error("Failed to fetch email configuration");
-    }
-
-    if (!emailConfig) {
-      throw new Error("No email configuration found");
-    }
-
-    // Get instance details
-    const { data: instance, error: instanceError } = await supabase
-      .from('campaign_instances')
-      .select('*')
-      .eq('id', instanceId)
-      .single();
-
-    if (instanceError) {
-      console.error("Instance error:", instanceError);
-      throw new Error("Failed to fetch instance details");
-    }
-
-    if (!instance) {
-      throw new Error("Instance not found");
-    }
-
-    // Get pending assignments with user and survey details using a LEFT JOIN approach
-    // Note: Using the specific foreign key as indicated in the error message
-    const { data: assignments, error: assignmentsError } = await supabase
-      .from('survey_assignments')
-      .select(`
-        id,
-        public_access_token,
-        last_reminder_sent,
-        user:profiles!survey_assignments_user_id_fkey (
-          email,
-          first_name,
-          last_name
-        ),
-        survey:surveys (
-          name
-        )
-      `)
-      .eq('campaign_id', campaignId)
-      .is('last_reminder_sent', null);
-
-    if (assignmentsError) {
-      console.error("Assignments error:", assignmentsError);
-      throw new Error("Failed to fetch assignments");
-    }
-
-    // Filter out assignments that already have responses for this instance
-    const { data: responses } = await supabase
-      .from('survey_responses')
-      .select('assignment_id')
-      .eq('campaign_instance_id', instanceId)
-      .eq('status', 'submitted');
-
-    const submittedAssignmentIds = new Set(responses?.map(r => r.assignment_id) || []);
-    const pendingAssignments = assignments?.filter(a => !submittedAssignmentIds.has(a.id)) || [];
-
-    if (!pendingAssignments.length) {
-      return new Response(
-        JSON.stringify({ 
-          message: "No pending assignments found",
-          successCount: 0,
-          failureCount: 0,
-          skippedCount: 0
-        }),
-        { 
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
-    }
-
-    let successCount = 0;
-    let failureCount = 0;
-    let skippedCount = 0;
-
-    // Send reminders to pending users
-    const results = await Promise.allSettled(
-      pendingAssignments.map(async (assignment) => {
+    // Process each email in the current batch concurrently
+    const batchResults = await Promise.allSettled(
+      batch.map(async (assignment) => {
         try {
           // Check cooldown period
           if (assignment.last_reminder_sent) {
@@ -143,14 +51,12 @@ const handler = async (req: Request): Promise<Response> => {
           const recipientName = `${assignment.user.first_name || ''} ${assignment.user.last_name || ''}`.trim() || 'Participant';
           const publicAccessUrl = `${frontendUrl}/public/survey/${assignment.public_access_token}`;
 
-          // Format deadline date and time
           const deadline = new Date(instance.ends_at);
           const formattedDeadline = deadline.toLocaleString('en-US', {
             dateStyle: 'full',
             timeStyle: 'short'
           });
 
-          // Calculate time remaining
           const now = new Date();
           const hoursRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60));
           const daysRemaining = Math.ceil(hoursRemaining / 24);
@@ -196,6 +102,7 @@ const handler = async (req: Request): Promise<Response> => {
           }
 
           // Update last_reminder_sent timestamp
+          const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
           const { error: updateError } = await supabase
             .from('survey_assignments')
             .update({ last_reminder_sent: new Date().toISOString() })
@@ -215,12 +122,124 @@ const handler = async (req: Request): Promise<Response> => {
       })
     );
 
+    // Wait before processing the next batch to respect rate limits
+    if (i + BATCH_SIZE < assignments.length) {
+      console.log(`Waiting ${DELAY_BETWEEN_BATCHES}ms before processing next batch...`);
+      await delay(DELAY_BETWEEN_BATCHES);
+    }
+  }
+
+  return { successCount, failureCount, skippedCount };
+}
+
+const handler = async (req: Request): Promise<Response> => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    console.log("Starting reminder process...");
+    
+    if (!RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY is not configured");
+    }
+
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("Supabase credentials are not configured");
+    }
+
+    const { instanceId, campaignId, assignmentIds, frontendUrl }: ReminderRequest = await req.json();
+    console.log("Reminder request:", { instanceId, campaignId, assignmentIds, frontendUrl });
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Get the email configuration
+    const { data: emailConfig, error: configError } = await supabase
+      .from('email_config')
+      .select('*')
+      .maybeSingle();
+
+    if (configError) {
+      console.error("Email config error:", configError);
+      throw new Error("Failed to fetch email configuration");
+    }
+
+    if (!emailConfig) {
+      throw new Error("No email configuration found");
+    }
+
+    // Get instance details if provided
+    let instance;
+    if (instanceId) {
+      const { data, error: instanceError } = await supabase
+        .from('campaign_instances')
+        .select('*')
+        .eq('id', instanceId)
+        .single();
+
+      if (instanceError) {
+        console.error("Instance error:", instanceError);
+        throw new Error("Failed to fetch instance details");
+      }
+
+      instance = data;
+    }
+
+    // Get only the selected assignments with user and survey details
+    const { data: assignments, error: assignmentsError } = await supabase
+      .from('survey_assignments')
+      .select(`
+        id,
+        public_access_token,
+        last_reminder_sent,
+        user:profiles!survey_assignments_user_id_fkey (
+          email,
+          first_name,
+          last_name
+        ),
+        survey:surveys (
+          name
+        )
+      `)
+      .in('id', assignmentIds);
+
+    if (assignmentsError) {
+      console.error("Assignments error:", assignmentsError);
+      throw new Error("Failed to fetch assignments");
+    }
+
+    if (!assignments?.length) {
+      return new Response(
+        JSON.stringify({ 
+          message: "No assignments found",
+          successCount: 0,
+          failureCount: 0,
+          skippedCount: 0
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    }
+
+    console.log(`Processing ${assignments.length} selected assignments in batches...`);
+
+    // Process selected assignments with rate limiting
+    const { successCount, failureCount, skippedCount } = await processBatch(
+      assignments,
+      emailConfig,
+      instance,
+      frontendUrl
+    );
+
     return new Response(
       JSON.stringify({ 
-        message: `Processed ${pendingAssignments.length} assignments`,
+        message: `Processed ${assignments.length} assignments with rate limiting`,
         successCount,
         failureCount,
-        skippedCount,
+        skippedCount
       }),
       { 
         status: failureCount > 0 ? 500 : 200,
@@ -232,7 +251,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.error("Error in send-survey-reminder function:", error);
     return new Response(
       JSON.stringify({ 
-        error: "Failed to send email reminder",
+        error: "Failed to send reminders",
         details: error.message,
         successCount: 0,
         failureCount: 1,

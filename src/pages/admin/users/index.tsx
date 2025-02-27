@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { User } from "./types";
@@ -6,23 +7,15 @@ import { useUserActions } from "./hooks/useUserActions";
 import { useSBUs } from "./hooks/useSBUs";
 import { useFilterOptions } from "./hooks/useFilterOptions";
 import { UserGrid } from "./components/UserGrid";
+import { UsersHeader } from "./components/UsersHeader";
 import CreateUserDialog from "./components/CreateUserDialog";
 import EditUserDialog from "./components/EditUserDialog";
 import { SearchFilters } from "./components/UserTable/SearchFilters";
 import { ImportDialog } from "./components/ImportDialog";
 import { BulkUpdateDialog } from "./components/BulkUpdateDialog";
 import { ExportProgress } from "./components/UserTable/ExportProgress";
-import { Button } from "@/components/ui/button";
-import { Power, MoreHorizontal, Upload, UserRoundPlus, FilePlus2, FileSpreadsheet, Download } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { exportAllUsers } from "./utils/exportUsers";
+import { useBulkOperations } from "./components/BulkOperations";
+import { useExportOperations } from "./components/ExportOperations";
 
 export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -69,116 +62,19 @@ export default function UsersPage() {
     isLoading: isLoadingFilters
   } = useFilterOptions();
   const { handleCreateSuccess, handleDelete } = useUserActions(refetch);
-
-  const handleBulkDelete = async () => {
-    try {
-      for (const userId of selectedUsers) {
-        await handleDelete(userId);
-      }
-      toast.success(`Successfully deleted ${selectedUsers.length} users`);
-      setSelectedUsers([]);
-    } catch (error) {
-      toast.error("Failed to delete selected users");
-    }
-  };
-
-  const handleBulkStatusToggle = async () => {
-    try {
-      const { data: firstUser } = await supabase
-        .from('profiles')
-        .select('status')
-        .eq('id', selectedUsers[0])
-        .single();
-
-      const newStatus = firstUser?.status === 'active' ? 'disabled' : 'active';
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({ status: newStatus })
-        .in('id', selectedUsers);
-
-      if (error) throw error;
-
-      refetch();
-      
-      toast.success(
-        `Successfully ${newStatus === 'active' ? 'activated' : 'deactivated'} ${selectedUsers.length} users`
-      );
-      
-      setSelectedUsers([]);
-    } catch (error) {
-      console.error('Error toggling status:', error);
-      toast.error("Failed to update user status");
-    }
-  };
-
-  const handleExportAll = async () => {
-    try {
-      setExportProgress({
-        isOpen: true,
-        processed: 0,
-        total: 0,
-        error: "",
-        isComplete: false
-      });
-
-      await exportAllUsers((processed, total) => {
-        setExportProgress(prev => ({
-          ...prev,
-          processed,
-          total
-        }));
-      });
-
-      setExportProgress(prev => ({
-        ...prev,
-        isComplete: true
-      }));
-
-      toast.success("Successfully exported all users");
-    } catch (error) {
-      console.error("Error exporting all users:", error);
-      setExportProgress(prev => ({
-        ...prev,
-        error: "Failed to export users"
-      }));
-      toast.error("Failed to export all users");
-    }
-  };
+  const { handleBulkDelete, handleBulkStatusToggle } = useBulkOperations();
+  const { exportProgress, setExportProgress, handleExportAll } = useExportOperations();
 
   const totalPages = Math.ceil((data?.total || 0) / pageSize);
 
-  const [exportProgress, setExportProgress] = useState({
-    isOpen: false,
-    processed: 0,
-    total: 0,
-    error: "",
-    isComplete: false
-  });
-
   return (
     <div className="container mx-auto py-6 space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Users</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <UserRoundPlus className="mr-2 h-4 w-4"/>
-            Add User
-          </Button>
-          <Button onClick={() => setIsImportDialogOpen(true)} variant="outline">
-            <FilePlus2 className="mr-2 h-4 w-4"/>
-            Bulk Create Users
-          </Button>
-          <Button onClick={() => setIsUpdateDialogOpen(true)} variant="outline">
-            <FileSpreadsheet className="mr-2 h-4 w-4" />
-            Bulk Update Users
-          </Button>
-          <Button onClick={handleExportAll} variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export All
-          </Button>
-        </div>
-      </div>
+      <UsersHeader
+        onCreateUser={() => setIsCreateDialogOpen(true)}
+        onBulkCreate={() => setIsImportDialogOpen(true)}
+        onBulkUpdate={() => setIsUpdateDialogOpen(true)}
+        onExportAll={handleExportAll}
+      />
 
       <div className="space-y-4">
         <SearchFilters
@@ -221,8 +117,14 @@ export default function UsersPage() {
           onDelete={handleDelete}
           onRoleToggle={() => {}}
           onStatusToggle={() => {}}
-          onBulkStatusToggle={handleBulkStatusToggle}
-          onBulkDelete={handleBulkDelete}
+          onBulkStatusToggle={() => handleBulkStatusToggle(selectedUsers, () => {
+            setSelectedUsers([]);
+            refetch();
+          })}
+          onBulkDelete={() => handleBulkDelete(selectedUsers, () => {
+            setSelectedUsers([]);
+            refetch();
+          })}
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}

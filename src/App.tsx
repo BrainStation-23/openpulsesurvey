@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { TourProvider } from "./components/onboarding/TourContext";
+import { Tour } from "./components/onboarding/Tour";
 import MainLayout from "./components/layouts/MainLayout";
 import Index from "./pages/Index";
 import Features from "./pages/Features";
@@ -17,6 +19,9 @@ import Dashboard from "./pages/Dashboard";
 
 import PublicSurveyPage from "./pages/public/Survey";
 import ThankYouPage from "./pages/public/ThankYou";
+import LiveEntryPage from "./pages/live/LiveEntryPage";
+import PublicLiveSession from "./pages/live/PublicLiveSession";
+import JoinLiveSession from "./pages/live/JoinLiveSession";
 
 // User pages
 import UserDashboard from "./pages/user/Dashboard";
@@ -24,6 +29,7 @@ import UserSettings from "./pages/user/Settings";
 import UserMySurveys from "./pages/user/my-surveys";
 import UserSurveyResponse from "./pages/user/my-surveys/[id]";
 import UserAchievementsPage from "./pages/user/achievements";
+import UserIssueBoards from "./pages/user/issue-boards";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -39,6 +45,9 @@ import PreviewSurveyPage from "./pages/admin/surveys/[id]/preview";
 import CampaignsPage from "./pages/admin/surveys/campaigns";
 import CampaignFormPage from "./pages/admin/surveys/campaigns/CampaignFormPage";
 import CampaignDetailsPage from "./pages/admin/surveys/campaigns/[id]";
+import LiveSurveyPage from "./pages/admin/surveys/live";
+import LiveSessionControlPage from "./pages/admin/surveys/live/[sessionId]";
+import AdminIssueBoards from "./pages/admin/surveys/issue-boards";
 import PresentationView from "./pages/admin/surveys/campaigns/[id]/components/PresentationView/index";
 import PlatformConfigLayout from "./components/layouts/PlatformConfigLayout";
 import SBUsConfig from "./pages/admin/config/sbus";
@@ -52,6 +61,8 @@ import EmployeeRoleConfig from "./pages/admin/config/employee-role";
 import AIPromptsConfig from "./pages/admin/config/ai-prompts";
 import AchievementsPage from "./pages/admin/achievements";
 import AchievementFormPage from "./pages/admin/achievements/AchievementFormPage";
+import CreateIssueBoard from "./pages/admin/surveys/issue-boards/CreateIssueBoard";
+import EditIssueBoard from "./pages/admin/surveys/issue-boards/EditIssueBoard";
 
 const queryClient = new QueryClient();
 
@@ -59,67 +70,79 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <Routes>
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/features" element={<Features />} />
-            <Route path="/tech-stack" element={<TechStack />} />
-            <Route path="/why-us" element={<WhyUs />} />
-          </Route>
-          <Route path="/login" element={<Login />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/auth/reset-password" element={<ResetPassword />} />
-          
-          {/* Public routes */}
-          <Route path="/public/survey/:token" element={<PublicSurveyPage />} />
-          <Route path="/public/survey/:token/thank-you" element={<ThankYouPage />} />
-          
-          {/* User routes */}
-          <Route path="/user" element={<UserLayout />}>
-            <Route index element={<Navigate to="/user/dashboard" replace />} />
-            <Route path="dashboard" element={<UserDashboard />} />
-            <Route path="my-surveys" element={<UserMySurveys />} />
-            <Route path="my-surveys/:assignmentId/:instanceId" element={<UserSurveyResponse />} />
-            <Route path="settings" element={<UserSettings />} />
-            <Route path="achievements" element={<UserAchievementsPage />} />
-          </Route>
-          
-          {/* Admin routes */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="users" element={<Users />} />
-            <Route path="users/:id/edit" element={<EditUserPage />} />
-            <Route path="my-surveys" element={<MySurveysPage />} />
-            <Route path="my-surveys/:assignmentId/:instanceId" element={<SurveyResponsePage />} />
-            <Route path="surveys" element={<SurveysPage />} />
-            <Route path="surveys/create" element={<SurveyFormPage />} />
-            <Route path="surveys/:id/edit" element={<SurveyFormPage />} />
-            <Route path="surveys/:id/preview" element={<PreviewSurveyPage />} />
-            <Route path="surveys/campaigns" element={<CampaignsPage />} />
-            <Route path="surveys/campaigns/create" element={<CampaignFormPage />} />
-            <Route path="surveys/campaigns/:id" element={<CampaignDetailsPage />} />
-            <Route path="surveys/campaigns/:id/present" element={<PresentationView />} />
-            <Route path="config" element={<PlatformConfigLayout />}>
-              <Route index element={<AdminConfig />} />
-              <Route path="sbus" element={<SBUsConfig />} />
-              <Route path="sbus/:id" element={<SBUDetails />} />
-              <Route path="email" element={<EmailConfig />} />
-              <Route path="level" element={<LevelConfig />} />
-              <Route path="location" element={<LocationConfig />} />
-              <Route path="employment-type" element={<EmploymentTypeConfig />} />
-              <Route path="employee-type" element={<EmployeeTypeConfig />} />
-              <Route path="employee-role" element={<EmployeeRoleConfig />} />
-              <Route path="ai-prompts" element={<AIPromptsConfig />} />
+        <TourProvider>
+          <Tour />
+          <Toaster />
+          <Sonner />
+          <Routes>
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/features" element={<Features />} />
+              <Route path="/tech-stack" element={<TechStack />} />
+              <Route path="/why-us" element={<WhyUs />} />
             </Route>
-            <Route path="achievements" element={<AchievementsPage />} />
-            <Route path="achievements/create" element={<AchievementFormPage />} />
-            <Route path="achievements/:id/edit" element={<AchievementFormPage />} />
-            <Route path="settings" element={<AdminSettings />} />
-          </Route>
-        </Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
+            
+            <Route path="/live" element={<LiveEntryPage />} />
+            <Route path="/live/:joinCode" element={<PublicLiveSession />} />
+            <Route path="/live/:joinCode/join" element={<JoinLiveSession />} />
+            
+            <Route path="/public/survey/:token" element={<PublicSurveyPage />} />
+            <Route path="/public/survey/:token/thank-you" element={<ThankYouPage />} />
+            
+            <Route path="/user" element={<UserLayout />}>
+              <Route index element={<Navigate to="/user/dashboard" replace />} />
+              <Route path="dashboard" element={<UserDashboard />} />
+              <Route path="my-surveys" element={<UserMySurveys />} />
+              <Route path="my-surveys/:assignmentId/:instanceId" element={<UserSurveyResponse />} />
+              <Route path="settings" element={<UserSettings />} />
+              <Route path="achievements" element={<UserAchievementsPage />} />
+              <Route path="issue-boards" element={<UserIssueBoards />} />
+            </Route>
+            
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="users" element={<Users />} />
+              <Route path="users/:id/edit" element={<EditUserPage />} />
+              <Route path="my-surveys" element={<MySurveysPage />} />
+              <Route path="my-surveys/:assignmentId/:instanceId" element={<SurveyResponsePage />} />
+              <Route path="surveys" element={<SurveysPage />} />
+              <Route path="surveys/create" element={<SurveyFormPage />} />
+              <Route path="surveys/:id/edit" element={<SurveyFormPage />} />
+              <Route path="surveys/:id/preview" element={<PreviewSurveyPage />} />
+              <Route path="surveys/campaigns" element={<CampaignsPage />} />
+              <Route path="surveys/campaigns/create" element={<CampaignFormPage />} />
+              <Route path="surveys/campaigns/:id" element={<CampaignDetailsPage />} />
+              <Route path="surveys/campaigns/:id/present" element={<PresentationView />} />
+              <Route path="surveys/live" element={<LiveSurveyPage />} />
+              <Route path="surveys/live/:sessionId" element={<LiveSessionControlPage />} />
+              
+              <Route path="surveys/issue-boards" element={<AdminIssueBoards />} />
+              <Route path="surveys/issue-boards/create" element={<CreateIssueBoard />} />
+              <Route path="surveys/issue-boards/:id" element={<EditIssueBoard />} />
+              
+              <Route path="config" element={<PlatformConfigLayout />}>
+                <Route index element={<AdminConfig />} />
+                <Route path="sbus" element={<SBUsConfig />} />
+                <Route path="sbus/:id" element={<SBUDetails />} />
+                <Route path="email" element={<EmailConfig />} />
+                <Route path="level" element={<LevelConfig />} />
+                <Route path="location" element={<LocationConfig />} />
+                <Route path="employment-type" element={<EmploymentTypeConfig />} />
+                <Route path="employee-type" element={<EmployeeTypeConfig />} />
+                <Route path="employee-role" element={<EmployeeRoleConfig />} />
+                <Route path="ai-prompts" element={<AIPromptsConfig />} />
+              </Route>
+              <Route path="achievements" element={<AchievementsPage />} />
+              <Route path="achievements/create" element={<AchievementFormPage />} />
+              <Route path="achievements/:id/edit" element={<AchievementFormPage />} />
+              <Route path="settings" element={<AdminSettings />} />
+            </Route>
+          </Routes>
+        </TourProvider>
       </TooltipProvider>
     </BrowserRouter>
   </QueryClientProvider>

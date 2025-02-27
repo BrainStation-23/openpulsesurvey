@@ -5,6 +5,17 @@ export type AchievementType =
   | 'streak'
   | 'campaign_completion';
 
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  achievement_type: AchievementType;
+  points: number;
+  icon: string;
+  icon_color: string;
+  status: 'active' | 'inactive';
+}
+
 export interface AchievementTypeConfig {
   label: string;
   description: string;

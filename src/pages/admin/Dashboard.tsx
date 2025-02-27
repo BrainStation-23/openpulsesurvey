@@ -14,12 +14,14 @@ import { ManagersNeedingImprovement } from "@/components/admin/dashboard/analyti
 import { DemographicBreakdown } from "@/components/admin/dashboard/analytics/DemographicBreakdown";
 import { UpcomingSurveyDeadlines } from "@/components/admin/dashboard/analytics/UpcomingSurveyDeadlines";
 import { SilentEmployees } from "@/components/admin/dashboard/analytics/SilentEmployees";
+import { TourButton } from "@/components/onboarding/TourButton";
+import { Tour } from "@/components/onboarding/Tour";
 
 // Layout configurations for different components
 const componentLayouts = {
-  narrowList: "col-span-1", // Components that work well in narrow spaces (1/3 width)
-  mediumWidth: "col-span-2", // Components that need medium width (2/3 width)
-  fullWidth: "col-span-3", // Components that need full width
+  narrowList: "col-span-1",
+  mediumWidth: "col-span-2",
+  fullWidth: "col-span-3",
 };
 
 export default function AdminDashboard() {
@@ -40,6 +42,7 @@ export default function AdminDashboard() {
           </Button>
           <h1 className="text-2xl font-bold">Dashboard</h1>
         </div>
+        <TourButton tourId="dashboard_overview" title="Dashboard Guide" />
       </div>
       
       <Tabs defaultValue="overview" className="space-y-4">
@@ -52,12 +55,14 @@ export default function AdminDashboard() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <MetricsOverview />
+          <div className="metrics-overview">
+            <MetricsOverview />
+          </div>
           <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
-            <div className={componentLayouts.mediumWidth}>
+            <div className={`${componentLayouts.mediumWidth} response-trends`}>
               <ResponseTrendChart />
             </div>
-            <div className={componentLayouts.fullWidth}>
+            <div className={`${componentLayouts.fullWidth} department-completion`}>
               <DepartmentCompletionChart />
             </div>
           </div>
@@ -66,13 +71,13 @@ export default function AdminDashboard() {
         {/* Performance Tab */}
         <TabsContent value="performance" className="space-y-6">
           <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
-            <div className={componentLayouts.narrowList}>
+            <div className={`${componentLayouts.narrowList} top-surveys`}>
               <TopSurveysTable />
             </div>
-            <div className={componentLayouts.mediumWidth}>
+            <div className={`${componentLayouts.mediumWidth} top-sbus`}>
               <TopSBUsTable />
             </div>
-            <div className={componentLayouts.fullWidth}>
+            <div className={`${componentLayouts.fullWidth} top-managers`}>
               <TopManagersTable />
             </div>
           </div>
@@ -81,7 +86,7 @@ export default function AdminDashboard() {
         {/* Demographics Tab */}
         <TabsContent value="demographics" className="space-y-6">
           <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
-            <div className={componentLayouts.fullWidth}>
+            <div className={`${componentLayouts.fullWidth} demographic-breakdown`}>
               <DemographicBreakdown />
             </div>
           </div>
@@ -90,10 +95,10 @@ export default function AdminDashboard() {
         {/* Needs Attention Tab */}
         <TabsContent value="attention" className="space-y-6">
           <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
-            <div className={componentLayouts.narrowList}>
+            <div className={`${componentLayouts.narrowList} upcoming-deadlines`}>
               <UpcomingSurveyDeadlines />
             </div>
-            <div className={componentLayouts.mediumWidth}>
+            <div className={`${componentLayouts.mediumWidth} managers-improvement`}>
               <ManagersNeedingImprovement />
             </div>
             <div className={componentLayouts.fullWidth}>
@@ -102,6 +107,7 @@ export default function AdminDashboard() {
           </div>
         </TabsContent>
       </Tabs>
+      <Tour />
     </div>
   );
 }

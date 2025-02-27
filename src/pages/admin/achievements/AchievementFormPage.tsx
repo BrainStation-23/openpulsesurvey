@@ -37,6 +37,7 @@ const formSchema = z.object({
   description: z.string().min(1, "Description is required"),
   achievement_type: z.enum(['survey_completion', 'response_rate', 'streak', 'campaign_completion'] as const),
   icon: z.string().min(1, "Icon is required"),
+  icon_color: z.string().min(1, "Icon color is required"),
   points: z.coerce.number().min(0, "Points must be a positive number"),
   status: z.enum(['active', 'inactive']),
   condition_value: z.string().transform(val => JSON.parse(val)),
@@ -53,6 +54,7 @@ type Achievement = {
   description: string;
   achievement_type: AchievementType;
   icon: string;
+  icon_color: string;
   points: number;
   status: 'active' | 'inactive';
   condition_value: any;
@@ -73,6 +75,7 @@ export default function AchievementFormPage() {
       description: "",
       achievement_type: "survey_completion",
       icon: "Trophy",
+      icon_color: "blue",
       points: 0,
       status: "active",
       condition_value: "{}",
@@ -120,6 +123,7 @@ export default function AchievementFormPage() {
           description: values.description,
           achievement_type: values.achievement_type,
           icon: values.icon,
+          icon_color: values.icon_color,
           points: values.points,
           status: values.status,
           condition_value: values.condition_value,
@@ -150,6 +154,7 @@ export default function AchievementFormPage() {
           description: values.description,
           achievement_type: values.achievement_type,
           icon: values.icon,
+          icon_color: values.icon_color,
           points: values.points,
           status: values.status,
           condition_value: values.condition_value,
@@ -240,7 +245,12 @@ export default function AchievementFormPage() {
                         <FormItem>
                           <FormLabel>Icon</FormLabel>
                           <FormControl>
-                            <IconPicker value={field.value} onChange={field.onChange} />
+                            <IconPicker 
+                              value={field.value} 
+                              onChange={field.onChange}
+                              color={form.watch("icon_color")}
+                              onColorChange={(color) => form.setValue("icon_color", color)}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -330,14 +340,19 @@ export default function AchievementFormPage() {
                   <div className="flex items-center gap-4 p-4 border rounded-lg">
                     {form.watch("icon") && (() => {
                       const PreviewIcon = icons[form.watch("icon") as keyof typeof icons] as LucideIcon;
-                      return PreviewIcon ? <PreviewIcon className="w-12 h-12 text-primary" /> : null;
+                      return PreviewIcon ? (
+                        <PreviewIcon 
+                          className="w-12 h-12" 
+                          style={{ color: form.watch("icon_color") || "#8B5CF6" }} 
+                        />
+                      ) : null;
                     })()}
                     <div>
                       <h3 className="font-semibold">{form.watch("name") || "Achievement Name"}</h3>
                       <p className="text-sm text-muted-foreground">
                         {form.watch("description") || "Achievement description will appear here"}
                       </p>
-                      <div className="text-sm font-medium text-primary mt-1">
+                      <div className="text-sm font-medium mt-1" style={{ color: form.watch("icon_color") || "#8B5CF6" }}>
                         {form.watch("points")} points
                       </div>
                     </div>

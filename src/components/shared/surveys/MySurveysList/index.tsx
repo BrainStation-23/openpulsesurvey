@@ -8,6 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
 import SurveyFilters from "./components/SurveyFilters";
 import CampaignGroup from "./components/CampaignGroup";
+import { Tour } from "@/components/onboarding/Tour";
+import { TourButton } from "@/components/onboarding/TourButton";
 import { ResponseStatus, UserSurvey } from "@/pages/admin/surveys/types/user-surveys";
 
 interface CampaignGroup {
@@ -15,6 +17,7 @@ interface CampaignGroup {
   name: string;
   description?: string | null;
   instances: UserSurvey[];
+  anonymous?: boolean;
 }
 
 export default function MySurveysList() {
@@ -104,11 +107,14 @@ export default function MySurveysList() {
     let group = groups.find(g => g.campaign_id === survey.campaign_id);
     
     if (!group) {
+      // Since instance is a jsonb column, we can access the anonymous property directly
+      const instanceData = survey.instance as any; // Type assertion needed since Instance type doesn't include anonymous
       group = {
         campaign_id: survey.campaign_id,
         name: survey.survey.name,
         description: survey.survey.description,
-        instances: []
+        instances: [],
+        anonymous: instanceData.anonymous
       };
       groups.push(group);
     }
@@ -144,25 +150,34 @@ export default function MySurveysList() {
 
   return (
     <div className="space-y-4">
-      <SurveyFilters
-        searchQuery={searchQuery}
-        statusFilter={statusFilter}
-        onSearchChange={setSearchQuery}
-        onStatusChange={setStatusFilter}
-        isLoading={isLoading}
-      />
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">My Surveys</h2>
+        <TourButton tourId="my_surveys_guide" title="My Surveys Guide" />
+      </div>
+
+      <div className="search-filters">
+        <SurveyFilters
+          searchQuery={searchQuery}
+          statusFilter={statusFilter}
+          onSearchChange={setSearchQuery}
+          onStatusChange={setStatusFilter}
+          isLoading={isLoading}
+        />
+      </div>
 
       <ScrollArea className="h-[calc(100vh-14rem)]">
         <div className="space-y-4 p-4">
           {groupedAndFilteredSurveys.map((group) => (
-            <CampaignGroup
-              key={group.campaign_id}
-              campaignId={group.campaign_id}
-              name={group.name}
-              description={group.description}
-              instances={group.instances}
-              onSelectSurvey={handleSelectSurvey}
-            />
+            <div key={group.campaign_id} className="campaign-group">
+              <CampaignGroup
+                campaignId={group.campaign_id}
+                name={group.name}
+                description={group.description}
+                instances={group.instances}
+                onSelectSurvey={handleSelectSurvey}
+                isAnonymous={group.anonymous}
+              />
+            </div>
           ))}
           {groupedAndFilteredSurveys.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
@@ -171,6 +186,7 @@ export default function MySurveysList() {
           )}
         </div>
       </ScrollArea>
+      <Tour />
     </div>
   );
 }
