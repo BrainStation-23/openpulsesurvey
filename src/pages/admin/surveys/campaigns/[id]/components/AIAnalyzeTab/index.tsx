@@ -28,12 +28,11 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
   const { data: analysisData, isLoading: isLoadingData } = useQuery({
     queryKey: ['instance-analysis-data', campaignId, instanceId],
     queryFn: async () => {
-      // Use a raw query instead of rpc since the function name isn't in the TypeScript definitions yet
       const { data, error } = await supabase
         .from('get_instance_analysis_data')
         .select('*')
-        .eq('p_campaign_id', campaignId)
-        .eq('p_instance_id', instanceId)
+        .filter('p_campaign_id', 'eq', campaignId)
+        .filter('p_instance_id', 'eq', instanceId)
         .single();
 
       if (error) throw error;
