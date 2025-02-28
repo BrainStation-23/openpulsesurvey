@@ -21,16 +21,24 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
     queryFn: async () => {
       console.log('Fetching analysis data for:', { campaignId, instanceId });
       
-      // Get campaign info
+      // Get campaign and survey info
       const { data: campaignData, error: campaignError } = await supabase
         .from('survey_campaigns')
-        .select('*, survey:surveys(name, description)')
+        .select(`
+          *,
+          survey:surveys(
+            id,
+            name,
+            description,
+            json_data
+          )
+        `)
         .eq('id', campaignId)
         .single();
 
       if (campaignError) throw campaignError;
 
-      // Get instance info
+      // Get instance info with aggregated stats
       const { data: instanceData, error: instanceError } = await supabase
         .from('campaign_instances')
         .select('*')
@@ -39,25 +47,122 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
 
       if (instanceError) throw instanceError;
 
-      // Get response data
+      // Get responses with demographic data
       const { data: responseData, error: responseError } = await supabase
         .from('survey_responses')
         .select(`
+          id,
           response_data,
-          campaign_instance_id
+          campaign_instance_id,
+          submitted_at,
+          user:profiles(
+            id,
+            gender,
+            location:locations(id, name),
+            employment_type:employment_types(id, name),
+            sbus:user_sbus(
+              is_primary,
+              sbu:sbus(id, name)
+            )
+          )
         `)
         .eq('campaign_instance_id', instanceId);
 
       if (responseError) throw responseError;
 
+      // Process demographic data
+      const demographicStats = {
+        by_department: {} as Record<string, { total: number, completed: number }>,
+        by_gender: {} as Record<string, { total: number, completed: number }>,
+        by_location: {} as Record<string, { total: number, completed: number }>,
+        by_employment_type: {} as Record<string, { total: number, completed: number }>,
+      };
+
+      // Process question data based on type
+      const questionStats = {} as Record<string, {
+        type: string;
+        question: string;
+        average?: number;
+        true_count?: number;
+        false_count?: number;
+        responses?: string[];
+      }>;
+
+      // Process each response
+      responseData?.forEach(response => {
+        // Process demographic data
+        const user = response.user;
+        const primarySbu = user?.sbus?.find((s: any) => s.is_primary)?.sbu?.name || 'Unknown';
+        const location = user?.location?.name || 'Unknown';
+        const gender = user?.gender || 'Unknown';
+        const employmentType = user?.employment_type?.name || 'Unknown';
+
+        // Initialize demographic counters if needed
+        [
+          [demographicStats.by_department, primarySbu],
+          [demographicStats.by_gender, gender],
+          [demographicStats.by_location, location],
+          [demographicStats.by_employment_type, employmentType]
+        ].forEach(([stats, key]) => {
+          if (!(key in stats)) {
+            (stats as any)[key] = { total: 0, completed: 0 };
+          }
+          (stats as any)[key].total++;
+          if (response.response_data) {
+            (stats as any)[key].completed++;
+          }
+        });
+
+        // Process questions
+        if (response.response_data) {
+          Object.entries(response.response_data).forEach(([key, value]: [string, any]) => {
+            if (!questionStats[key]) {
+              questionStats[key] = {
+                type: value.type,
+                question: value.question,
+                ...(value.type === 'rating' ? { average: 0 } : {}),
+                ...(value.type === 'boolean' ? { true_count: 0, false_count: 0 } : {}),
+                ...(value.type === 'text' ? { responses: [] } : {})
+              };
+            }
+
+            // Update stats based on question type
+            if (value.type === 'rating' && typeof value.answer === 'number') {
+              questionStats[key].average = ((questionStats[key].average || 0) + value.answer) / 2;
+            } else if (value.type === 'boolean') {
+              if (value.answer === true) questionStats[key].true_count = (questionStats[key].true_count || 0) + 1;
+              if (value.answer === false) questionStats[key].false_count = (questionStats[key].false_count || 0) + 1;
+            } else if (value.type === 'text' && value.answer) {
+              questionStats[key].responses = [...(questionStats[key].responses || []), value.answer];
+            }
+          });
+        }
+      });
+
+      // Calculate response trends
+      const responseTrends = responseData
+        ?.sort((a, b) => new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime())
+        ?.reduce((acc: any[], response) => {
+          const date = new Date(response.submitted_at).toISOString().split('T')[0];
+          const existing = acc.find(d => d.date === date);
+          if (existing) {
+            existing.count++;
+          } else {
+            acc.push({ date, count: 1 });
+          }
+          return acc;
+        }, []);
+
       return {
         campaign: campaignData,
         instance: instanceData,
-        responses: responseData,
-        summary: {
+        overview: {
+          completion_rate: instanceData.completion_rate,
           total_responses: responseData?.length || 0,
-          completion_rate: instanceData?.completion_rate || 0
-        }
+          response_trends: responseTrends
+        },
+        demographics: demographicStats,
+        questions: questionStats
       };
     },
     enabled: !!instanceId && !!campaignId

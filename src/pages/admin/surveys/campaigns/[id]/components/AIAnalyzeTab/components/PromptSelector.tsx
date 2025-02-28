@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -60,33 +59,72 @@ export function PromptSelector({ onAnalyze, analysisData, isAnalyzing }: PromptS
     return matchesSearch && matchesCategory;
   });
 
-  // Format the analysis data to show in preview
   const getFormattedAnalysisData = () => {
     if (!analysisData) return "No data available";
 
-    // Extract and format questions and responses
-    const formattedData = {
-      survey_name: analysisData.campaign.survey.name,
-      total_responses: analysisData.responses.length,
-      questions: {} as Record<string, any>
-    };
+    const formatPercentage = (completed: number, total: number) => 
+      total > 0 ? ((completed / total) * 100).toFixed(1) + '%' : '0%';
 
-    // Process each response
-    analysisData.responses.forEach((response: any) => {
-      const answers = response.response_data;
-      Object.entries(answers).forEach(([key, value]: [string, any]) => {
-        if (!formattedData.questions[key]) {
-          formattedData.questions[key] = {
-            type: value.type,
-            question: value.question,
-            answers: []
+    const formattedData = {
+      "Overview": {
+        "Completion Rate": analysisData.overview.completion_rate + '%',
+        "Total Responses": analysisData.overview.total_responses,
+        "Response Trends": analysisData.overview.response_trends
+      },
+      "Demographics": {
+        "Response Rate by Department": Object.entries(analysisData.demographics.by_department)
+          .map(([dept, stats]) => ({
+            department: dept,
+            response_rate: formatPercentage(stats.completed, stats.total),
+            total_assigned: stats.total
+          })),
+        "Response Rate by Gender": Object.entries(analysisData.demographics.by_gender)
+          .map(([gender, stats]) => ({
+            gender,
+            response_rate: formatPercentage(stats.completed, stats.total),
+            total_assigned: stats.total
+          })),
+        "Response Rate by Location": Object.entries(analysisData.demographics.by_location)
+          .map(([location, stats]) => ({
+            location,
+            response_rate: formatPercentage(stats.completed, stats.total),
+            total_assigned: stats.total
+          })),
+        "Response Rate by Employment Type": Object.entries(analysisData.demographics.by_employment_type)
+          .map(([type, stats]) => ({
+            type,
+            response_rate: formatPercentage(stats.completed, stats.total),
+            total_assigned: stats.total
+          }))
+      },
+      "Questions": Object.entries(analysisData.questions).map(([key, data]) => {
+        const base = {
+          question: data.question,
+          type: data.type
+        };
+
+        if (data.type === 'rating') {
+          return {
+            ...base,
+            average_score: data.average?.toFixed(1) || 'N/A'
           };
         }
-        if (value.answer !== undefined) {
-          formattedData.questions[key].answers.push(value.answer);
+        if (data.type === 'boolean') {
+          return {
+            ...base,
+            true_count: data.true_count || 0,
+            false_count: data.false_count || 0
+          };
         }
-      });
-    });
+        if (data.type === 'text') {
+          return {
+            ...base,
+            responses: data.responses || []
+          };
+        }
+        return base;
+      })
+    };
 
     return JSON.stringify(formattedData, null, 2);
   };
