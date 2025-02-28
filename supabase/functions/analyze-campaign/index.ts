@@ -22,12 +22,14 @@ serve(async (req) => {
     }
 
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    const modelName = Deno.env.get('GEMINI_MODEL_NAME') || 'gemini-pro'; // Fallback for backward compatibility
+    
     if (!geminiApiKey) {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
     const genAI = new GoogleGenerativeAI(geminiApiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: modelName });
 
     const context = `
       Survey Analysis Data:
