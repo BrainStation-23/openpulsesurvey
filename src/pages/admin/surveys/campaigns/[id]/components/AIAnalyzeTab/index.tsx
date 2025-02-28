@@ -30,8 +30,8 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
 
       if (error) throw error;
       
-      // Explicitly cast the data to match AnalysisData type
-      return data as AnalysisData;
+      // First cast to unknown, then to AnalysisData to avoid direct type conversion errors
+      return (data as unknown) as AnalysisData;
     },
     enabled: !!instanceId && !!campaignId
   });
