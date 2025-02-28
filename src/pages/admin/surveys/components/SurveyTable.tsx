@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { Eye, MoreVertical, Pencil, Play, Archive, Trash, Grid } from "lucide-react";
 import {
@@ -104,13 +105,16 @@ export function SurveyTable({ surveys, onDelete, onStatusChange }: SurveyTablePr
                         Archive
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem
-                      onClick={() => onDelete(survey.id)}
-                      className="text-destructive"
-                    >
-                      <Trash className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
+                    {/* Only show delete option for draft or archived surveys */}
+                    {survey.status !== 'published' && (
+                      <DropdownMenuItem
+                        onClick={() => onDelete(survey.id)}
+                        className="text-destructive"
+                      >
+                        <Trash className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
