@@ -20,6 +20,7 @@ serve(async (req) => {
   try {
     const { promptId, promptText, analysisData } = await req.json();
     console.log("Received parameters:", { promptId, promptText });
+    console.log("Raw analysis data:", JSON.stringify(analysisData, null, 2));
 
     // Validate required parameters
     if (!promptId || !promptText || !analysisData) {
@@ -30,17 +31,22 @@ serve(async (req) => {
     const formattedData = {
       overview: {
         survey_info: {
-          name: analysisData.campaign.survey.name,
-          description: analysisData.campaign.survey.description
+          name: analysisData.campaign?.survey?.name,
+          description: analysisData.campaign?.survey?.description
         },
-        completion_rate: analysisData.instance_info.completion_rate,
-        total_assignments: analysisData.instance_info.total_assignments,
-        completed_responses: analysisData.instance_info.completed_responses
+        completion_rate: analysisData.instance_info?.completion_rate,
+        total_assignments: analysisData.instance_info?.total_assignments,
+        completed_responses: analysisData.instance_info?.completed_responses
       },
-      demographics: analysisData.demographic_stats,
-      questions: analysisData.question_stats,
-      trends: analysisData.completion_trends
+      demographics: {
+        by_department: analysisData.demographic_stats?.department || [],
+        by_location: analysisData.demographic_stats?.location || []
+      },
+      questions: analysisData.question_stats || [],
+      trends: analysisData.completion_trends || []
     };
+
+    console.log("Formatted data for AI:", JSON.stringify(formattedData, null, 2));
 
     // Validate Gemini API key and model name
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
