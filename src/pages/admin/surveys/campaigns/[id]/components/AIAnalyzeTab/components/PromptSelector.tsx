@@ -10,10 +10,11 @@ import {
 } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 interface PromptSelectorProps {
   onAnalyze: (promptData: { id: string; text: string }) => void;
-  analysisData: Record<string, any> | null;
+  analysisData: Json | null;
   isAnalyzing: boolean;
 }
 

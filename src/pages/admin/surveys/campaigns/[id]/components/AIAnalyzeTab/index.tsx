@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PromptSelector } from "./components/PromptSelector";
 import { AnalysisViewer } from "./components/AnalysisViewer";
 import { useToast } from "@/hooks/use-toast";
+import { Json } from "@/integrations/supabase/types";
 
 interface AIAnalyzeTabProps {
   campaignId: string;
@@ -28,7 +29,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
         });
 
       if (error) throw error;
-      return data;
+      return data as Json;
     },
     enabled: !!instanceId && !!campaignId
   });
