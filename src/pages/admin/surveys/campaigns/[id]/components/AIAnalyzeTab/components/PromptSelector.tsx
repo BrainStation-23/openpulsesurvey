@@ -1,25 +1,28 @@
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Json } from "@/integrations/supabase/types";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Check, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PromptSelectorProps {
-  onAnalyze: (promptData: { id: string; text: string }) => void;
-  analysisData: Json | null;
-  isAnalyzing: boolean;
+  onPromptSelect: (promptData: { id: string, text: string }) => void;
+  selectedPromptId?: string;
 }
 
-export function PromptSelector({ onAnalyze, analysisData, isAnalyzing }: PromptSelectorProps) {
-  const [selectedPromptId, setSelectedPromptId] = useState<string>("");
+interface Prompt {
+  id: string;
+  name: string;
+  category: string;
+  prompt_text: string;
+  status: 'active';
+}
+
+export function PromptSelector({ onPromptSelect, selectedPromptId }: PromptSelectorProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const { data: prompts, isLoading } = useQuery({
     queryKey: ['analysis-prompts'],
@@ -27,49 +30,96 @@ export function PromptSelector({ onAnalyze, analysisData, isAnalyzing }: PromptS
       const { data, error } = await supabase
         .from('analysis_prompts')
         .select('*')
-        .eq('status', 'active');
-
+        .eq('status', 'active')
+        .order('name');
+      
       if (error) throw error;
-      return data;
-    }
+      return data as Prompt[];
+    },
   });
 
-  const selectedPrompt = prompts?.find(p => p.id === selectedPromptId);
+  const categories = Array.from(
+    new Set(prompts?.map(prompt => prompt.category) || [])
+  );
 
-  const handleAnalyze = () => {
-    if (selectedPrompt) {
-      onAnalyze({
-        id: selectedPrompt.id,
-        text: selectedPrompt.prompt_text
-      });
-    }
-  };
+  const filteredPrompts = prompts?.filter(prompt => {
+    const matchesSearch = prompt.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         prompt.prompt_text.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !selectedCategory || prompt.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   if (isLoading) {
-    return <div>Loading prompts...</div>;
+    return (
+      <div className="w-full space-y-4">
+        <Input
+          disabled
+          className="w-full"
+          placeholder="Loading prompts..."
+        />
+      </div>
+    );
   }
 
   return (
-    <div className="flex gap-4 items-center">
-      <Select value={selectedPromptId} onValueChange={setSelectedPromptId}>
-        <SelectTrigger className="w-[300px]">
-          <SelectValue placeholder="Select a prompt" />
-        </SelectTrigger>
-        <SelectContent>
-          {prompts?.map((prompt) => (
-            <SelectItem key={prompt.id} value={prompt.id}>
-              {prompt.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+    <div className="w-full space-y-4">
+      <div className="relative">
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search prompts..."
+          className="w-full pl-9"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
 
-      <Button 
-        onClick={handleAnalyze}
-        disabled={!selectedPromptId || !analysisData || isAnalyzing}
-      >
-        {isAnalyzing ? "Analyzing..." : "Analyze"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        {categories.map((category) => (
+          <Badge
+            key={category}
+            variant={selectedCategory === category ? "default" : "outline"}
+            className="cursor-pointer"
+            onClick={() => setSelectedCategory(
+              selectedCategory === category ? null : category
+            )}
+          >
+            {category.replace(/_/g, ' ')}
+          </Badge>
+        ))}
+      </div>
+
+      <div className="border rounded-md divide-y">
+        {filteredPrompts?.map((prompt) => (
+          <div
+            key={prompt.id}
+            className={cn(
+              "p-4 cursor-pointer hover:bg-muted transition-colors",
+              selectedPromptId === prompt.id && "bg-muted"
+            )}
+            onClick={() => onPromptSelect({ 
+              id: prompt.id, 
+              text: prompt.prompt_text 
+            })}
+          >
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <div className="font-medium">{prompt.name}</div>
+                <div className="text-sm text-muted-foreground line-clamp-2">
+                  {prompt.prompt_text}
+                </div>
+              </div>
+              {selectedPromptId === prompt.id && (
+                <Check className="h-4 w-4 shrink-0" />
+              )}
+            </div>
+          </div>
+        ))}
+        {filteredPrompts?.length === 0 && (
+          <div className="p-4 text-center text-muted-foreground">
+            No prompts found
+          </div>
+        )}
+      </div>
     </div>
   );
 }
