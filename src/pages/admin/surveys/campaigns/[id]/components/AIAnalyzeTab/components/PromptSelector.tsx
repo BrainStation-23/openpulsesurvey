@@ -1,15 +1,25 @@
 
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Check, Search } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Search, Send, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface PromptSelectorProps {
-  onPromptSelect: (promptData: { id: string, text: string }) => void;
-  selectedPromptId?: string;
+  onAnalyze: (promptData: { id: string, text: string }) => void;
+  analysisData: any;
+  isAnalyzing: boolean;
 }
 
 interface Prompt {
@@ -20,9 +30,10 @@ interface Prompt {
   status: 'active';
 }
 
-export function PromptSelector({ onPromptSelect, selectedPromptId }: PromptSelectorProps) {
+export function PromptSelector({ onAnalyze, analysisData, isAnalyzing }: PromptSelectorProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [previewPrompt, setPreviewPrompt] = useState<string | null>(null);
 
   const { data: prompts, isLoading } = useQuery({
     queryKey: ['analysis-prompts'],
@@ -62,64 +73,80 @@ export function PromptSelector({ onPromptSelect, selectedPromptId }: PromptSelec
   }
 
   return (
-    <div className="w-full space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search prompts..."
-          className="w-full pl-9"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {categories.map((category) => (
-          <Badge
-            key={category}
-            variant={selectedCategory === category ? "default" : "outline"}
-            className="cursor-pointer"
-            onClick={() => setSelectedCategory(
-              selectedCategory === category ? null : category
-            )}
-          >
-            {category.replace(/_/g, ' ')}
-          </Badge>
-        ))}
-      </div>
-
-      <div className="border rounded-md divide-y">
-        {filteredPrompts?.map((prompt) => (
-          <div
-            key={prompt.id}
-            className={cn(
-              "p-4 cursor-pointer hover:bg-muted transition-colors",
-              selectedPromptId === prompt.id && "bg-muted"
-            )}
-            onClick={() => onPromptSelect({ 
-              id: prompt.id, 
-              text: prompt.prompt_text 
-            })}
-          >
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <div className="font-medium">{prompt.name}</div>
-                <div className="text-sm text-muted-foreground line-clamp-2">
-                  {prompt.prompt_text}
-                </div>
-              </div>
-              {selectedPromptId === prompt.id && (
-                <Check className="h-4 w-4 shrink-0" />
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search prompts..."
+            className="pl-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {categories.map((category) => (
+            <Badge
+              key={category}
+              variant={selectedCategory === category ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setSelectedCategory(
+                selectedCategory === category ? null : category
               )}
-            </div>
-          </div>
+            >
+              {category.replace(/_/g, ' ')}
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredPrompts?.map((prompt) => (
+          <Card key={prompt.id} className="flex flex-col">
+            <CardHeader>
+              <CardTitle className="text-lg">{prompt.name}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+              <p className="text-sm text-muted-foreground line-clamp-3">
+                {prompt.prompt_text}
+              </p>
+            </CardContent>
+            <CardFooter className="flex justify-between gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setPreviewPrompt(prompt.id)}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview Data
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Analysis Data Preview</DialogTitle>
+                  </DialogHeader>
+                  <pre className="bg-muted p-4 rounded-md text-sm overflow-auto">
+                    {JSON.stringify(analysisData, null, 2)}
+                  </pre>
+                </DialogContent>
+              </Dialog>
+              <Button 
+                onClick={() => onAnalyze({ id: prompt.id, text: prompt.prompt_text })}
+                disabled={isAnalyzing}
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Analyze
+              </Button>
+            </CardFooter>
+          </Card>
         ))}
         {filteredPrompts?.length === 0 && (
-          <div className="p-4 text-center text-muted-foreground">
+          <div className="col-span-full text-center text-muted-foreground py-8">
             No prompts found
           </div>
         )}
       </div>
     </div>
   );
-}
+});
