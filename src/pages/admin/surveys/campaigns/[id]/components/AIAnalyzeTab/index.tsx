@@ -56,6 +56,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
         .select(`
           id,
           response_data,
+          status,
           campaign_instance_id,
           submitted_at,
           user:profiles(
@@ -107,13 +108,14 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
             demographicStats[key][value] = { total: 0, completed: 0 };
           }
           demographicStats[key][value].total++;
-          if (response.response_data) {
+          // Only count as completed if status is 'submitted'
+          if (response.status === 'submitted') {
             demographicStats[key][value].completed++;
           }
         });
 
         // Process questions
-        if (response.response_data) {
+        if (response.response_data && response.status === 'submitted') {
           Object.entries(response.response_data).forEach(([key, value]: [string, any]) => {
             if (!questionStats[key]) {
               questionStats[key] = {
@@ -140,6 +142,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
 
       // Calculate response trends
       const responseTrends = responseData
+        ?.filter(response => response.status === 'submitted')
         ?.sort((a, b) => new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime())
         ?.reduce((acc: Array<{date: string; count: number}>, response) => {
           const date = new Date(response.submitted_at).toISOString().split('T')[0];
@@ -157,7 +160,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
         instance: instanceData,
         overview: {
           completion_rate: instanceData.completion_rate,
-          total_responses: responseData?.length || 0,
+          total_responses: responseData?.filter(r => r.status === 'submitted').length || 0,
           response_trends: responseTrends || []
         },
         demographics: demographicStats,
