@@ -75,26 +75,103 @@ export function useAnalysisData(campaignId: string, instanceId?: string) {
     enabled: !!instanceId,
   });
 
-  // Get demographic data
-  const { data: demographicData } = useQuery({
-    queryKey: ["demographic-data", instanceId],
+  // Get demographic data - location stats
+  const { data: locationData } = useQuery({
+    queryKey: ["location-stats", instanceId],
     queryFn: async () => {
-      const { data: locations } = await supabase
-        .rpc('get_location_response_rates', {
-          p_campaign_id: campaignId,
-          p_instance_id: instanceId
-        });
+      const { data: assignments } = await supabase
+        .from("survey_assignments")
+        .select(`
+          id,
+          user:profiles!survey_assignments_user_id_fkey (
+            location:locations!profiles_location_id_fkey (
+              name
+            )
+          ),
+          responses:survey_responses!survey_responses_assignment_id_fkey (
+            id,
+            campaign_instance_id
+          )
+        `)
+        .eq("campaign_id", campaignId);
 
-      const { data: departments } = await supabase
-        .rpc('get_sbu_response_rates', {
-          p_campaign_id: campaignId,
-          p_instance_id: instanceId
-        });
+      // Process location stats
+      const locationMap = new Map();
+      assignments?.forEach((assignment) => {
+        const locationName = assignment.user?.location?.name || "Not Specified";
+        const current = locationMap.get(locationName) || {
+          name: locationName,
+          total_assigned: 0,
+          completed: 0
+        };
 
-      return {
-        locations: locations || [],
-        departments: departments || []
-      };
+        current.total_assigned += 1;
+        if (assignment.responses?.some(r => r.campaign_instance_id === instanceId)) {
+          current.completed += 1;
+        }
+
+        locationMap.set(locationName, current);
+      });
+
+      return Array.from(locationMap.values()).map(stats => ({
+        ...stats,
+        response_rate: Math.round((stats.completed / stats.total_assigned) * 100)
+      }));
+    },
+    enabled: !!instanceId,
+  });
+
+  // Get demographic data - SBU stats
+  const { data: sbuData } = useQuery({
+    queryKey: ["sbu-stats", instanceId],
+    queryFn: async () => {
+      const { data: assignments } = await supabase
+        .from("survey_assignments")
+        .select(`
+          id,
+          user:profiles!survey_assignments_user_id_fkey (
+            user_sbus (
+              is_primary,
+              sbu:sbus (
+                name
+              )
+            )
+          ),
+          responses:survey_responses!survey_responses_assignment_id_fkey (
+            id,
+            campaign_instance_id
+          )
+        `)
+        .eq("campaign_id", campaignId);
+
+      // Process SBU stats
+      const sbuMap = new Map();
+      assignments?.forEach((assignment) => {
+        const primarySbu = assignment.user?.user_sbus?.find(
+          us => us.is_primary && us.sbu
+        );
+        
+        if (!primarySbu?.sbu) return;
+
+        const sbuName = primarySbu.sbu.name;
+        const current = sbuMap.get(sbuName) || {
+          name: sbuName,
+          total_assigned: 0,
+          completed: 0
+        };
+
+        current.total_assigned += 1;
+        if (assignment.responses?.some(r => r.campaign_instance_id === instanceId)) {
+          current.completed += 1;
+        }
+
+        sbuMap.set(sbuName, current);
+      });
+
+      return Array.from(sbuMap.values()).map(stats => ({
+        ...stats,
+        response_rate: Math.round((stats.completed / stats.total_assigned) * 100)
+      }));
     },
     enabled: !!instanceId,
   });
@@ -108,7 +185,10 @@ export function useAnalysisData(campaignId: string, instanceId?: string) {
     },
     trends: responseData || [],
     status_distribution: statusData || [],
-    demographics: demographicData || { locations: [], departments: [] }
+    demographics: {
+      locations: locationData || [],
+      departments: sbuData || []
+    }
   };
 
   return {
