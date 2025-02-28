@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -63,9 +64,6 @@ export function PromptSelector({ onAnalyze, analysisData, isAnalyzing }: PromptS
   const getFormattedAnalysisData = () => {
     if (!analysisData) return "No data available";
 
-    const formatPercentage = (completed: number, total: number) => 
-      total > 0 ? ((completed / total) * 100).toFixed(1) + '%' : '0%';
-
     const formattedData = {
       "Overview": {
         "Completion Rate": analysisData.overview.completion_rate + '%',
@@ -76,25 +74,25 @@ export function PromptSelector({ onAnalyze, analysisData, isAnalyzing }: PromptS
         "Response Rate by Department": Object.entries(analysisData.demographics.by_department)
           .map(([dept, stats]) => ({
             department: dept,
-            response_rate: formatPercentage(stats.completed, stats.total),
+            total_completed: stats.completed,
             total_assigned: stats.total
           })),
         "Response Rate by Gender": Object.entries(analysisData.demographics.by_gender)
           .map(([gender, stats]) => ({
             gender,
-            response_rate: formatPercentage(stats.completed, stats.total),
+            total_completed: stats.completed,
             total_assigned: stats.total
           })),
         "Response Rate by Location": Object.entries(analysisData.demographics.by_location)
           .map(([location, stats]) => ({
             location,
-            response_rate: formatPercentage(stats.completed, stats.total),
+            total_completed: stats.completed,
             total_assigned: stats.total
           })),
         "Response Rate by Employment Type": Object.entries(analysisData.demographics.by_employment_type)
           .map(([type, stats]) => ({
             type,
-            response_rate: formatPercentage(stats.completed, stats.total),
+            total_completed: stats.completed,
             total_assigned: stats.total
           }))
       },
