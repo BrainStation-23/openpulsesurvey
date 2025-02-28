@@ -27,6 +27,53 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
+    // Format demographic data
+    const demographicStats = {
+      departments: (analysisData.demographic_stats?.department || []).map((dept: any) => ({
+        name: dept.name,
+        responseRate: dept.response_rate,
+        totalAssigned: dept.total_assigned,
+        completed: dept.completed
+      })),
+      locations: (analysisData.demographic_stats?.location || []).map((loc: any) => ({
+        name: loc.name,
+        responseRate: loc.response_rate,
+        totalAssigned: loc.total_assigned,
+        completed: loc.completed
+      }))
+    };
+
+    // Format question data
+    const questionStats = (analysisData.question_stats || []).map((q: any) => {
+      let formattedStats;
+      if (q.type === 'rating' || q.type === 'nps') {
+        formattedStats = {
+          average: q.stats.average,
+          distribution: Object.entries(q.stats.distribution).map(([value, count]) => ({
+            value: parseInt(value),
+            count: count as number
+          }))
+        };
+      } else if (q.type === 'boolean') {
+        formattedStats = {
+          trueCount: q.stats.true_count,
+          falseCount: q.stats.false_count,
+          totalResponses: q.stats.true_count + q.stats.false_count
+        };
+      } else {
+        formattedStats = {
+          responses: q.stats.responses
+        };
+      }
+
+      return {
+        key: q.key,
+        title: q.title,
+        type: q.type,
+        stats: formattedStats
+      };
+    });
+
     // Format the data for better AI understanding
     const formattedData = {
       overview: {
@@ -38,12 +85,12 @@ serve(async (req) => {
         total_assignments: analysisData.instance_info?.total_assignments,
         completed_responses: analysisData.instance_info?.completed_responses
       },
-      demographics: {
-        by_department: analysisData.demographic_stats?.department || [],
-        by_location: analysisData.demographic_stats?.location || []
-      },
-      questions: analysisData.question_stats || [],
-      trends: analysisData.completion_trends || []
+      demographics: demographicStats,
+      questions: questionStats,
+      trends: (analysisData.completion_trends || []).map((trend: any) => ({
+        date: trend.date,
+        responses: trend.responses
+      }))
     };
 
     console.log("Formatted data for AI:", JSON.stringify(formattedData, null, 2));
