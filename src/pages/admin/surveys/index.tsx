@@ -1,6 +1,5 @@
-
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, Check, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,13 +9,13 @@ import { Survey, SurveyStatus } from "./types";
 import { SearchBar } from "./components/SearchBar";
 import { TagFilter } from "./components/TagFilter";
 import { SurveyTable } from "./components/SurveyTable";
+import { Badge } from "@/components/ui/badge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const STATUS_OPTIONS: { value: SurveyStatus; label: string }[] = [
   { value: "draft", label: "Draft" },
@@ -85,8 +84,8 @@ export default function SurveysPage() {
     }
   };
 
-  const handleStatusFilterChange = (status: SurveyStatus) => {
-    setSelectedStatuses(prev => 
+  const handleStatusToggle = (status: SurveyStatus) => {
+    setSelectedStatuses(prev =>
       prev.includes(status)
         ? prev.filter(s => s !== status)
         : [...prev, status]
@@ -145,24 +144,38 @@ export default function SurveysPage() {
               selectedTags={selectedTags}
               onTagToggle={handleTagToggle}
             />
-            <Select
-              defaultValue={selectedStatuses.join(",")}
-              onValueChange={(value) => setSelectedStatuses(value.split(",") as SurveyStatus[])}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((status) => (
-                  <SelectItem
-                    key={status.value}
-                    value={status.value}
-                  >
-                    {status.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="flex gap-2">
+                  <Filter className="h-4 w-4" />
+                  Status
+                  {selectedStatuses.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 rounded-sm px-1 font-normal">
+                      {selectedStatuses.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-3" align="start">
+                <div className="space-y-2">
+                  {STATUS_OPTIONS.map((status) => (
+                    <div key={status.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={status.value}
+                        checked={selectedStatuses.includes(status.value)}
+                        onCheckedChange={() => handleStatusToggle(status.value)}
+                      />
+                      <label
+                        htmlFor={status.value}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {status.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
