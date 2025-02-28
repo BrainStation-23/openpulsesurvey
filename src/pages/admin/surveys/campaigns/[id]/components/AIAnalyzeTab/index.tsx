@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { PromptSelector } from "./components/PromptSelector";
 import { AnalysisViewer } from "./components/AnalysisViewer";
 import { useToast } from "@/hooks/use-toast";
-import { AnalysisData } from "./types";
 
 interface AIAnalyzeTabProps {
   campaignId: string;
@@ -17,7 +16,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
   const { toast } = useToast();
   const [analysis, setAnalysis] = useState<{ content: string } | null>(null);
 
-  const { data: analysisData, isLoading: isLoadingData } = useQuery<AnalysisData>({
+  const { data: analysisData, isLoading: isLoadingData } = useQuery({
     queryKey: ['instance-analysis-data', campaignId, instanceId],
     queryFn: async () => {
       console.log('Fetching analysis data for:', { campaignId, instanceId });
@@ -29,9 +28,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
         });
 
       if (error) throw error;
-      
-      // First cast to unknown, then to AnalysisData to avoid direct type conversion errors
-      return (data as unknown) as AnalysisData;
+      return data;
     },
     enabled: !!instanceId && !!campaignId
   });
