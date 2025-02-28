@@ -33,7 +33,7 @@ interface Prompt {
 export function PromptSelector({ onAnalyze, analysisData, isAnalyzing }: PromptSelectorProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [previewPrompt, setPreviewPrompt] = useState<string | null>(null);
+  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
 
   const { data: prompts, isLoading } = useQuery({
     queryKey: ['analysis-prompts'],
@@ -59,6 +59,37 @@ export function PromptSelector({ onAnalyze, analysisData, isAnalyzing }: PromptS
     const matchesCategory = !selectedCategory || prompt.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  // Format the analysis data to show in preview
+  const getFormattedAnalysisData = () => {
+    if (!analysisData) return "No data available";
+
+    // Extract and format questions and responses
+    const formattedData = {
+      survey_name: analysisData.campaign.survey.name,
+      total_responses: analysisData.responses.length,
+      questions: {} as Record<string, any>
+    };
+
+    // Process each response
+    analysisData.responses.forEach((response: any) => {
+      const answers = response.response_data;
+      Object.entries(answers).forEach(([key, value]: [string, any]) => {
+        if (!formattedData.questions[key]) {
+          formattedData.questions[key] = {
+            type: value.type,
+            question: value.question,
+            answers: []
+          };
+        }
+        if (value.answer !== undefined) {
+          formattedData.questions[key].answers.push(value.answer);
+        }
+      });
+    });
+
+    return JSON.stringify(formattedData, null, 2);
+  };
 
   if (isLoading) {
     return (
@@ -115,8 +146,8 @@ export function PromptSelector({ onAnalyze, analysisData, isAnalyzing }: PromptS
               <Dialog>
                 <DialogTrigger asChild>
                   <Button 
-                    variant="outline" 
-                    onClick={() => setPreviewPrompt(prompt.id)}
+                    variant="outline"
+                    onClick={() => setSelectedPromptId(prompt.id)}
                   >
                     <Eye className="h-4 w-4 mr-2" />
                     Preview Data
@@ -126,9 +157,11 @@ export function PromptSelector({ onAnalyze, analysisData, isAnalyzing }: PromptS
                   <DialogHeader>
                     <DialogTitle>Analysis Data Preview</DialogTitle>
                   </DialogHeader>
-                  <pre className="bg-muted p-4 rounded-md text-sm overflow-auto">
-                    {JSON.stringify(analysisData, null, 2)}
-                  </pre>
+                  <div className="mt-4">
+                    <pre className="bg-muted p-4 rounded-md text-sm overflow-auto whitespace-pre-wrap">
+                      {getFormattedAnalysisData()}
+                    </pre>
+                  </div>
                 </DialogContent>
               </Dialog>
               <Button 
