@@ -149,4 +149,4 @@ export function PromptSelector({ onAnalyze, analysisData, isAnalyzing }: PromptS
       </div>
     </div>
   );
-});
+}
