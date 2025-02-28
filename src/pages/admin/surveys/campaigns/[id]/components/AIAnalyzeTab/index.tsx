@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +11,8 @@ interface AIAnalyzeTabProps {
   campaignId: string;
   instanceId?: string;
 }
+
+type DemographicKey = keyof AnalysisData['demographics'];
 
 export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -90,20 +93,22 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
         const gender = user?.gender || 'Unknown';
         const employmentType = user?.employment_type?.name || 'Unknown';
 
-        // Initialize demographic counters if needed
-        [
-          [demographicStats.by_department, primarySbu],
-          [demographicStats.by_gender, gender],
-          [demographicStats.by_location, location],
-          [demographicStats.by_employment_type, employmentType]
-        ].forEach(([stats, key]) => {
-          const typedStats = stats as Record<string, DemographicStats>;
-          if (!(key in typedStats)) {
-            typedStats[key as string] = { total: 0, completed: 0 };
+        // Define the demographic mappings
+        const demographicMappings: [DemographicKey, string][] = [
+          ['by_department', primarySbu],
+          ['by_gender', gender],
+          ['by_location', location],
+          ['by_employment_type', employmentType]
+        ];
+
+        // Process each demographic category
+        demographicMappings.forEach(([key, value]) => {
+          if (!demographicStats[key][value]) {
+            demographicStats[key][value] = { total: 0, completed: 0 };
           }
-          typedStats[key as string].total++;
+          demographicStats[key][value].total++;
           if (response.response_data) {
-            typedStats[key as string].completed++;
+            demographicStats[key][value].completed++;
           }
         });
 
