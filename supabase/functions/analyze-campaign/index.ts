@@ -20,7 +20,6 @@ serve(async (req) => {
   try {
     const { promptId, promptText, analysisData } = await req.json();
     console.log("Received parameters:", { promptId, promptText });
-    console.log("Analysis data:", analysisData);
 
     // Validate required parameters
     if (!promptId || !promptText || !analysisData) {
@@ -34,15 +33,13 @@ serve(async (req) => {
           name: analysisData.campaign.survey.name,
           description: analysisData.campaign.survey.description
         },
-        completion_rate: analysisData.summary.completion_rate,
-        total_responses: analysisData.summary.total_responses
+        completion_rate: analysisData.instance_info.completion_rate,
+        total_assignments: analysisData.instance_info.total_assignments,
+        completed_responses: analysisData.instance_info.completed_responses
       },
-      responses: analysisData.responses.map((response: any) => ({
-        user_info: {
-          sbu: response.user.sbus?.[0]?.sbu?.name || 'Unassigned',
-        },
-        response_data: response.response_data
-      }))
+      demographics: analysisData.demographic_stats,
+      questions: analysisData.question_stats,
+      trends: analysisData.completion_trends
     };
 
     // Validate Gemini API key and model name
@@ -67,9 +64,13 @@ serve(async (req) => {
 
       Focus on:
       1. Overall response rates and completion statistics
-      2. Key patterns in responses
-      3. Notable findings and recommendations
-      4. Areas that might need attention
+      2. Key patterns in responses across demographics
+      3. Notable findings from question responses
+      4. Specific question-level insights
+      5. Trends and changes over time
+      6. Areas that might need attention
+      
+      Note: This is an anonymous survey, so ensure all insights are aggregated and do not potentially identify individuals.
     `;
 
     console.log("Generating content with Gemini...");
