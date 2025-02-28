@@ -1,12 +1,12 @@
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PromptSelector } from "./components/PromptSelector";
 import { AnalysisViewer } from "./components/AnalysisViewer";
 import { Button } from "@/components/ui/button";
 import { Brain, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAnalysisData } from "./hooks/useAnalysisData";
 
 interface AIAnalyzeTabProps {
   campaignId: string;
@@ -18,24 +18,9 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
   const [analysis, setAnalysis] = useState<{ content: string } | null>(null);
-
-  // Fetch basic campaign and response data
-  const { data: analysisData, isLoading: isLoadingData } = useQuery({
-    queryKey: ['instance-analysis-data', campaignId, instanceId],
-    queryFn: async () => {
-      console.log('Fetching analysis data for:', { campaignId, instanceId });
-      
-      const { data, error } = await supabase
-        .rpc('get_instance_analysis_data', {
-          p_campaign_id: campaignId,
-          p_instance_id: instanceId
-        });
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!instanceId && !!campaignId
-  });
+  
+  // Use our new consolidated data hook
+  const { data: analysisData, isLoading: isLoadingData } = useAnalysisData(campaignId, instanceId);
   
   const handleAnalyze = async () => {
     if (!selectedPrompt?.id || !analysisData) return;
