@@ -14,10 +14,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { AnalysisData } from "../types";
 
 interface PromptSelectorProps {
   onAnalyze: (promptData: { id: string, text: string }) => void;
-  analysisData: any;
+  analysisData: AnalysisData | undefined;
   isAnalyzing: boolean;
 }
 

@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PromptSelector } from "./components/PromptSelector";
 import { AnalysisViewer } from "./components/AnalysisViewer";
 import { useToast } from "@/hooks/use-toast";
+import { AnalysisData, DemographicStats } from "./types";
 
 interface AIAnalyzeTabProps {
   campaignId: string;
@@ -16,7 +16,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
   const { toast } = useToast();
   const [analysis, setAnalysis] = useState<{ content: string } | null>(null);
 
-  const { data: analysisData, isLoading: isLoadingData } = useQuery({
+  const { data: analysisData, isLoading: isLoadingData } = useQuery<AnalysisData>({
     queryKey: ['instance-analysis-data', campaignId, instanceId],
     queryFn: async () => {
       console.log('Fetching analysis data for:', { campaignId, instanceId });
@@ -71,22 +71,15 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
       if (responseError) throw responseError;
 
       // Process demographic data
-      const demographicStats = {
-        by_department: {} as Record<string, { total: number, completed: number }>,
-        by_gender: {} as Record<string, { total: number, completed: number }>,
-        by_location: {} as Record<string, { total: number, completed: number }>,
-        by_employment_type: {} as Record<string, { total: number, completed: number }>,
+      const demographicStats: AnalysisData['demographics'] = {
+        by_department: {},
+        by_gender: {},
+        by_location: {},
+        by_employment_type: {},
       };
 
       // Process question data based on type
-      const questionStats = {} as Record<string, {
-        type: string;
-        question: string;
-        average?: number;
-        true_count?: number;
-        false_count?: number;
-        responses?: string[];
-      }>;
+      const questionStats: AnalysisData['questions'] = {};
 
       // Process each response
       responseData?.forEach(response => {
@@ -104,12 +97,13 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
           [demographicStats.by_location, location],
           [demographicStats.by_employment_type, employmentType]
         ].forEach(([stats, key]) => {
-          if (!(key in stats)) {
-            (stats as any)[key] = { total: 0, completed: 0 };
+          const typedStats = stats as Record<string, DemographicStats>;
+          if (!(key in typedStats)) {
+            typedStats[key as string] = { total: 0, completed: 0 };
           }
-          (stats as any)[key].total++;
+          typedStats[key as string].total++;
           if (response.response_data) {
-            (stats as any)[key].completed++;
+            typedStats[key as string].completed++;
           }
         });
 
@@ -142,7 +136,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
       // Calculate response trends
       const responseTrends = responseData
         ?.sort((a, b) => new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime())
-        ?.reduce((acc: any[], response) => {
+        ?.reduce((acc: Array<{date: string; count: number}>, response) => {
           const date = new Date(response.submitted_at).toISOString().split('T')[0];
           const existing = acc.find(d => d.date === date);
           if (existing) {
@@ -159,7 +153,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
         overview: {
           completion_rate: instanceData.completion_rate,
           total_responses: responseData?.length || 0,
-          response_trends: responseTrends
+          response_trends: responseTrends || []
         },
         demographics: demographicStats,
         questions: questionStats
