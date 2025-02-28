@@ -13,13 +13,8 @@ interface AIAnalyzeTabProps {
   instanceId?: string;
 }
 
-interface SelectedPrompt {
-  id: string;
-  text: string;
-}
-
 export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
-  const [selectedPrompt, setSelectedPrompt] = useState<SelectedPrompt>();
+  const [selectedPrompt, setSelectedPrompt] = useState<{ id: string; text: string }>();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
   const [analysis, setAnalysis] = useState<{ content: string } | null>(null);
@@ -30,51 +25,14 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
     queryFn: async () => {
       console.log('Fetching analysis data for:', { campaignId, instanceId });
       
-      // Get campaign info
-      const { data: campaignData, error: campaignError } = await supabase
-        .from('survey_campaigns')
-        .select('*, survey:surveys(name, description)')
-        .eq('id', campaignId)
-        .single();
+      const { data, error } = await supabase
+        .rpc('get_instance_analysis_data', {
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId
+        });
 
-      if (campaignError) throw campaignError;
-
-      // Get instance info
-      const { data: instanceData, error: instanceError } = await supabase
-        .from('campaign_instances')
-        .select('*')
-        .eq('id', instanceId)
-        .single();
-
-      if (instanceError) throw instanceError;
-
-      // Get response data
-      const { data: responseData, error: responseError } = await supabase
-        .from('survey_responses')
-        .select(`
-          *,
-          user:profiles!survey_responses_user_id_fkey(
-            first_name,
-            last_name,
-            email,
-            sbus:user_sbus(
-              sbu:sbus(name)
-            )
-          )
-        `)
-        .eq('campaign_instance_id', instanceId);
-
-      if (responseError) throw responseError;
-
-      return {
-        campaign: campaignData,
-        instance: instanceData,
-        responses: responseData,
-        summary: {
-          total_responses: responseData?.length || 0,
-          completion_rate: instanceData?.completion_rate || 0
-        }
-      };
+      if (error) throw error;
+      return data;
     },
     enabled: !!instanceId && !!campaignId
   });
@@ -93,7 +51,7 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
       });
 
       if (error) throw error;
-      return analysisResult;
+      setAnalysis(analysisResult);
       
     } catch (error: any) {
       toast({
@@ -121,6 +79,14 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
     window.URL.revokeObjectURL(url);
   };
 
+  if (!instanceId) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Please select a period to analyze responses.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -131,11 +97,8 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
         
         <div className="flex justify-end gap-3">
           <Button
-            onClick={async () => {
-              const result = await handleAnalyze();
-              if (result) setAnalysis(result);
-            }}
-            disabled={!selectedPrompt?.id || isAnalyzing || isLoadingData}
+            onClick={handleAnalyze}
+            disabled={!selectedPrompt?.id || !analysisData || isAnalyzing}
           >
             <Brain className="mr-2 h-4 w-4" />
             {isAnalyzing ? "Analyzing..." : "Analyze"}
