@@ -24,12 +24,14 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
       
       const { data, error } = await supabase
         .rpc('get_instance_analysis_data', {
+          p_campaign_id: campaignId,
           p_instance_id: instanceId
         });
 
       if (error) throw error;
       
-      return data;
+      // Explicitly cast the data to match AnalysisData type
+      return data as AnalysisData;
     },
     enabled: !!instanceId && !!campaignId
   });
