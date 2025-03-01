@@ -25,29 +25,11 @@ export function IssueCard({
   hasVoted,
 }: IssueCardProps) {
   const queryClient = useQueryClient();
-  const [hasDownvoted, setHasDownvoted] = React.useState(false);
   const { mutate: vote } = useVoting();
   const [canEdit, setCanEdit] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [editTitle, setEditTitle] = React.useState(issue.title);
   const [editDescription, setEditDescription] = React.useState(issue.description || "");
-
-  React.useEffect(() => {
-    const checkDownvote = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: downvotes } = await supabase
-        .from('issue_downvotes')
-        .select()
-        .eq('issue_id', issue.id)
-        .eq('user_id', user.id);
-
-      setHasDownvoted(Boolean(downvotes?.length));
-    };
-
-    checkDownvote();
-  }, [issue.id]);
 
   React.useEffect(() => {
     const checkEditPermission = async () => {
@@ -204,8 +186,8 @@ export function IssueCard({
           issueId={issue.id}
           voteCount={issue.vote_count}
           downvoteCount={issue.downvote_count || 0}
-          hasVoted={hasVoted}
-          hasDownvoted={hasDownvoted}
+          hasVoted={Boolean(issue.has_voted?.length)}
+          hasDownvoted={Boolean(issue.has_downvoted?.length)}
           onVote={() => vote({ issueId: issue.id, isDownvote: false })}
           onDownvote={() => vote({ issueId: issue.id, isDownvote: true })}
           disabled={!canVote}
