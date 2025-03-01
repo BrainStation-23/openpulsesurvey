@@ -1,4 +1,3 @@
-
 import { SurveyAssignment } from "@/pages/admin/surveys/types/assignments";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,14 +25,12 @@ interface AssignmentActionsProps {
   getNextReminderTime: (lastReminderSent: string) => string;
 }
 
-// Define the type for the delete assignment response
 interface DeleteAssignmentResponse {
   success: boolean;
   message: string;
   deleted_responses: number;
 }
 
-// Type guard to validate the response shape
 function isDeleteAssignmentResponse(data: unknown): data is DeleteAssignmentResponse {
   const response = data as DeleteAssignmentResponse;
   return (
@@ -81,7 +78,7 @@ export function AssignmentActions({
           assignmentIds: [assignment.id],
           campaignId,
           instanceId: selectedInstanceId,
-          baseUrl: window.location.origin,
+          frontendUrl: window.location.origin,
         },
       });
 
