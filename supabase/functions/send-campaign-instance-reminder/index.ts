@@ -1,10 +1,6 @@
 
+import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,14 +9,21 @@ const corsHeaders = {
 };
 
 interface ReminderRequest {
-  instanceId: string;
+  assignmentIds: string[];
+  campaignId: string;
+  instanceId?: string;
   frontendUrl: string;
 }
 
-// Helper function to delay execution
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const resendKey = Deno.env.get('RESEND_API_KEY')!;
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Helper function to delay between batches
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Process emails in batches with rate limiting
 async function processBatch(assignments: any[], emailConfig: any, instance: any, frontendUrl: string) {
   const BATCH_SIZE = 2; // Process 2 emails at a time (Resend's limit)
   const DELAY_BETWEEN_BATCHES = 1100; // Wait 1.1 seconds between batches
@@ -59,7 +62,7 @@ async function processBatch(assignments: any[], emailConfig: any, instance: any,
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${RESEND_API_KEY}`,
+              Authorization: `Bearer ${resendKey}`,
             },
             body: JSON.stringify({
               from: `${emailConfig.from_name} <${emailConfig.from_email}>`,
@@ -89,6 +92,16 @@ async function processBatch(assignments: any[], emailConfig: any, instance: any,
             throw new Error(`Failed to send email to ${assignment.user.email}: ${responseData.message}`);
           }
 
+          // Update last_reminder_sent timestamp
+          const { error: updateError } = await supabase
+            .from('survey_assignments')
+            .update({ last_reminder_sent: new Date().toISOString() })
+            .eq('id', assignment.id);
+
+          if (updateError) {
+            console.error(`Failed to update last_reminder_sent for assignment ${assignment.id}:`, updateError);
+          }
+
           successCount++;
           console.log("Successfully sent instance reminder to:", assignment.user.email);
         } catch (error) {
@@ -109,64 +122,42 @@ async function processBatch(assignments: any[], emailConfig: any, instance: any,
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log("Starting instance reminder process...");
-    
-    if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY is not configured");
+    const { assignmentIds, campaignId, instanceId, frontendUrl }: ReminderRequest = await req.json();
+
+    console.log('Processing reminder request:', { assignmentIds, campaignId, instanceId });
+
+    if (!assignmentIds || !Array.isArray(assignmentIds) || assignmentIds.length === 0) {
+      throw new Error('Invalid assignment IDs provided');
     }
 
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("Supabase credentials are not configured");
-    }
-
-    const { instanceId, frontendUrl }: ReminderRequest = await req.json();
-    console.log("Instance reminder request:", { instanceId, frontendUrl });
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Get the email configuration
-    const { data: emailConfig, error: configError } = await supabase
+    // Get email configuration
+    const { data: emailConfig, error: emailConfigError } = await supabase
       .from('email_config')
       .select('*')
+      .eq('provider', 'resend')
       .maybeSingle();
 
-    if (configError) {
-      console.error("Email config error:", configError);
-      throw new Error("Failed to fetch email configuration");
-    }
-
-    if (!emailConfig) {
-      throw new Error("No email configuration found");
+    if (emailConfigError || !emailConfig) {
+      throw new Error('Failed to fetch email configuration');
     }
 
     // Get instance details
     const { data: instance, error: instanceError } = await supabase
       .from('campaign_instances')
-      .select(`
-        *,
-        campaign:survey_campaigns (
-          id
-        )
-      `)
+      .select('*')
       .eq('id', instanceId)
       .single();
 
-    if (instanceError) {
-      console.error("Instance error:", instanceError);
-      throw new Error("Failed to fetch instance details");
+    if (instanceError || !instance) {
+      throw new Error('Failed to fetch instance details');
     }
 
-    if (!instance) {
-      throw new Error("Instance not found");
-    }
-
-    // Get assignments with user and survey details
+    // Fetch assignments with user details
     const { data: assignments, error: assignmentsError } = await supabase
       .from('survey_assignments')
       .select(`
@@ -178,67 +169,43 @@ const handler = async (req: Request): Promise<Response> => {
           last_name
         ),
         survey:surveys (
-          name
+          name,
+          description
         )
       `)
-      .eq('campaign_id', instance.campaign.id);
+      .in('id', assignmentIds);
 
     if (assignmentsError) {
-      console.error("Assignments error:", assignmentsError);
-      throw new Error("Failed to fetch assignments");
+      console.error('Error fetching assignments:', assignmentsError);
+      throw new Error('Failed to fetch assignments');
     }
 
-    if (!assignments?.length) {
-      return new Response(
-        JSON.stringify({ 
-          message: "No assignments found",
-          successCount: 0,
-          failureCount: 0,
-          skippedCount: 0
-        }),
-        { 
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
-    }
+    // Process assignments in batches
+    const results = await processBatch(assignments, emailConfig, instance, frontendUrl);
 
-    console.log(`Processing ${assignments.length} assignments in batches...`);
-
-    // Process all assignments with rate limiting
-    const { successCount, failureCount, skippedCount } = await processBatch(
-      assignments,
-      emailConfig,
-      instance,
-      frontendUrl
-    );
+    console.log('Reminder results:', results);
 
     return new Response(
-      JSON.stringify({ 
-        message: `Processed ${assignments.length} assignments with rate limiting`,
-        successCount,
-        failureCount,
-        skippedCount
+      JSON.stringify({
+        success: true,
+        message: `Successfully sent ${results.successCount} reminders${results.failureCount > 0 ? `, ${results.failureCount} failed` : ''}`,
+        results
       }),
-      { 
-        status: failureCount > 0 ? 500 : 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
 
-  } catch (error: any) {
-    console.error("Error in send-campaign-instance-reminder function:", error);
+  } catch (error) {
+    console.error('Error in send-campaign-instance-reminder:', error);
     return new Response(
       JSON.stringify({ 
-        error: "Failed to send instance reminder emails",
-        details: error.message,
-        successCount: 0,
-        failureCount: 1,
-        skippedCount: 0
+        success: false, 
+        error: error.message 
       }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }

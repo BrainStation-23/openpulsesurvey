@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useIssues } from "../../hooks/useIssues";
 import { IssueCard } from "./IssueCard";
@@ -49,7 +48,7 @@ export function IssuesList({ boardId, canVote }: IssuesListProps) {
 
     switch (sortBy) {
       case "votes":
-        return filtered.sort((a, b) => b.vote_count - a.vote_count);
+        return filtered.sort((a, b) => (b.vote_count + (b.downvote_count || 0)) - (a.vote_count + (a.downvote_count || 0)));
       case "oldest":
         return filtered.sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -118,7 +117,6 @@ export function IssuesList({ boardId, canVote }: IssuesListProps) {
             issue={issue}
             canVote={canVote}
             hasVoted={Boolean(issue.has_voted && issue.has_voted.length > 0)}
-            onVote={vote}
           />
         ))}
       </div>

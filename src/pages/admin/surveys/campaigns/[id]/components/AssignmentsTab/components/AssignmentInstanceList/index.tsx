@@ -84,11 +84,11 @@ export function AssignmentInstanceList({
 
   const sendReminderMutation = useMutation({
     mutationFn: async ({ instanceId, campaignId, assignmentIds }: { instanceId?: string; campaignId: string; assignmentIds: string[] }) => {
-      const { error } = await supabase.functions.invoke("send-survey-reminder", {
+      const { error } = await supabase.functions.invoke("send-campaign-instance-reminder", {
         body: {
-          instanceId,
-          campaignId,
           assignmentIds,
+          campaignId,
+          instanceId,
           frontendUrl: window.location.origin,
         },
       });
