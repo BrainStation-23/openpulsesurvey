@@ -33,23 +33,6 @@ export function IssueCard({
   const [editDescription, setEditDescription] = React.useState(issue.description || "");
 
   React.useEffect(() => {
-    const checkEditPermission = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: userRole } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-
-      setCanEdit(userRole?.role === 'admin' || issue.created_by === user.id);
-    };
-
-    checkEditPermission();
-  }, [issue.created_by]);
-
-  React.useEffect(() => {
     const checkDownvote = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -65,6 +48,23 @@ export function IssueCard({
 
     checkDownvote();
   }, [issue.id]);
+
+  React.useEffect(() => {
+    const checkEditPermission = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      setCanEdit(userRole?.role === 'admin' || issue.created_by === user.id);
+    };
+
+    checkEditPermission();
+  }, [issue.created_by]);
 
   const deleteIssueMutation = useMutation({
     mutationFn: async () => {

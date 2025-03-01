@@ -10,28 +10,46 @@ export function useVoting() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const table = isDownvote ? 'issue_downvotes' : 'issue_votes';
+    const oppositeTable = isDownvote ? 'issue_votes' : 'issue_downvotes';
+    const currentTable = isDownvote ? 'issue_downvotes' : 'issue_votes';
     
-    // First check if the user has already voted
-    const { data: votes } = await supabase
-      .from(table)
+    // First check if the user has already voted in either table
+    const { data: oppositeVotes } = await supabase
+      .from(oppositeTable)
       .select('id')
       .eq('issue_id', issueId)
       .eq('user_id', user.id)
       .single();
 
-    if (votes) {
-      // If vote exists, remove it (unvote)
-      const { error: deleteError } = await supabase
-        .from(table)
+    const { data: currentVotes } = await supabase
+      .from(currentTable)
+      .select('id')
+      .eq('issue_id', issueId)
+      .eq('user_id', user.id)
+      .single();
+
+    // If there's an opposite vote, remove it first
+    if (oppositeVotes) {
+      const { error: deleteOppositeError } = await supabase
+        .from(oppositeTable)
         .delete()
-        .eq('id', votes.id);
+        .eq('id', oppositeVotes.id);
+        
+      if (deleteOppositeError) throw deleteOppositeError;
+    }
+
+    if (currentVotes) {
+      // If vote exists in current table, remove it (unvote)
+      const { error: deleteError } = await supabase
+        .from(currentTable)
+        .delete()
+        .eq('id', currentVotes.id);
         
       if (deleteError) throw deleteError;
     } else {
-      // If no vote exists, add one
+      // If no vote exists in current table, add one
       const { error: insertError } = await supabase
-        .from(table)
+        .from(currentTable)
         .insert({ 
           issue_id: issueId,
           user_id: user.id

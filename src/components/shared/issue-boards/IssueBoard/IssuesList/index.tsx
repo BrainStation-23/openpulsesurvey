@@ -48,7 +48,7 @@ export function IssuesList({ boardId, canVote }: IssuesListProps) {
 
     switch (sortBy) {
       case "votes":
-        return filtered.sort((a, b) => b.vote_count - a.vote_count);
+        return filtered.sort((a, b) => (b.vote_count + (b.downvote_count || 0)) - (a.vote_count + (a.downvote_count || 0)));
       case "oldest":
         return filtered.sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
