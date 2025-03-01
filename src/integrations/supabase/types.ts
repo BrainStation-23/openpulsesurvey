@@ -599,6 +599,35 @@ export type Database = {
           },
         ]
       }
+      issue_downvotes: {
+        Row: {
+          created_at: string
+          id: string
+          issue_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          issue_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          issue_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_downvotes_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       issue_votes: {
         Row: {
           created_at: string
@@ -648,6 +677,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          downvote_count: number
           id: string
           status: Database["public"]["Enums"]["issue_status"]
           title: string
@@ -659,6 +689,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          downvote_count?: number
           id?: string
           status?: Database["public"]["Enums"]["issue_status"]
           title: string
@@ -670,6 +701,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          downvote_count?: number
           id?: string
           status?: Database["public"]["Enums"]["issue_status"]
           title?: string

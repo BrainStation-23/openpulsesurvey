@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useIssues } from "../../hooks/useIssues";
 import { IssueCard } from "./IssueCard";
@@ -118,7 +117,6 @@ export function IssuesList({ boardId, canVote }: IssuesListProps) {
             issue={issue}
             canVote={canVote}
             hasVoted={Boolean(issue.has_voted && issue.has_voted.length > 0)}
-            onVote={vote}
           />
         ))}
       </div>

@@ -6,27 +6,26 @@ import { toast } from "@/components/ui/use-toast";
 export function useVoting() {
   const queryClient = useQueryClient();
 
-  const handleVote = async (issueId: string, isDownvote: boolean = false) => {
+  const handleVote = async ({ issueId, isDownvote }: { issueId: string; isDownvote: boolean }) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
     const table = isDownvote ? 'issue_downvotes' : 'issue_votes';
     
     // First check if the user has already voted
-    const { data: votes, error: checkError } = await supabase
+    const { data: votes } = await supabase
       .from(table)
       .select('id')
       .eq('issue_id', issueId)
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .single();
 
-    if (checkError) throw checkError;
-
-    if (votes && votes.length > 0) {
+    if (votes) {
       // If vote exists, remove it (unvote)
       const { error: deleteError } = await supabase
         .from(table)
         .delete()
-        .eq('id', votes[0].id);
+        .eq('id', votes.id);
         
       if (deleteError) throw deleteError;
     } else {
@@ -43,10 +42,8 @@ export function useVoting() {
   };
 
   return useMutation({
-    mutationFn: async ({ issueId, isDownvote }: { issueId: string; isDownvote: boolean }) => {
-      await handleVote(issueId, isDownvote);
-    },
-    onSuccess: (_, { issueId }) => {
+    mutationFn: handleVote,
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board-issues'] });
       toast({
         title: "Success",
