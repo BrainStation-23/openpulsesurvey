@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { VoteButton } from "./VoteButton";
@@ -26,6 +25,7 @@ export function IssueCard({
   onVote 
 }: IssueCardProps) {
   const queryClient = useQueryClient();
+  const [hasDownvoted, setHasDownvoted] = React.useState(false);
   const [canEdit, setCanEdit] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [editTitle, setEditTitle] = React.useState(issue.title);
@@ -47,6 +47,23 @@ export function IssueCard({
 
     checkEditPermission();
   }, [issue.created_by]);
+
+  React.useEffect(() => {
+    const checkDownvote = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: downvotes } = await supabase
+        .from('issue_downvotes')
+        .select('id')
+        .eq('issue_id', issue.id)
+        .eq('user_id', user.id);
+
+      setHasDownvoted(downvotes && downvotes.length > 0);
+    };
+
+    checkDownvote();
+  }, [issue.id]);
 
   const deleteIssueMutation = useMutation({
     mutationFn: async () => {
@@ -186,8 +203,11 @@ export function IssueCard({
           <VoteButton
             issueId={issue.id}
             voteCount={issue.vote_count}
+            downvoteCount={issue.downvote_count || 0}
             hasVoted={hasVoted}
+            hasDownvoted={hasDownvoted}
             onVote={onVote}
+            onDownvote={(issueId) => onVote?.(issueId)}
             disabled={!canVote}
           />
         </CardFooter>

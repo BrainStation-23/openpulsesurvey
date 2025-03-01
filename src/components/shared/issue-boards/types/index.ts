@@ -1,9 +1,9 @@
-
 import type { Issue as BaseIssue, UserIssueBoard as BaseBoard } from "@/pages/user/issue-boards/types";
 
 // Extend the base types with our specific needs
 export interface Issue extends Omit<BaseIssue, 'has_voted'> {
   has_voted: { id: string }[] | null;
+  downvote_count?: number;
 }
 
 export interface UserIssueBoard extends Omit<BaseBoard, 'permissions'> {
@@ -33,8 +33,11 @@ export interface IssueCardProps {
 export interface VoteButtonProps {
   issueId: string;
   voteCount: number;
+  downvoteCount: number;
   hasVoted: boolean;
+  hasDownvoted: boolean;
   onVote?: (issueId: string) => void;
+  onDownvote?: (issueId: string) => void;
   disabled?: boolean;
 }
 
