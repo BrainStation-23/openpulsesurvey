@@ -1,9 +1,9 @@
-# SurveyFlow - Enterprise Survey Management Platform
+# Enterprise Survey Management Platform
 [![Netlify Status](https://api.netlify.com/api/v1/badges/21e5b7b9-c3d0-40ef-baa1-806cafff897a/deploy-status)](https://app.netlify.com/sites/openofficesurvey/deploys)
 
 
 ## Overview
-SurveyFlow is a comprehensive survey management platform designed for enterprises to create, distribute, and analyze surveys efficiently. It offers features like anonymous surveys, real-time analytics, and easy distribution mechanisms to gather valuable insights from team members.
+Open Office Survey is a comprehensive survey management platform designed for enterprises to create, distribute, and analyze surveys efficiently. It offers features like anonymous surveys, real-time analytics, and easy distribution mechanisms to gather valuable insights from team members.
 
 ## Key Features
 - **Anonymous Surveys**: Ensure honest feedback with confidential response options
