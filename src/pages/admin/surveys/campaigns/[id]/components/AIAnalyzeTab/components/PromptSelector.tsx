@@ -4,11 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Check, Search } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Search, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface PromptSelectorProps {
-  onPromptSelect: (promptData: { id: string, text: string }) => void;
+  onAnalyze: (promptData: { id: string, text: string }) => void;
+  isAnalyzing?: boolean;
   selectedPromptId?: string;
 }
 
@@ -20,7 +23,7 @@ interface Prompt {
   status: 'active';
 }
 
-export function PromptSelector({ onPromptSelect, selectedPromptId }: PromptSelectorProps) {
+export function PromptSelector({ onAnalyze, isAnalyzing, selectedPromptId }: PromptSelectorProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -88,34 +91,40 @@ export function PromptSelector({ onPromptSelect, selectedPromptId }: PromptSelec
         ))}
       </div>
 
-      <div className="border rounded-md divide-y">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredPrompts?.map((prompt) => (
-          <div
+          <Card
             key={prompt.id}
             className={cn(
-              "p-4 cursor-pointer hover:bg-muted transition-colors",
-              selectedPromptId === prompt.id && "bg-muted"
+              "transition-colors",
+              selectedPromptId === prompt.id && "ring-2 ring-primary"
             )}
-            onClick={() => onPromptSelect({ 
-              id: prompt.id, 
-              text: prompt.prompt_text 
-            })}
           >
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <div className="font-medium">{prompt.name}</div>
-                <div className="text-sm text-muted-foreground line-clamp-2">
-                  {prompt.prompt_text}
-                </div>
-              </div>
-              {selectedPromptId === prompt.id && (
-                <Check className="h-4 w-4 shrink-0" />
-              )}
-            </div>
-          </div>
+            <CardHeader>
+              <CardTitle className="text-lg">{prompt.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground line-clamp-3">
+                {prompt.prompt_text}
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                className="w-full"
+                onClick={() => onAnalyze({ 
+                  id: prompt.id, 
+                  text: prompt.prompt_text 
+                })}
+                disabled={isAnalyzing && selectedPromptId === prompt.id}
+              >
+                <Brain className="h-4 w-4 mr-2" />
+                {isAnalyzing && selectedPromptId === prompt.id ? "Analyzing..." : "Analyze"}
+              </Button>
+            </CardFooter>
+          </Card>
         ))}
         {filteredPrompts?.length === 0 && (
-          <div className="p-4 text-center text-muted-foreground">
+          <div className="col-span-full text-center text-muted-foreground p-4">
             No prompts found
           </div>
         )}
