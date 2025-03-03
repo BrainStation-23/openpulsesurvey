@@ -1,12 +1,13 @@
 
-import { serve } from "https://deno.fresh.land/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from '@supabase/supabase-js';
+import { corsHeaders } from '../_shared/cors.ts';
 import { AuthService } from '../_shared/auth-service.ts';
 import { ProfileService } from '../_shared/profile-service.ts';
-import { corsHeaders } from '../_shared/cors.ts';
-import { UserCreateData } from '../_shared/db-types.ts';
+import type { UserCreateData } from '../_shared/db-types.ts';
 
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
