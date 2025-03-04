@@ -1,7 +1,7 @@
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { UserCreateData, BatchUserResult } from './db-types.ts';
-import { corsHeaders } from './cors.ts';
+import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -9,21 +9,22 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export class AuthService {
+  static generatePassword(): string {
+    return Array.from(crypto.getRandomValues(new Uint8Array(9)))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+      .slice(0, 12);
+  }
+
   static async createUser(userData: UserCreateData): Promise<BatchUserResult> {
     try {
       const { data: user, error: createError } = await supabase.auth.admin.createUser({
         email: userData.email,
-        password: userData.password,
+        password: userData.password || this.generatePassword(),
         email_confirm: true,
-        user_metadata: {
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-        },
       });
 
-      if (createError) {
-        throw createError;
-      }
+      if (createError) throw createError;
 
       return {
         success: true,
