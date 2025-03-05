@@ -26,6 +26,9 @@ export function PresentationView({ session }: PresentationViewProps) {
 
   const { getQuestionResponses, participants, activeQuestions } = useLiveResponses(session.id);
 
+  // Get the currently active question based on slide index
+  const currentQuestion = currentSlide === 0 ? null : activeQuestions[currentSlide - 1];
+
   // Update total slides when questions change
   useEffect(() => {
     setTotalSlides(activeQuestions.length + 1); // +1 for the info slide
@@ -61,6 +64,8 @@ export function PresentationView({ session }: PresentationViewProps) {
           responses={getQuestionResponses(question.question_key)}
           isActive={currentSlide === index + 1}
           isSessionActive={session.status === "active"}
+          // Only allow interaction with the currently visible slide
+          allowStatusChange={currentSlide === index + 1}
         />
       ))}
     </PresentationLayout>

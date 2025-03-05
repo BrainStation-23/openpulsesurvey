@@ -13,18 +13,20 @@ interface QuestionSlideProps {
   responses: any[];
   isActive: boolean;
   isSessionActive: boolean;
+  allowStatusChange: boolean;
 }
 
 export function QuestionSlide({ 
   question, 
   responses, 
   isActive, 
-  isSessionActive 
+  isSessionActive,
+  allowStatusChange
 }: QuestionSlideProps) {
   const { updateQuestionStatus, isUpdating } = useQuestionActions(question?.session_id || '');
 
   const handleStatusChange = async (newStatus: "active" | "completed") => {
-    if (!question) return;
+    if (!question || !allowStatusChange) return;
     await updateQuestionStatus(question.id, newStatus);
   };
 
@@ -37,7 +39,7 @@ export function QuestionSlide({
               <div className="flex items-start justify-between">
                 <QuestionHeader question={question} />
                 
-                {isSessionActive && (
+                {isSessionActive && allowStatusChange && (
                   <div className="flex items-center gap-2">
                     {question.status === "pending" && (
                       <Button
