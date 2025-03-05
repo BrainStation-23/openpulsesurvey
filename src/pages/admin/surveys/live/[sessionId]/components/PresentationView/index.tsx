@@ -64,8 +64,7 @@ export function PresentationView({ session }: PresentationViewProps) {
           responses={getQuestionResponses(question.question_key)}
           isActive={currentSlide === index + 1}
           isSessionActive={session.status === "active"}
-          // Only allow interaction with the currently visible slide
-          allowStatusChange={currentSlide === index + 1}
+          allowStatusChange={isActive && session.status === "active"}
         />
       ))}
     </PresentationLayout>
