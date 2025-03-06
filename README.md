@@ -1,62 +1,96 @@
 # Enterprise Survey Management Platform
-[![Netlify Status](https://api.netlify.com/api/v1/badges/21e5b7b9-c3d0-40ef-baa1-806cafff897a/deploy-status)](https://app.netlify.com/sites/openofficesurvey/deploys)
-
 
 ## Overview
 Open Office Survey is a comprehensive survey management platform designed for enterprises to create, distribute, and analyze surveys efficiently. It offers features like anonymous surveys, real-time analytics, and easy distribution mechanisms to gather valuable insights from team members.
 
 ## Key Features
-- **Anonymous Surveys**: Ensure honest feedback with confidential response options
-- **Real-time Analytics**: Get instant insights with powerful analytics dashboard
-- **Easy Distribution**: Share surveys effortlessly with your team
-- **Campaign Management**: Create and manage survey campaigns with scheduling options
-- **Role-based Access**: Separate interfaces for administrators and users
-- **Public Access Links**: Share surveys with external participants without login requirements
+- **Anonymous Surveys**: Ensure honest feedback with confidential response options.
+- **Real-time Analytics**: Get instant insights with a powerful analytics dashboard.
+- **Easy Distribution**: Share surveys effortlessly with your team via email, links, or embedded forms.
+- **Campaign Management**: Create and manage survey campaigns with scheduling and automation options.
+- **Role-based Access**: Secure and segmented access for administrators and participants.
+- **Public Access Links**: Allow external participants to submit responses without login requirements.
+- **Customizable Survey Templates**: Predefined survey templates for faster setup.
+- **Data Export**: Export survey results in multiple formats (CSV, JSON, Excel) for further analysis.
 
 ## Technology Stack
-- Frontend: React + TypeScript
-- Styling: Tailwind CSS + Shadcn UI
-- Backend: Supabase
-- Build Tool: Vite
-- State Management: React Query
+- **Frontend**: React + TypeScript
+- **Styling**: Tailwind CSS + Shadcn UI
+- **Backend**: Supabase
+- **Build Tool**: Vite
+- **State Management**: React Query
+- **Authentication**: Supabase Auth (Email, OAuth, Magic Link)
+- **Database**: PostgreSQL (via Supabase)
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js & npm - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Ensure you have the following installed:
+- [Node.js & npm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- A Supabase account ([Sign up here](https://supabase.com/))
 
 ### Installation
 
-```sh
-# Step 1: Clone the repository using the project''s Git URL.
-git clone <YOUR_GIT_URL>
+1. **Clone the Repository**
+   ```sh
+   git clone https://github.com/BrainStation-23/openofficesurvey.git
+   cd open-office-survey
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. **Install Dependencies**
+   ```sh
+   npm install
+   ```
+   
+3. **Start the Development Server**
+   ```sh
+   npm run dev
+   ```
+   Your local instance should now be running at `http://localhost:3000`.
 
-# Step 3: Install the necessary dependencies.
-npm i
+## Setting Up Supabase Backend
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+### 1. Create a New Supabase Project
+   - Log in to [Supabase](https://supabase.com/).
+   - Create a new project and note down the `Project ID`.
 
-## Project Structure
-```
-src/
-├── components/     # Reusable UI components
-├── pages/         # Page components and routes
-├── hooks/         # Custom React hooks
-├── lib/           # Utility functions
-└── types/         # TypeScript type definitions
-```
+### 2. Run Database Setup Scripts
+   Once your project is ready, navigate to **SQL Editor** and execute the following scripts in order:
 
-## Available Scripts
-- `npm run dev`: Start development server
-- `npm run build`: Build for production
-- `npm run preview`: Preview production build locally
+   ```sh
+   supabase/DB Setup/Step-1.sql
+   supabase/DB Setup/Step-2.sql
+   supabase/Seed Data/Default Prompts.sql
+   ```
 
+### 3. Configure Supabase Project ID
+   Update your Supabase configuration file:
+   ```sh
+   supabase/config.toml
+   ```
+   Set the `project_id` field to match your Supabase project.
+
+### 4. Update Supabase Client in the Frontend
+   Modify the Supabase client file:
+   ```sh
+   src/integrations/supabase/client.ts
+   ```
+   Replace placeholders with your actual Supabase **URL** and **Public Anon Key**, which can be found under **Project Settings > Data API**.
+
+### 5. Create an Admin User
+   - Navigate to **Supabase > Authentication**.
+   - Click **Add User > Create New User**.
+   - Set up credentials for the first admin.
+   - Go to **Table Editor > User_roles**.
+   - Change the role of the newly created user to `admin`.
+
+### 6. Run the Frontend
+   ```sh
+   npm run dev
+   ```
+   Log in using the credentials you set in the previous step and access the admin panel.
 
 ---
 
-Built with ❤️ by Brain Station 23';
+Built with ❤️ by **Brain Station 23**.
+
