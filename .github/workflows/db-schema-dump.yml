@@ -1,0 +1,62 @@
+
+name: Database Schema Dump
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  dump-schema:
+    runs-on: ubuntu-latest
+    
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          
+      - name: Create schema dump
+        run: |
+          pg_dump \
+            --schema-only \
+            --no-owner \
+            --no-privileges \
+            --exclude-schema 'auth|storage|graphql|graphql_public|net|pgsodium|pgsodium_masks|pgbouncer|realtime|_realtime|supabase_functions|pg_toast|pg_catalog|information_schema' \
+            --exclude-table-data '*' \
+            --no-comments \
+            "$SUPABASE_DB_URL" > schema.sql
+            
+      - name: Cleanup connection info
+        run: |
+          # Remove any connection-specific comments that pg_dump might have added
+          sed -i '/^-- Dumped/d' schema.sql
+          sed -i '/^-- PostgreSQL/d' schema.sql
+          
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: "chore: update database schema dump"
+          title: "chore: update database schema dump"
+          body: |
+            This PR updates the database schema dump with the latest changes.
+            
+            Changes in this PR include updates to:
+            - Tables
+            - Enums
+            - Functions
+            - RLS Policies
+            - Triggers
+            
+            Please review the changes carefully before merging.
+          branch: chore/update-db-schema
+          delete-branch: true
+          add-paths: |
+            schema.sql
+
