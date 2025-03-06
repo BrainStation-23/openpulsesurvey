@@ -7,6 +7,7 @@ import { LiveSessionQuestion } from "../../charts/types";
 import { QuestionHeader } from "./components/QuestionHeader";
 import { ResponseVisualization } from "./components/ResponseVisualization";
 import { useQuestionActions } from "../../../../hooks/useQuestionActions";
+import { useEffect } from "react";
 
 interface QuestionSlideProps {
   question: LiveSessionQuestion | null;
@@ -25,8 +26,33 @@ export function QuestionSlide({
 }: QuestionSlideProps) {
   const { updateQuestionStatus, isUpdating } = useQuestionActions(question?.session_id || '');
 
+  // Debug logging for props and state
+  useEffect(() => {
+    if (isActive) {
+      console.log('QuestionSlide active:', {
+        questionId: question?.id,
+        isActive,
+        isSessionActive,
+        allowStatusChange,
+        status: question?.status
+      });
+    }
+  }, [isActive, isSessionActive, allowStatusChange, question]);
+
   const handleStatusChange = async (newStatus: "active" | "completed") => {
-    if (!question || !allowStatusChange) return;
+    if (!question || !allowStatusChange) {
+      console.log('Status change blocked:', {
+        hasQuestion: !!question,
+        allowStatusChange,
+      });
+      return;
+    }
+    
+    console.log('Updating question status:', {
+      questionId: question.id,
+      newStatus,
+    });
+    
     await updateQuestionStatus(question.id, newStatus);
   };
 
