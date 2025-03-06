@@ -64,9 +64,10 @@ export function PresentationView({ session }: PresentationViewProps) {
           responses={getQuestionResponses(question.question_key)}
           isActive={currentSlide === index + 1}
           isSessionActive={session.status === "active"}
-          allowStatusChange={isActive && session.status === "active"}
+          allowStatusChange={session.status === "active" && currentSlide === index + 1}
         />
       ))}
     </PresentationLayout>
   );
 }
+
