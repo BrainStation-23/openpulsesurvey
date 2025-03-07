@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, Maximize, Minimize } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Maximize, Minimize } from "lucide-react";
+import { exportToPdf } from "../utils/pdfExport";
 import { exportToPptx } from "../utils/pptxExport";
 import { CampaignData } from "../types";
 import { usePresentationResponses } from "../hooks/usePresentationResponses";
@@ -34,7 +35,7 @@ export function PresentationControls({
   const { toast } = useToast();
   const { data: processedData } = usePresentationResponses(campaign.id, campaign.instance?.id);
 
-  const handleDownload = async () => {
+  const handlePptxExport = async () => {
     try {
       if (!processedData) {
         toast({
@@ -47,13 +48,30 @@ export function PresentationControls({
       await exportToPptx(campaign, processedData);
       toast({
         title: "Success",
-        description: "Presentation has been exported successfully",
+        description: "Presentation has been exported to PPTX successfully",
       });
     } catch (error) {
       console.error("Error exporting presentation:", error);
       toast({
         title: "Export failed",
-        description: "There was an error exporting the presentation",
+        description: "There was an error exporting the PPTX presentation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePdfExport = async () => {
+    try {
+      await exportToPdf(campaign);
+      toast({
+        title: "Success",
+        description: "Presentation has been exported to PDF successfully",
+      });
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting the PDF presentation",
         variant: "destructive",
       });
     }
@@ -75,10 +93,21 @@ export function PresentationControls({
         <Button
           variant="ghost"
           size="icon"
-          onClick={handleDownload}
+          onClick={handlePptxExport}
           className="text-black hover:bg-black/20 hover:text-black"
+          title="Export to PPTX"
         >
           <Download className="h-4 w-4" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handlePdfExport}
+          className="text-black hover:bg-black/20 hover:text-black"
+          title="Export to PDF"
+        >
+          <FileText className="h-4 w-4" />
         </Button>
 
         <Button
@@ -92,7 +121,7 @@ export function PresentationControls({
         </Button>
 
         <span className="text-sm font-medium text-black">
-          {currentSlide + 1} / {totalSlides}
+          {currentSlide} / {totalSlides}
         </span>
 
         <Button
