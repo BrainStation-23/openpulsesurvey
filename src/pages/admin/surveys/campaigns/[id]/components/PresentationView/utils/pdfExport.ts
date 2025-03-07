@@ -3,7 +3,10 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { CampaignData } from "../types";
 
-export async function exportToPdf(campaign: CampaignData) {
+export async function exportToPdf(
+  campaign: CampaignData,
+  onProgress?: (current: number, total: number) => void
+) {
   try {
     // Initialize PDF document with A4 landscape format
     const pdf = new jsPDF({
@@ -17,6 +20,9 @@ export async function exportToPdf(campaign: CampaignData) {
     
     // Convert each slide to canvas and add to PDF
     for (let i = 0; i < slides.length; i++) {
+      // Report progress
+      onProgress?.(i + 1, slides.length);
+      
       const slide = slides[i] as HTMLElement;
       
       // Store original styles
@@ -33,12 +39,12 @@ export async function exportToPdf(campaign: CampaignData) {
       slide.style.position = 'relative';
       slide.style.zIndex = '9999';
 
-      // Wait for any animations or transitions to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for content to load and render
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Capture slide as canvas
       const canvas = await html2canvas(slide, {
-        scale: 2, // Higher quality
+        scale: 2,
         useCORS: true,
         logging: true,
         backgroundColor: '#ffffff',
@@ -53,7 +59,7 @@ export async function exportToPdf(campaign: CampaignData) {
         pdf.addPage();
       }
 
-      // Add canvas to PDF, scaling to fit page
+      // Add canvas to PDF
       const imgData = canvas.toDataURL('image/jpeg', 1.0);
       pdf.addImage(imgData, 'JPEG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
 
