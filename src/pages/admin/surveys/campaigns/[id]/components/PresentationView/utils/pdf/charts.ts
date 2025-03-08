@@ -34,6 +34,13 @@ function addBooleanChart(pdf: jsPDF, answers: any[]) {
   const centerY = 540;
   const radius = 150;
 
+  // Draw grid circles
+  pdf.setDrawColor("#EEEEEE");
+  pdf.setLineWidth(0.5);
+  for (let r = radius / 4; r <= radius; r += radius / 4) {
+    pdf.circle(centerX, centerY, r, 'S');
+  }
+
   // Draw pie chart segments
   if (total > 0) {
     const yesPercent = yes / total;
@@ -45,18 +52,26 @@ function addBooleanChart(pdf: jsPDF, answers: any[]) {
     // Draw "Yes" segment if there are any
     if (yes > 0) {
       pdf.setFillColor(THEME.chart.colors[0]);
-      // Using ellipse to draw the "Yes" portion of the pie
-      const startAngle = 0;
       const endAngle = (yesPercent * 360);
       pdf.ellipse(centerX, centerY, radius, radius, 'F');
     }
   }
 
   // Add legend
+  const legendY = centerY + radius + 50;
+  const legendSpacing = 30;
+  
+  // Yes legend
+  pdf.setFillColor(THEME.chart.colors[0]);
+  pdf.rect(centerX - 200, legendY, 20, 20, 'F');
   pdf.setFontSize(14);
   pdf.setTextColor(THEME.text.primary);
-  pdf.text(`Yes: ${Math.round((yes / total) * 100)}%`, centerX - 200, centerY + radius + 50);
-  pdf.text(`No: ${Math.round((no / total) * 100)}%`, centerX + 100, centerY + radius + 50);
+  pdf.text(`Yes (${Math.round((yes / total) * 100)}%)`, centerX - 170, legendY + 15);
+
+  // No legend
+  pdf.setFillColor(THEME.chart.colors[1]);
+  pdf.rect(centerX + 50, legendY, 20, 20, 'F');
+  pdf.text(`No (${Math.round((no / total) * 100)}%)`, centerX + 80, legendY + 15);
 }
 
 function addRatingChart(pdf: jsPDF, answers: any[], isNps: boolean) {
@@ -70,16 +85,32 @@ function addRatingChart(pdf: jsPDF, answers: any[], isNps: boolean) {
     const promoters = validAnswers.filter(r => r > 8).length;
     const total = validAnswers.length;
 
-    // Draw stacked bar
+    // Draw grid lines
     const barWidth = 800;
     const barHeight = 60;
     const startX = 560;
     const startY = 400;
+    
+    // Horizontal grid lines
+    pdf.setDrawColor("#EEEEEE");
+    pdf.setLineWidth(0.5);
+    for (let y = startY - 20; y <= startY + barHeight + 20; y += 20) {
+      pdf.line(startX - 20, y, startX + barWidth + 20, y);
+    }
 
+    // Draw stacked bar
     const dWidth = (detractors / total) * barWidth;
     const pWidth = (passives / total) * barWidth;
     const prWidth = (promoters / total) * barWidth;
 
+    // Add labels above bars
+    pdf.setFontSize(12);
+    pdf.setTextColor(THEME.text.primary);
+    pdf.text(`${Math.round((detractors / total) * 100)}%`, startX + dWidth/2 - 15, startY - 10);
+    pdf.text(`${Math.round((passives / total) * 100)}%`, startX + dWidth + pWidth/2 - 15, startY - 10);
+    pdf.text(`${Math.round((promoters / total) * 100)}%`, startX + dWidth + pWidth + prWidth/2 - 15, startY - 10);
+
+    // Draw bars
     pdf.setFillColor(THEME.chart.colors[1]);
     pdf.rect(startX, startY, dWidth, barHeight, 'F');
     
@@ -89,11 +120,26 @@ function addRatingChart(pdf: jsPDF, answers: any[], isNps: boolean) {
     pdf.setFillColor(THEME.chart.colors[0]);
     pdf.rect(startX + dWidth + pWidth, startY, prWidth, barHeight, 'F');
 
-    // Add labels
+    // Add legend
+    const legendY = startY + barHeight + 50;
+    const legendSpacing = 250;
+    
     pdf.setFontSize(14);
-    pdf.text(`Detractors: ${Math.round((detractors / total) * 100)}%`, startX, startY + 100);
-    pdf.text(`Passives: ${Math.round((passives / total) * 100)}%`, startX + 300, startY + 100);
-    pdf.text(`Promoters: ${Math.round((promoters / total) * 100)}%`, startX + 600, startY + 100);
+    // Detractors legend
+    pdf.setFillColor(THEME.chart.colors[1]);
+    pdf.rect(startX, legendY, 20, 20, 'F');
+    pdf.text('Detractors (0-6)', startX + 30, legendY + 15);
+    
+    // Passives legend
+    pdf.setFillColor(THEME.chart.colors[2]);
+    pdf.rect(startX + legendSpacing, legendY, 20, 20, 'F');
+    pdf.text('Passives (7-8)', startX + legendSpacing + 30, legendY + 15);
+    
+    // Promoters legend
+    pdf.setFillColor(THEME.chart.colors[0]);
+    pdf.rect(startX + legendSpacing * 2, legendY, 20, 20, 'F');
+    pdf.text('Promoters (9-10)', startX + legendSpacing * 2 + 30, legendY + 15);
+
   } else {
     // Regular satisfaction rating
     const unsatisfied = validAnswers.filter(r => r <= 2).length;
@@ -101,24 +147,38 @@ function addRatingChart(pdf: jsPDF, answers: any[], isNps: boolean) {
     const satisfied = validAnswers.filter(r => r >= 4).length;
     const total = validAnswers.length;
 
-    // Draw bars
+    // Draw bars with grid
     const barWidth = 200;
     const maxBarHeight = 300;
     const startY = 700;
+    const gridSpacing = 50;
+    
+    // Draw horizontal grid lines
+    pdf.setDrawColor("#EEEEEE");
+    pdf.setLineWidth(0.5);
+    for (let y = startY - maxBarHeight; y <= startY; y += gridSpacing) {
+      pdf.line(500, y, 1400, y);
+    }
     
     const drawBar = (value: number, x: number, label: string, color: string) => {
       const height = (value / total) * maxBarHeight;
+      
+      // Draw bar
       pdf.setFillColor(color);
       pdf.rect(x, startY - height, barWidth, height, 'F');
       
+      // Add value label on top of bar
       pdf.setFontSize(14);
       pdf.setTextColor(THEME.text.primary);
-      pdf.text(`${label}: ${Math.round((value / total) * 100)}%`, x, startY + 30);
+      pdf.text(`${Math.round((value / total) * 100)}%`, x + barWidth/2 - 15, startY - height - 20);
+      
+      // Add category label below bar
+      pdf.text(label, x + barWidth/2 - pdf.getTextWidth(label)/2, startY + 30);
     };
 
-    drawBar(unsatisfied, 560, "Unsatisfied", "#ef4444");
-    drawBar(neutral, 860, "Neutral", "#eab308");
-    drawBar(satisfied, 1160, "Satisfied", "#22c55e");
+    drawBar(unsatisfied, 560, "Unsatisfied (1-2)", "#ef4444");
+    drawBar(neutral, 860, "Neutral (3)", "#eab308");
+    drawBar(satisfied, 1160, "Satisfied (4-5)", "#22c55e");
   }
 }
 
@@ -142,23 +202,32 @@ function addTextChart(pdf: jsPDF, answers: any[]) {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10);
 
-  // Draw word frequency bars
+  // Draw word frequency bars with grid
   const barHeight = 30;
   const maxWidth = 600;
   const startX = 560;
   const startY = 300;
-  const maxCount = Math.max(...sortedWords.map(([, count]) => count));
+  const gridSpacing = 100;
+
+  // Draw vertical grid lines
+  pdf.setDrawColor("#EEEEEE");
+  pdf.setLineWidth(0.5);
+  for (let x = startX; x <= startX + maxWidth; x += gridSpacing) {
+    pdf.line(x, startY - 30, x, startY + (sortedWords.length * (barHeight + 20)));
+  }
 
   sortedWords.forEach(([word, count], index) => {
     const y = startY + (index * (barHeight + 20));
     const width = (count / maxCount) * maxWidth;
 
+    // Draw bar
     pdf.setFillColor(THEME.chart.colors[index % THEME.chart.colors.length]);
     pdf.rect(startX, y, width, barHeight, 'F');
 
+    // Add label
     pdf.setFontSize(14);
     pdf.setTextColor(THEME.text.primary);
-    pdf.text(`${word} (${count})`, startX + width + 20, y + 20);
+    pdf.text(`${word} (${count} occurrences)`, startX + width + 20, y + 20);
   });
 }
 
@@ -206,15 +275,24 @@ export async function addComparisonChart(
     groupedData.get(groupKey).push(answer);
   });
 
-  // Draw comparison charts based on question type
   const startY = 200;
   const itemHeight = 100;
   const barWidth = 600;
   const labelX = 150;
+  const gridSpacing = 100;
 
+  // Draw horizontal grid lines
+  pdf.setDrawColor("#EEEEEE");
+  pdf.setLineWidth(0.5);
+  
   Array.from(groupedData.entries()).forEach(([group, answers], index) => {
     const y = startY + (index * itemHeight);
     
+    // Add grid lines for each group
+    for (let x = labelX + 200; x <= labelX + 200 + barWidth; x += gridSpacing) {
+      pdf.line(x, y - 25, x, y + 25);
+    }
+
     pdf.setFontSize(14);
     pdf.setTextColor(THEME.text.primary);
     pdf.text(group, labelX, y);
@@ -224,25 +302,29 @@ export async function addComparisonChart(
       const yes = answers.filter((a: boolean) => a === true).length;
       const width = (yes / total) * barWidth;
 
+      // Draw base bar ("No" responses)
       pdf.setFillColor(THEME.chart.colors[1]);
       pdf.rect(labelX + 200, y - 15, barWidth, 20, 'F');
       
+      // Draw "Yes" portion
       pdf.setFillColor(THEME.chart.colors[0]);
       pdf.rect(labelX + 200, y - 15, width, 20, 'F');
 
-      pdf.text(`${Math.round((yes / total) * 100)}%`, labelX + barWidth + 220, y);
+      // Add percentage label
+      pdf.text(`${Math.round((yes / total) * 100)}% Yes`, labelX + barWidth + 220, y);
     } else if (question.type === "rating") {
       const isNps = question.rateCount === 10;
       if (isNps) {
+        const total = answers.length;
         const detractors = answers.filter((r: number) => r <= 6).length;
         const passives = answers.filter((r: number) => r > 6 && r <= 8).length;
         const promoters = answers.filter((r: number) => r > 8).length;
-        const total = answers.length;
 
         const dWidth = (detractors / total) * barWidth;
         const pWidth = (passives / total) * barWidth;
         const prWidth = (promoters / total) * barWidth;
 
+        // Draw segments
         pdf.setFillColor("#ef4444");
         pdf.rect(labelX + 200, y - 15, dWidth, 20, 'F');
         
@@ -251,16 +333,24 @@ export async function addComparisonChart(
         
         pdf.setFillColor("#22c55e");
         pdf.rect(labelX + 200 + dWidth + pWidth, y - 15, prWidth, 20, 'F');
+
+        // Add percentage labels
+        pdf.setFontSize(12);
+        pdf.text(`${Math.round((detractors / total) * 100)}%`, labelX + 200 + dWidth/2 - 15, y - 25);
+        pdf.text(`${Math.round((passives / total) * 100)}%`, labelX + 200 + dWidth + pWidth/2 - 15, y - 25);
+        pdf.text(`${Math.round((promoters / total) * 100)}%`, labelX + 200 + dWidth + pWidth + prWidth/2 - 15, y - 25);
       } else {
+        // Regular satisfaction rating handling
+        const total = answers.length;
         const unsatisfied = answers.filter((r: number) => r <= 2).length;
         const neutral = answers.filter((r: number) => r === 3).length;
         const satisfied = answers.filter((r: number) => r >= 4).length;
-        const total = answers.length;
 
         const uWidth = (unsatisfied / total) * barWidth;
         const nWidth = (neutral / total) * barWidth;
         const sWidth = (satisfied / total) * barWidth;
 
+        // Draw segments
         pdf.setFillColor("#ef4444");
         pdf.rect(labelX + 200, y - 15, uWidth, 20, 'F');
         
@@ -269,7 +359,61 @@ export async function addComparisonChart(
         
         pdf.setFillColor("#22c55e");
         pdf.rect(labelX + 200 + uWidth + nWidth, y - 15, sWidth, 20, 'F');
+
+        // Add percentage labels
+        pdf.setFontSize(12);
+        pdf.text(`${Math.round((unsatisfied / total) * 100)}%`, labelX + 200 + uWidth/2 - 15, y - 25);
+        pdf.text(`${Math.round((neutral / total) * 100)}%`, labelX + 200 + uWidth + nWidth/2 - 15, y - 25);
+        pdf.text(`${Math.round((satisfied / total) * 100)}%`, labelX + 200 + uWidth + nWidth + sWidth/2 - 15, y - 25);
       }
     }
   });
+
+  // Add legend for the comparison charts
+  const legendY = startY + (groupedData.size * itemHeight) + 30;
+  
+  if (question.type === "boolean") {
+    pdf.setFillColor(THEME.chart.colors[0]);
+    pdf.rect(labelX + 200, legendY, 20, 20, 'F');
+    pdf.text("Yes", labelX + 230, legendY + 15);
+
+    pdf.setFillColor(THEME.chart.colors[1]);
+    pdf.rect(labelX + 400, legendY, 20, 20, 'F');
+    pdf.text("No", labelX + 430, legendY + 15);
+  } else if (question.type === "rating") {
+    const isNps = question.rateCount === 10;
+    if (isNps) {
+      // NPS legend
+      const legendSpacing = 250;
+      pdf.setFontSize(14);
+      
+      pdf.setFillColor("#ef4444");
+      pdf.rect(labelX + 200, legendY, 20, 20, 'F');
+      pdf.text("Detractors (0-6)", labelX + 230, legendY + 15);
+      
+      pdf.setFillColor("#eab308");
+      pdf.rect(labelX + 200 + legendSpacing, legendY, 20, 20, 'F');
+      pdf.text("Passives (7-8)", labelX + 230 + legendSpacing, legendY + 15);
+      
+      pdf.setFillColor("#22c55e");
+      pdf.rect(labelX + 200 + legendSpacing * 2, legendY, 20, 20, 'F');
+      pdf.text("Promoters (9-10)", labelX + 230 + legendSpacing * 2, legendY + 15);
+    } else {
+      // Regular rating legend
+      const legendSpacing = 250;
+      pdf.setFontSize(14);
+      
+      pdf.setFillColor("#ef4444");
+      pdf.rect(labelX + 200, legendY, 20, 20, 'F');
+      pdf.text("Unsatisfied (1-2)", labelX + 230, legendY + 15);
+      
+      pdf.setFillColor("#eab308");
+      pdf.rect(labelX + 200 + legendSpacing, legendY, 20, 20, 'F');
+      pdf.text("Neutral (3)", labelX + 230 + legendSpacing, legendY + 15);
+      
+      pdf.setFillColor("#22c55e");
+      pdf.rect(labelX + 200 + legendSpacing * 2, legendY, 20, 20, 'F');
+      pdf.text("Satisfied (4-5)", labelX + 230 + legendSpacing * 2, legendY + 15);
+    }
+  }
 }
