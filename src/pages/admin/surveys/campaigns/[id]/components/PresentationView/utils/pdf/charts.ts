@@ -202,6 +202,9 @@ function addTextChart(pdf: jsPDF, answers: any[]) {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10);
 
+  // Calculate the maximum count for scaling
+  const maxCount = sortedWords.length > 0 ? sortedWords[0][1] : 0;
+
   // Draw word frequency bars with grid
   const barHeight = 30;
   const maxWidth = 600;
@@ -417,3 +420,4 @@ export async function addComparisonChart(
     }
   }
 }
+
