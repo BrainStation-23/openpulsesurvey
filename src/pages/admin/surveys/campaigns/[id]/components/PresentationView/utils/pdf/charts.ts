@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import { Question, ProcessedData } from "../../types/responses";
 import { THEME } from "../pptx/theme";
@@ -35,17 +34,22 @@ function addBooleanChart(pdf: jsPDF, answers: any[]) {
   const centerY = 540;
   const radius = 150;
 
-  // Draw pie chart
-  const yesAngle = (yes / total) * Math.PI * 2;
-  
-  pdf.setFillColor(THEME.chart.colors[0]);
-  pdf.circle(centerX, centerY, radius, 'F');
-  
-  pdf.setFillColor(THEME.chart.colors[1]);
-  if (no > 0) {
-    pdf.setLineWidth(1);
-    pdf.setDrawColor(THEME.chart.colors[1]);
-    pdf.arc(centerX, centerY, radius, 0, yesAngle, 'F');
+  // Draw pie chart segments
+  if (total > 0) {
+    const yesPercent = yes / total;
+    
+    // Draw base circle for "No" responses
+    pdf.setFillColor(THEME.chart.colors[1]);
+    pdf.circle(centerX, centerY, radius, 'F');
+    
+    // Draw "Yes" segment if there are any
+    if (yes > 0) {
+      pdf.setFillColor(THEME.chart.colors[0]);
+      // Using ellipse to draw the "Yes" portion of the pie
+      const startAngle = 0;
+      const endAngle = (yesPercent * 360);
+      pdf.ellipse(centerX, centerY, radius, radius, 'F');
+    }
   }
 
   // Add legend
