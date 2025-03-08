@@ -1,10 +1,10 @@
-
 import jsPDF from 'jspdf';
 import { CampaignData } from "../../types";
 import { ProcessedData } from "../../types/responses";
 import { THEME } from "../pptx/theme";
 import { formatDate } from "../pptx/helpers";
-import { addQuestionChart } from "./charts";
+import { addQuestionChart, addComparisonChart } from "./charts";
+import { COMPARISON_DIMENSIONS } from "../../constants";
 
 export function createTitleSlide(pdf: jsPDF, campaign: CampaignData) {
   pdf.setFontSize(44);
@@ -59,20 +59,38 @@ export async function createQuestionSlides(
   onProgress?: (progress: number) => void
 ) {
   const { questions } = processedData;
+  let totalSlides = questions.length * (1 + COMPARISON_DIMENSIONS.length);
+  let currentSlide = 0;
 
-  for (let i = 0; i < questions.length; i++) {
-    const question = questions[i];
-    
+  for (const question of questions) {
+    // Main question slide
     pdf.addPage();
-    
-    // Add question title
     pdf.setFontSize(28);
     pdf.setTextColor(THEME.text.primary);
     pdf.text(question.title, 150, 100, { maxWidth: 1600 });
-
-    // Add chart based on question type
     await addQuestionChart(pdf, question, processedData);
     
-    onProgress?.((i + 1) / questions.length);
+    currentSlide++;
+    onProgress?.(currentSlide / totalSlides);
+
+    // Create comparison slides for each dimension
+    for (const dimension of COMPARISON_DIMENSIONS) {
+      pdf.addPage();
+      
+      // Add question title
+      pdf.setFontSize(24);
+      pdf.text(question.title, 150, 100, { maxWidth: 1600 });
+
+      // Add comparison title
+      pdf.setFontSize(20);
+      pdf.setTextColor(THEME.text.secondary);
+      pdf.text(`Response Distribution by ${dimension}`, 150, 160);
+
+      // Add comparison chart
+      await addComparisonChart(pdf, question, processedData, dimension);
+      
+      currentSlide++;
+      onProgress?.(currentSlide / totalSlides);
+    }
   }
 }
