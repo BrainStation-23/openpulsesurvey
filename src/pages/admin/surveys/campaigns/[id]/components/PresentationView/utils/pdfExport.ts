@@ -1,80 +1,46 @@
 
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { CampaignData } from "../types";
+import { ProcessedData } from "../types/responses";
+import { THEME } from "./pptx/theme";
+import { createTitleSlide, createCompletionSlide, createQuestionSlides } from "./pdf/slides";
 
 export async function exportToPdf(
   campaign: CampaignData,
+  processedData: ProcessedData,
   onProgress?: (current: number, total: number) => void
 ) {
   try {
-    // Initialize PDF document with A4 landscape format
+    // Initialize PDF document
     const pdf = new jsPDF({
       orientation: 'landscape',
-      unit: 'px',
+      unit: 'pt',
       format: [1920, 1080]
     });
 
-    // Get all slides
-    const slides = document.querySelectorAll('.slide');
+    // Set default font and colors
+    pdf.setFont("helvetica");
+    pdf.setTextColor(THEME.text.primary);
     
-    // Convert each slide to canvas and add to PDF
-    for (let i = 0; i < slides.length; i++) {
-      // Report progress
-      onProgress?.(i + 1, slides.length);
-      
-      const slide = slides[i] as HTMLElement;
-      
-      // Store original styles
-      const originalDisplay = slide.style.display;
-      const originalVisibility = slide.style.visibility;
-      const originalOpacity = slide.style.opacity;
-      const originalPosition = slide.style.position;
-      const originalZIndex = slide.style.zIndex;
-
-      // Make slide visible for capture
-      slide.style.display = 'block';
-      slide.style.visibility = 'visible';
-      slide.style.opacity = '1';
-      slide.style.position = 'relative';
-      slide.style.zIndex = '9999';
-
-      // Wait for content to load and render
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Capture slide as canvas
-      const canvas = await html2canvas(slide, {
-        scale: 2,
-        useCORS: true,
-        logging: true,
-        backgroundColor: '#ffffff',
-        allowTaint: true,
-        foreignObjectRendering: true,
-        imageTimeout: 15000,
-        removeContainer: false,
-      });
-
-      // Add page if not first slide
-      if (i > 0) {
-        pdf.addPage();
-      }
-
-      // Add canvas to PDF
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
-
-      // Restore original styles
-      slide.style.display = originalDisplay;
-      slide.style.visibility = originalVisibility;
-      slide.style.opacity = originalOpacity;
-      slide.style.position = originalPosition;
-      slide.style.zIndex = originalZIndex;
-    }
+    let currentSlide = 1;
+    const totalSlides = 2 + processedData.questions.length; // Title + Completion + Questions
+    
+    // Create title slide
+    onProgress?.(currentSlide++, totalSlides);
+    createTitleSlide(pdf, campaign);
+    
+    // Create completion slide
+    onProgress?.(currentSlide++, totalSlides);
+    createCompletionSlide(pdf, campaign);
+    
+    // Create question slides
+    await createQuestionSlides(pdf, campaign, processedData, (progress) => {
+      onProgress?.(currentSlide + progress, totalSlides);
+    });
 
     // Save the PDF
     const fileName = `${campaign.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_presentation.pdf`;
     pdf.save(fileName);
-
   } catch (error) {
     console.error('Error exporting PDF:', error);
     throw error;
