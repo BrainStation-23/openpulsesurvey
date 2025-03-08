@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Maximize, Minimize, Loader } from "lucide-react";
@@ -88,8 +89,8 @@ export function PresentationControls({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => handleExport(campaign)}
-            disabled={exporting}
+            onClick={() => processedData && handleExport(campaign, processedData)}
+            disabled={exporting || !processedData}
             className="text-black hover:bg-black/20 hover:text-black"
             title="Export to PDF"
           >

@@ -2,19 +2,17 @@
 import { useState } from 'react';
 import { exportToPdf } from '../utils/pdfExport';
 import { CampaignData } from "../types";
+import { ProcessedData } from "../types/responses";
 import { useToast } from "@/hooks/use-toast";
-import { usePresentationResponses } from './usePresentationResponses';
 
 export function usePdfExport() {
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
 
-  const handleExport = async (campaign: CampaignData) => {
+  const handleExport = async (campaign: CampaignData, processedData: ProcessedData) => {
     try {
-      const { data } = await usePresentationResponses(campaign.id, campaign.instance?.id);
-      
-      if (!data) {
+      if (!processedData) {
         toast({
           title: "Cannot export presentation",
           description: "Please wait for the data to load",
@@ -26,7 +24,7 @@ export function usePdfExport() {
       setExporting(true);
       setProgress(0);
       
-      await exportToPdf(campaign, data, (current, total) => {
+      await exportToPdf(campaign, processedData, (current, total) => {
         setProgress(Math.round((current / total) * 100));
       });
       
