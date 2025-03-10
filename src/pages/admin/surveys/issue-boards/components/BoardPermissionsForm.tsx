@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Copy, ChevronDown, ChevronUp, Info } from "lucide-react";
@@ -17,10 +16,13 @@ import {
 } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "@/components/ui/use-toast";
 import type { IssueBoard, IssueBoardPermission } from "../types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MultiSelectDropdown } from "./MultiSelectDropdown";
+import { PermissionRuleExplanation } from "./PermissionRuleExplanation";
+import { usePermissionValidation } from "../hooks/usePermissionValidation";
 
 interface BoardPermissionsFormProps {
   board: IssueBoard;
@@ -40,7 +42,8 @@ export function BoardPermissionsForm({
     Object.fromEntries(permissions.map((_, i) => [i, true]))
   );
 
-  // Fetch all the available options
+  const { validatePermissions, enforcePermissionDependencies } = usePermissionValidation();
+
   const { data: sbus } = useQuery({
     queryKey: ['sbus'],
     queryFn: async () => {
@@ -111,10 +114,10 @@ export function BoardPermissionsForm({
 
   const updatePermission = (index: number, field: keyof IssueBoardPermission, value: any) => {
     const newPermissions = [...permissions];
-    newPermissions[index] = {
+    newPermissions[index] = enforcePermissionDependencies({
       ...newPermissions[index],
       [field]: value
-    };
+    });
     setPermissions(newPermissions);
   };
 
@@ -127,6 +130,19 @@ export function BoardPermissionsForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const errors = validatePermissions(permissions);
+    
+    if (errors.length > 0) {
+      errors.forEach(error => {
+        toast({
+          title: "Validation Error",
+          description: error,
+          variant: "destructive",
+        });
+      });
+      return;
+    }
+    
     onSubmit(permissions);
   };
 
@@ -304,7 +320,7 @@ export function BoardPermissionsForm({
                                   <Info className="h-4 w-4 text-muted-foreground" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  Users can create new issues on the board
+                                  Users can create new issues on the board (requires View permission)
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -330,7 +346,7 @@ export function BoardPermissionsForm({
                                   <Info className="h-4 w-4 text-muted-foreground" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  Users can vote on issues in the board
+                                  Users can vote on issues in the board (requires View permission)
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -339,14 +355,10 @@ export function BoardPermissionsForm({
                       </div>
                     </div>
 
-                    <div className="mt-4">
-                      <h5 className="font-medium text-sm mb-2">Selection Summary</h5>
-                      <div className="bg-secondary/20 p-4 rounded-lg">
-                        <p className="text-sm text-muted-foreground">
-                          {getSelectionSummary(permission) || 'No selections made'}
-                        </p>
-                      </div>
-                    </div>
+                    <PermissionRuleExplanation 
+                      permission={permission}
+                      index={index}
+                    />
                   </div>
                 </div>
               </CollapsibleContent>
@@ -365,9 +377,10 @@ export function BoardPermissionsForm({
                     <Badge variant="secondary">Can Vote</Badge>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {getSelectionSummary(permission) || 'No selections made'}
-                </p>
+                <PermissionRuleExplanation 
+                  permission={permission}
+                  index={index}
+                />
               </div>
             )}
           </Card>
