@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker } from "react-day-picker";
+import { DayPicker, DayPickerSingleProps } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -25,7 +25,9 @@ function Calendar({
     if (props.selected instanceof Date) {
       const newDate = new Date(props.selected);
       newDate.setFullYear(year);
-      props.onSelect?.(newDate);
+      if (props.mode === "single") {
+        (props as DayPickerSingleProps).onSelect?.(newDate);
+      }
     }
     setCurrentYear(year);
     setViewMode("months");
@@ -35,7 +37,9 @@ function Calendar({
     if (props.selected instanceof Date) {
       const newDate = new Date(props.selected);
       newDate.setMonth(monthIndex);
-      props.onSelect?.(newDate);
+      if (props.mode === "single") {
+        (props as DayPickerSingleProps).onSelect?.(newDate);
+      }
     }
     setCurrentMonth(monthIndex);
     setViewMode("days");
@@ -47,8 +51,8 @@ function Calendar({
 
   const handleTodayClick = () => {
     const today = new Date();
-    if (props.mode === 'single') {
-      props.onSelect?.(today);
+    if (props.mode === "single") {
+      (props as DayPickerSingleProps).onSelect?.(today);
     }
   };
 
@@ -95,7 +99,7 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
+      className={cn("p-3 pointer-events-auto", className)}
       month={new Date(currentYear, currentMonth)}
       {...props}
       classNames={{
