@@ -1,10 +1,12 @@
-
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker, CaptionProps } from "react-day-picker";
+import { DayPicker } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { YearsGrid } from "./calendar/years-grid";
+import { MonthsGrid } from "./calendar/months-grid";
+import { CalendarHeader } from "./calendar/calendar-header";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
@@ -17,22 +19,11 @@ function Calendar({
   const [mode, setMode] = React.useState<"days" | "months" | "years">("days");
   const [currentYear, setCurrentYear] = React.useState(new Date().getFullYear());
 
-  const months = [
-    "January", "February", "March", "April",
-    "May", "June", "July", "August",
-    "September", "October", "November", "December"
-  ];
-
-  const generateYearGrid = () => {
-    const startYear = Math.floor(currentYear / 12) * 12;
-    return Array.from({ length: 12 }, (_, i) => startYear + i);
-  };
-
   const handleYearClick = (year: number) => {
     if (props.selected instanceof Date) {
       const newDate = new Date(props.selected);
       newDate.setFullYear(year);
-      props.onDayClick?.(newDate);
+      props.onDayClick?.(newDate, mode, { selected: true });
     }
     setCurrentYear(year);
     setMode("months");
@@ -42,7 +33,7 @@ function Calendar({
     if (props.selected instanceof Date) {
       const newDate = new Date(props.selected);
       newDate.setMonth(monthIndex);
-      props.onDayClick?.(newDate);
+      props.onDayClick?.(newDate, mode, { selected: true });
     }
     setMode("days");
   };
@@ -53,82 +44,28 @@ function Calendar({
 
   const handleTodayClick = () => {
     const today = new Date();
-    props.onDayClick?.(today);
+    props.onDayClick?.(today, mode, { selected: true });
   };
 
   if (mode === "years") {
     return (
-      <div className={cn("p-3", className)}>
-        <div className="flex justify-between items-center mb-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setCurrentYear(currentYear - 12)}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="font-medium">
-            {generateYearGrid()[0]} - {generateYearGrid()[11]}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setCurrentYear(currentYear + 12)}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          {generateYearGrid().map((year) => (
-            <Button
-              key={year}
-              variant="ghost"
-              className={cn(
-                "h-9 w-full rounded-md p-0",
-                props.selected instanceof Date && 
-                year === props.selected.getFullYear() && 
-                "bg-primary text-primary-foreground"
-              )}
-              onClick={() => handleYearClick(year)}
-            >
-              {year}
-            </Button>
-          ))}
-        </div>
-      </div>
+      <YearsGrid
+        currentYear={currentYear}
+        selected={props.selected instanceof Date ? props.selected : undefined}
+        onYearSelect={handleYearClick}
+        onDecadeChange={(increment) => setCurrentYear(currentYear + increment)}
+      />
     );
   }
 
   if (mode === "months") {
     return (
-      <div className={cn("p-3", className)}>
-        <div className="flex justify-between items-center mb-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMode("years")}
-          >
-            <span className="font-medium">{currentYear}</span>
-          </Button>
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          {months.map((month, index) => (
-            <Button
-              key={month}
-              variant="ghost"
-              className={cn(
-                "h-9 w-full rounded-md p-0",
-                props.selected instanceof Date && 
-                props.selected.getMonth() === index && 
-                "bg-primary text-primary-foreground"
-              )}
-              onClick={() => handleMonthClick(index)}
-            >
-              {month.slice(0, 3)}
-            </Button>
-          ))}
-        </div>
-      </div>
+      <MonthsGrid
+        selected={props.selected instanceof Date ? props.selected : undefined}
+        currentYear={currentYear}
+        onMonthSelect={handleMonthClick}
+        onYearViewToggle={() => setMode("years")}
+      />
     );
   }
 
@@ -172,15 +109,12 @@ function Calendar({
       components={{
         IconLeft: () => <ChevronLeft className="h-4 w-4" />,
         IconRight: () => <ChevronRight className="h-4 w-4" />,
-        Caption: ({ displayMonth, ...props }) => (
-          <div className="flex justify-center items-center gap-1">
-            <button
-              className="text-sm font-medium hover:bg-accent hover:text-accent-foreground rounded-md px-2 py-1"
-              onClick={handleHeaderClick}
-            >
-              {displayMonth.toLocaleString('default', { month: 'long' })} {currentYear}
-            </button>
-          </div>
+        Caption: ({ displayMonth }) => (
+          <CalendarHeader
+            displayMonth={displayMonth}
+            currentYear={currentYear}
+            onHeaderClick={handleHeaderClick}
+          />
         ),
       }}
       footer={
