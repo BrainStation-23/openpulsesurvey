@@ -36,7 +36,7 @@ function Calendar({
         currentYear={currentYear}
         selected={props.selected instanceof Date ? props.selected : undefined}
         onYearSelect={handleYearSelect}
-        onDecadeChange={(increment) => setCurrentYear(currentYear + increment)}
+        onDecadeChange={(increment) => handleYearSelect(currentYear + increment)}
       />
     );
   }
@@ -47,7 +47,7 @@ function Calendar({
         selected={props.selected instanceof Date ? props.selected : undefined}
         currentYear={currentYear}
         onMonthSelect={handleMonthSelect}
-        onYearViewToggle={() => setViewMode("years")}
+        onYearViewToggle={handleHeaderClick}
       />
     );
   }

@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { DayPickerSingleProps, ActiveModifiers } from "react-day-picker";
+import type { MouseEvent } from 'react';
 
 export function useCalendarState(props: DayPickerSingleProps) {
   const [viewMode, setViewMode] = useState<"days" | "months" | "years">("days");
@@ -8,24 +9,20 @@ export function useCalendarState(props: DayPickerSingleProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
 
   const handleYearSelect = (year: number) => {
-    if (props.selected instanceof Date) {
+    if (props.selected instanceof Date && props.mode === "single") {
       const newDate = new Date(props.selected);
       newDate.setFullYear(year);
-      if (props.mode === "single") {
-        props.onSelect?.(newDate, props.selected, {} as ActiveModifiers, {} as MouseEvent);
-      }
+      props.onSelect?.(newDate, props.selected, {} as ActiveModifiers, {} as React.MouseEvent<Element, MouseEvent>);
     }
     setCurrentYear(year);
     setViewMode("months");
   };
 
   const handleMonthSelect = (monthIndex: number) => {
-    if (props.selected instanceof Date) {
+    if (props.selected instanceof Date && props.mode === "single") {
       const newDate = new Date(props.selected);
       newDate.setMonth(monthIndex);
-      if (props.mode === "single") {
-        props.onSelect?.(newDate, props.selected, {} as ActiveModifiers, {} as MouseEvent);
-      }
+      props.onSelect?.(newDate, props.selected, {} as ActiveModifiers, {} as React.MouseEvent<Element, MouseEvent>);
     }
     setCurrentMonth(monthIndex);
     setViewMode("days");
@@ -34,7 +31,7 @@ export function useCalendarState(props: DayPickerSingleProps) {
   const handleTodayClick = () => {
     const today = new Date();
     if (props.mode === "single") {
-      props.onSelect?.(today, props.selected, {} as ActiveModifiers, {} as MouseEvent);
+      props.onSelect?.(today, props.selected, {} as ActiveModifiers, {} as React.MouseEvent<Element, MouseEvent>);
     }
   };
 
