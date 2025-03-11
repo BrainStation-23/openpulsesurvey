@@ -23,7 +23,7 @@ function Calendar({
     if (props.selected instanceof Date) {
       const newDate = new Date(props.selected);
       newDate.setFullYear(year);
-      props.onDayClick?.(newDate, "single", { selected: true });
+      props.onSelect?.(newDate);
     }
     setCurrentYear(year);
     setMode("months");
@@ -33,7 +33,7 @@ function Calendar({
     if (props.selected instanceof Date) {
       const newDate = new Date(props.selected);
       newDate.setMonth(monthIndex);
-      props.onDayClick?.(newDate, "single", { selected: true });
+      props.onSelect?.(newDate);
     }
     setMode("days");
   };
@@ -44,7 +44,7 @@ function Calendar({
 
   const handleTodayClick = () => {
     const today = new Date();
-    props.onDayClick?.(today, "single", { selected: true });
+    props.onSelect?.(today);
   };
 
   if (mode === "years") {
