@@ -4,7 +4,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -23,6 +23,7 @@ export function CalendarDateTime({
   onChange,
   className
 }: CalendarDateTimeProps) {
+  const [open, setOpen] = React.useState(false);
   const [time, setTime] = React.useState(
     value ? format(value, "HH:mm") : "00:00"
   );
@@ -51,16 +52,16 @@ export function CalendarDateTime({
 
   return (
     <div className={cn("grid gap-2", className)}>
-      <Popover>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant={"outline"}
+            variant="outline"
             className={cn(
               "w-full justify-start text-left font-normal",
               !value && "text-muted-foreground"
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            <CalendarDays className="mr-2 h-4 w-4" />
             {value ? format(value, "PPP") : <span>Pick a date</span>}
           </Button>
         </PopoverTrigger>
@@ -68,7 +69,10 @@ export function CalendarDateTime({
           <Calendar
             mode="single"
             selected={value}
-            onSelect={handleDateSelect}
+            onSelect={(date) => {
+              handleDateSelect(date);
+              setOpen(false);
+            }}
             initialFocus
           />
         </PopoverContent>
