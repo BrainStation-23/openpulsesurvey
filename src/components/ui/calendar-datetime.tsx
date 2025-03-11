@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CalendarDays } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { TimeSlider } from "@/components/ui/time-slider";
 import {
   Popover,
   PopoverContent,
@@ -37,13 +37,24 @@ export function CalendarDateTime({
     onChange(date);
   };
 
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = e.target.value;
+  const handleTimeChange = (newTime: string) => {
     setTime(newTime);
 
     if (value && onChange) {
       const newDate = new Date(value);
       const [hours, minutes] = newTime.split(":").map(Number);
+      
+      // If time is past midnight (00:00) and we're setting it from a PM time,
+      // increment the date by one day
+      if (hours === 0 && value.getHours() >= 12) {
+        newDate.setDate(newDate.getDate() + 1);
+      }
+      // If time is PM and we're setting it from midnight (00:00),
+      // decrement the date by one day
+      else if (hours >= 12 && value.getHours() === 0) {
+        newDate.setDate(newDate.getDate() - 1);
+      }
+      
       newDate.setHours(hours);
       newDate.setMinutes(minutes);
       onChange(newDate);
@@ -77,11 +88,9 @@ export function CalendarDateTime({
           />
         </PopoverContent>
       </Popover>
-      <Input
-        type="time"
+      <TimeSlider 
         value={time}
         onChange={handleTimeChange}
-        className="w-full"
       />
     </div>
   );
