@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -14,11 +15,13 @@ import {
 interface CalendarDateTimeProps {
   value?: Date;
   onChange?: (date: Date) => void;
+  className?: string;
 }
 
 export function CalendarDateTime({
   value,
   onChange,
+  className
 }: CalendarDateTimeProps) {
   const [time, setTime] = React.useState(
     value ? format(value, "HH:mm") : "00:00"
@@ -47,13 +50,13 @@ export function CalendarDateTime({
   };
 
   return (
-    <div className="grid gap-2">
+    <div className={cn("grid gap-2", className)}>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant={"outline"}
             className={cn(
-              "justify-start text-left font-normal",
+              "w-full justify-start text-left font-normal",
               !value && "text-muted-foreground"
             )}
           >
@@ -66,7 +69,6 @@ export function CalendarDateTime({
             mode="single"
             selected={value}
             onSelect={handleDateSelect}
-            defaultMonth={value}
             initialFocus
           />
         </PopoverContent>
@@ -75,7 +77,7 @@ export function CalendarDateTime({
         type="time"
         value={time}
         onChange={handleTimeChange}
-        className="w-[120px]"
+        className="w-full"
       />
     </div>
   );
