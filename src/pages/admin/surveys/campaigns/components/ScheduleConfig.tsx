@@ -120,7 +120,7 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
 
           {isRecurring && (
             <>
-              <div className="flex gap-4">
+              <div className="flex flex-col gap-4">
                 <FormField
                   control={form.control}
                   name="recurring_frequency"
