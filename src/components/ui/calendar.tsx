@@ -1,7 +1,6 @@
-
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker, DayPickerSingleProps } from "react-day-picker";
+import { DayPicker, DayPickerSingleProps, DayModifiers } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -26,7 +25,7 @@ function Calendar({
       const newDate = new Date(props.selected);
       newDate.setFullYear(year);
       if (props.mode === "single") {
-        (props as DayPickerSingleProps).onSelect?.(newDate);
+        (props as DayPickerSingleProps).onSelect?.(newDate, props.selected, {} as DayModifiers, {} as MouseEvent);
       }
     }
     setCurrentYear(year);
@@ -38,7 +37,7 @@ function Calendar({
       const newDate = new Date(props.selected);
       newDate.setMonth(monthIndex);
       if (props.mode === "single") {
-        (props as DayPickerSingleProps).onSelect?.(newDate);
+        (props as DayPickerSingleProps).onSelect?.(newDate, props.selected, {} as DayModifiers, {} as MouseEvent);
       }
     }
     setCurrentMonth(monthIndex);
@@ -52,7 +51,7 @@ function Calendar({
   const handleTodayClick = () => {
     const today = new Date();
     if (props.mode === "single") {
-      (props as DayPickerSingleProps).onSelect?.(today);
+      (props as DayPickerSingleProps).onSelect?.(today, props.selected, {} as DayModifiers, {} as MouseEvent);
     }
   };
 
