@@ -1,10 +1,11 @@
+
 import * as React from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { TimePicker } from "@/components/ui/time-picker";
 import {
   Popover,
   PopoverContent,
@@ -33,8 +34,7 @@ export function CalendarDateTime({
     onChange(date);
   };
 
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = e.target.value;
+  const handleTimeChange = (newTime: string) => {
     setTime(newTime);
 
     if (value && onChange) {
@@ -71,11 +71,10 @@ export function CalendarDateTime({
           />
         </PopoverContent>
       </Popover>
-      <Input
-        type="time"
+      <TimePicker
         value={time}
         onChange={handleTimeChange}
-        className="w-[120px]"
+        className="w-full"
       />
     </div>
   );
