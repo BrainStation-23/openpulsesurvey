@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
@@ -18,6 +19,7 @@ function Calendar({
 }: CalendarProps) {
   const [mode, setMode] = React.useState<"days" | "months" | "years">("days");
   const [currentYear, setCurrentYear] = React.useState(new Date().getFullYear());
+  const [currentMonth, setCurrentMonth] = React.useState(new Date().getMonth());
 
   const handleYearClick = (year: number) => {
     if (props.selected instanceof Date) {
@@ -39,6 +41,7 @@ function Calendar({
         props.onDayClick(newDate, { type: "click" }, { selected: true });
       }
     }
+    setCurrentMonth(monthIndex);
     setMode("days");
   };
 
@@ -50,6 +53,24 @@ function Calendar({
     const today = new Date();
     if (props.onDayClick) {
       props.onDayClick(today, { type: "click" }, { selected: true });
+    }
+  };
+
+  const handlePrevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear(currentYear - 1);
+    } else {
+      setCurrentMonth(currentMonth - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear(currentYear + 1);
+    } else {
+      setCurrentMonth(currentMonth + 1);
     }
   };
 
@@ -79,6 +100,11 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
+      month={new Date(currentYear, currentMonth)}
+      onMonthChange={(month) => {
+        setCurrentMonth(month.getMonth());
+        setCurrentYear(month.getFullYear());
+      }}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
@@ -113,8 +139,8 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: () => <ChevronLeft className="h-4 w-4" />,
-        IconRight: () => <ChevronRight className="h-4 w-4" />,
+        IconLeft: () => <ChevronLeft className="h-4 w-4" onClick={handlePrevMonth} />,
+        IconRight: () => <ChevronRight className="h-4 w-4" onClick={handleNextMonth} />,
         Caption: ({ displayMonth }) => (
           <CalendarHeader
             displayMonth={displayMonth}
