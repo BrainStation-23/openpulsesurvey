@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker, DayClickEventHandler } from "react-day-picker";
@@ -8,12 +9,17 @@ import { YearsGrid } from "./calendar/years-grid";
 import { MonthsGrid } from "./calendar/months-grid";
 import { CalendarHeader } from "./calendar/calendar-header";
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+type BaseCalendarProps = React.ComponentProps<typeof DayPicker>;
+
+interface CalendarProps extends Omit<BaseCalendarProps, 'onSelect'> {
+  onSelect?: (date: Date) => void;
+}
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  onSelect,
   ...props
 }: CalendarProps) {
   const [mode, setMode] = React.useState<"days" | "months" | "years">("days");
@@ -24,9 +30,7 @@ function Calendar({
     if (props.selected instanceof Date) {
       const newDate = new Date(props.selected);
       newDate.setFullYear(year);
-      if (props.onSelect) {
-        props.onSelect(newDate);
-      }
+      onSelect?.(newDate);
     }
     setCurrentYear(year);
     setMode("months");
@@ -36,9 +40,7 @@ function Calendar({
     if (props.selected instanceof Date) {
       const newDate = new Date(props.selected);
       newDate.setMonth(monthIndex);
-      if (props.onSelect) {
-        props.onSelect(newDate);
-      }
+      onSelect?.(newDate);
     }
     setCurrentMonth(monthIndex);
     setMode("days");
@@ -50,9 +52,7 @@ function Calendar({
 
   const handleTodayClick = () => {
     const today = new Date();
-    if (props.onSelect) {
-      props.onSelect(today);
-    }
+    onSelect?.(today);
   };
 
   const handlePrevMonth = () => {
@@ -148,6 +148,8 @@ function Calendar({
           />
         ),
       }}
+      selected={props.selected}
+      onSelect={onSelect}
       footer={
         <div className="mt-3 flex justify-center">
           <Button
