@@ -1,6 +1,7 @@
+
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker, DayPickerSingleProps, DayPickerRangeProps, DayPickerMultipleProps } from "react-day-picker";
+import { DayPicker } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -8,21 +9,12 @@ import { YearsGrid } from "./calendar/years-grid";
 import { MonthsGrid } from "./calendar/months-grid";
 import { CalendarHeader } from "./calendar/calendar-header";
 
-type CalendarProps = {
-  className?: string;
-  classNames?: Record<string, string>;
-  showOutsideDays?: boolean;
-} & (
-  | ({ mode: 'single' } & Omit<DayPickerSingleProps, 'mode'>)
-  | ({ mode: 'range' } & Omit<DayPickerRangeProps, 'mode'>)
-  | ({ mode: 'multiple' } & Omit<DayPickerMultipleProps, 'mode'>)
-);
+export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
-  mode = "single",
   ...props
 }: CalendarProps) {
   const [viewMode, setViewMode] = React.useState<"days" | "months" | "years">("days");
@@ -30,20 +22,20 @@ function Calendar({
   const [currentMonth, setCurrentMonth] = React.useState(new Date().getMonth());
 
   const handleYearClick = (year: number) => {
-    if (selected instanceof Date) {
-      const newDate = new Date(selected);
+    if (props.selected instanceof Date) {
+      const newDate = new Date(props.selected);
       newDate.setFullYear(year);
-      onSelect?.(newDate);
+      props.onSelect?.(newDate);
     }
     setCurrentYear(year);
     setViewMode("months");
   };
 
   const handleMonthClick = (monthIndex: number) => {
-    if (selected instanceof Date) {
-      const newDate = new Date(selected);
+    if (props.selected instanceof Date) {
+      const newDate = new Date(props.selected);
       newDate.setMonth(monthIndex);
-      onSelect?.(newDate);
+      props.onSelect?.(newDate);
     }
     setCurrentMonth(monthIndex);
     setViewMode("days");
@@ -55,7 +47,7 @@ function Calendar({
 
   const handleTodayClick = () => {
     const today = new Date();
-    if (mode === 'single' && 'onSelect' in props) {
+    if (props.mode === 'single') {
       props.onSelect?.(today);
     }
   };
@@ -82,7 +74,7 @@ function Calendar({
     return (
       <YearsGrid
         currentYear={currentYear}
-        selected={'selected' in props && props.selected instanceof Date ? props.selected : undefined}
+        selected={props.selected instanceof Date ? props.selected : undefined}
         onYearSelect={handleYearClick}
         onDecadeChange={(increment) => setCurrentYear(currentYear + increment)}
       />
@@ -92,7 +84,7 @@ function Calendar({
   if (viewMode === "months") {
     return (
       <MonthsGrid
-        selected={'selected' in props && props.selected instanceof Date ? props.selected : undefined}
+        selected={props.selected instanceof Date ? props.selected : undefined}
         currentYear={currentYear}
         onMonthSelect={handleMonthClick}
         onYearViewToggle={() => setViewMode("years")}
@@ -105,7 +97,6 @@ function Calendar({
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
       month={new Date(currentYear, currentMonth)}
-      mode={mode}
       {...props}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
