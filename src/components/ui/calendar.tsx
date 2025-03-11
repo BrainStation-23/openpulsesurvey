@@ -1,7 +1,7 @@
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
-import { DayPicker } from "react-day-picker";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { DayPicker, CaptionProps } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -29,20 +29,20 @@ function Calendar({
   };
 
   const handleYearClick = (year: number) => {
-    if (props.selected) {
+    if (props.selected instanceof Date) {
       const newDate = new Date(props.selected);
       newDate.setFullYear(year);
-      props.onSelect?.(newDate);
+      props.onDayClick?.(newDate);
     }
     setCurrentYear(year);
     setMode("months");
   };
 
   const handleMonthClick = (monthIndex: number) => {
-    if (props.selected) {
+    if (props.selected instanceof Date) {
       const newDate = new Date(props.selected);
       newDate.setMonth(monthIndex);
-      props.onSelect?.(newDate);
+      props.onDayClick?.(newDate);
     }
     setMode("days");
   };
@@ -52,7 +52,8 @@ function Calendar({
   };
 
   const handleTodayClick = () => {
-    props.onSelect?.(new Date());
+    const today = new Date();
+    props.onDayClick?.(today);
   };
 
   if (mode === "years") {
@@ -84,7 +85,9 @@ function Calendar({
               variant="ghost"
               className={cn(
                 "h-9 w-full rounded-md p-0",
-                year === props.selected?.getFullYear() && "bg-primary text-primary-foreground"
+                props.selected instanceof Date && 
+                year === props.selected.getFullYear() && 
+                "bg-primary text-primary-foreground"
               )}
               onClick={() => handleYearClick(year)}
             >
@@ -115,7 +118,9 @@ function Calendar({
               variant="ghost"
               className={cn(
                 "h-9 w-full rounded-md p-0",
-                props.selected?.getMonth() === index && "bg-primary text-primary-foreground"
+                props.selected instanceof Date && 
+                props.selected.getMonth() === index && 
+                "bg-primary text-primary-foreground"
               )}
               onClick={() => handleMonthClick(index)}
             >
@@ -167,13 +172,13 @@ function Calendar({
       components={{
         IconLeft: () => <ChevronLeft className="h-4 w-4" />,
         IconRight: () => <ChevronRight className="h-4 w-4" />,
-        Caption: ({ displayMonth, displayYear }) => (
+        Caption: ({ displayMonth, ...props }) => (
           <div className="flex justify-center items-center gap-1">
             <button
               className="text-sm font-medium hover:bg-accent hover:text-accent-foreground rounded-md px-2 py-1"
               onClick={handleHeaderClick}
             >
-              {displayMonth.toLocaleString('default', { month: 'long' })} {displayYear}
+              {displayMonth.toLocaleString('default', { month: 'long' })} {currentYear}
             </button>
           </div>
         ),
