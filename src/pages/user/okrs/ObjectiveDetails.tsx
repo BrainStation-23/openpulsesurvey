@@ -27,6 +27,10 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +38,10 @@ const UserObjectiveDetails = () => {
   const [isKeyResultDialogOpen, setIsKeyResultDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: ''
+  });
   
   // Get the current user ID when component mounts
   useEffect(() => {
@@ -49,8 +57,19 @@ const UserObjectiveDetails = () => {
     objective, 
     isLoading, 
     error, 
-    updateStatus 
+    updateStatus,
+    updateObjective
   } = useObjective(id);
+
+  // Set edit form values when objective loads
+  React.useEffect(() => {
+    if (objective) {
+      setEditForm({
+        title: objective.title,
+        description: objective.description || ''
+      });
+    }
+  }, [objective]);
 
   const handleUpdateStatus = (newStatus: ObjectiveStatus) => {
     if (!objective) return;
@@ -66,10 +85,31 @@ const UserObjectiveDetails = () => {
   };
 
   const handleOpenEditDialog = () => {
-    // TODO: We'll implement this in another ticket
-    toast({
-      title: "Coming soon",
-      description: "Edit functionality will be available soon",
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!objective) return;
+    
+    updateObjective.mutate({
+      id: objective.id,
+      title: editForm.title,
+      description: editForm.description
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Objective updated successfully"
+        });
+        setIsEditDialogOpen(false);
+      },
+      onError: (error) => {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message
+        });
+      }
     });
   };
 
@@ -184,6 +224,7 @@ const UserObjectiveDetails = () => {
                         <SelectItem value="on_track">On Track</SelectItem>
                         <SelectItem value="at_risk">At Risk</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="abandoned">Abandoned</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -210,6 +251,39 @@ const UserObjectiveDetails = () => {
               onOpenChange={setIsKeyResultDialogOpen} 
             />
           )}
+
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="sm:max-w-[550px]">
+              <DialogHeader>
+                <DialogTitle>Edit Objective</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={editForm.description}
+                    rows={4}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSaveEdit} disabled={updateObjective.isPending}>
+                  {updateObjective.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </>
       ) : (
         <Card>

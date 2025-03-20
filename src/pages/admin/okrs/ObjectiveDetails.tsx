@@ -4,8 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Plus,
-  Edit, 
-  Trash2 
+  Edit 
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,18 +18,46 @@ import { useToast } from '@/hooks/use-toast';
 import { Objective, ObjectiveStatus } from '@/types/okr';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import { 
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 const AdminObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const [isKeyResultDialogOpen, setIsKeyResultDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: ''
+  });
   
   const { 
     objective, 
     isLoading, 
     error, 
-    updateStatus 
+    updateStatus,
+    updateObjective
   } = useObjective(id);
+
+  // Set edit form values when objective loads
+  React.useEffect(() => {
+    if (objective) {
+      setEditForm({
+        title: objective.title,
+        description: objective.description || ''
+      });
+    }
+  }, [objective]);
 
   if (error) {
     return (
@@ -49,6 +76,35 @@ const AdminObjectiveDetails = () => {
         toast({
           title: "Status updated",
           description: `Objective status changed to ${newStatus.replace('_', ' ')}`
+        });
+      }
+    });
+  };
+
+  const handleOpenEditDialog = () => {
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!objective) return;
+    
+    updateObjective.mutate({
+      id: objective.id,
+      title: editForm.title,
+      description: editForm.description
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Objective updated successfully"
+        });
+        setIsEditDialogOpen(false);
+      },
+      onError: (error) => {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message
         });
       }
     });
@@ -134,26 +190,34 @@ const AdminObjectiveDetails = () => {
               </div>
             </CardContent>
             <CardFooter className="border-t pt-6 flex justify-between">
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <h3 className="text-sm font-medium">Status:</h3>
-                <select 
-                  value={objective.status}
-                  onChange={(e) => handleUpdateStatus(e.target.value as ObjectiveStatus)}
-                  className="text-sm bg-transparent border-none focus:ring-0 cursor-pointer"
+                <Select 
+                  value={objective.status} 
+                  onValueChange={(value) => handleUpdateStatus(value as ObjectiveStatus)}
                 >
-                  <option value="draft">Draft</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="on_track">On Track</option>
-                  <option value="at_risk">At Risk</option>
-                  <option value="completed">Completed</option>
-                </select>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="on_track">On Track</SelectItem>
+                      <SelectItem value="at_risk">At Risk</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="abandoned">Abandoned</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleOpenEditDialog}
+                >
                   <Edit className="h-4 w-4 mr-2" /> Edit
-                </Button>
-                <Button variant="destructive" size="sm">
-                  <Trash2 className="h-4 w-4 mr-2" /> Delete
                 </Button>
               </div>
             </CardFooter>
@@ -168,6 +232,39 @@ const AdminObjectiveDetails = () => {
               onOpenChange={setIsKeyResultDialogOpen} 
             />
           )}
+          
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="sm:max-w-[550px]">
+              <DialogHeader>
+                <DialogTitle>Edit Objective</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={editForm.description}
+                    rows={4}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSaveEdit} disabled={updateObjective.isPending}>
+                  {updateObjective.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </>
       ) : (
         <Card>

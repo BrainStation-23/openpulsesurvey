@@ -73,17 +73,30 @@ export const useObjective = (id: string | undefined) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['objective', id] });
       queryClient.invalidateQueries({ queryKey: ['objectives'] });
-      toast({
-        title: 'Success',
-        description: 'Objective status updated successfully',
-      });
+    }
+  });
+
+  const updateObjective = useMutation({
+    mutationFn: async (data: UpdateObjectiveInput & { id: string }) => {
+      const { id, ...updateData } = data;
+      
+      const { data: result, error } = await supabase
+        .from('objectives')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating objective:', error);
+        throw error;
+      }
+
+      return result;
     },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Error updating objective status',
-        description: error.message,
-      });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['objective', id] });
+      queryClient.invalidateQueries({ queryKey: ['objectives'] });
     }
   });
 
@@ -91,6 +104,7 @@ export const useObjective = (id: string | undefined) => {
     objective,
     isLoading,
     error,
-    updateStatus
+    updateStatus,
+    updateObjective
   };
 };
