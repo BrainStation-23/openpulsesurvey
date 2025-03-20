@@ -51,12 +51,14 @@ export const useObjective = (id: string | undefined) => {
     mutationFn: async (status: UpdateObjectiveInput) => {
       if (!id) throw new Error('Objective ID is required');
       
+      const updateData: any = {};
+      
+      if (status.status) updateData.status = status.status;
+      if (status.progress !== undefined) updateData.progress = status.progress;
+      
       const { data, error } = await supabase
         .from('objectives')
-        .update({ 
-          status: status.status,
-          progress: status.progress
-        })
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
