@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -22,6 +22,17 @@ const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const [isKeyResultDialogOpen, setIsKeyResultDialogOpen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  // Get the current user ID when component mounts
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      setCurrentUserId(data.session?.user?.id || null);
+    };
+    
+    fetchCurrentUser();
+  }, []);
   
   const { 
     objective, 
@@ -53,7 +64,7 @@ const UserObjectiveDetails = () => {
           <h1 className="text-3xl font-bold">Objective Details</h1>
         </div>
         
-        {objective && objective.ownerId === (supabase.auth.getSession()?.data?.session?.user?.id) && (
+        {objective && objective.ownerId === currentUserId && (
           <div className="flex gap-2">
             <Button 
               onClick={() => setIsKeyResultDialogOpen(true)}
