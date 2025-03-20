@@ -202,9 +202,7 @@ const AdminObjectiveDetails = () => {
                   <SelectContent>
                     <SelectGroup>
                       <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="on_track">On Track</SelectItem>
-                      <SelectItem value="at_risk">At Risk</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
                       <SelectItem value="abandoned">Abandoned</SelectItem>
                     </SelectGroup>

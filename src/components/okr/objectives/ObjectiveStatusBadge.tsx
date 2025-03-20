@@ -13,12 +13,10 @@ export const ObjectiveStatusBadge = ({ status, className }: ObjectiveStatusBadge
     switch (status) {
       case 'draft':
         return 'outline';
-      case 'in_progress':
+      case 'active':
         return 'default';
-      case 'at_risk':
+      case 'abandoned':
         return 'destructive';
-      case 'on_track':
-        return 'success';
       case 'completed':
         return 'secondary';
       default:

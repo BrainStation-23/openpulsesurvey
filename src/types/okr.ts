@@ -24,7 +24,8 @@ export interface UpdateOKRCycleInput extends Partial<CreateOKRCycleInput> {
   status?: OKRCycleStatus;
 }
 
-export type ObjectiveStatus = 'draft' | 'in_progress' | 'at_risk' | 'on_track' | 'completed';
+// Updated to match database enum
+export type ObjectiveStatus = 'draft' | 'active' | 'completed' | 'abandoned';
 export type ObjectiveVisibility = 'team' | 'organization' | 'private' | 'department';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'requested_changes';
 

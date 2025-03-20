@@ -80,9 +80,22 @@ export const useObjective = (id: string | undefined) => {
     mutationFn: async (data: UpdateObjectiveInput & { id: string }) => {
       const { id, ...updateData } = data;
       
+      // Map TypeScript fields to database column names
+      const dbUpdateData: any = {};
+      
+      if (updateData.title) dbUpdateData.title = updateData.title;
+      if (updateData.description !== undefined) dbUpdateData.description = updateData.description;
+      if (updateData.status) dbUpdateData.status = updateData.status;
+      if (updateData.progress !== undefined) dbUpdateData.progress = updateData.progress;
+      if (updateData.approvalStatus) dbUpdateData.approval_status = updateData.approvalStatus;
+      if (updateData.cycleId) dbUpdateData.cycle_id = updateData.cycleId;
+      if (updateData.visibility) dbUpdateData.visibility = updateData.visibility;
+      if (updateData.parentObjectiveId) dbUpdateData.parent_objective_id = updateData.parentObjectiveId;
+      if (updateData.sbuId) dbUpdateData.sbu_id = updateData.sbuId;
+      
       const { data: result, error } = await supabase
         .from('objectives')
-        .update(updateData)
+        .update(dbUpdateData)
         .eq('id', id)
         .select()
         .single();
