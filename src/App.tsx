@@ -33,6 +33,11 @@ import UserAchievementsPage from "./pages/user/achievements";
 import UserIssueBoards from "./pages/user/issue-boards";
 import UserIssueBoardView from "./pages/user/issue-boards/[id]";
 
+// OKR User pages
+import UserOKRDashboard from "./pages/user/okrs/Dashboard";
+import UserObjectives from "./pages/user/okrs/Objectives";
+import UserObjectiveDetails from "./pages/user/okrs/ObjectiveDetails";
+
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminConfig from "./pages/admin/Config";
@@ -66,6 +71,17 @@ import AchievementsPage from "./pages/admin/achievements";
 import AchievementFormPage from "./pages/admin/achievements/AchievementFormPage";
 import CreateIssueBoard from "./pages/admin/surveys/issue-boards/CreateIssueBoard";
 import EditIssueBoard from "./pages/admin/surveys/issue-boards/EditIssueBoard";
+
+// OKR Admin pages
+import AdminOKRDashboard from "./pages/admin/okrs/Dashboard";
+import AdminOKRCycles from "./pages/admin/okrs/Cycles";
+import AdminCreateOKRCycle from "./pages/admin/okrs/CreateCycle";
+import AdminOKRCycleDetails from "./pages/admin/okrs/CycleDetails";
+import AdminOKRTemplates from "./pages/admin/okrs/Templates";
+import AdminCreateOKRTemplate from "./pages/admin/okrs/CreateTemplate";
+import AdminOKRTemplateDetails from "./pages/admin/okrs/TemplateDetails";
+import AdminAllObjectives from "./pages/admin/okrs/Objectives";
+import AdminObjectiveDetails from "./pages/admin/okrs/ObjectiveDetails";
 
 const queryClient = new QueryClient();
 
@@ -106,9 +122,9 @@ const App = () => (
               <Route path="issue-boards/:id" element={<UserIssueBoardView />} />
               {/* User OKR Routes */}
               <Route path="okrs" element={<Navigate to="/user/okrs/dashboard" replace />} />
-              <Route path="okrs/dashboard" element={<div>User OKR Dashboard (placeholder)</div>} />
-              <Route path="okrs/objectives" element={<div>User Objectives (placeholder)</div>} />
-              <Route path="okrs/objectives/:id" element={<div>User Objective Details (placeholder)</div>} />
+              <Route path="okrs/dashboard" element={<UserOKRDashboard />} />
+              <Route path="okrs/objectives" element={<UserObjectives />} />
+              <Route path="okrs/objectives/:id" element={<UserObjectiveDetails />} />
             </Route>
             
             <Route path="/admin" element={<AdminLayout />}>
@@ -136,15 +152,15 @@ const App = () => (
               
               {/* Admin OKR Routes */}
               <Route path="okrs" element={<Navigate to="/admin/okrs/dashboard" replace />} />
-              <Route path="okrs/dashboard" element={<div>OKR Dashboard (placeholder)</div>} />
-              <Route path="okrs/cycles" element={<div>OKR Cycles (placeholder)</div>} />
-              <Route path="okrs/cycles/create" element={<div>Create OKR Cycle (placeholder)</div>} />
-              <Route path="okrs/cycles/:id" element={<div>OKR Cycle Details (placeholder)</div>} />
-              <Route path="okrs/templates" element={<div>OKR Templates (placeholder)</div>} />
-              <Route path="okrs/templates/create" element={<div>Create OKR Template (placeholder)</div>} />
-              <Route path="okrs/templates/:id" element={<div>OKR Template Details (placeholder)</div>} />
-              <Route path="okrs/objectives" element={<div>All Objectives (placeholder)</div>} />
-              <Route path="okrs/objectives/:id" element={<div>Objective Details (placeholder)</div>} />
+              <Route path="okrs/dashboard" element={<AdminOKRDashboard />} />
+              <Route path="okrs/cycles" element={<AdminOKRCycles />} />
+              <Route path="okrs/cycles/create" element={<AdminCreateOKRCycle />} />
+              <Route path="okrs/cycles/:id" element={<AdminOKRCycleDetails />} />
+              <Route path="okrs/templates" element={<AdminOKRTemplates />} />
+              <Route path="okrs/templates/create" element={<AdminCreateOKRTemplate />} />
+              <Route path="okrs/templates/:id" element={<AdminOKRTemplateDetails />} />
+              <Route path="okrs/objectives" element={<AdminAllObjectives />} />
+              <Route path="okrs/objectives/:id" element={<AdminObjectiveDetails />} />
               
               <Route path="config" element={<PlatformConfigLayout />}>
                 <Route index element={<AdminConfig />} />
