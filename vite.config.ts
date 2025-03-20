@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -31,8 +32,13 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
+          query: ['@tanstack/react-query'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
+          charts: ['recharts'],
+          flow: ['@xyflow/react'],
         },
       },
     },
+    chunkSizeWarningLimit: 2000,
   },
 }));

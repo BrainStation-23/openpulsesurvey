@@ -26,10 +26,20 @@ export function PresentationView({ session }: PresentationViewProps) {
 
   const { getQuestionResponses, participants, activeQuestions } = useLiveResponses(session.id);
 
+  // Get the currently active question based on slide index
+  const currentQuestion = currentSlide === 0 ? null : activeQuestions[currentSlide - 1];
+
   // Update total slides when questions change
   useEffect(() => {
     setTotalSlides(activeQuestions.length + 1); // +1 for the info slide
+    console.log("Total slides updated:", activeQuestions.length + 1);
   }, [activeQuestions.length, setTotalSlides]);
+
+  // Debug logging for slide changes
+  useEffect(() => {
+    console.log("Current slide:", currentSlide);
+    console.log("Current question:", currentQuestion);
+  }, [currentSlide, currentQuestion]);
 
   return (
     <PresentationLayout 
@@ -54,15 +64,21 @@ export function PresentationView({ session }: PresentationViewProps) {
         isActive={currentSlide === 0}
       />
       
-      {activeQuestions.map((question, index) => (
-        <QuestionSlide
-          key={question.id}
-          question={question}
-          responses={getQuestionResponses(question.question_key)}
-          isActive={currentSlide === index + 1}
-          isSessionActive={session.status === "active"}
-        />
-      ))}
+      {activeQuestions.map((question, index) => {
+        const isSlideActive = currentSlide === index + 1;
+        console.log(`Question ${index + 1} active state:`, isSlideActive);
+        
+        return (
+          <QuestionSlide
+            key={question.id}
+            question={question}
+            responses={getQuestionResponses(question.question_key)}
+            isActive={isSlideActive}
+            isSessionActive={session.status === "active"}
+            allowStatusChange={session.status === "active" && isSlideActive}
+          />
+        );
+      })}
     </PresentationLayout>
   );
 }

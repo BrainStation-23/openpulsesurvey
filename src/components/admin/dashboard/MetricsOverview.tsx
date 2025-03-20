@@ -1,7 +1,9 @@
+
 import { useQuery } from "@tanstack/react-query";
-import { Activity, ChartBar, ChartPie, Database } from "lucide-react";
+import { Activity, ChartBar, ChartPie, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "./MetricCard";
+import { usePendingSurveysCount } from "@/hooks/use-pending-surveys-count";
 
 export function MetricsOverview() {
   const { data: metrics, isLoading } = useQuery({
@@ -17,13 +19,16 @@ export function MetricsOverview() {
     },
   });
 
+  const { data: pendingSurveysCount, isLoading: isPendingLoading } = usePendingSurveysCount();
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <MetricCard
-        title="Total Surveys"
-        value={metrics?.total_surveys ?? 0}
-        icon={Database}
-        loading={isLoading}
+        title="Pending Surveys"
+        value={pendingSurveysCount ?? 0}
+        icon={AlertCircle}
+        loading={isPendingLoading}
+        description="Surveys requiring your attention"
       />
       <MetricCard
         title="Active Campaigns"

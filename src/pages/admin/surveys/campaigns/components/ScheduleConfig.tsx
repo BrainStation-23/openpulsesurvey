@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import {
   FormControl,
@@ -20,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { UseFormReturn, useWatch } from "react-hook-form";
 import { CalendarDateTime } from "@/components/ui/calendar-datetime";
 import { CampaignFormData } from "./CampaignForm";
+import { TimePicker } from "@/components/ui/time-picker";
 
 interface ScheduleConfigProps {
   form: UseFormReturn<CampaignFormData>;
@@ -44,13 +44,11 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
     name: "recurring_frequency",
   });
 
-  // Get the maximum allowed days based on selected frequency
   const getMaxDays = () => {
     const option = frequencyOptions.find(opt => opt.value === frequency);
     return option?.maxDays || 1;
   };
 
-  // Handle frequency change to adjust instance_duration_days if needed
   const handleFrequencyChange = (value: string) => {
     form.setValue("recurring_frequency", value);
     const maxDays = frequencyOptions.find(opt => opt.value === value)?.maxDays || 1;
@@ -122,7 +120,7 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
 
           {isRecurring && (
             <>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-4">
                 <FormField
                   control={form.control}
                   name="recurring_frequency"
@@ -158,9 +156,10 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
                     <FormItem>
                       <FormLabel>Response Due Time</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="time" 
-                          {...field}
+                        <TimePicker 
+                          value={field.value} 
+                          onChange={field.onChange}
+                          className="w-full"
                         />
                       </FormControl>
                       <FormMessage />
