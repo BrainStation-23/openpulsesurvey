@@ -1,11 +1,15 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
+import { CyclesGrid } from '@/components/okr/cycles/CyclesGrid';
+import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
 
 const AdminOKRCycles = () => {
+  const { cycles, isLoading, error } = useOKRCycles();
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -18,17 +22,20 @@ const AdminOKRCycles = () => {
         </Button>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>OKR Cycles</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            This page will display all OKR cycles and allow you to manage them.
-            This page is under development.
-          </p>
-        </CardContent>
-      </Card>
+      {error ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-destructive">
+              {error instanceof Error ? error.message : 'An error occurred while loading OKR cycles'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <CyclesGrid cycles={cycles || []} isLoading={isLoading} />
+      )}
     </div>
   );
 };
