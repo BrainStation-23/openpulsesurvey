@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { KeyResult, CreateKeyResultInput, UpdateKeyResultInput } from '@/types/okr';
@@ -91,7 +90,6 @@ export const useKeyResults = (objectiveId?: string) => {
       await checkObjectivePermission(keyResultData.objectiveId);
       
       try {
-        // Validate progress is within database limits
         if (keyResultData.progress !== undefined && (keyResultData.progress < 0 || keyResultData.progress > 100)) {
           throw new Error("Progress value must be between 0 and 100");
         }
@@ -166,7 +164,6 @@ export const useKeyResults = (objectiveId?: string) => {
         
         await checkObjectivePermission(keyResultData.objective_id);
         
-        // Validate progress is within database limits
         if (rest.progress !== undefined && (rest.progress < 0 || rest.progress > 100)) {
           throw new Error("Progress value must be between 0 and 100");
         }

@@ -91,6 +91,7 @@ export interface CreateKeyResultInput {
   currentValue: number;
   targetValue: number;
   weight: number;
+  progress?: number;  // Added progress as an optional parameter
 }
 
 export interface UpdateKeyResultInput extends Partial<CreateKeyResultInput> {
