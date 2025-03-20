@@ -33,7 +33,7 @@ interface KeyResultCheckInDialogProps {
   keyResult: KeyResult;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: UpdateKeyResultInput) => void;
+  onSave: (data: UpdateKeyResultInput, id: string) => void;
 }
 
 const KeyResultCheckInDialog = ({ keyResult, open, onOpenChange, onSave }: KeyResultCheckInDialogProps) => {
@@ -42,8 +42,7 @@ const KeyResultCheckInDialog = ({ keyResult, open, onOpenChange, onSave }: KeyRe
   const handleSave = () => {
     onSave({
       currentValue,
-      id: keyResult.id
-    });
+    }, keyResult.id);
     onOpenChange(false);
   };
   
@@ -95,7 +94,7 @@ interface KeyResultEditDialogProps {
   keyResult: KeyResult;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: UpdateKeyResultInput) => void;
+  onSave: (data: UpdateKeyResultInput, id: string) => void;
 }
 
 const KeyResultEditDialog = ({ keyResult, open, onOpenChange, onSave }: KeyResultEditDialogProps) => {
@@ -106,8 +105,7 @@ const KeyResultEditDialog = ({ keyResult, open, onOpenChange, onSave }: KeyResul
     onSave({
       title,
       description,
-      id: keyResult.id
-    });
+    }, keyResult.id);
     onOpenChange(false);
   };
   
@@ -180,12 +178,12 @@ export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
     setIsEditDialogOpen(true);
   };
 
-  const handleSaveCheckIn = (data: UpdateKeyResultInput) => {
+  const handleSaveCheckIn = (data: UpdateKeyResultInput, id: string) => {
     if (!selectedKeyResult) return;
     
     updateKeyResult.mutate({
       ...data,
-      id: selectedKeyResult.id
+      id
     }, {
       onSuccess: () => {
         toast({
@@ -203,12 +201,12 @@ export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
     });
   };
 
-  const handleSaveEdit = (data: UpdateKeyResultInput) => {
+  const handleSaveEdit = (data: UpdateKeyResultInput, id: string) => {
     if (!selectedKeyResult) return;
     
     updateKeyResult.mutate({
       ...data,
-      id: selectedKeyResult.id
+      id
     }, {
       onSuccess: () => {
         toast({
