@@ -58,3 +58,41 @@ export interface UpdateObjectiveInput extends Partial<CreateObjectiveInput> {
   progress?: number;
   approvalStatus?: ApprovalStatus;
 }
+
+export type KRStatus = 'not_started' | 'in_progress' | 'at_risk' | 'on_track' | 'completed';
+
+export interface KeyResult {
+  id: string;
+  title: string;
+  description?: string;
+  objectiveId: string;
+  ownerId: string;
+  krType: string;
+  unit?: string;
+  startValue: number;
+  currentValue: number;
+  targetValue: number;
+  progress: number;
+  status: KRStatus;
+  weight: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateKeyResultInput {
+  title: string;
+  description?: string;
+  objectiveId: string;
+  ownerId: string;
+  krType: string;
+  unit?: string;
+  startValue: number;
+  currentValue: number;
+  targetValue: number;
+  weight: number;
+}
+
+export interface UpdateKeyResultInput extends Partial<CreateKeyResultInput> {
+  status?: KRStatus;
+  progress?: number;
+}
