@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
-  Plus
+  Plus,
+  Edit
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,11 +18,21 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { ObjectiveStatus } from '@/types/okr';
+import { 
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const [isKeyResultDialogOpen, setIsKeyResultDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   // Get the current user ID when component mounts
@@ -40,6 +51,27 @@ const UserObjectiveDetails = () => {
     error, 
     updateStatus 
   } = useObjective(id);
+
+  const handleUpdateStatus = (newStatus: ObjectiveStatus) => {
+    if (!objective) return;
+    
+    updateStatus.mutate({ status: newStatus }, {
+      onSuccess: () => {
+        toast({
+          title: "Status updated",
+          description: `Objective status changed to ${newStatus.replace('_', ' ')}`
+        });
+      }
+    });
+  };
+
+  const handleOpenEditDialog = () => {
+    // TODO: We'll implement this in another ticket
+    toast({
+      title: "Coming soon",
+      description: "Edit functionality will be available soon",
+    });
+  };
 
   if (error) {
     return (
@@ -133,6 +165,40 @@ const UserObjectiveDetails = () => {
                 )}
               </div>
             </CardContent>
+            
+            {objective.ownerId === currentUserId && (
+              <CardFooter className="border-t pt-6 flex justify-between">
+                <div className="flex gap-2 items-center">
+                  <h3 className="text-sm font-medium">Status:</h3>
+                  <Select 
+                    value={objective.status} 
+                    onValueChange={(value) => handleUpdateStatus(value as ObjectiveStatus)}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="on_track">On Track</SelectItem>
+                        <SelectItem value="at_risk">At Risk</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleOpenEditDialog}
+                  >
+                    <Edit className="h-4 w-4 mr-2" /> Edit
+                  </Button>
+                </div>
+              </CardFooter>
+            )}
           </Card>
           
           <KeyResultsList objectiveId={objective.id} />

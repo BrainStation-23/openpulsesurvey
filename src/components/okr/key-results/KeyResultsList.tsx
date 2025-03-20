@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Card, 
   CardHeader, 
@@ -12,13 +12,150 @@ import { useKeyResults } from '@/hooks/okr/useKeyResults';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlusCircle, Check, AlertTriangle, Clock } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { KeyResult, UpdateKeyResultInput } from '@/types/okr';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface KeyResultsListProps {
   objectiveId: string;
 }
 
+interface KeyResultCheckInDialogProps {
+  keyResult: KeyResult;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: UpdateKeyResultInput) => void;
+}
+
+const KeyResultCheckInDialog = ({ keyResult, open, onOpenChange, onSave }: KeyResultCheckInDialogProps) => {
+  const [currentValue, setCurrentValue] = useState<number>(keyResult.currentValue);
+  
+  const handleSave = () => {
+    onSave({
+      currentValue,
+      id: keyResult.id
+    });
+    onOpenChange(false);
+  };
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Check-in Progress</DialogTitle>
+          <DialogDescription>
+            Update the current value for "{keyResult.title}"
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="current-value">Current Value</Label>
+            <Input
+              id="current-value"
+              type="number"
+              value={currentValue}
+              onChange={(e) => setCurrentValue(Number(e.target.value))}
+              min={keyResult.startValue}
+              max={keyResult.targetValue}
+            />
+          </div>
+          
+          <div className="space-y-1">
+            <div className="text-sm text-muted-foreground flex justify-between">
+              <span>Start: {keyResult.startValue}{keyResult.unit && ` ${keyResult.unit}`}</span>
+              <span>Target: {keyResult.targetValue}{keyResult.unit && ` ${keyResult.unit}`}</span>
+            </div>
+            <Progress 
+              value={((currentValue - keyResult.startValue) / (keyResult.targetValue - keyResult.startValue)) * 100} 
+              className="h-2" 
+            />
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSave}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+interface KeyResultEditDialogProps {
+  keyResult: KeyResult;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: UpdateKeyResultInput) => void;
+}
+
+const KeyResultEditDialog = ({ keyResult, open, onOpenChange, onSave }: KeyResultEditDialogProps) => {
+  const [title, setTitle] = useState<string>(keyResult.title);
+  const [description, setDescription] = useState<string>(keyResult.description || '');
+  
+  const handleSave = () => {
+    onSave({
+      title,
+      description,
+      id: keyResult.id
+    });
+    onOpenChange(false);
+  };
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Key Result</DialogTitle>
+          <DialogDescription>
+            Update the details for this key result
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Input
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSave}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
-  const { keyResults, isLoading } = useKeyResults(objectiveId);
+  const { keyResults, isLoading, updateKeyResult } = useKeyResults(objectiveId);
+  const { toast } = useToast();
+  const [selectedKeyResult, setSelectedKeyResult] = useState<KeyResult | null>(null);
+  const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -31,6 +168,62 @@ export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
       default:
         return null;
     }
+  };
+
+  const handleCheckIn = (kr: KeyResult) => {
+    setSelectedKeyResult(kr);
+    setIsCheckInDialogOpen(true);
+  };
+
+  const handleEdit = (kr: KeyResult) => {
+    setSelectedKeyResult(kr);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveCheckIn = (data: UpdateKeyResultInput) => {
+    if (!selectedKeyResult) return;
+    
+    updateKeyResult.mutate({
+      ...data,
+      id: selectedKeyResult.id
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Key result updated successfully"
+        });
+      },
+      onError: (error) => {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message
+        });
+      }
+    });
+  };
+
+  const handleSaveEdit = (data: UpdateKeyResultInput) => {
+    if (!selectedKeyResult) return;
+    
+    updateKeyResult.mutate({
+      ...data,
+      id: selectedKeyResult.id
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Key result updated successfully"
+        });
+      },
+      onError: (error) => {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message
+        });
+      }
+    });
   };
 
   return (
@@ -81,8 +274,20 @@ export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="sm">Check-in</Button>
-                    <Button variant="ghost" size="sm">Edit</Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleCheckIn(kr)}
+                    >
+                      Check-in
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleEdit(kr)}
+                    >
+                      Edit
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -100,6 +305,24 @@ export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
           </div>
         )}
       </CardContent>
+      
+      {selectedKeyResult && (
+        <>
+          <KeyResultCheckInDialog 
+            keyResult={selectedKeyResult}
+            open={isCheckInDialogOpen}
+            onOpenChange={setIsCheckInDialogOpen}
+            onSave={handleSaveCheckIn}
+          />
+          
+          <KeyResultEditDialog 
+            keyResult={selectedKeyResult}
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            onSave={handleSaveEdit}
+          />
+        </>
+      )}
     </Card>
   );
 };
