@@ -9,23 +9,23 @@ interface CycleStatusBadgeProps {
 }
 
 export const CycleStatusBadge = ({ status, className }: CycleStatusBadgeProps) => {
-  const getStatusColor = () => {
+  const getVariant = () => {
     switch (status) {
       case 'active':
-        return 'bg-green-500 hover:bg-green-600';
+        return 'success';
       case 'upcoming':
-        return 'bg-blue-500 hover:bg-blue-600';
+        return 'default';
       case 'completed':
-        return 'bg-gray-500 hover:bg-gray-600';
+        return 'secondary';
       case 'archived':
-        return 'bg-yellow-500 hover:bg-yellow-600';
+        return 'outline';
       default:
-        return 'bg-gray-500 hover:bg-gray-600';
+        return 'secondary';
     }
   };
 
   return (
-    <Badge className={`${getStatusColor()} ${className || ''}`}>
+    <Badge className={className} variant={getVariant()}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </Badge>
   );
