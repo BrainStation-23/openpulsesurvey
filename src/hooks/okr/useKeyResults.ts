@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { KeyResult, CreateKeyResultInput, UpdateKeyResultInput } from '@/types/okr';
@@ -89,30 +90,46 @@ export const useKeyResults = (objectiveId?: string) => {
     mutationFn: async (keyResultData: CreateKeyResultInput) => {
       await checkObjectivePermission(keyResultData.objectiveId);
       
-      const { data, error } = await supabase
-        .from('key_results')
-        .insert({
-          title: keyResultData.title,
-          description: keyResultData.description,
-          kr_type: keyResultData.krType,
-          unit: keyResultData.unit,
-          start_value: keyResultData.startValue,
-          current_value: keyResultData.currentValue,
-          target_value: keyResultData.targetValue,
-          weight: keyResultData.weight,
-          objective_id: keyResultData.objectiveId,
-          owner_id: keyResultData.ownerId,
-          status: 'not_started'
-        })
-        .select()
-        .single();
+      try {
+        // Validate progress is within database limits
+        if (keyResultData.progress !== undefined && (keyResultData.progress < 0 || keyResultData.progress > 100)) {
+          throw new Error("Progress value must be between 0 and 100");
+        }
 
-      if (error) {
-        console.error('Error creating key result:', error);
+        const { data, error } = await supabase
+          .from('key_results')
+          .insert({
+            title: keyResultData.title,
+            description: keyResultData.description,
+            kr_type: keyResultData.krType,
+            unit: keyResultData.unit,
+            start_value: keyResultData.startValue,
+            current_value: keyResultData.currentValue,
+            target_value: keyResultData.targetValue,
+            weight: keyResultData.weight,
+            objective_id: keyResultData.objectiveId,
+            owner_id: keyResultData.ownerId,
+            status: 'not_started',
+            progress: 0 // Always start at 0 progress
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating key result:', error);
+          
+          if (error.code === '22003') {
+            throw new Error("One of the values exceeds the allowed range in the database. Progress must be between 0-100 and other numeric values must be within reasonable limits.");
+          }
+          
+          throw error;
+        }
+
+        return data;
+      } catch (error: any) {
+        console.error('Error in createKeyResult:', error);
         throw error;
       }
-
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['key-results', objectiveId] });
@@ -135,46 +152,61 @@ export const useKeyResults = (objectiveId?: string) => {
     mutationFn: async (updateData: UpdateKeyResultInput & { id: string }) => {
       const { id, ...rest } = updateData;
       
-      const { data: keyResultData, error: fetchError } = await supabase
-        .from('key_results')
-        .select('objective_id')
-        .eq('id', id)
-        .single();
+      try {
+        const { data: keyResultData, error: fetchError } = await supabase
+          .from('key_results')
+          .select('objective_id')
+          .eq('id', id)
+          .single();
+          
+        if (fetchError) {
+          console.error('Error fetching key result:', fetchError);
+          throw fetchError;
+        }
         
-      if (fetchError) {
-        console.error('Error fetching key result:', fetchError);
-        throw fetchError;
-      }
-      
-      await checkObjectivePermission(keyResultData.objective_id);
-      
-      const mappedData: any = {};
-      if (rest.title) mappedData.title = rest.title;
-      if (rest.description !== undefined) mappedData.description = rest.description;
-      if (rest.krType) mappedData.kr_type = rest.krType;
-      if (rest.unit !== undefined) mappedData.unit = rest.unit;
-      if (rest.startValue !== undefined) mappedData.start_value = rest.startValue;
-      if (rest.currentValue !== undefined) mappedData.current_value = rest.currentValue;
-      if (rest.targetValue !== undefined) mappedData.target_value = rest.targetValue;
-      if (rest.weight !== undefined) mappedData.weight = rest.weight;
-      if (rest.status) mappedData.status = rest.status;
-      if (rest.progress !== undefined) mappedData.progress = rest.progress;
-      
-      console.log('Updating key result with data:', mappedData);
-      
-      const { data, error } = await supabase
-        .from('key_results')
-        .update(mappedData)
-        .eq('id', id)
-        .select()
-        .single();
+        await checkObjectivePermission(keyResultData.objective_id);
+        
+        // Validate progress is within database limits
+        if (rest.progress !== undefined && (rest.progress < 0 || rest.progress > 100)) {
+          throw new Error("Progress value must be between 0 and 100");
+        }
+        
+        const mappedData: any = {};
+        if (rest.title) mappedData.title = rest.title;
+        if (rest.description !== undefined) mappedData.description = rest.description;
+        if (rest.krType) mappedData.kr_type = rest.krType;
+        if (rest.unit !== undefined) mappedData.unit = rest.unit;
+        if (rest.startValue !== undefined) mappedData.start_value = rest.startValue;
+        if (rest.currentValue !== undefined) mappedData.current_value = rest.currentValue;
+        if (rest.targetValue !== undefined) mappedData.target_value = rest.targetValue;
+        if (rest.weight !== undefined) mappedData.weight = rest.weight;
+        if (rest.status) mappedData.status = rest.status;
+        if (rest.progress !== undefined) mappedData.progress = rest.progress;
+        
+        console.log('Updating key result with data:', mappedData);
+        
+        const { data, error } = await supabase
+          .from('key_results')
+          .update(mappedData)
+          .eq('id', id)
+          .select()
+          .single();
 
-      if (error) {
-        console.error('Error updating key result:', error);
+        if (error) {
+          console.error('Error updating key result:', error);
+          
+          if (error.code === '22003') {
+            throw new Error("One of the values exceeds the allowed range in the database. Progress must be between 0-100 and other numeric values must be within reasonable limits.");
+          }
+          
+          throw error;
+        }
+
+        return data;
+      } catch (error: any) {
+        console.error('Error in updateKeyResult:', error);
         throw error;
       }
-
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['key-results', objectiveId] });

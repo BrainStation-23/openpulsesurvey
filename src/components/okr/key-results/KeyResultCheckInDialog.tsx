@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { KeyResult, UpdateKeyResultInput } from '@/types/okr';
+import { AlertCircle } from 'lucide-react';
 
 interface KeyResultCheckInDialogProps {
   keyResult: KeyResult;
@@ -23,6 +24,14 @@ interface KeyResultCheckInDialogProps {
 
 export const KeyResultCheckInDialog = ({ keyResult, open, onOpenChange, onSave }: KeyResultCheckInDialogProps) => {
   const [currentValue, setCurrentValue] = useState<number>(keyResult.currentValue);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (open) {
+      setCurrentValue(keyResult.currentValue);
+      setError(null);
+    }
+  }, [open, keyResult]);
   
   // Calculate progress based on current, start and target values
   const calculateProgress = () => {
@@ -32,9 +41,16 @@ export const KeyResultCheckInDialog = ({ keyResult, open, onOpenChange, onSave }
   };
   
   const handleSave = () => {
+    // Validate that the progress value will be within database limits (precision 5, scale 2)
+    const progress = Math.round(calculateProgress());
+    if (progress < 0 || progress > 100) {
+      setError("Progress must be between 0 and 100");
+      return;
+    }
+    
     onSave({
       currentValue,
-      progress: Math.round(calculateProgress())
+      progress
     }, keyResult.id);
     onOpenChange(false);
   };
@@ -50,13 +66,23 @@ export const KeyResultCheckInDialog = ({ keyResult, open, onOpenChange, onSave }
         </DialogHeader>
         
         <div className="space-y-4 py-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-md flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              <span>{error}</span>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="current-value">Current Value</Label>
             <Input
               id="current-value"
               type="number"
               value={currentValue}
-              onChange={(e) => setCurrentValue(Number(e.target.value))}
+              onChange={(e) => {
+                setCurrentValue(Number(e.target.value));
+                setError(null);
+              }}
               min={keyResult.startValue}
               max={keyResult.targetValue}
             />
