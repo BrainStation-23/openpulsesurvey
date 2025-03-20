@@ -1,8 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { ArrowLeft, CalendarRange, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CalendarRange, Clock, AlertCircle, Plus } from 'lucide-react';
 import { 
   Card, 
   CardContent, 
@@ -19,16 +19,40 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useOKRCycle } from '@/hooks/okr/useOKRCycle';
+import { useObjectives } from '@/hooks/okr/useObjectives';
 import { CycleStatusBadge } from '@/components/okr/cycles/CycleStatusBadge';
-import { OKRCycleStatus } from '@/types/okr';
+import { ObjectivesGrid } from '@/components/okr/objectives/ObjectivesGrid';
+import { CreateObjectiveForm } from '@/components/okr/objectives/CreateObjectiveForm';
+import { OKRCycleStatus, CreateObjectiveInput } from '@/types/okr';
 
 const AdminOKRCycleDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { cycle, isLoading, error, updateStatus } = useOKRCycle(id);
+  const { 
+    objectives, 
+    isLoading: isLoadingObjectives, 
+    createObjective 
+  } = useObjectives(id);
+  
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   
   const handleStatusChange = (status: string) => {
     updateStatus.mutate(status as OKRCycleStatus);
+  };
+
+  const handleCreateObjective = (data: CreateObjectiveInput) => {
+    createObjective.mutate(data, {
+      onSuccess: () => {
+        setCreateDialogOpen(false);
+      }
+    });
   };
 
   if (isLoading) {
@@ -48,7 +72,7 @@ const AdminOKRCycleDetails = () => {
         <Button variant="outline" asChild className="mb-6">
           <Link to="/admin/okrs/cycles">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cycles
-          </Link>
+          </Link>.
         </Button>
         
         <Card>
@@ -141,26 +165,39 @@ const AdminOKRCycleDetails = () => {
       </Card>
       
       <Card>
-        <CardHeader>
-          <CardTitle>Objectives</CardTitle>
-          <CardDescription>
-            Objectives associated with this OKR cycle
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Objectives</CardTitle>
+            <CardDescription>
+              Objectives associated with this OKR cycle
+            </CardDescription>
+          </div>
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Objective
+          </Button>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-6">
-            <p className="text-muted-foreground">
-              This feature is under development. Objectives will be displayed here.
-            </p>
-          </div>
-          <Separator className="my-6" />
-          <div className="flex justify-center">
-            <Button disabled>
-              Add Objective (Coming Soon)
-            </Button>
-          </div>
+          <ObjectivesGrid 
+            objectives={objectives || []} 
+            isLoading={isLoadingObjectives} 
+            isAdmin={true}
+          />
         </CardContent>
       </Card>
+
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Create New Objective</DialogTitle>
+          </DialogHeader>
+          <CreateObjectiveForm 
+            onSubmit={handleCreateObjective} 
+            isSubmitting={createObjective.isPending} 
+            cycleId={cycle.id}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
