@@ -732,6 +732,89 @@ export type Database = {
           },
         ]
       }
+      key_results: {
+        Row: {
+          created_at: string
+          current_value: number | null
+          description: string | null
+          id: string
+          kr_type: string
+          objective_id: string
+          owner_id: string
+          progress: number | null
+          start_value: number | null
+          status: Database["public"]["Enums"]["kr_status"]
+          target_value: number
+          title: string
+          unit: string | null
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number | null
+          description?: string | null
+          id?: string
+          kr_type: string
+          objective_id: string
+          owner_id: string
+          progress?: number | null
+          start_value?: number | null
+          status?: Database["public"]["Enums"]["kr_status"]
+          target_value: number
+          title: string
+          unit?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string
+          current_value?: number | null
+          description?: string | null
+          id?: string
+          kr_type?: string
+          objective_id?: string
+          owner_id?: string
+          progress?: number | null
+          start_value?: number | null
+          status?: Database["public"]["Enums"]["kr_status"]
+          target_value?: number
+          title?: string
+          unit?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "key_results_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objective_statistics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "key_results_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "key_results_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "key_results_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       levels: {
         Row: {
           color_code: string | null
@@ -981,6 +1064,630 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      objectives: {
+        Row: {
+          approval_status: Database["public"]["Enums"]["approval_status"] | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          cycle_id: string
+          description: string | null
+          id: string
+          owner_id: string
+          parent_objective_id: string | null
+          progress: number | null
+          sbu_id: string | null
+          status: Database["public"]["Enums"]["objective_status"]
+          template_id: string | null
+          title: string
+          updated_at: string
+          visibility: Database["public"]["Enums"]["okr_visibility"]
+        }
+        Insert: {
+          approval_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          cycle_id: string
+          description?: string | null
+          id?: string
+          owner_id: string
+          parent_objective_id?: string | null
+          progress?: number | null
+          sbu_id?: string | null
+          status?: Database["public"]["Enums"]["objective_status"]
+          template_id?: string | null
+          title: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["okr_visibility"]
+        }
+        Update: {
+          approval_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          cycle_id?: string
+          description?: string | null
+          id?: string
+          owner_id?: string
+          parent_objective_id?: string | null
+          progress?: number | null
+          sbu_id?: string | null
+          status?: Database["public"]["Enums"]["objective_status"]
+          template_id?: string | null
+          title?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["okr_visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objectives_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "okr_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_parent_objective_id_fkey"
+            columns: ["parent_objective_id"]
+            isOneToOne: false
+            referencedRelation: "objective_statistics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_parent_objective_id_fkey"
+            columns: ["parent_objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_sbu_id_fkey"
+            columns: ["sbu_id"]
+            isOneToOne: false
+            referencedRelation: "sbus"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "okr_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_alignments: {
+        Row: {
+          aligned_objective_id: string
+          alignment_type: string
+          created_at: string
+          created_by: string
+          id: string
+          source_objective_id: string
+          weight: number | null
+        }
+        Insert: {
+          aligned_objective_id: string
+          alignment_type: string
+          created_at?: string
+          created_by: string
+          id?: string
+          source_objective_id: string
+          weight?: number | null
+        }
+        Update: {
+          aligned_objective_id?: string
+          alignment_type?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          source_objective_id?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_alignments_aligned_objective_id_fkey"
+            columns: ["aligned_objective_id"]
+            isOneToOne: false
+            referencedRelation: "objective_statistics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_alignments_aligned_objective_id_fkey"
+            columns: ["aligned_objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_alignments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_alignments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_alignments_source_objective_id_fkey"
+            columns: ["source_objective_id"]
+            isOneToOne: false
+            referencedRelation: "objective_statistics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_alignments_source_objective_id_fkey"
+            columns: ["source_objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_check_ins: {
+        Row: {
+          check_in_date: string
+          confidence_level: number | null
+          created_at: string
+          created_by: string
+          id: string
+          key_result_id: string
+          new_value: number
+          notes: string | null
+          previous_value: number | null
+          status: Database["public"]["Enums"]["check_in_status"] | null
+        }
+        Insert: {
+          check_in_date?: string
+          confidence_level?: number | null
+          created_at?: string
+          created_by: string
+          id?: string
+          key_result_id: string
+          new_value: number
+          notes?: string | null
+          previous_value?: number | null
+          status?: Database["public"]["Enums"]["check_in_status"] | null
+        }
+        Update: {
+          check_in_date?: string
+          confidence_level?: number | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          key_result_id?: string
+          new_value?: number
+          notes?: string | null
+          previous_value?: number | null
+          status?: Database["public"]["Enums"]["check_in_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_check_ins_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_check_ins_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_check_ins_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "key_result_statistics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_check_ins_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "key_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_comments: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          key_result_id: string | null
+          objective_id: string | null
+          parent_comment_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          key_result_id?: string | null
+          objective_id?: string | null
+          parent_comment_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          key_result_id?: string | null
+          objective_id?: string | null
+          parent_comment_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_comments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_comments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_comments_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "key_result_statistics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_comments_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "key_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_comments_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objective_statistics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_comments_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "okr_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_cycles: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          end_date: string
+          id: string
+          name: string
+          start_date: string
+          status: Database["public"]["Enums"]["okr_cycle_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          end_date: string
+          id?: string
+          name: string
+          start_date: string
+          status?: Database["public"]["Enums"]["okr_cycle_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          name?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["okr_cycle_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_cycles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_cycles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_history: {
+        Row: {
+          change_type: string
+          changed_at: string
+          changed_by: string
+          entity_id: string
+          entity_type: string
+          id: string
+          new_data: Json | null
+          previous_data: Json | null
+        }
+        Insert: {
+          change_type: string
+          changed_at?: string
+          changed_by: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          new_data?: Json | null
+          previous_data?: Json | null
+        }
+        Update: {
+          change_type?: string
+          changed_at?: string
+          changed_by?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          new_data?: Json | null
+          previous_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_notifications: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          link: string | null
+          message: string
+          notification_type: string
+          read: boolean | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          link?: string | null
+          message: string
+          notification_type: string
+          read?: boolean | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          link?: string | null
+          message?: string
+          notification_type?: string
+          read?: boolean | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_permissions: {
+        Row: {
+          can_comment: boolean | null
+          can_edit: boolean | null
+          can_view: boolean | null
+          created_at: string
+          created_by: string
+          employee_role_ids: string[] | null
+          id: string
+          objective_id: string
+          sbu_ids: string[] | null
+          updated_at: string
+          user_ids: string[] | null
+        }
+        Insert: {
+          can_comment?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
+          created_at?: string
+          created_by: string
+          employee_role_ids?: string[] | null
+          id?: string
+          objective_id: string
+          sbu_ids?: string[] | null
+          updated_at?: string
+          user_ids?: string[] | null
+        }
+        Update: {
+          can_comment?: boolean | null
+          can_edit?: boolean | null
+          can_view?: boolean | null
+          created_at?: string
+          created_by?: string
+          employee_role_ids?: string[] | null
+          id?: string
+          objective_id?: string
+          sbu_ids?: string[] | null
+          updated_at?: string
+          user_ids?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_permissions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_permissions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_permissions_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objective_statistics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_permissions_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_templates: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_public: boolean
+          name: string
+          template_data: Json
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name: string
+          template_data?: Json
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name?: string
+          template_data?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -1743,6 +2450,67 @@ export type Database = {
           },
         ]
       }
+      key_result_statistics: {
+        Row: {
+          check_ins_count: number | null
+          comments_count: number | null
+          current_value: number | null
+          cycle_id: string | null
+          cycle_name: string | null
+          description: string | null
+          id: string | null
+          kr_type: string | null
+          last_check_in: string | null
+          objective_id: string | null
+          objective_title: string | null
+          owner_id: string | null
+          owner_name: string | null
+          progress: number | null
+          start_value: number | null
+          status: Database["public"]["Enums"]["kr_status"] | null
+          target_value: number | null
+          title: string | null
+          unit: string | null
+          weight: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "key_results_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objective_statistics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "key_results_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "key_results_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "key_results_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "okr_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       managers_needing_improvement: {
         Row: {
           average_score: number | null
@@ -1765,6 +2533,73 @@ export type Database = {
             columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objective_statistics: {
+        Row: {
+          alignments_count: number | null
+          approval_status: Database["public"]["Enums"]["approval_status"] | null
+          check_ins_count: number | null
+          comments_count: number | null
+          completed_key_results: number | null
+          cycle_id: string | null
+          cycle_name: string | null
+          description: string | null
+          id: string | null
+          key_results_count: number | null
+          owner_id: string | null
+          owner_name: string | null
+          parent_objective_id: string | null
+          progress: number | null
+          sbu_id: string | null
+          sbu_name: string | null
+          status: Database["public"]["Enums"]["objective_status"] | null
+          title: string | null
+          visibility: Database["public"]["Enums"]["okr_visibility"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objectives_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "okr_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_parent_objective_id_fkey"
+            columns: ["parent_objective_id"]
+            isOneToOne: false
+            referencedRelation: "objective_statistics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_parent_objective_id_fkey"
+            columns: ["parent_objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_sbu_id_fkey"
+            columns: ["sbu_id"]
+            isOneToOne: false
+            referencedRelation: "sbus"
             referencedColumns: ["id"]
           },
         ]
@@ -2194,8 +3029,10 @@ export type Database = {
         | "response_rate"
         | "streak"
         | "campaign_completion"
+      approval_status: "pending" | "approved" | "rejected" | "requested_changes"
       assignment_status: "pending" | "completed" | "expired"
       campaign_status: "draft" | "active" | "completed" | "archived"
+      check_in_status: "on_track" | "at_risk" | "behind"
       config_status: "active" | "inactive"
       contact_message_status: "pending" | "sent" | "error" | "partially_sent"
       cron_job_type:
@@ -2211,7 +3048,17 @@ export type Database = {
       instance_status: "upcoming" | "active" | "completed"
       issue_board_status: "active" | "disabled"
       issue_status: "open" | "closed"
+      kr_status:
+        | "not_started"
+        | "in_progress"
+        | "at_risk"
+        | "on_track"
+        | "completed"
+        | "abandoned"
       level_status: "active" | "inactive"
+      objective_status: "draft" | "active" | "completed" | "abandoned"
+      okr_cycle_status: "active" | "upcoming" | "completed" | "archived"
+      okr_visibility: "private" | "team" | "department" | "organization"
       profile_status: "active" | "disabled"
       prompt_category:
         | "general_analysis"

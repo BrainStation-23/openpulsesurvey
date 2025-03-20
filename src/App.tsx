@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -103,6 +104,11 @@ const App = () => (
               <Route path="achievements" element={<UserAchievementsPage />} />
               <Route path="issue-boards" element={<UserIssueBoards />} />
               <Route path="issue-boards/:id" element={<UserIssueBoardView />} />
+              {/* User OKR Routes */}
+              <Route path="okrs" element={<Navigate to="/user/okrs/dashboard" replace />} />
+              <Route path="okrs/dashboard" element={<div>User OKR Dashboard (placeholder)</div>} />
+              <Route path="okrs/objectives" element={<div>User Objectives (placeholder)</div>} />
+              <Route path="okrs/objectives/:id" element={<div>User Objective Details (placeholder)</div>} />
             </Route>
             
             <Route path="/admin" element={<AdminLayout />}>
@@ -127,6 +133,18 @@ const App = () => (
               <Route path="surveys/issue-boards/create" element={<CreateIssueBoard />} />
               <Route path="surveys/issue-boards/:id" element={<EditIssueBoard />} />
               <Route path="surveys/issue-boards/:id/view" element={<AdminIssueBoardView />} />
+              
+              {/* Admin OKR Routes */}
+              <Route path="okrs" element={<Navigate to="/admin/okrs/dashboard" replace />} />
+              <Route path="okrs/dashboard" element={<div>OKR Dashboard (placeholder)</div>} />
+              <Route path="okrs/cycles" element={<div>OKR Cycles (placeholder)</div>} />
+              <Route path="okrs/cycles/create" element={<div>Create OKR Cycle (placeholder)</div>} />
+              <Route path="okrs/cycles/:id" element={<div>OKR Cycle Details (placeholder)</div>} />
+              <Route path="okrs/templates" element={<div>OKR Templates (placeholder)</div>} />
+              <Route path="okrs/templates/create" element={<div>Create OKR Template (placeholder)</div>} />
+              <Route path="okrs/templates/:id" element={<div>OKR Template Details (placeholder)</div>} />
+              <Route path="okrs/objectives" element={<div>All Objectives (placeholder)</div>} />
+              <Route path="okrs/objectives/:id" element={<div>Objective Details (placeholder)</div>} />
               
               <Route path="config" element={<PlatformConfigLayout />}>
                 <Route index element={<AdminConfig />} />

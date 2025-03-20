@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { LogOut, LayoutDashboard, ClipboardList, Settings2, Trophy, Kanban } from "lucide-react";
+import { LogOut, LayoutDashboard, ClipboardList, Settings2, Trophy, Kanban, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePendingSurveysCount } from "@/hooks/use-pending-surveys-count";
 import {
@@ -25,6 +25,11 @@ const navigationItems = [
     title: "Issue Boards",
     icon: Kanban,
     path: "/user/issue-boards",
+  },
+  {
+    title: "My OKRs",
+    icon: Target,
+    path: "/user/okrs",
   },
   {
     title: "My Achievements",

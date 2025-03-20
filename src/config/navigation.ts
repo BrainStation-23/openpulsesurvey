@@ -16,7 +16,8 @@ import {
   UserRound,
   Trophy,
   Radio,
-  Kanban
+  Kanban,
+  Target
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -61,6 +62,28 @@ export const navigationItems: NavigationItem[] = [
         title: "Issue Boards",
         icon: Kanban,
         path: "/admin/surveys/issue-boards",
+      },
+    ],
+  },
+  {
+    title: "OKRs",
+    icon: Target,
+    path: "/admin/okrs",
+    children: [
+      {
+        title: "Dashboard",
+        icon: LayoutDashboard,
+        path: "/admin/okrs/dashboard",
+      },
+      {
+        title: "Cycles",
+        icon: Grid,
+        path: "/admin/okrs/cycles",
+      },
+      {
+        title: "Templates",
+        icon: FileText,
+        path: "/admin/okrs/templates",
       },
     ],
   },
