@@ -3,7 +3,7 @@ import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Check, AlertTriangle, Clock } from 'lucide-react';
+import { Check, AlertTriangle, Clock, Trash2 } from 'lucide-react';
 import { KeyResult } from '@/types/okr';
 import { KeyResultStatusBadge } from './KeyResultStatusBadge';
 
@@ -11,9 +11,10 @@ interface KeyResultCardProps {
   keyResult: KeyResult;
   onCheckIn: (kr: KeyResult) => void;
   onEdit: (kr: KeyResult) => void;
+  onDelete: (kr: KeyResult) => void; // Add delete handler prop
 }
 
-export const KeyResultCard = ({ keyResult, onCheckIn, onEdit }: KeyResultCardProps) => {
+export const KeyResultCard = ({ keyResult, onCheckIn, onEdit, onDelete }: KeyResultCardProps) => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -84,6 +85,14 @@ export const KeyResultCard = ({ keyResult, onCheckIn, onEdit }: KeyResultCardPro
             onClick={() => onEdit(keyResult)}
           >
             Edit
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="text-red-500 hover:text-red-700 hover:bg-red-100"
+            onClick={() => onDelete(keyResult)}
+          >
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>

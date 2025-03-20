@@ -15,17 +15,28 @@ import { KeyResult, UpdateKeyResultInput } from '@/types/okr';
 import { KeyResultCheckInDialog } from './KeyResultCheckInDialog';
 import { KeyResultEditDialog } from './KeyResultEditDialog';
 import { KeyResultCard } from './KeyResultCard';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface KeyResultsListProps {
   objectiveId: string;
 }
 
 export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
-  const { keyResults, isLoading, updateKeyResult } = useKeyResults(objectiveId);
+  const { keyResults, isLoading, updateKeyResult, deleteKeyResult } = useKeyResults(objectiveId);
   const { toast } = useToast();
   const [selectedKeyResult, setSelectedKeyResult] = useState<KeyResult | null>(null);
   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const handleCheckIn = (kr: KeyResult) => {
     setSelectedKeyResult(kr);
@@ -35,6 +46,32 @@ export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
   const handleEdit = (kr: KeyResult) => {
     setSelectedKeyResult(kr);
     setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = (kr: KeyResult) => {
+    setSelectedKeyResult(kr);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (!selectedKeyResult) return;
+    
+    deleteKeyResult.mutate(selectedKeyResult.id, {
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Key result deleted successfully"
+        });
+        setIsDeleteDialogOpen(false);
+      },
+      onError: (error) => {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message
+        });
+      }
+    });
   };
 
   const handleSaveCheckIn = (data: UpdateKeyResultInput, id: string) => {
@@ -103,6 +140,7 @@ export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
                 keyResult={kr}
                 onCheckIn={handleCheckIn}
                 onEdit={handleEdit}
+                onDelete={handleDeleteConfirm}
               />
             ))}
           </div>
@@ -134,6 +172,27 @@ export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
             onOpenChange={setIsEditDialogOpen}
             onSave={handleSaveEdit}
           />
+
+          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete the key result "{selectedKeyResult.title}". 
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDelete}
+                  className="bg-red-500 hover:bg-red-600"
+                >
+                  {deleteKeyResult.isPending ? "Deleting..." : "Delete"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </>
       )}
     </Card>
