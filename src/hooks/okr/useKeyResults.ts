@@ -28,7 +28,24 @@ export const useKeyResults = (objectiveId?: string) => {
         throw error;
       }
       
-      return data as KeyResult[];
+      // Map the snake_case database fields to camelCase interface properties
+      return data.map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        objectiveId: item.objective_id,
+        ownerId: item.owner_id,
+        krType: item.kr_type,
+        unit: item.unit,
+        startValue: item.start_value,
+        currentValue: item.current_value,
+        targetValue: item.target_value,
+        progress: item.progress,
+        status: item.status,
+        weight: item.weight,
+        createdAt: new Date(item.created_at),
+        updatedAt: new Date(item.updated_at)
+      })) as KeyResult[];
     },
     enabled: !!objectiveId
   });

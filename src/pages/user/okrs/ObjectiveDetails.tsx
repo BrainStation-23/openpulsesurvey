@@ -16,6 +16,7 @@ import { KeyResultDialog } from '@/components/okr/key-results/KeyResultDialog';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
