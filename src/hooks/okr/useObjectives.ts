@@ -63,7 +63,7 @@ export const useObjectives = (cycleId?: string) => {
 
       const { data, error } = await supabase
         .from('objectives')
-        .insert([{
+        .insert({
           title: objectiveData.title,
           description: objectiveData.description,
           cycle_id: objectiveData.cycleId,
@@ -74,7 +74,7 @@ export const useObjectives = (cycleId?: string) => {
           status: 'draft',
           progress: 0,
           approval_status: 'pending'
-        }])
+        })
         .select()
         .single();
 
