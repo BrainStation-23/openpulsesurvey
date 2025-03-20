@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlusCircle, Check, AlertTriangle, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { KeyResult, UpdateKeyResultInput } from '@/types/okr';
+import { KeyResult, KRStatus, UpdateKeyResultInput } from '@/types/okr';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { 
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 
 interface KeyResultsListProps {
   objectiveId: string;
@@ -39,9 +47,17 @@ interface KeyResultCheckInDialogProps {
 const KeyResultCheckInDialog = ({ keyResult, open, onOpenChange, onSave }: KeyResultCheckInDialogProps) => {
   const [currentValue, setCurrentValue] = useState<number>(keyResult.currentValue);
   
+  // Calculate progress based on current, start and target values
+  const calculateProgress = () => {
+    if (keyResult.targetValue === keyResult.startValue) return 0;
+    const progress = ((currentValue - keyResult.startValue) / (keyResult.targetValue - keyResult.startValue)) * 100;
+    return Math.min(Math.max(0, progress), 100); // Clamp between 0-100
+  };
+  
   const handleSave = () => {
     onSave({
       currentValue,
+      progress: Math.round(calculateProgress())
     }, keyResult.id);
     onOpenChange(false);
   };
@@ -75,7 +91,7 @@ const KeyResultCheckInDialog = ({ keyResult, open, onOpenChange, onSave }: KeyRe
               <span>Target: {keyResult.targetValue}{keyResult.unit && ` ${keyResult.unit}`}</span>
             </div>
             <Progress 
-              value={((currentValue - keyResult.startValue) / (keyResult.targetValue - keyResult.startValue)) * 100} 
+              value={calculateProgress()} 
               className="h-2" 
             />
           </div>
@@ -100,11 +116,13 @@ interface KeyResultEditDialogProps {
 const KeyResultEditDialog = ({ keyResult, open, onOpenChange, onSave }: KeyResultEditDialogProps) => {
   const [title, setTitle] = useState<string>(keyResult.title);
   const [description, setDescription] = useState<string>(keyResult.description || '');
+  const [status, setStatus] = useState<KRStatus>(keyResult.status);
   
   const handleSave = () => {
     onSave({
       title,
       description,
+      status
     }, keyResult.id);
     onOpenChange(false);
   };
@@ -136,6 +154,24 @@ const KeyResultEditDialog = ({ keyResult, open, onOpenChange, onSave }: KeyResul
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select value={status} onValueChange={(value) => setStatus(value as KRStatus)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="not_started">Not Started</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="at_risk">At Risk</SelectItem>
+                  <SelectItem value="on_track">On Track</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         

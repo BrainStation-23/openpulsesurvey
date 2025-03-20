@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { KeyResult, CreateKeyResultInput, UpdateKeyResultInput } from '@/types/okr';
@@ -28,7 +27,6 @@ export const useKeyResults = (objectiveId?: string) => {
         throw error;
       }
       
-      // Map the snake_case database fields to camelCase interface properties
       return data.map(item => ({
         id: item.id,
         title: item.title,
@@ -50,9 +48,7 @@ export const useKeyResults = (objectiveId?: string) => {
     enabled: !!objectiveId
   });
 
-  // Helper function to check if user has permissions for an objective
   const checkObjectivePermission = async (objectiveId: string) => {
-    // First, fetch the current user's session
     const { data: sessionData } = await supabase.auth.getSession();
     const currentUserId = sessionData.session?.user?.id;
     
@@ -60,7 +56,6 @@ export const useKeyResults = (objectiveId?: string) => {
       throw new Error('You must be logged in to perform this action.');
     }
     
-    // Check if user is an admin
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
@@ -69,11 +64,9 @@ export const useKeyResults = (objectiveId?: string) => {
       .single();
       
     if (roleData) {
-      // Admin has all permissions
       return true;
     }
     
-    // Check if user is the owner of the objective
     const { data: objectiveData, error: objectiveError } = await supabase
       .from('objectives')
       .select('owner_id')
@@ -92,10 +85,8 @@ export const useKeyResults = (objectiveId?: string) => {
     return true;
   };
 
-  // Create a new key result
   const createKeyResult = useMutation({
     mutationFn: async (keyResultData: CreateKeyResultInput) => {
-      // Check permissions first
       await checkObjectivePermission(keyResultData.objectiveId);
       
       const { data, error } = await supabase
@@ -125,7 +116,6 @@ export const useKeyResults = (objectiveId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['key-results', objectiveId] });
-      // Since key results affect the objective's progress, also invalidate the objective
       queryClient.invalidateQueries({ queryKey: ['objective', objectiveId] });
       toast({
         title: 'Success',
@@ -141,12 +131,10 @@ export const useKeyResults = (objectiveId?: string) => {
     }
   });
 
-  // Update an existing key result
   const updateKeyResult = useMutation({
     mutationFn: async (updateData: UpdateKeyResultInput & { id: string }) => {
       const { id, ...rest } = updateData;
       
-      // First, get the key result to check the objective it belongs to
       const { data: keyResultData, error: fetchError } = await supabase
         .from('key_results')
         .select('objective_id')
@@ -158,10 +146,8 @@ export const useKeyResults = (objectiveId?: string) => {
         throw fetchError;
       }
       
-      // Check permissions
       await checkObjectivePermission(keyResultData.objective_id);
       
-      // Convert camelCase to snake_case for Supabase
       const mappedData: any = {};
       if (rest.title) mappedData.title = rest.title;
       if (rest.description !== undefined) mappedData.description = rest.description;
@@ -172,6 +158,9 @@ export const useKeyResults = (objectiveId?: string) => {
       if (rest.targetValue !== undefined) mappedData.target_value = rest.targetValue;
       if (rest.weight !== undefined) mappedData.weight = rest.weight;
       if (rest.status) mappedData.status = rest.status;
+      if (rest.progress !== undefined) mappedData.progress = rest.progress;
+      
+      console.log('Updating key result with data:', mappedData);
       
       const { data, error } = await supabase
         .from('key_results')
@@ -204,10 +193,8 @@ export const useKeyResults = (objectiveId?: string) => {
     }
   });
 
-  // Delete a key result
   const deleteKeyResult = useMutation({
     mutationFn: async (id: string) => {
-      // First, get the key result to check the objective it belongs to
       const { data: keyResultData, error: fetchError } = await supabase
         .from('key_results')
         .select('objective_id')
@@ -219,7 +206,6 @@ export const useKeyResults = (objectiveId?: string) => {
         throw fetchError;
       }
       
-      // Check permissions
       await checkObjectivePermission(keyResultData.objective_id);
       
       const { error } = await supabase
