@@ -50,9 +50,54 @@ export const useKeyResults = (objectiveId?: string) => {
     enabled: !!objectiveId
   });
 
+  // Helper function to check if user has permissions for an objective
+  const checkObjectivePermission = async (objectiveId: string) => {
+    // First, fetch the current user's session
+    const { data: sessionData } = await supabase.auth.getSession();
+    const currentUserId = sessionData.session?.user?.id;
+    
+    if (!currentUserId) {
+      throw new Error('You must be logged in to perform this action.');
+    }
+    
+    // Check if user is an admin
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', currentUserId)
+      .eq('role', 'admin')
+      .single();
+      
+    if (roleData) {
+      // Admin has all permissions
+      return true;
+    }
+    
+    // Check if user is the owner of the objective
+    const { data: objectiveData, error: objectiveError } = await supabase
+      .from('objectives')
+      .select('owner_id')
+      .eq('id', objectiveId)
+      .single();
+      
+    if (objectiveError) {
+      console.error('Error checking objective ownership:', objectiveError);
+      throw new Error('Could not verify permissions for this objective');
+    }
+    
+    if (objectiveData.owner_id !== currentUserId) {
+      throw new Error('You do not have permission to modify key results for this objective');
+    }
+    
+    return true;
+  };
+
   // Create a new key result
   const createKeyResult = useMutation({
     mutationFn: async (keyResultData: CreateKeyResultInput) => {
+      // Check permissions first
+      await checkObjectivePermission(keyResultData.objectiveId);
+      
       const { data, error } = await supabase
         .from('key_results')
         .insert({
@@ -101,6 +146,21 @@ export const useKeyResults = (objectiveId?: string) => {
     mutationFn: async (updateData: UpdateKeyResultInput & { id: string }) => {
       const { id, ...rest } = updateData;
       
+      // First, get the key result to check the objective it belongs to
+      const { data: keyResultData, error: fetchError } = await supabase
+        .from('key_results')
+        .select('objective_id')
+        .eq('id', id)
+        .single();
+        
+      if (fetchError) {
+        console.error('Error fetching key result:', fetchError);
+        throw fetchError;
+      }
+      
+      // Check permissions
+      await checkObjectivePermission(keyResultData.objective_id);
+      
       // Convert camelCase to snake_case for Supabase
       const mappedData: any = {};
       if (rest.title) mappedData.title = rest.title;
@@ -147,6 +207,21 @@ export const useKeyResults = (objectiveId?: string) => {
   // Delete a key result
   const deleteKeyResult = useMutation({
     mutationFn: async (id: string) => {
+      // First, get the key result to check the objective it belongs to
+      const { data: keyResultData, error: fetchError } = await supabase
+        .from('key_results')
+        .select('objective_id')
+        .eq('id', id)
+        .single();
+        
+      if (fetchError) {
+        console.error('Error fetching key result:', fetchError);
+        throw fetchError;
+      }
+      
+      // Check permissions
+      await checkObjectivePermission(keyResultData.objective_id);
+      
       const { error } = await supabase
         .from('key_results')
         .delete()
