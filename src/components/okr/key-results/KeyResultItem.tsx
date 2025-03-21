@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { KeyResult, KeyResultStatus } from '@/types/okr';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,11 +61,9 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
 
   const handleProgressUpdate = () => {
     if (keyResult.measurementType === 'boolean') {
-      // For boolean type, we don't need to call this manually as it's handled in the onChange
       return;
     }
 
-    // Only update if the value has changed
     if (progressValue !== keyResult.currentValue) {
       updateProgress.mutate({ currentValue: progressValue });
     }
@@ -88,11 +85,7 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
   };
 
   const handleBooleanChange = (checked: boolean) => {
-    updateProgress.mutate({ 
-      booleanValue: checked,
-      // Also update the progress value to ensure consistency
-      progress: checked ? 100 : 0 
-    });
+    updateProgress.mutate({ booleanValue: checked });
   };
 
   const handleDelete = () => {
@@ -117,7 +110,6 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
       );
     }
 
-    // For numeric, percentage, and currency types
     let unit = '';
     if (keyResult.measurementType === 'percentage') {
       unit = '%';

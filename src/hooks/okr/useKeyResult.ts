@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { KeyResult, CreateKeyResultInput, UpdateKeyResultInput, KeyResultStatus } from '@/types/okr';
@@ -199,8 +198,7 @@ export const useKeyResult = (id?: string) => {
       if (currentValue !== undefined) updateData.current_value = currentValue;
       if (booleanValue !== undefined) {
         updateData.boolean_value = booleanValue;
-        // For boolean type, explicitly set the progress to 0% or 100%
-        updateData.progress = booleanValue ? 100 : 0;
+        // For boolean type, progress is handled by the database trigger
       } else if (progress !== undefined) {
         // For explicit progress updates
         updateData.progress = progress;
