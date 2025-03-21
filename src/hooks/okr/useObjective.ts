@@ -73,43 +73,17 @@ export const useObjective = (id: string | undefined) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['objective', id] });
       queryClient.invalidateQueries({ queryKey: ['objectives'] });
-    }
-  });
-
-  const updateObjective = useMutation({
-    mutationFn: async (data: UpdateObjectiveInput & { id: string }) => {
-      const { id, ...updateData } = data;
-      
-      // Map TypeScript fields to database column names
-      const dbUpdateData: any = {};
-      
-      if (updateData.title) dbUpdateData.title = updateData.title;
-      if (updateData.description !== undefined) dbUpdateData.description = updateData.description;
-      if (updateData.status) dbUpdateData.status = updateData.status;
-      if (updateData.progress !== undefined) dbUpdateData.progress = updateData.progress;
-      if (updateData.approvalStatus) dbUpdateData.approval_status = updateData.approvalStatus;
-      if (updateData.cycleId) dbUpdateData.cycle_id = updateData.cycleId;
-      if (updateData.visibility) dbUpdateData.visibility = updateData.visibility;
-      if (updateData.parentObjectiveId) dbUpdateData.parent_objective_id = updateData.parentObjectiveId;
-      if (updateData.sbuId) dbUpdateData.sbu_id = updateData.sbuId;
-      
-      const { data: result, error } = await supabase
-        .from('objectives')
-        .update(dbUpdateData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating objective:', error);
-        throw error;
-      }
-
-      return result;
+      toast({
+        title: 'Success',
+        description: 'Objective status updated successfully',
+      });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['objective', id] });
-      queryClient.invalidateQueries({ queryKey: ['objectives'] });
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error updating objective status',
+        description: error.message,
+      });
     }
   });
 
@@ -117,7 +91,6 @@ export const useObjective = (id: string | undefined) => {
     objective,
     isLoading,
     error,
-    updateStatus,
-    updateObjective
+    updateStatus
   };
 };
