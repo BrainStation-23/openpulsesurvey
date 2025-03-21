@@ -128,7 +128,7 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     } else if (keyResult.measurementType === 'currency') {
       unit = '$';
     } else if (keyResult.unit) {
-      unit = keyResult.unit;
+      unit = keyResult.unit + ' '; // Added space after unit
     }
 
     return (
@@ -193,6 +193,16 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     return `${unit}${keyResult.currentValue} / ${unit}${keyResult.targetValue}`;
   };
 
+  // Determine progress bar color based on progress and status
+  const getProgressBarColor = () => {
+    if (keyResult.status === 'at_risk') return "bg-red-500";
+    if (keyResult.status === 'completed') return "bg-purple-500";
+    if (keyResult.progress >= 75) return "bg-green-500";
+    if (keyResult.progress >= 50) return "bg-blue-500";
+    if (keyResult.progress >= 25) return "bg-amber-500";
+    return "bg-gray-500";
+  };
+
   return (
     <Card className="mb-4">
       <CardHeader className="pb-3">
@@ -246,7 +256,6 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
             <span className="text-sm font-medium">Progress: {keyResult.progress.toFixed(0)}%</span>
             <span className="text-sm">{getProgressDisplay()}</span>
           </div>
-          <Progress value={keyResult.progress} className="h-2" />
         </div>
 
         {renderProgressControls()}
@@ -291,6 +300,16 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
           </div>
         </div>
       </CardContent>
+      
+      <CardFooter className="pt-0 pb-3 px-6">
+        <div className="w-full">
+          <Progress 
+            value={keyResult.progress} 
+            className="h-4 rounded-md" 
+            indicatorClassName={getProgressBarColor()}
+          />
+        </div>
+      </CardFooter>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
