@@ -7,24 +7,12 @@ import {
   CardContent 
 } from "@/components/ui/card";
 import { useKeyResults } from '@/hooks/okr/useKeyResults';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { KeyResult, UpdateKeyResultInput } from '@/types/okr';
-import { KeyResultCheckInDialog } from './KeyResultCheckInDialog';
-import { KeyResultEditDialog } from './KeyResultEditDialog';
 import { KeyResultCard } from './KeyResultCard';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { KeyResultsLoading } from './KeyResultsLoading';
+import { EmptyKeyResults } from './EmptyKeyResults';
+import { KeyResultDialogs } from './KeyResultDialogs';
 
 interface KeyResultsListProps {
   objectiveId: string;
@@ -75,8 +63,6 @@ export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
   };
 
   const handleSaveCheckIn = (data: UpdateKeyResultInput, id: string) => {
-    if (!selectedKeyResult) return;
-    
     updateKeyResult.mutate({
       ...data,
       id
@@ -98,8 +84,6 @@ export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
   };
 
   const handleSaveEdit = (data: UpdateKeyResultInput, id: string) => {
-    if (!selectedKeyResult) return;
-    
     updateKeyResult.mutate({
       ...data,
       id
@@ -120,81 +104,52 @@ export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
     });
   };
 
+  const renderContent = () => {
+    if (isLoading) {
+      return <KeyResultsLoading />;
+    }
+    
+    if (!keyResults || keyResults.length === 0) {
+      return <EmptyKeyResults />;
+    }
+    
+    return (
+      <div className="space-y-4">
+        {keyResults.map((kr) => (
+          <KeyResultCard 
+            key={kr.id}
+            keyResult={kr}
+            onCheckIn={handleCheckIn}
+            onEdit={handleEdit}
+            onDelete={handleDeleteConfirm}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-xl">Key Results</CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-        ) : keyResults && keyResults.length > 0 ? (
-          <div className="space-y-4">
-            {keyResults.map((kr) => (
-              <KeyResultCard 
-                key={kr.id}
-                keyResult={kr}
-                onCheckIn={handleCheckIn}
-                onEdit={handleEdit}
-                onDelete={handleDeleteConfirm}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-6">
-            <div className="flex justify-center mb-2">
-              <PlusCircle className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="font-medium mb-1">No key results yet</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Add key results to track progress toward this objective
-            </p>
-          </div>
-        )}
+        {renderContent()}
       </CardContent>
       
-      {selectedKeyResult && (
-        <>
-          <KeyResultCheckInDialog 
-            keyResult={selectedKeyResult}
-            open={isCheckInDialogOpen}
-            onOpenChange={setIsCheckInDialogOpen}
-            onSave={handleSaveCheckIn}
-          />
-          
-          <KeyResultEditDialog 
-            keyResult={selectedKeyResult}
-            open={isEditDialogOpen}
-            onOpenChange={setIsEditDialogOpen}
-            onSave={handleSaveEdit}
-          />
-
-          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete the key result "{selectedKeyResult.title}". 
-                  This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={handleDelete}
-                  className="bg-red-500 hover:bg-red-600"
-                >
-                  {deleteKeyResult.isPending ? "Deleting..." : "Delete"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </>
-      )}
+      <KeyResultDialogs
+        selectedKeyResult={selectedKeyResult}
+        isCheckInDialogOpen={isCheckInDialogOpen}
+        setIsCheckInDialogOpen={setIsCheckInDialogOpen}
+        isEditDialogOpen={isEditDialogOpen}
+        setIsEditDialogOpen={setIsEditDialogOpen}
+        isDeleteDialogOpen={isDeleteDialogOpen}
+        setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+        onSaveCheckIn={handleSaveCheckIn}
+        onSaveEdit={handleSaveEdit}
+        onDelete={handleDelete}
+        isDeleting={deleteKeyResult.isPending}
+      />
     </Card>
   );
 };
