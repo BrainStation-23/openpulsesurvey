@@ -3090,7 +3090,12 @@ export type Database = {
         | "completed"
         | "abandoned"
       level_status: "active" | "inactive"
-      objective_status: "draft" | "active" | "completed" | "abandoned"
+      objective_status:
+        | "draft"
+        | "in_progress"
+        | "at_risk"
+        | "on_track"
+        | "completed"
       okr_cycle_status: "active" | "upcoming" | "completed" | "archived"
       okr_visibility: "private" | "team" | "department" | "organization"
       profile_status: "active" | "disabled"

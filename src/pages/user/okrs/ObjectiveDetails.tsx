@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Info, Check } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Info, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -9,17 +9,39 @@ import { Badge } from "@/components/ui/badge";
 import { useObjective } from '@/hooks/okr/useObjective';
 import { ObjectiveStatusBadge } from '@/components/okr/objectives/ObjectiveStatusBadge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ObjectiveStatus } from '@/types/okr';
+import { ObjectiveStatus, UpdateObjectiveInput } from '@/types/okr';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { EditObjectiveForm } from '@/components/okr/objectives/EditObjectiveForm';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const { 
     objective, 
     isLoading, 
     error,
-    updateStatus 
+    updateStatus,
+    updateObjective,
+    deleteObjective,
+    isDeleting
   } = useObjective(id);
   
   const handleStatusUpdate = (status: ObjectiveStatus) => {
@@ -27,6 +49,23 @@ const UserObjectiveDetails = () => {
     
     updateStatus.mutate({ 
       status
+    });
+  };
+  
+  const handleDelete = () => {
+    deleteObjective.mutate(undefined, {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        navigate('/user/okrs/objectives');
+      }
+    });
+  };
+
+  const handleEdit = (data: UpdateObjectiveInput) => {
+    updateObjective.mutate(data, {
+      onSuccess: () => {
+        setIsEditDialogOpen(false);
+      }
     });
   };
   
@@ -85,11 +124,23 @@ const UserObjectiveDetails = () => {
   
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center">
-        <Button variant="ghost" size="icon" onClick={handleBack}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-3xl font-bold">Objective Details</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <Button variant="ghost" size="icon" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-3xl font-bold">Objective Details</h1>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+          <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+        </div>
       </div>
       
       <Card>
@@ -222,6 +273,44 @@ const UserObjectiveDetails = () => {
           </p>
         </CardFooter>
       </Card>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this objective?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the objective
+              and any associated key results.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-destructive text-destructive-foreground"
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Objective</DialogTitle>
+          </DialogHeader>
+          {objective && (
+            <EditObjectiveForm 
+              objective={objective} 
+              onSubmit={handleEdit} 
+              isSubmitting={updateObjective.isPending} 
+              onCancel={() => setIsEditDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

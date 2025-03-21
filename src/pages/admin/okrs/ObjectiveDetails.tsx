@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useObjective } from '@/hooks/okr/useObjective';
 import { ObjectiveStatusBadge } from '@/components/okr/objectives/ObjectiveStatusBadge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ObjectiveStatus } from '@/types/okr';
+import { ObjectiveStatus, UpdateObjectiveInput } from '@/types/okr';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -20,17 +20,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { EditObjectiveForm } from '@/components/okr/objectives/EditObjectiveForm';
 
 const AdminObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const { 
     objective, 
     isLoading, 
     error,
-    updateStatus 
+    updateStatus,
+    updateObjective,
+    deleteObjective,
+    isDeleting
   } = useObjective(id);
   
   const handleStatusUpdate = (status: ObjectiveStatus) => {
@@ -42,9 +53,20 @@ const AdminObjectiveDetails = () => {
   };
   
   const handleDelete = () => {
-    // We'll implement this later
-    setIsDeleteDialogOpen(false);
-    navigate('/admin/okrs/objectives');
+    deleteObjective.mutate(undefined, {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        navigate('/admin/okrs/objectives');
+      }
+    });
+  };
+
+  const handleEdit = (data: UpdateObjectiveInput) => {
+    updateObjective.mutate(data, {
+      onSuccess: () => {
+        setIsEditDialogOpen(false);
+      }
+    });
   };
   
   const handleBack = () => {
@@ -110,7 +132,7 @@ const AdminObjectiveDetails = () => {
           <h1 className="text-3xl font-bold">Objective Details</h1>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
@@ -280,13 +302,33 @@ const AdminObjectiveDetails = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-              Delete
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-destructive text-destructive-foreground"
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Objective</DialogTitle>
+          </DialogHeader>
+          {objective && (
+            <EditObjectiveForm 
+              objective={objective} 
+              onSubmit={handleEdit} 
+              isSubmitting={updateObjective.isPending} 
+              onCancel={() => setIsEditDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
