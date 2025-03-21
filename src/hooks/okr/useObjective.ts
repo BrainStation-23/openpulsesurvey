@@ -1,7 +1,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Objective, UpdateObjectiveInput } from '@/types/okr';
+import { Objective, UpdateObjectiveInput, ObjectiveStatus } from '@/types/okr';
 import { useToast } from '@/hooks/use-toast';
 
 export const useObjective = (id: string | undefined) => {
@@ -48,13 +48,12 @@ export const useObjective = (id: string | undefined) => {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async (status: UpdateObjectiveInput) => {
+    mutationFn: async ({ status }: { status: ObjectiveStatus }) => {
       if (!id) throw new Error('Objective ID is required');
       
       const updateData: any = {};
       
-      if (status.status) updateData.status = status.status;
-      if (status.progress !== undefined) updateData.progress = status.progress;
+      if (status) updateData.status = status;
       
       const { data, error } = await supabase
         .from('objectives')

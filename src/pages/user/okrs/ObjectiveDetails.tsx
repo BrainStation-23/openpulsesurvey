@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useObjective } from '@/hooks/okr/useObjective';
 import { ObjectiveStatusBadge } from '@/components/okr/objectives/ObjectiveStatusBadge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ObjectiveStatus } from '@/types/okr';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,11 +22,11 @@ const UserObjectiveDetails = () => {
     updateStatus 
   } = useObjective(id);
   
-  const handleStatusUpdate = (status: string) => {
+  const handleStatusUpdate = (status: ObjectiveStatus) => {
     if (!id) return;
     
     updateStatus.mutate({ 
-      status: status as any 
+      status
     });
   };
   
