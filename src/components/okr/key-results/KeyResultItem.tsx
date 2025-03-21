@@ -4,8 +4,11 @@ import { KeyResult, KeyResultStatus } from '@/types/okr';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Check, AlertTriangle, Clock, PlusCircle, MinusCircle } from 'lucide-react';
+import { Edit, Trash2, Check, AlertTriangle, Clock, ChevronUp, ChevronDown, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +47,7 @@ export const KeyResultStatusBadge = ({ status }: { status: KeyResultStatus }) =>
 export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [progressValue, setProgressValue] = useState<number>(keyResult.currentValue);
   
   const {
     updateStatus,
@@ -56,18 +60,31 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     updateStatus.mutate({ status });
   };
 
-  const handleProgressUpdate = (increment: boolean) => {
+  const handleProgressUpdate = () => {
     if (keyResult.measurementType === 'boolean') {
       updateProgress.mutate({ booleanValue: !keyResult.booleanValue });
       return;
     }
 
-    const step = keyResult.measurementType === 'percentage' ? 5 : 1;
-    const newValue = increment 
-      ? keyResult.currentValue + step 
-      : Math.max(keyResult.startValue, keyResult.currentValue - step);
-    
-    updateProgress.mutate({ currentValue: newValue });
+    // Only update if the value has changed
+    if (progressValue !== keyResult.currentValue) {
+      updateProgress.mutate({ currentValue: progressValue });
+    }
+  };
+
+  const handleSliderChange = (value: number[]) => {
+    setProgressValue(value[0]);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseFloat(e.target.value);
+    if (!isNaN(value)) {
+      const bounded = Math.max(
+        keyResult.startValue, 
+        Math.min(keyResult.targetValue, value)
+      );
+      setProgressValue(bounded);
+    }
   };
 
   const handleDelete = () => {
@@ -76,6 +93,77 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
         setIsDeleteDialogOpen(false);
       }
     });
+  };
+
+  const renderProgressControls = () => {
+    if (keyResult.measurementType === 'boolean') {
+      return (
+        <div className="flex items-center justify-between mb-4 mt-2">
+          <span className="text-sm font-medium">Completed</span>
+          <Switch 
+            checked={keyResult.booleanValue} 
+            onCheckedChange={(checked) => {
+              updateProgress.mutate({ booleanValue: checked });
+            }}
+            disabled={updateProgress.isPending}
+          />
+        </div>
+      );
+    }
+
+    // For numeric, percentage, and currency types
+    let unit = '';
+    if (keyResult.measurementType === 'percentage') {
+      unit = '%';
+    } else if (keyResult.measurementType === 'currency') {
+      unit = '$';
+    } else if (keyResult.unit) {
+      unit = keyResult.unit;
+    }
+
+    return (
+      <div className="space-y-4 mb-4">
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium">Current Value:</span>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              value={progressValue}
+              onChange={handleInputChange}
+              className="w-20 text-right"
+              min={keyResult.startValue}
+              max={keyResult.targetValue}
+              step={keyResult.measurementType === 'percentage' ? 5 : 1}
+              disabled={updateProgress.isPending}
+            />
+            <span className="text-sm w-4">{unit}</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleProgressUpdate}
+              disabled={updateProgress.isPending || progressValue === keyResult.currentValue}
+            >
+              Update
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{unit}{keyResult.startValue}</span>
+            <span>{unit}{keyResult.targetValue}</span>
+          </div>
+          <Slider
+            value={[progressValue]}
+            min={keyResult.startValue}
+            max={keyResult.targetValue}
+            step={keyResult.measurementType === 'percentage' ? 5 : 1}
+            onValueChange={handleSliderChange}
+            disabled={updateProgress.isPending}
+            className="mt-2"
+          />
+        </div>
+      </div>
+    );
   };
 
   const getProgressDisplay = () => {
@@ -116,26 +204,7 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
           <Progress value={keyResult.progress} className="h-2" />
         </div>
 
-        <div className="flex flex-wrap gap-2 mt-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => handleProgressUpdate(false)}
-            disabled={updateProgress.isPending}
-          >
-            <MinusCircle className="h-4 w-4 mr-1" />
-            Decrease
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => handleProgressUpdate(true)}
-            disabled={updateProgress.isPending}
-          >
-            <PlusCircle className="h-4 w-4 mr-1" />
-            Increase
-          </Button>
-        </div>
+        {renderProgressControls()}
 
         <div className="mt-4">
           <h4 className="text-sm font-medium mb-2">Update Status</h4>
