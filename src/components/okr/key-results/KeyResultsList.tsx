@@ -8,8 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { KeyResultForm } from './KeyResultForm';
 import { Card, CardContent } from '@/components/ui/card';
 import { useKeyResults } from '@/hooks/okr/useKeyResults';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface KeyResultsListProps {
   objectiveId: string;
@@ -17,63 +15,7 @@ interface KeyResultsListProps {
 
 export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const { data: keyResults, isLoading, error, refetch } = useKeyResults(objectiveId);
-  const { toast } = useToast();
-  const [isCheckingPermission, setIsCheckingPermission] = useState(false);
-
-  const handleAddKeyResult = async () => {
-    setIsCheckingPermission(true);
-    try {
-      // Check if user has permission to add key results to this objective
-      const { data: objective, error: objectiveError } = await supabase
-        .from('objectives')
-        .select('owner_id')
-        .eq('id', objectiveId)
-        .single();
-
-      if (objectiveError) {
-        console.error('Error fetching objective:', objectiveError);
-        toast({
-          title: "Permission Error",
-          description: "Could not verify permissions to add key results",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Authentication Required",
-          description: "You need to be signed in to add key results",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Check if user owns the objective
-      if (objective.owner_id === user.id) {
-        setIsAddDialogOpen(true);
-      } else {
-        toast({
-          title: "Permission Denied",
-          description: "You can only add key results to objectives you own",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error checking permissions:', error);
-      toast({
-        title: "Error",
-        description: "An error occurred while checking permissions",
-        variant: "destructive"
-      });
-    } finally {
-      setIsCheckingPermission(false);
-    }
-  };
+  const { data: keyResults, isLoading, error } = useKeyResults(objectiveId);
 
   if (isLoading) {
     return (
@@ -83,8 +25,8 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={handleAddKeyResult}
-            disabled={true}
+            onClick={() => setIsAddDialogOpen(true)}
+            disabled
           >
             <PlusCircle className="h-4 w-4 mr-2" />
             Add Key Result
@@ -113,7 +55,7 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={handleAddKeyResult}
+            onClick={() => setIsAddDialogOpen(true)}
           >
             <PlusCircle className="h-4 w-4 mr-2" />
             Add Key Result
@@ -135,8 +77,7 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
         <Button 
           variant="outline" 
           size="sm" 
-          onClick={handleAddKeyResult}
-          disabled={isCheckingPermission}
+          onClick={() => setIsAddDialogOpen(true)}
         >
           <PlusCircle className="h-4 w-4 mr-2" />
           Add Key Result
@@ -154,9 +95,8 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
           <CardContent className="py-10 text-center">
             <p className="text-muted-foreground">No key results associated with this objective yet.</p>
             <Button 
-              onClick={handleAddKeyResult} 
+              onClick={() => setIsAddDialogOpen(true)} 
               className="mt-4"
-              disabled={isCheckingPermission}
             >
               <PlusCircle className="h-4 w-4 mr-2" />
               Add Key Result
@@ -172,10 +112,7 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
           </DialogHeader>
           <KeyResultForm
             objectiveId={objectiveId}
-            onClose={() => {
-              setIsAddDialogOpen(false);
-              refetch();
-            }}
+            onClose={() => setIsAddDialogOpen(false)}
             mode="create"
           />
         </DialogContent>

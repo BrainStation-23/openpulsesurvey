@@ -5,8 +5,6 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface KeyResultProgressControlsProps {
   keyResult: KeyResult;
@@ -22,35 +20,11 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
   isPending
 }) => {
   const [progressValue, setProgressValue] = useState<number>(keyResult.currentValue);
-  const [canUpdate, setCanUpdate] = useState<boolean>(false);
-  const { toast } = useToast();
   
   // Update local state when prop changes (e.g. after a successful update)
   useEffect(() => {
     setProgressValue(keyResult.currentValue);
   }, [keyResult.currentValue]);
-
-  // Check if the current user is the owner of this key result
-  useEffect(() => {
-    const checkPermissions = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setCanUpdate(false);
-          return;
-        }
-        
-        // Check if user is the owner of the key result
-        setCanUpdate(user.id === keyResult.ownerId);
-      } catch (error) {
-        console.error('Error checking permissions:', error);
-        setCanUpdate(false);
-      }
-    };
-    
-    checkPermissions();
-  }, [keyResult.ownerId]);
 
   const handleSliderChange = (value: number[]) => {
     setProgressValue(value[0]);
@@ -65,15 +39,6 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
   };
 
   const handleUpdate = () => {
-    if (!canUpdate) {
-      toast({
-        title: "Permission Denied",
-        description: "You can only update key results you own",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     if (progressValue !== keyResult.currentValue) {
       console.log('Updating key result progress:', {
         id: keyResult.id,
@@ -91,15 +56,6 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
         <Switch 
           checked={keyResult.booleanValue} 
           onCheckedChange={(checked) => {
-            if (!canUpdate) {
-              toast({
-                title: "Permission Denied",
-                description: "You can only update key results you own",
-                variant: "destructive"
-              });
-              return;
-            }
-            
             console.log('Toggling boolean key result:', {
               id: keyResult.id,
               oldValue: keyResult.booleanValue,
@@ -107,7 +63,7 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
             });
             onBooleanChange(checked);
           }} 
-          disabled={isPending || !canUpdate} 
+          disabled={isPending} 
         />
       </div>
     );
@@ -134,7 +90,7 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
             min={keyResult.startValue} 
             max={keyResult.targetValue} 
             step={keyResult.measurementType === 'percentage' ? 5 : 1} 
-            disabled={isPending || !canUpdate} 
+            disabled={isPending} 
             className="w-full text-right" 
           />
           <span className="text-sm w-4">{unit}</span>
@@ -142,7 +98,7 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
             variant="outline" 
             size="sm" 
             onClick={handleUpdate} 
-            disabled={isPending || progressValue === keyResult.currentValue || !canUpdate}
+            disabled={isPending || progressValue === keyResult.currentValue}
           >
             Update
           </Button>
@@ -159,7 +115,7 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
           max={keyResult.targetValue} 
           step={keyResult.measurementType === 'percentage' ? 5 : 1} 
           onValueChange={handleSliderChange} 
-          disabled={isPending || !canUpdate} 
+          disabled={isPending} 
           className="mt-2" 
         />
       </div>
