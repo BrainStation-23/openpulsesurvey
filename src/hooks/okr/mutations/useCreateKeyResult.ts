@@ -46,7 +46,7 @@ export const useCreateKeyResult = (objectiveId?: string) => {
           kr_type: keyResultData.krType,
           measurement_type: measurementType,
           unit: keyResultData.unit,
-          weight: keyResultData.weight,
+          weight: keyResultData.weight || 1,
           objective_id: keyResultData.objectiveId,
           owner_id: keyResultData.ownerId,
           status: 'not_started',
@@ -56,11 +56,21 @@ export const useCreateKeyResult = (objectiveId?: string) => {
         // Add appropriate values based on measurement type
         if (measurementType === 'boolean') {
           insertData.boolean_value = keyResultData.booleanValue;
+          // For boolean type, we need to set target_value to avoid not-null constraint
+          insertData.target_value = 1; // Using 1 as a default for target
+          insertData.start_value = 0;  // Using 0 as a default for start
+          insertData.current_value = keyResultData.booleanValue ? 1 : 0;
         } else {
-          insertData.start_value = keyResultData.startValue;
-          insertData.current_value = keyResultData.currentValue;
+          insertData.start_value = keyResultData.startValue ?? 0;
+          insertData.current_value = keyResultData.currentValue ?? 0;
           insertData.target_value = keyResultData.targetValue;
         }
+
+        // Ensure progress is within valid range
+        if (insertData.progress < 0) insertData.progress = 0;
+        if (insertData.progress > 100) insertData.progress = 100;
+
+        console.log('Creating key result with data:', insertData);
 
         const { data, error } = await supabase
           .from('key_results')
@@ -73,6 +83,10 @@ export const useCreateKeyResult = (objectiveId?: string) => {
           
           if (error.code === '22003') {
             throw new Error("One of the values exceeds the allowed range in the database. Values must be between -999.99 and 999.99, and progress must be between 0-100.");
+          } else if (error.code === '23514') {
+            throw new Error("Progress value is out of allowed range. Progress must be between 0 and 100.");
+          } else if (error.code === '23502') {
+            throw new Error("Required fields are missing. Make sure to provide target value for numeric key results.");
           }
           
           throw error;

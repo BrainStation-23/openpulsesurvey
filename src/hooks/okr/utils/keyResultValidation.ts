@@ -21,7 +21,8 @@ export const validateKeyResultData = (
   // Validate progress value if provided
   if (keyResultData.progress !== undefined) {
     if (keyResultData.progress < 0 || keyResultData.progress > 100) {
-      throw new Error("Progress value must be between 0 and 100");
+      // Clamp progress between 0-100 instead of throwing an error
+      keyResultData.progress = Math.max(0, Math.min(100, keyResultData.progress));
     }
   }
 

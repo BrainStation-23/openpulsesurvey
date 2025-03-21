@@ -92,6 +92,13 @@ export const useUpdateKeyResult = (objectiveId?: string) => {
         
         console.log('Updating key result with data:', mappedData);
         
+        // First, check if the progress value is within valid range (0-100)
+        if (mappedData.progress !== undefined) {
+          if (mappedData.progress < 0) mappedData.progress = 0;
+          if (mappedData.progress > 100) mappedData.progress = 100;
+        }
+
+        // Update the key result
         const { data, error } = await supabase
           .from('key_results')
           .update(mappedData)
@@ -104,6 +111,8 @@ export const useUpdateKeyResult = (objectiveId?: string) => {
           
           if (error.code === '22003') {
             throw new Error("One of the values exceeds the allowed range in the database. Values must be between -999.99 and 999.99, and progress must be between 0-100.");
+          } else if (error.code === '23514') {
+            throw new Error("Progress value is out of allowed range. Progress must be between 0 and 100.");
           }
           
           throw error;
