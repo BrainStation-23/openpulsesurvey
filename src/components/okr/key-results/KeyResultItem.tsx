@@ -23,6 +23,7 @@ import { useKeyResult } from '@/hooks/okr/useKeyResult';
 import { KeyResultForm } from './KeyResultForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Separator } from '@/components/ui/separator';
 
 interface KeyResultItemProps {
   keyResult: KeyResult;
@@ -186,7 +187,7 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     } else if (keyResult.measurementType === 'currency') {
       unit = '$';
     } else if (keyResult.unit) {
-      unit = keyResult.unit;
+      unit = keyResult.unit + ' '; // Added space after unit
     }
 
     return `${unit}${keyResult.currentValue} / ${unit}${keyResult.targetValue}`;
@@ -194,41 +195,45 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
 
   return (
     <Card className="mb-4">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-gray-100 text-gray-800">
-              Weight: {keyResult.weight.toFixed(1)}
-            </Badge>
-            <CardTitle className="text-lg ml-2">{keyResult.title}</CardTitle>
+      <CardHeader className="pb-3">
+        <div className="flex flex-col space-y-2">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg">{keyResult.title}</CardTitle>
+              <KeyResultStatusBadge status={keyResult.status} />
+              <Badge variant="outline" className="bg-gray-100 text-gray-800">
+                Weight: {keyResult.weight.toFixed(1)}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(true)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Edit Key Result</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={() => setIsDeleteDialogOpen(true)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Delete Key Result</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(true)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Edit Key Result</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={() => setIsDeleteDialogOpen(true)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Delete Key Result</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+          <Separator className="my-1" />
         </div>
       </CardHeader>
       <CardContent className="pb-4">
@@ -325,4 +330,3 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     </Card>
   );
 };
-
