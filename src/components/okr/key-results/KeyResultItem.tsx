@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { KeyResult, KeyResultStatus } from '@/types/okr';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Check, AlertTriangle, Clock, ChevronUp, ChevronDown, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Edit, Trash2, AlertTriangle, Check } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ import {
 import { useKeyResult } from '@/hooks/okr/useKeyResult';
 import { KeyResultForm } from './KeyResultForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface KeyResultItemProps {
   keyResult: KeyResult;
@@ -54,6 +56,15 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     deleteKeyResult,
     isDeleting
   } = useKeyResult(keyResult.id);
+
+  // Effect to handle automatic status updates based on progress
+  useEffect(() => {
+    if (keyResult.progress === 100 && keyResult.status !== 'completed') {
+      updateStatus.mutate({ status: 'completed' });
+    } else if (keyResult.progress > 0 && keyResult.status === 'not_started') {
+      updateStatus.mutate({ status: 'in_progress' });
+    }
+  }, [keyResult.progress, keyResult.status]);
 
   const handleStatusUpdate = (status: KeyResultStatus) => {
     updateStatus.mutate({ status });
@@ -185,8 +196,39 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     <Card className="mb-4">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-lg">{keyResult.title}</CardTitle>
-          <KeyResultStatusBadge status={keyResult.status} />
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-gray-100 text-gray-800">
+              Weight: {keyResult.weight.toFixed(1)}
+            </Badge>
+            <CardTitle className="text-lg ml-2">{keyResult.title}</CardTitle>
+          </div>
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(true)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Edit Key Result</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={() => setIsDeleteDialogOpen(true)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Delete Key Result</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pb-4">
@@ -205,64 +247,45 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
         {renderProgressControls()}
 
         <div className="mt-4">
-          <h4 className="text-sm font-medium mb-2">Update Status</h4>
-          <div className="flex flex-wrap gap-2">
-            <Button 
-              variant={keyResult.status === 'not_started' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => handleStatusUpdate('not_started')}
-            >
-              <Clock className="h-4 w-4 mr-1" />
-              Not Started
-            </Button>
-            <Button 
-              variant={keyResult.status === 'in_progress' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => handleStatusUpdate('in_progress')}
-            >
-              In Progress
-            </Button>
-            <Button 
-              variant={keyResult.status === 'at_risk' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => handleStatusUpdate('at_risk')}
-            >
-              <AlertTriangle className="h-4 w-4 mr-1" />
-              At Risk
-            </Button>
-            <Button 
-              variant={keyResult.status === 'on_track' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => handleStatusUpdate('on_track')}
-            >
-              On Track
-            </Button>
-            <Button 
-              variant={keyResult.status === 'completed' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => handleStatusUpdate('completed')}
-            >
-              <Check className="h-4 w-4 mr-1" />
-              Completed
-            </Button>
+          <h4 className="text-sm font-medium mb-2">Status: <span className="font-normal">{keyResult.status.replace('_', ' ')}</span></h4>
+          <div className="grid grid-cols-2 gap-2">
+            {keyResult.status !== 'at_risk' && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-red-600 border-red-200 hover:bg-red-50"
+                onClick={() => handleStatusUpdate('at_risk')}
+              >
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                Mark At Risk
+              </Button>
+            )}
+            
+            {keyResult.status !== 'on_track' && keyResult.progress < 100 && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-green-600 border-green-200 hover:bg-green-50"
+                onClick={() => handleStatusUpdate('on_track')}
+              >
+                On Track
+              </Button>
+            )}
+            
+            {keyResult.status !== 'completed' && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                onClick={() => handleStatusUpdate('completed')}
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Mark Complete
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>
-      <CardFooter className="pt-0 justify-between">
-        <div className="text-xs text-muted-foreground">
-          Weight: {keyResult.weight.toFixed(1)}
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
-            <Edit className="h-3.5 w-3.5 mr-1" />
-            Edit
-          </Button>
-          <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
-            <Trash2 className="h-3.5 w-3.5 mr-1" />
-            Delete
-          </Button>
-        </div>
-      </CardFooter>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
@@ -302,3 +325,4 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     </Card>
   );
 };
+
