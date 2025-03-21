@@ -1,4 +1,3 @@
-
 export type OKRCycleStatus = 'active' | 'upcoming' | 'completed' | 'archived';
 
 export interface OKRCycle {

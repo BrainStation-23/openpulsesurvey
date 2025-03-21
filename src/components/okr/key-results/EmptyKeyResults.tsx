@@ -2,7 +2,11 @@
 import React from 'react';
 import { PlusCircle } from 'lucide-react';
 
-export const EmptyKeyResults = () => {
+interface EmptyKeyResultsProps {
+  objectiveId: string;
+}
+
+export const EmptyKeyResults = ({ objectiveId }: EmptyKeyResultsProps) => {
   return (
     <div className="text-center py-6">
       <div className="flex justify-center mb-2">

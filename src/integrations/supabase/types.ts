@@ -734,11 +734,13 @@ export type Database = {
       }
       key_results: {
         Row: {
+          boolean_value: boolean | null
           created_at: string
           current_value: number | null
           description: string | null
           id: string
           kr_type: string
+          measurement_type: string | null
           objective_id: string
           owner_id: string
           progress: number | null
@@ -751,11 +753,13 @@ export type Database = {
           weight: number | null
         }
         Insert: {
+          boolean_value?: boolean | null
           created_at?: string
           current_value?: number | null
           description?: string | null
           id?: string
           kr_type: string
+          measurement_type?: string | null
           objective_id: string
           owner_id: string
           progress?: number | null
@@ -768,11 +772,13 @@ export type Database = {
           weight?: number | null
         }
         Update: {
+          boolean_value?: boolean | null
           created_at?: string
           current_value?: number | null
           description?: string | null
           id?: string
           kr_type?: string
+          measurement_type?: string | null
           objective_id?: string
           owner_id?: string
           progress?: number | null
@@ -2461,6 +2467,7 @@ export type Database = {
           id: string | null
           kr_type: string | null
           last_check_in: string | null
+          measurement_type: string | null
           objective_id: string | null
           objective_title: string | null
           owner_id: string | null
@@ -2763,6 +2770,16 @@ export type Database = {
       calculate_instance_completion_rate: {
         Args: {
           instance_id: string
+        }
+        Returns: number
+      }
+      calculate_key_result_progress: {
+        Args: {
+          p_measurement_type: string
+          p_current_value: number
+          p_start_value: number
+          p_target_value: number
+          p_boolean_value: boolean
         }
         Returns: number
       }
