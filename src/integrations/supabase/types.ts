@@ -1149,6 +1149,13 @@ export type Database = {
             foreignKeyName: "objectives_cycle_id_fkey"
             columns: ["cycle_id"]
             isOneToOne: false
+            referencedRelation: "key_result_statistics"
+            referencedColumns: ["cycle_id"]
+          },
+          {
+            foreignKeyName: "objectives_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
             referencedRelation: "okr_cycles"
             referencedColumns: ["id"]
           },
@@ -2509,13 +2516,6 @@ export type Database = {
             referencedRelation: "silent_employees"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "objectives_cycle_id_fkey"
-            columns: ["cycle_id"]
-            isOneToOne: false
-            referencedRelation: "okr_cycles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       managers_needing_improvement: {
@@ -2567,6 +2567,13 @@ export type Database = {
           visibility: Database["public"]["Enums"]["okr_visibility"] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "objectives_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "key_result_statistics"
+            referencedColumns: ["cycle_id"]
+          },
           {
             foreignKeyName: "objectives_cycle_id_fkey"
             columns: ["cycle_id"]
@@ -2774,6 +2781,16 @@ export type Database = {
         Returns: number
       }
       calculate_key_result_progress: {
+        Args: {
+          p_measurement_type: string
+          p_current_value: number
+          p_start_value: number
+          p_target_value: number
+          p_boolean_value: boolean
+        }
+        Returns: number
+      }
+      calculate_progress: {
         Args: {
           p_measurement_type: string
           p_current_value: number
