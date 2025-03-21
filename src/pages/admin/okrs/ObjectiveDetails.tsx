@@ -34,7 +34,7 @@ const AdminObjectiveDetails = () => {
   const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const { userId } = useCurrentUser();
+  const { userId, isAdmin } = useCurrentUser();
   
   const { 
     objective, 
@@ -45,6 +45,9 @@ const AdminObjectiveDetails = () => {
     deleteObjective,
     isDeleting
   } = useObjective(id);
+  
+  const isOwner = objective && userId === objective.ownerId;
+  const canEdit = true; // Admin pages always have edit permissions
   
   const handleStatusUpdate = (status: ObjectiveStatus) => {
     if (!id) return;

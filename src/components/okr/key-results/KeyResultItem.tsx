@@ -23,8 +23,9 @@ interface KeyResultItemProps {
 export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const { userId } = useCurrentUser();
+  const { userId, isAdmin } = useCurrentUser();
   const isOwner = userId === keyResult.ownerId;
+  const canEdit = isOwner || isAdmin;
   
   const {
     updateStatus,
@@ -45,13 +46,13 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
   }, [keyResult.progress, keyResult.status]);
 
   const handleStatusUpdate = (status: KeyResultStatus) => {
-    if (!isOwner) return;
+    if (!canEdit) return;
     console.log('Updating key result status:', { id: keyResult.id, status });
     updateStatus.mutate({ status });
   };
 
   const handleProgressUpdate = (progressValue: number) => {
-    if (keyResult.measurementType === 'boolean' || !isOwner) {
+    if (keyResult.measurementType === 'boolean' || !canEdit) {
       return;
     }
 
@@ -67,7 +68,7 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
   };
 
   const handleBooleanChange = (checked: boolean) => {
-    if (!isOwner) return;
+    if (!canEdit) return;
     
     console.log('Updating boolean key result:', { 
       id: keyResult.id, 
@@ -79,7 +80,7 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
   };
 
   const handleDelete = () => {
-    if (!isOwner) return;
+    if (!canEdit) return;
     
     deleteKeyResult.mutate(undefined, {
       onSuccess: () => {
@@ -100,7 +101,7 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
                 Weight: {keyResult.weight.toFixed(1)}
               </Badge>
             </div>
-            {isOwner && (
+            {canEdit && (
               <div className="flex items-center gap-2">
                 <TooltipProvider>
                   <Tooltip>
@@ -156,10 +157,10 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
           onProgressUpdate={handleProgressUpdate}
           onBooleanChange={handleBooleanChange}
           isPending={updateProgress.isPending}
-          isDisabled={!isOwner}
+          isDisabled={!canEdit}
         />
 
-        {isOwner && (
+        {canEdit && (
           <KeyResultStatusControls 
             status={keyResult.status}
             progress={keyResult.progress}
@@ -178,7 +179,7 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
         </div>
       </CardFooter>
 
-      {isOwner && (
+      {canEdit && (
         <KeyResultDialogs 
           keyResult={keyResult}
           isDeleteDialogOpen={isDeleteDialogOpen}

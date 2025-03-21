@@ -34,7 +34,7 @@ const UserObjectiveDetails = () => {
   const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const { userId } = useCurrentUser();
+  const { userId, isAdmin } = useCurrentUser();
   
   const { 
     objective, 
@@ -47,9 +47,10 @@ const UserObjectiveDetails = () => {
   } = useObjective(id);
   
   const isOwner = objective && userId === objective.ownerId;
+  const canEdit = isOwner || isAdmin;
   
   const handleStatusUpdate = (status: ObjectiveStatus) => {
-    if (!id || !isOwner) return;
+    if (!id || !canEdit) return;
     
     updateStatus.mutate({ 
       status
@@ -57,7 +58,7 @@ const UserObjectiveDetails = () => {
   };
   
   const handleDelete = () => {
-    if (!isOwner) return;
+    if (!canEdit) return;
     
     deleteObjective.mutate(undefined, {
       onSuccess: () => {
@@ -68,7 +69,7 @@ const UserObjectiveDetails = () => {
   };
 
   const handleEdit = (data: UpdateObjectiveInput) => {
-    if (!isOwner) return;
+    if (!canEdit) return;
     
     updateObjective.mutate(data, {
       onSuccess: () => {
@@ -139,7 +140,7 @@ const UserObjectiveDetails = () => {
           </Button>
           <h1 className="text-3xl font-bold">Objective Details</h1>
         </div>
-        {isOwner && (
+        {canEdit && (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />
@@ -220,7 +221,7 @@ const UserObjectiveDetails = () => {
             </div>
           </div>
           
-          {isOwner && (
+          {canEdit && (
             <>
               <Separator className="my-6" />
               

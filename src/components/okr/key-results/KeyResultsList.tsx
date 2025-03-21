@@ -19,8 +19,11 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { data: keyResults, isLoading, error } = useKeyResults(objectiveId);
   const { objective } = useObjective(objectiveId);
-  const { userId } = useCurrentUser();
-  const canAddKeyResult = objective && (objective.ownerId === userId || objective.visibility === 'organization' || objective.visibility === 'team');
+  const { userId, isAdmin } = useCurrentUser();
+  
+  const isOwner = objective && objective.ownerId === userId;
+  const isPublicObjective = objective && (objective.visibility === 'organization' || objective.visibility === 'team');
+  const canAddKeyResult = isAdmin || isOwner || isPublicObjective;
 
   if (isLoading) {
     return (
