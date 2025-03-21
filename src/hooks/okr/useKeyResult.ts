@@ -5,6 +5,29 @@ import { KeyResult, CreateKeyResultInput, UpdateKeyResultInput, KeyResultStatus 
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
+// Helper function to convert snake_case response to camelCase
+const convertKeyResult = (data: any): KeyResult => {
+  return {
+    id: data.id,
+    title: data.title,
+    description: data.description,
+    objectiveId: data.objective_id,
+    ownerId: data.owner_id,
+    krType: data.kr_type,
+    measurementType: data.measurement_type,
+    unit: data.unit,
+    startValue: data.start_value,
+    currentValue: data.current_value,
+    targetValue: data.target_value,
+    booleanValue: data.boolean_value,
+    weight: data.weight,
+    status: data.status,
+    progress: data.progress,
+    createdAt: new Date(data.created_at),
+    updatedAt: new Date(data.updated_at)
+  };
+};
+
 export const useKeyResult = (id?: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -30,7 +53,7 @@ export const useKeyResult = (id?: string) => {
         throw error;
       }
       
-      return data as KeyResult;
+      return convertKeyResult(data);
     },
     enabled: !!id
   });
@@ -62,7 +85,7 @@ export const useKeyResult = (id?: string) => {
         throw error;
       }
 
-      return data;
+      return convertKeyResult(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['keyResults'] });
@@ -97,7 +120,7 @@ export const useKeyResult = (id?: string) => {
         throw error;
       }
 
-      return data;
+      return convertKeyResult(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['keyResult', id] });
@@ -147,7 +170,7 @@ export const useKeyResult = (id?: string) => {
         throw error;
       }
 
-      return data;
+      return convertKeyResult(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['keyResult', id] });
@@ -188,7 +211,7 @@ export const useKeyResult = (id?: string) => {
         throw error;
       }
 
-      return data;
+      return convertKeyResult(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['keyResult', id] });
