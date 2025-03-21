@@ -11,7 +11,7 @@ interface KeyResultCardProps {
   keyResult: KeyResult;
   onCheckIn: (kr: KeyResult) => void;
   onEdit: (kr: KeyResult) => void;
-  onDelete: (kr: KeyResult) => void; // Add delete handler prop
+  onDelete: (kr: KeyResult) => void;
 }
 
 export const KeyResultCard = ({ keyResult, onCheckIn, onEdit, onDelete }: KeyResultCardProps) => {
@@ -26,6 +26,66 @@ export const KeyResultCard = ({ keyResult, onCheckIn, onEdit, onDelete }: KeyRes
       default:
         return null;
     }
+  };
+
+  // Format value based on measurement type
+  const formatValue = (value: number | undefined) => {
+    if (value === undefined) return '';
+    
+    if (keyResult.unit) {
+      return `${value} ${keyResult.unit}`;
+    }
+    
+    if (keyResult.measurementType === 'percentage') {
+      return `${value}%`;
+    }
+    
+    if (keyResult.measurementType === 'currency') {
+      return `$${value}`;
+    }
+    
+    return value.toString();
+  };
+
+  // Get the appropriate progress value display
+  const getProgressDisplay = () => {
+    const measurementType = keyResult.measurementType || 'numeric';
+    
+    if (measurementType === 'boolean') {
+      return (
+        <div className="mt-2">
+          <div className="flex justify-between text-sm mb-1">
+            <span className="text-muted-foreground">Status</span>
+            <span>{keyResult.booleanValue ? 'Completed (Yes)' : 'Not Completed (No)'}</span>
+          </div>
+          <Progress 
+            value={keyResult.booleanValue ? 100 : 0} 
+            className="h-1.5" 
+            indicatorClassName={keyResult.booleanValue ? "bg-green-500" : "bg-red-500"}
+          />
+        </div>
+      );
+    }
+    
+    return (
+      <div className="mt-2">
+        <div className="flex justify-between text-sm mb-1">
+          <span className="text-muted-foreground">Progress</span>
+          <span>{keyResult.progress}%</span>
+        </div>
+        <Progress 
+          value={keyResult.progress} 
+          className="h-1.5" 
+          indicatorClassName={
+            keyResult.progress >= 100 ? "bg-green-500" :
+            keyResult.progress >= 75 ? "bg-blue-500" :
+            keyResult.progress >= 50 ? "bg-yellow-500" :
+            keyResult.progress >= 25 ? "bg-orange-500" :
+            "bg-red-500"
+          }
+        />
+      </div>
+    );
   };
 
   return (
@@ -45,29 +105,13 @@ export const KeyResultCard = ({ keyResult, onCheckIn, onEdit, onDelete }: KeyRes
         <p className="text-sm text-muted-foreground mb-2">{keyResult.description}</p>
       )}
       
-      <div className="mt-2">
-        <div className="flex justify-between text-sm mb-1">
-          <span className="text-muted-foreground">Progress</span>
-          <span>{keyResult.progress}%</span>
-        </div>
-        <Progress 
-          value={keyResult.progress} 
-          className="h-1.5" 
-          indicatorClassName={
-            keyResult.progress >= 100 ? "bg-green-500" :
-            keyResult.progress >= 75 ? "bg-blue-500" :
-            keyResult.progress >= 50 ? "bg-yellow-500" :
-            keyResult.progress >= 25 ? "bg-orange-500" :
-            "bg-red-500"
-          }
-        />
-      </div>
+      {getProgressDisplay()}
       
       <div className="flex justify-between items-center mt-4 text-sm">
         <div>
-          {keyResult.unit && (
+          {keyResult.measurementType !== 'boolean' && (
             <span className="text-muted-foreground">
-              {keyResult.startValue} → {keyResult.currentValue} → {keyResult.targetValue} {keyResult.unit}
+              {formatValue(keyResult.startValue)} → {formatValue(keyResult.currentValue)} → {formatValue(keyResult.targetValue)}
             </span>
           )}
         </div>

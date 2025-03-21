@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -30,8 +30,9 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { Checkbox } from "@/components/ui/checkbox";
 import { useKeyResults } from '@/hooks/okr/useKeyResults';
-import { KeyResult } from '@/types/okr';
+import { KeyResult, MeasurementType } from '@/types/okr';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -42,15 +43,30 @@ interface KeyResultDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Define the form schema with conditional fields based on measurement type
 const formSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
   description: z.string().optional(),
   krType: z.string(),
+  measurementType: z.enum(['numeric', 'percentage', 'currency', 'boolean']),
   unit: z.string().optional(),
-  startValue: z.number().default(0),
-  currentValue: z.number().default(0),
-  targetValue: z.number().min(1, 'Target value must be at least 1'),
+  startValue: z.number().optional(),
+  currentValue: z.number().optional(),
+  targetValue: z.number().optional(),
+  booleanValue: z.boolean().optional(),
   weight: z.number().min(0.1).max(10).default(1),
+}).refine(data => {
+  // If measurement type is not boolean, require numeric fields
+  if (data.measurementType !== 'boolean') {
+    return data.startValue !== undefined && 
+           data.currentValue !== undefined && 
+           data.targetValue !== undefined;
+  }
+  // If measurement type is boolean, require boolean value
+  return data.booleanValue !== undefined;
+}, {
+  message: "Required fields missing for the selected measurement type",
+  path: ["measurementType"]
 });
 
 export const KeyResultDialog = ({ objectiveId, keyResult, open, onOpenChange }: KeyResultDialogProps) => {
@@ -64,13 +80,44 @@ export const KeyResultDialog = ({ objectiveId, keyResult, open, onOpenChange }: 
       title: keyResult?.title || '',
       description: keyResult?.description || '',
       krType: keyResult?.krType || 'numeric',
+      measurementType: keyResult?.measurementType || 'numeric',
       unit: keyResult?.unit || '',
       startValue: keyResult?.startValue || 0,
       currentValue: keyResult?.currentValue || 0,
       targetValue: keyResult?.targetValue || 0,
+      booleanValue: keyResult?.booleanValue || false,
       weight: keyResult?.weight || 1,
     },
   });
+
+  // Get the current measurement type from the form
+  const measurementType = form.watch('measurementType') as MeasurementType;
+
+  // Effect to reset numeric fields when switching to boolean type
+  useEffect(() => {
+    if (measurementType === 'boolean') {
+      form.setValue('startValue', undefined);
+      form.setValue('currentValue', undefined);
+      form.setValue('targetValue', undefined);
+      // Set default boolean value if not already set
+      if (form.getValues('booleanValue') === undefined) {
+        form.setValue('booleanValue', false);
+      }
+    } else {
+      // Set default numeric values if not already set
+      if (form.getValues('startValue') === undefined) {
+        form.setValue('startValue', 0);
+      }
+      if (form.getValues('currentValue') === undefined) {
+        form.setValue('currentValue', 0);
+      }
+      if (form.getValues('targetValue') === undefined) {
+        form.setValue('targetValue', 0);
+      }
+      // Reset boolean value
+      form.setValue('booleanValue', undefined);
+    }
+  }, [measurementType, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -92,10 +139,12 @@ export const KeyResultDialog = ({ objectiveId, keyResult, open, onOpenChange }: 
           title: values.title,
           description: values.description,
           krType: values.krType,
+          measurementType: values.measurementType,
           unit: values.unit,
           startValue: values.startValue,
           currentValue: values.currentValue,
           targetValue: values.targetValue,
+          booleanValue: values.booleanValue,
           weight: values.weight,
         }, {
           onSuccess: () => {
@@ -113,10 +162,12 @@ export const KeyResultDialog = ({ objectiveId, keyResult, open, onOpenChange }: 
           title: values.title,
           description: values.description,
           krType: values.krType,
+          measurementType: values.measurementType,
           unit: values.unit,
           startValue: values.startValue,
           currentValue: values.currentValue,
           targetValue: values.targetValue,
+          booleanValue: values.booleanValue,
           weight: values.weight,
           ownerId: userId,
         }, {
@@ -189,6 +240,33 @@ export const KeyResultDialog = ({ objectiveId, keyResult, open, onOpenChange }: 
                 name="krType"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>Key Result Type</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select key result type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="numeric">Numeric</SelectItem>
+                        <SelectItem value="percentage">Percentage</SelectItem>
+                        <SelectItem value="currency">Currency</SelectItem>
+                        <SelectItem value="boolean">Yes/No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="measurementType"
+                render={({ field }) => (
+                  <FormItem>
                     <FormLabel>Measurement Type</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
@@ -210,80 +288,109 @@ export const KeyResultDialog = ({ objectiveId, keyResult, open, onOpenChange }: 
                   </FormItem>
                 )}
               />
-              
-              <FormField
-                control={form.control}
-                name="unit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Users, %, $" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
-            
-            <div className="grid grid-cols-3 gap-4">
+
+            {measurementType !== 'boolean' && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Users, %, $" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="startValue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start Value</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="0" 
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="currentValue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Value</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="0" 
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="targetValue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Target Value</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="100" 
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </>
+            )}
+
+            {measurementType === 'boolean' && (
               <FormField
                 control={form.control}
-                name="startValue"
+                name="booleanValue"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Value</FormLabel>
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="0" 
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Current Status
+                      </FormLabel>
+                      <FormDescription>
+                        Is this key result complete? (Yes/No)
+                      </FormDescription>
+                    </div>
                   </FormItem>
                 )}
               />
-              
-              <FormField
-                control={form.control}
-                name="currentValue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Current Value</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="0" 
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="targetValue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Target Value</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="100" 
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            )}
             
             <FormField
               control={form.control}

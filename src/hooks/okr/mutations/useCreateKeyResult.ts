@@ -1,7 +1,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { CreateKeyResultInput } from '@/types/okr';
+import { CreateKeyResultInput, MeasurementType } from '@/types/okr';
 import { useToast } from '@/hooks/use-toast';
 import { checkObjectivePermission } from '../utils/keyResultPermissions';
 import { validateKeyResultData, calculateProgress } from '../utils/keyResultValidation';
@@ -20,13 +20,18 @@ export const useCreateKeyResult = (objectiveId?: string) => {
       await checkObjectivePermission(keyResultData.objectiveId);
       
       try {
-        // If progress is not provided, calculate it
+        // Default to numeric measurement type if not provided
+        const measurementType = keyResultData.measurementType || 'numeric';
+        
+        // Calculate progress based on measurement type
         if (keyResultData.progress === undefined) {
           keyResultData.progress = Math.round(
             calculateProgress(
+              measurementType,
               keyResultData.currentValue,
               keyResultData.startValue,
-              keyResultData.targetValue
+              keyResultData.targetValue,
+              keyResultData.booleanValue
             )
           );
         }
@@ -34,22 +39,32 @@ export const useCreateKeyResult = (objectiveId?: string) => {
         // Validate the data before inserting
         validateKeyResultData(keyResultData);
 
+        // Build the insert object based on measurement type
+        const insertData: any = {
+          title: keyResultData.title,
+          description: keyResultData.description,
+          kr_type: keyResultData.krType,
+          measurement_type: measurementType,
+          unit: keyResultData.unit,
+          weight: keyResultData.weight,
+          objective_id: keyResultData.objectiveId,
+          owner_id: keyResultData.ownerId,
+          status: 'not_started',
+          progress: keyResultData.progress
+        };
+
+        // Add appropriate values based on measurement type
+        if (measurementType === 'boolean') {
+          insertData.boolean_value = keyResultData.booleanValue;
+        } else {
+          insertData.start_value = keyResultData.startValue;
+          insertData.current_value = keyResultData.currentValue;
+          insertData.target_value = keyResultData.targetValue;
+        }
+
         const { data, error } = await supabase
           .from('key_results')
-          .insert({
-            title: keyResultData.title,
-            description: keyResultData.description,
-            kr_type: keyResultData.krType,
-            unit: keyResultData.unit,
-            start_value: keyResultData.startValue,
-            current_value: keyResultData.currentValue,
-            target_value: keyResultData.targetValue,
-            weight: keyResultData.weight,
-            objective_id: keyResultData.objectiveId,
-            owner_id: keyResultData.ownerId,
-            status: 'not_started',
-            progress: keyResultData.progress
-          })
+          .insert(insertData)
           .select()
           .single();
 

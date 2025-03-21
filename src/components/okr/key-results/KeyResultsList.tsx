@@ -1,141 +1,88 @@
 
 import React, { useState } from 'react';
-import { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardContent 
-} from "@/components/ui/card";
 import { useKeyResults } from '@/hooks/okr/useKeyResults';
-import { useToast } from '@/hooks/use-toast';
-import { KeyResult, UpdateKeyResultInput } from '@/types/okr';
-import { KeyResultCard } from './KeyResultCard';
 import { KeyResultsLoading } from './KeyResultsLoading';
 import { EmptyKeyResults } from './EmptyKeyResults';
+import { KeyResultCard } from './KeyResultCard';
+import { KeyResult } from '@/types/okr';
 import { KeyResultDialogs } from './KeyResultDialogs';
+import { AlertCircle } from 'lucide-react';
 
 interface KeyResultsListProps {
   objectiveId: string;
 }
 
 export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
-  const { keyResults, isLoading, updateKeyResult, deleteKeyResult } = useKeyResults(objectiveId);
-  const { toast } = useToast();
+  const { keyResults, isLoading, error, updateKeyResult, deleteKeyResult } = useKeyResults(objectiveId);
   const [selectedKeyResult, setSelectedKeyResult] = useState<KeyResult | null>(null);
   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-  const handleCheckIn = (kr: KeyResult) => {
-    setSelectedKeyResult(kr);
-    setIsCheckInDialogOpen(true);
-  };
-
-  const handleEdit = (kr: KeyResult) => {
-    setSelectedKeyResult(kr);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = (kr: KeyResult) => {
-    setSelectedKeyResult(kr);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDelete = () => {
-    if (!selectedKeyResult) return;
-    
-    deleteKeyResult.mutate(selectedKeyResult.id, {
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Key result deleted successfully"
-        });
-        setIsDeleteDialogOpen(false);
-      },
-      onError: (error) => {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.message
-        });
-      }
-    });
-  };
-
-  const handleSaveCheckIn = (data: UpdateKeyResultInput, id: string) => {
-    updateKeyResult.mutate({
-      ...data,
-      id
-    }, {
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Key result updated successfully"
-        });
-      },
-      onError: (error) => {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.message
-        });
-      }
-    });
-  };
-
-  const handleSaveEdit = (data: UpdateKeyResultInput, id: string) => {
-    updateKeyResult.mutate({
-      ...data,
-      id
-    }, {
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Key result updated successfully"
-        });
-      },
-      onError: (error) => {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.message
-        });
-      }
-    });
-  };
-
-  const renderContent = () => {
-    if (isLoading) {
-      return <KeyResultsLoading />;
-    }
-    
-    if (!keyResults || keyResults.length === 0) {
-      return <EmptyKeyResults />;
-    }
-    
+  
+  if (isLoading) {
+    return <KeyResultsLoading />;
+  }
+  
+  if (error) {
     return (
-      <div className="space-y-4">
-        {keyResults.map((kr) => (
-          <KeyResultCard 
-            key={kr.id}
-            keyResult={kr}
-            onCheckIn={handleCheckIn}
-            onEdit={handleEdit}
-            onDelete={handleDeleteConfirm}
-          />
-        ))}
+      <div className="rounded-md bg-destructive/10 p-4 border border-destructive/20 mt-4">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <h3 className="font-medium text-destructive">Error loading key results</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mt-2">{error.message}</p>
       </div>
     );
+  }
+  
+  if (!keyResults || keyResults.length === 0) {
+    return <EmptyKeyResults objectiveId={objectiveId} />;
+  }
+  
+  const handleCheckIn = (keyResult: KeyResult) => {
+    setSelectedKeyResult(keyResult);
+    setIsCheckInDialogOpen(true);
+  };
+  
+  const handleEdit = (keyResult: KeyResult) => {
+    setSelectedKeyResult(keyResult);
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleDelete = (keyResult: KeyResult) => {
+    setSelectedKeyResult(keyResult);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const handleSaveCheckIn = (data: any, id: string) => {
+    updateKeyResult.mutate({ id, ...data });
+  };
+  
+  const handleSaveEdit = (data: any, id: string) => {
+    updateKeyResult.mutate({ id, ...data });
+  };
+  
+  const handleConfirmDelete = () => {
+    if (selectedKeyResult) {
+      deleteKeyResult.mutate(selectedKeyResult.id);
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl">Key Results</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {renderContent()}
-      </CardContent>
+    <div>
+      <h2 className="text-xl font-semibold mb-4">Key Results</h2>
+      <div className="space-y-4">
+        {keyResults.map((keyResult) => (
+          <KeyResultCard 
+            key={keyResult.id} 
+            keyResult={keyResult} 
+            onCheckIn={handleCheckIn}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        ))}
+      </div>
       
       <KeyResultDialogs
         selectedKeyResult={selectedKeyResult}
@@ -147,9 +94,9 @@ export const KeyResultsList = ({ objectiveId }: KeyResultsListProps) => {
         setIsDeleteDialogOpen={setIsDeleteDialogOpen}
         onSaveCheckIn={handleSaveCheckIn}
         onSaveEdit={handleSaveEdit}
-        onDelete={handleDelete}
+        onDelete={handleConfirmDelete}
         isDeleting={deleteKeyResult.isPending}
       />
-    </Card>
+    </div>
   );
 };

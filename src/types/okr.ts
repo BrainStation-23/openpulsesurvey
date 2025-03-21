@@ -61,6 +61,7 @@ export interface UpdateObjectiveInput extends Partial<CreateObjectiveInput> {
 }
 
 export type KRStatus = 'not_started' | 'in_progress' | 'at_risk' | 'on_track' | 'completed';
+export type MeasurementType = 'numeric' | 'percentage' | 'currency' | 'boolean';
 
 export interface KeyResult {
   id: string;
@@ -69,10 +70,12 @@ export interface KeyResult {
   objectiveId: string;
   ownerId: string;
   krType: string;
+  measurementType: MeasurementType;
   unit?: string;
-  startValue: number;
-  currentValue: number;
-  targetValue: number;
+  startValue?: number;
+  currentValue?: number;
+  targetValue?: number;
+  booleanValue?: boolean;
   progress: number;
   status: KRStatus;
   weight: number;
@@ -86,12 +89,14 @@ export interface CreateKeyResultInput {
   objectiveId: string;
   ownerId: string;
   krType: string;
+  measurementType: MeasurementType;
   unit?: string;
-  startValue: number;
-  currentValue: number;
-  targetValue: number;
+  startValue?: number;
+  currentValue?: number;
+  targetValue?: number;
+  booleanValue?: boolean;
   weight: number;
-  progress?: number;  // Added progress as an optional parameter
+  progress?: number;
 }
 
 export interface UpdateKeyResultInput extends Partial<CreateKeyResultInput> {
