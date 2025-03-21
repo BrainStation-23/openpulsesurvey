@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { KeyResultForm } from './KeyResultForm';
 import { Card, CardContent } from '@/components/ui/card';
 import { useKeyResults } from '@/hooks/okr/useKeyResults';
+import { useObjective } from '@/hooks/okr/useObjective';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 interface KeyResultsListProps {
   objectiveId: string;
@@ -16,6 +18,9 @@ interface KeyResultsListProps {
 export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { data: keyResults, isLoading, error } = useKeyResults(objectiveId);
+  const { objective } = useObjective(objectiveId);
+  const { userId } = useCurrentUser();
+  const canAddKeyResult = objective && (objective.ownerId === userId || objective.visibility === 'organization' || objective.visibility === 'team');
 
   if (isLoading) {
     return (
@@ -52,14 +57,16 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-medium">Key Results</h3>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setIsAddDialogOpen(true)}
-          >
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Add Key Result
-          </Button>
+          {canAddKeyResult && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsAddDialogOpen(true)}
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add Key Result
+            </Button>
+          )}
         </div>
         <Card className="border-red-200">
           <CardContent className="p-6 text-center text-red-600">
@@ -74,14 +81,16 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Key Results</h3>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => setIsAddDialogOpen(true)}
-        >
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Add Key Result
-        </Button>
+        {canAddKeyResult && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setIsAddDialogOpen(true)}
+          >
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Add Key Result
+          </Button>
+        )}
       </div>
       
       {keyResults && keyResults.length > 0 ? (
@@ -94,13 +103,15 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
         <Card className="border-dashed">
           <CardContent className="py-10 text-center">
             <p className="text-muted-foreground">No key results associated with this objective yet.</p>
-            <Button 
-              onClick={() => setIsAddDialogOpen(true)} 
-              className="mt-4"
-            >
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add Key Result
-            </Button>
+            {canAddKeyResult && (
+              <Button 
+                onClick={() => setIsAddDialogOpen(true)} 
+                className="mt-4"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Key Result
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}

@@ -27,12 +27,14 @@ import {
 } from "@/components/ui/dialog";
 import { EditObjectiveForm } from '@/components/okr/objectives/EditObjectiveForm';
 import { KeyResultsList } from '@/components/okr/key-results/KeyResultsList';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 const AdminObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const { userId } = useCurrentUser();
   
   const { 
     objective, 

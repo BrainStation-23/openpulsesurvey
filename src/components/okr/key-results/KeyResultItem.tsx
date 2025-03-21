@@ -14,6 +14,7 @@ import { KeyResultProgressControls } from './KeyResultProgressControls';
 import { KeyResultStatusControls } from './KeyResultStatusControls';
 import { KeyResultDialogs } from './KeyResultDialogs';
 import { getProgressBarColor, getProgressDisplay } from './utils/progressBarUtils';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 interface KeyResultItemProps {
   keyResult: KeyResult;
@@ -22,6 +23,8 @@ interface KeyResultItemProps {
 export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const { userId } = useCurrentUser();
+  const isOwner = userId === keyResult.ownerId;
   
   const {
     updateStatus,
@@ -42,12 +45,13 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
   }, [keyResult.progress, keyResult.status]);
 
   const handleStatusUpdate = (status: KeyResultStatus) => {
+    if (!isOwner) return;
     console.log('Updating key result status:', { id: keyResult.id, status });
     updateStatus.mutate({ status });
   };
 
   const handleProgressUpdate = (progressValue: number) => {
-    if (keyResult.measurementType === 'boolean') {
+    if (keyResult.measurementType === 'boolean' || !isOwner) {
       return;
     }
 
@@ -63,6 +67,8 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
   };
 
   const handleBooleanChange = (checked: boolean) => {
+    if (!isOwner) return;
+    
     console.log('Updating boolean key result:', { 
       id: keyResult.id, 
       objectiveId: keyResult.objectiveId,
@@ -73,6 +79,8 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
   };
 
   const handleDelete = () => {
+    if (!isOwner) return;
+    
     deleteKeyResult.mutate(undefined, {
       onSuccess: () => {
         setIsDeleteDialogOpen(false);
@@ -92,33 +100,35 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
                 Weight: {keyResult.weight.toFixed(1)}
               </Badge>
             </div>
-            <div className="flex items-center gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(true)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Edit Key Result</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={() => setIsDeleteDialogOpen(true)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Delete Key Result</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
+            {isOwner && (
+              <div className="flex items-center gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => setIsEditDialogOpen(true)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Edit Key Result</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => setIsDeleteDialogOpen(true)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Delete Key Result</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            )}
           </div>
           <Separator className="my-1" />
         </div>
@@ -146,13 +156,16 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
           onProgressUpdate={handleProgressUpdate}
           onBooleanChange={handleBooleanChange}
           isPending={updateProgress.isPending}
+          isDisabled={!isOwner}
         />
 
-        <KeyResultStatusControls 
-          status={keyResult.status}
-          progress={keyResult.progress}
-          onStatusUpdate={handleStatusUpdate}
-        />
+        {isOwner && (
+          <KeyResultStatusControls 
+            status={keyResult.status}
+            progress={keyResult.progress}
+            onStatusUpdate={handleStatusUpdate}
+          />
+        )}
       </CardContent>
       
       <CardFooter className="pt-0 pb-3 px-6">
@@ -165,15 +178,17 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
         </div>
       </CardFooter>
 
-      <KeyResultDialogs 
-        keyResult={keyResult}
-        isDeleteDialogOpen={isDeleteDialogOpen}
-        setIsDeleteDialogOpen={setIsDeleteDialogOpen}
-        isEditDialogOpen={isEditDialogOpen}
-        setIsEditDialogOpen={setIsEditDialogOpen}
-        onDelete={handleDelete}
-        isDeleting={isDeleting}
-      />
+      {isOwner && (
+        <KeyResultDialogs 
+          keyResult={keyResult}
+          isDeleteDialogOpen={isDeleteDialogOpen}
+          setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+          isEditDialogOpen={isEditDialogOpen}
+          setIsEditDialogOpen={setIsEditDialogOpen}
+          onDelete={handleDelete}
+          isDeleting={isDeleting}
+        />
+      )}
     </Card>
   );
 };

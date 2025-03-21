@@ -11,13 +11,15 @@ interface KeyResultProgressControlsProps {
   onProgressUpdate: (value: number) => void;
   onBooleanChange: (checked: boolean) => void;
   isPending: boolean;
+  isDisabled?: boolean;
 }
 
 export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps> = ({
   keyResult,
   onProgressUpdate,
   onBooleanChange,
-  isPending
+  isPending,
+  isDisabled = false
 }) => {
   const [progressValue, setProgressValue] = useState<number>(keyResult.currentValue);
   
@@ -39,7 +41,7 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
   };
 
   const handleUpdate = () => {
-    if (progressValue !== keyResult.currentValue) {
+    if (progressValue !== keyResult.currentValue && !isDisabled) {
       console.log('Updating key result progress:', {
         id: keyResult.id,
         oldValue: keyResult.currentValue,
@@ -63,7 +65,7 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
             });
             onBooleanChange(checked);
           }} 
-          disabled={isPending} 
+          disabled={isPending || isDisabled} 
         />
       </div>
     );
@@ -90,7 +92,7 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
             min={keyResult.startValue} 
             max={keyResult.targetValue} 
             step={keyResult.measurementType === 'percentage' ? 5 : 1} 
-            disabled={isPending} 
+            disabled={isPending || isDisabled} 
             className="w-full text-right" 
           />
           <span className="text-sm w-4">{unit}</span>
@@ -98,7 +100,7 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
             variant="outline" 
             size="sm" 
             onClick={handleUpdate} 
-            disabled={isPending || progressValue === keyResult.currentValue}
+            disabled={isPending || isDisabled || progressValue === keyResult.currentValue}
           >
             Update
           </Button>
@@ -115,7 +117,7 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
           max={keyResult.targetValue} 
           step={keyResult.measurementType === 'percentage' ? 5 : 1} 
           onValueChange={handleSliderChange} 
-          disabled={isPending} 
+          disabled={isPending || isDisabled} 
           className="mt-2" 
         />
       </div>

@@ -27,12 +27,14 @@ import {
 } from "@/components/ui/dialog";
 import { EditObjectiveForm } from '@/components/okr/objectives/EditObjectiveForm';
 import { KeyResultsList } from '@/components/okr/key-results/KeyResultsList';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const { userId } = useCurrentUser();
   
   const { 
     objective, 
@@ -44,8 +46,10 @@ const UserObjectiveDetails = () => {
     isDeleting
   } = useObjective(id);
   
+  const isOwner = objective && userId === objective.ownerId;
+  
   const handleStatusUpdate = (status: ObjectiveStatus) => {
-    if (!id) return;
+    if (!id || !isOwner) return;
     
     updateStatus.mutate({ 
       status
@@ -53,6 +57,8 @@ const UserObjectiveDetails = () => {
   };
   
   const handleDelete = () => {
+    if (!isOwner) return;
+    
     deleteObjective.mutate(undefined, {
       onSuccess: () => {
         setIsDeleteDialogOpen(false);
@@ -62,6 +68,8 @@ const UserObjectiveDetails = () => {
   };
 
   const handleEdit = (data: UpdateObjectiveInput) => {
+    if (!isOwner) return;
+    
     updateObjective.mutate(data, {
       onSuccess: () => {
         setIsEditDialogOpen(false);
@@ -131,16 +139,18 @@ const UserObjectiveDetails = () => {
           </Button>
           <h1 className="text-3xl font-bold">Objective Details</h1>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-          <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
-        </div>
+        {isOwner && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </div>
+        )}
       </div>
       
       <Card>
@@ -210,54 +220,56 @@ const UserObjectiveDetails = () => {
             </div>
           </div>
           
-          {/* Only show status update if user is the owner of the objective */}
+          {isOwner && (
+            <>
+              <Separator className="my-6" />
+              
+              <div>
+                <h3 className="text-lg font-medium mb-4">Update Status</h3>
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    variant={objective.status === 'draft' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => handleStatusUpdate('draft')}
+                  >
+                    Draft
+                  </Button>
+                  <Button 
+                    variant={objective.status === 'in_progress' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => handleStatusUpdate('in_progress')}
+                  >
+                    In Progress
+                  </Button>
+                  <Button 
+                    variant={objective.status === 'at_risk' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => handleStatusUpdate('at_risk')}
+                  >
+                    At Risk
+                  </Button>
+                  <Button 
+                    variant={objective.status === 'on_track' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => handleStatusUpdate('on_track')}
+                  >
+                    On Track
+                  </Button>
+                  <Button 
+                    variant={objective.status === 'completed' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => handleStatusUpdate('completed')}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Completed
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+          
           <Separator className="my-6" />
           
-          <div>
-            <h3 className="text-lg font-medium mb-4">Update Status</h3>
-            <div className="flex flex-wrap gap-2">
-              <Button 
-                variant={objective.status === 'draft' ? 'default' : 'outline'} 
-                size="sm"
-                onClick={() => handleStatusUpdate('draft')}
-              >
-                Draft
-              </Button>
-              <Button 
-                variant={objective.status === 'in_progress' ? 'default' : 'outline'} 
-                size="sm"
-                onClick={() => handleStatusUpdate('in_progress')}
-              >
-                In Progress
-              </Button>
-              <Button 
-                variant={objective.status === 'at_risk' ? 'default' : 'outline'} 
-                size="sm"
-                onClick={() => handleStatusUpdate('at_risk')}
-              >
-                At Risk
-              </Button>
-              <Button 
-                variant={objective.status === 'on_track' ? 'default' : 'outline'} 
-                size="sm"
-                onClick={() => handleStatusUpdate('on_track')}
-              >
-                On Track
-              </Button>
-              <Button 
-                variant={objective.status === 'completed' ? 'default' : 'outline'} 
-                size="sm"
-                onClick={() => handleStatusUpdate('completed')}
-              >
-                <Check className="h-4 w-4 mr-2" />
-                Completed
-              </Button>
-            </div>
-          </div>
-          
-          <Separator className="my-6" />
-          
-          {/* Key Results Section */}
           {id && <KeyResultsList objectiveId={id} />}
         </CardContent>
         <CardFooter className="flex justify-end pt-0">
