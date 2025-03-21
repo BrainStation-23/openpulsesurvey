@@ -2774,6 +2774,19 @@ export type Database = {
       }
     }
     Functions: {
+      analyze_okr_progress_logs: {
+        Args: {
+          p_objective_id?: string
+          p_limit?: number
+        }
+        Returns: {
+          event_time: string
+          entity_id: string
+          entity_type: string
+          change_type: string
+          details: Json
+        }[]
+      }
       calculate_instance_completion_rate: {
         Args: {
           instance_id: string

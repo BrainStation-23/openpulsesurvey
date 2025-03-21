@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { KeyResult, CreateKeyResultInput, UpdateKeyResultInput, KeyResultStatus } from '@/types/okr';
@@ -156,6 +157,9 @@ export const useKeyResult = (id?: string) => {
       if (keyResultData.weight !== undefined) updateData.weight = keyResultData.weight;
       if (keyResultData.status) updateData.status = keyResultData.status;
       
+      // Log update attempt for debugging
+      console.log('Updating key result with values:', updateData);
+      
       const { data, error } = await supabase
         .from('key_results')
         .update(updateData)
@@ -166,6 +170,18 @@ export const useKeyResult = (id?: string) => {
       if (error) {
         console.error('Error updating key result:', error);
         throw error;
+      }
+
+      // Manually recalculate objective progress in case triggers fail
+      try {
+        const { error: recalcError } = await supabase.rpc('recalculate_all_objective_progress');
+        if (recalcError) {
+          console.error('Error recalculating objective progress:', recalcError);
+        } else {
+          console.log('Successfully recalculated all objective progress');
+        }
+      } catch (recalcErr) {
+        console.error('Failed to call recalculate_all_objective_progress:', recalcErr);
       }
 
       return convertKeyResult(data);
@@ -219,6 +235,9 @@ export const useKeyResult = (id?: string) => {
 
       // Get the objective ID to manually refresh it
       const keyResult = convertKeyResult(data);
+      
+      // Log the key result after update
+      console.log('Key result after update:', keyResult);
       
       // Manually update the objective progress
       try {

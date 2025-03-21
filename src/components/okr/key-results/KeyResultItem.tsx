@@ -33,8 +33,10 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
   // Effect to handle automatic status updates based on progress
   useEffect(() => {
     if (keyResult.progress === 100 && keyResult.status !== 'completed') {
+      console.log('Auto-updating key result status to completed due to 100% progress');
       updateStatus.mutate({ status: 'completed' });
     } else if (keyResult.progress > 0 && keyResult.status === 'not_started') {
+      console.log('Auto-updating key result status to in_progress due to progress > 0');
       updateStatus.mutate({ status: 'in_progress' });
     }
   }, [keyResult.progress, keyResult.status]);
