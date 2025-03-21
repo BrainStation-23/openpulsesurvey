@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { UpdateKeyResultInput } from '@/types/okr';
 import { useToast } from '@/hooks/use-toast';
 import { checkObjectivePermission } from '../utils/keyResultPermissions';
-import { validateKeyResultData } from '../utils/keyResultValidation';
+import { validateKeyResultData, calculateProgress } from '../utils/keyResultValidation';
 
 /**
  * Hook for updating an existing key result
@@ -22,7 +22,7 @@ export const useUpdateKeyResult = (objectiveId?: string) => {
       try {
         const { data: keyResultData, error: fetchError } = await supabase
           .from('key_results')
-          .select('objective_id')
+          .select('objective_id, start_value, target_value, current_value')
           .eq('id', id)
           .single();
           
@@ -33,8 +33,30 @@ export const useUpdateKeyResult = (objectiveId?: string) => {
         
         await checkObjectivePermission(keyResultData.objective_id);
         
+        // If the updateData has currentValue but not progress, calculate the progress
+        if (rest.currentValue !== undefined && rest.progress === undefined) {
+          const startValue = rest.startValue !== undefined 
+            ? rest.startValue 
+            : keyResultData.start_value;
+            
+          const targetValue = rest.targetValue !== undefined 
+            ? rest.targetValue 
+            : keyResultData.target_value;
+            
+          // Calculate and round progress to avoid precision issues
+          const calculatedProgress = calculateProgress(
+            rest.currentValue,
+            startValue,
+            targetValue
+          );
+          
+          rest.progress = Math.round(calculatedProgress);
+        }
+        
+        // Validate the data before updating
         validateKeyResultData(rest);
         
+        // Map the data to database column names
         const mappedData: any = {};
         if (rest.title) mappedData.title = rest.title;
         if (rest.description !== undefined) mappedData.description = rest.description;
@@ -60,7 +82,7 @@ export const useUpdateKeyResult = (objectiveId?: string) => {
           console.error('Error updating key result:', error);
           
           if (error.code === '22003') {
-            throw new Error("One of the values exceeds the allowed range in the database. Progress must be between 0-100 and other numeric values must be within reasonable limits.");
+            throw new Error("One of the values exceeds the allowed range in the database. Values must be between -999.99 and 999.99, and progress must be between 0-100.");
           }
           
           throw error;

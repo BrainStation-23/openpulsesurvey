@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { KeyResult, UpdateKeyResultInput } from '@/types/okr';
 import { AlertCircle } from 'lucide-react';
+import { calculateProgress } from '@/hooks/okr/utils/keyResultValidation';
 
 interface KeyResultCheckInDialogProps {
   keyResult: KeyResult;
@@ -25,34 +26,76 @@ interface KeyResultCheckInDialogProps {
 export const KeyResultCheckInDialog = ({ keyResult, open, onOpenChange, onSave }: KeyResultCheckInDialogProps) => {
   const [currentValue, setCurrentValue] = useState<number>(keyResult.currentValue);
   const [error, setError] = useState<string | null>(null);
+  const [progressValue, setProgressValue] = useState<number>(0);
   
   useEffect(() => {
     if (open) {
       setCurrentValue(keyResult.currentValue);
       setError(null);
+      
+      // Calculate initial progress
+      const progress = calculateProgress(
+        keyResult.currentValue,
+        keyResult.startValue,
+        keyResult.targetValue
+      );
+      setProgressValue(progress);
     }
   }, [open, keyResult]);
   
-  // Calculate progress based on current, start and target values
-  const calculateProgress = () => {
-    if (keyResult.targetValue === keyResult.startValue) return 0;
-    const progress = ((currentValue - keyResult.startValue) / (keyResult.targetValue - keyResult.startValue)) * 100;
-    return Math.min(Math.max(0, progress), 100); // Clamp between 0-100
-  };
+  // Recalculate progress when currentValue changes
+  useEffect(() => {
+    const progress = calculateProgress(
+      currentValue,
+      keyResult.startValue,
+      keyResult.targetValue
+    );
+    setProgressValue(progress);
+  }, [currentValue, keyResult.startValue, keyResult.targetValue]);
   
   const handleSave = () => {
-    // Validate that the progress value will be within database limits (precision 5, scale 2)
-    const progress = Math.round(calculateProgress());
-    if (progress < 0 || progress > 100) {
-      setError("Progress must be between 0 and 100");
-      return;
+    // Clear any previous errors
+    setError(null);
+    
+    try {
+      // Validate the current value range based on database constraints
+      const MAX_NUMERIC_VALUE = 999.99;
+      const MIN_NUMERIC_VALUE = -999.99;
+      
+      if (currentValue < MIN_NUMERIC_VALUE || currentValue > MAX_NUMERIC_VALUE) {
+        setError(`Value must be between ${MIN_NUMERIC_VALUE} and ${MAX_NUMERIC_VALUE}`);
+        return;
+      }
+      
+      // Round progress to avoid precision issues
+      const progress = Math.round(progressValue);
+      
+      onSave({
+        currentValue,
+        progress
+      }, keyResult.id);
+      
+      onOpenChange(false);
+    } catch (error: any) {
+      setError(error.message || "An error occurred while saving");
+    }
+  };
+  
+  // Format number based on key result type
+  const formatValue = (value: number) => {
+    if (keyResult.unit) {
+      return `${value} ${keyResult.unit}`;
     }
     
-    onSave({
-      currentValue,
-      progress
-    }, keyResult.id);
-    onOpenChange(false);
+    if (keyResult.krType === 'percentage') {
+      return `${value}%`;
+    }
+    
+    if (keyResult.krType === 'currency') {
+      return `$${value}`;
+    }
+    
+    return value.toString();
   };
   
   return (
@@ -83,20 +126,22 @@ export const KeyResultCheckInDialog = ({ keyResult, open, onOpenChange, onSave }
                 setCurrentValue(Number(e.target.value));
                 setError(null);
               }}
-              min={keyResult.startValue}
-              max={keyResult.targetValue}
+              step="any"
             />
           </div>
           
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground flex justify-between">
-              <span>Start: {keyResult.startValue}{keyResult.unit && ` ${keyResult.unit}`}</span>
-              <span>Target: {keyResult.targetValue}{keyResult.unit && ` ${keyResult.unit}`}</span>
+              <span>Start: {formatValue(keyResult.startValue)}</span>
+              <span>Target: {formatValue(keyResult.targetValue)}</span>
             </div>
             <Progress 
-              value={calculateProgress()} 
+              value={progressValue} 
               className="h-2" 
             />
+            <div className="text-sm text-right mt-1">
+              Progress: {Math.round(progressValue)}%
+            </div>
           </div>
         </div>
         

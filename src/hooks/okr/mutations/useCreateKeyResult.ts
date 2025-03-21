@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CreateKeyResultInput } from '@/types/okr';
 import { useToast } from '@/hooks/use-toast';
 import { checkObjectivePermission } from '../utils/keyResultPermissions';
-import { validateKeyResultData } from '../utils/keyResultValidation';
+import { validateKeyResultData, calculateProgress } from '../utils/keyResultValidation';
 
 /**
  * Hook for creating a new key result
@@ -20,6 +20,18 @@ export const useCreateKeyResult = (objectiveId?: string) => {
       await checkObjectivePermission(keyResultData.objectiveId);
       
       try {
+        // If progress is not provided, calculate it
+        if (keyResultData.progress === undefined) {
+          keyResultData.progress = Math.round(
+            calculateProgress(
+              keyResultData.currentValue,
+              keyResultData.startValue,
+              keyResultData.targetValue
+            )
+          );
+        }
+        
+        // Validate the data before inserting
         validateKeyResultData(keyResultData);
 
         const { data, error } = await supabase
@@ -36,7 +48,7 @@ export const useCreateKeyResult = (objectiveId?: string) => {
             objective_id: keyResultData.objectiveId,
             owner_id: keyResultData.ownerId,
             status: 'not_started',
-            progress: 0 // Always start at 0 progress
+            progress: keyResultData.progress
           })
           .select()
           .single();
@@ -45,7 +57,7 @@ export const useCreateKeyResult = (objectiveId?: string) => {
           console.error('Error creating key result:', error);
           
           if (error.code === '22003') {
-            throw new Error("One of the values exceeds the allowed range in the database. Progress must be between 0-100 and other numeric values must be within reasonable limits.");
+            throw new Error("One of the values exceeds the allowed range in the database. Values must be between -999.99 and 999.99, and progress must be between 0-100.");
           }
           
           throw error;
