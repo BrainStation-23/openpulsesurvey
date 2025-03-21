@@ -191,13 +191,20 @@ export const useKeyResult = (id?: string) => {
   });
 
   const updateProgress = useMutation({
-    mutationFn: async ({ currentValue, booleanValue }: { currentValue?: number, booleanValue?: boolean }) => {
+    mutationFn: async ({ currentValue, booleanValue, progress }: { currentValue?: number, booleanValue?: boolean, progress?: number }) => {
       if (!id) throw new Error('Key Result ID is required');
       
       const updateData: any = {};
       
       if (currentValue !== undefined) updateData.current_value = currentValue;
-      if (booleanValue !== undefined) updateData.boolean_value = booleanValue;
+      if (booleanValue !== undefined) {
+        updateData.boolean_value = booleanValue;
+        // For boolean type, explicitly set the progress to 0% or 100%
+        updateData.progress = booleanValue ? 100 : 0;
+      } else if (progress !== undefined) {
+        // For explicit progress updates
+        updateData.progress = progress;
+      }
       
       const { data, error } = await supabase
         .from('key_results')

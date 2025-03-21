@@ -62,7 +62,7 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
 
   const handleProgressUpdate = () => {
     if (keyResult.measurementType === 'boolean') {
-      updateProgress.mutate({ booleanValue: !keyResult.booleanValue });
+      // For boolean type, we don't need to call this manually as it's handled in the onChange
       return;
     }
 
@@ -87,6 +87,14 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     }
   };
 
+  const handleBooleanChange = (checked: boolean) => {
+    updateProgress.mutate({ 
+      booleanValue: checked,
+      // Also update the progress value to ensure consistency
+      progress: checked ? 100 : 0 
+    });
+  };
+
   const handleDelete = () => {
     deleteKeyResult.mutate(undefined, {
       onSuccess: () => {
@@ -102,9 +110,7 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
           <span className="text-sm font-medium">Completed</span>
           <Switch 
             checked={keyResult.booleanValue} 
-            onCheckedChange={(checked) => {
-              updateProgress.mutate({ booleanValue: checked });
-            }}
+            onCheckedChange={handleBooleanChange}
             disabled={updateProgress.isPending}
           />
         </div>
