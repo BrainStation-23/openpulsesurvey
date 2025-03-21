@@ -76,12 +76,14 @@ export const KeyResultCheckInDialog = ({ keyResult, open, onOpenChange, onSave }
     setError(null);
     
     try {
+      let updateData: UpdateKeyResultInput;
+      
       if (measurementType === 'boolean') {
         // For boolean type, just update the boolean value and progress
-        onSave({
+        updateData = {
           booleanValue,
           progress: booleanValue ? 100 : 0
-        }, keyResult.id);
+        };
       } else {
         // Validate the current value range based on database constraints
         const MAX_NUMERIC_VALUE = 999.99;
@@ -100,12 +102,20 @@ export const KeyResultCheckInDialog = ({ keyResult, open, onOpenChange, onSave }
         // Round progress to avoid precision issues
         const progress = Math.round(progressValue);
         
-        onSave({
+        updateData = {
           currentValue,
           progress
-        }, keyResult.id);
+        };
       }
       
+      // Log the data being submitted
+      console.log("Submitting key result check-in data:", {
+        id: keyResult.id,
+        measurementType,
+        data: updateData
+      });
+      
+      onSave(updateData, keyResult.id);
       onOpenChange(false);
     } catch (error: any) {
       setError(error.message || "An error occurred while saving");
