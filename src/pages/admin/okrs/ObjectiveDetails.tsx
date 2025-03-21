@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Info, Check } from 'lucide-react';
@@ -27,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { EditObjectiveForm } from '@/components/okr/objectives/EditObjectiveForm';
+import { KeyResultsList } from '@/components/okr/key-results/KeyResultsList';
 
 const AdminObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -274,16 +274,7 @@ const AdminObjectiveDetails = () => {
           
           <Separator className="my-6" />
           
-          <div>
-            <h3 className="text-lg font-medium mb-4">Key Results</h3>
-            {/* Key Results will be added later */}
-            <Card className="border-dashed">
-              <CardContent className="py-10 text-center">
-                <p className="text-muted-foreground">No key results associated with this objective yet.</p>
-                <Button className="mt-4" disabled>Add Key Result</Button>
-              </CardContent>
-            </Card>
-          </div>
+          {id && <KeyResultsList objectiveId={id} />}
         </CardContent>
         <CardFooter className="flex justify-end pt-0">
           <p className="text-xs text-muted-foreground">
