@@ -8,6 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { KeyResultForm } from './KeyResultForm';
 import { Card, CardContent } from '@/components/ui/card';
 import { useKeyResults } from '@/hooks/okr/useKeyResults';
+import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from 'react';
+import { toast } from '@/components/ui/use-toast';
 
 interface KeyResultsListProps {
   objectiveId: string;
@@ -15,7 +18,41 @@ interface KeyResultsListProps {
 
 export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const { data: keyResults, isLoading, error } = useKeyResults(objectiveId);
+  const { data: keyResults, isLoading, error, refetch } = useKeyResults(objectiveId);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [canAddKeyResults, setCanAddKeyResults] = useState(false);
+
+  // Get current user and check permissions
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setCurrentUserId(user.id);
+          
+          // Check if user can view this objective (which means they can add key results)
+          const { data, error } = await supabase
+            .from('objectives')
+            .select('id, owner_id')
+            .eq('id', objectiveId)
+            .single();
+            
+          if (error) {
+            console.error('Error checking objective access:', error);
+            return;
+          }
+          
+          // If we can see the objective, we can add key results to it
+          setCanAddKeyResults(true);
+        }
+      } catch (err) {
+        console.error('Error checking permissions:', err);
+      }
+    };
+
+    checkPermissions();
+  }, [objectiveId]);
 
   if (isLoading) {
     return (
@@ -52,14 +89,16 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-medium">Key Results</h3>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setIsAddDialogOpen(true)}
-          >
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Add Key Result
-          </Button>
+          {canAddKeyResults && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsAddDialogOpen(true)}
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add Key Result
+            </Button>
+          )}
         </div>
         <Card className="border-red-200">
           <CardContent className="p-6 text-center text-red-600">
@@ -70,18 +109,25 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
     );
   }
 
+  const handleFormClose = () => {
+    setIsAddDialogOpen(false);
+    refetch();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Key Results</h3>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => setIsAddDialogOpen(true)}
-        >
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Add Key Result
-        </Button>
+        {canAddKeyResults && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setIsAddDialogOpen(true)}
+          >
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Add Key Result
+          </Button>
+        )}
       </div>
       
       {keyResults && keyResults.length > 0 ? (
@@ -94,13 +140,15 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
         <Card className="border-dashed">
           <CardContent className="py-10 text-center">
             <p className="text-muted-foreground">No key results associated with this objective yet.</p>
-            <Button 
-              onClick={() => setIsAddDialogOpen(true)} 
-              className="mt-4"
-            >
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add Key Result
-            </Button>
+            {canAddKeyResults && (
+              <Button 
+                onClick={() => setIsAddDialogOpen(true)} 
+                className="mt-4"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Key Result
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -112,7 +160,7 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
           </DialogHeader>
           <KeyResultForm
             objectiveId={objectiveId}
-            onClose={() => setIsAddDialogOpen(false)}
+            onClose={handleFormClose}
             mode="create"
           />
         </DialogContent>

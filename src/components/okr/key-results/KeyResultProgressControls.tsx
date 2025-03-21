@@ -5,6 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { toast } from '@/components/ui/use-toast';
 
 interface KeyResultProgressControlsProps {
   keyResult: KeyResult;
