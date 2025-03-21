@@ -2974,6 +2974,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      recalculate_all_objective_progress: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       reorder_questions: {
         Args: {
           p_session_id: string

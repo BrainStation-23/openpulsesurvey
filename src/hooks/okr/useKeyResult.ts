@@ -4,7 +4,6 @@ import { KeyResult, CreateKeyResultInput, UpdateKeyResultInput, KeyResultStatus 
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
-// Helper function to convert snake_case response to camelCase
 const convertKeyResult = (data: any): KeyResult => {
   return {
     id: data.id,
@@ -204,6 +203,8 @@ export const useKeyResult = (id?: string) => {
         updateData.progress = progress;
       }
       
+      console.log('Updating key result in DB:', { id, updateData });
+      
       const { data, error } = await supabase
         .from('key_results')
         .update(updateData)
@@ -214,6 +215,21 @@ export const useKeyResult = (id?: string) => {
       if (error) {
         console.error('Error updating key result progress:', error);
         throw error;
+      }
+
+      // Get the objective ID to manually refresh it
+      const keyResult = convertKeyResult(data);
+      
+      // Manually update the objective progress
+      try {
+        const { error: recalcError } = await supabase.rpc('recalculate_all_objective_progress');
+        if (recalcError) {
+          console.error('Error recalculating objective progress:', recalcError);
+        } else {
+          console.log('Successfully recalculated all objective progress');
+        }
+      } catch (recalcErr) {
+        console.error('Failed to call recalculate_all_objective_progress:', recalcErr);
       }
 
       return convertKeyResult(data);

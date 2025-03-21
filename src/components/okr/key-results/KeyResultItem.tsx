@@ -40,6 +40,7 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
   }, [keyResult.progress, keyResult.status]);
 
   const handleStatusUpdate = (status: KeyResultStatus) => {
+    console.log('Updating key result status:', { id: keyResult.id, status });
     updateStatus.mutate({ status });
   };
 
@@ -49,11 +50,23 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     }
 
     if (progressValue !== keyResult.currentValue) {
+      console.log('Updating key result progress:', { 
+        id: keyResult.id, 
+        objectiveId: keyResult.objectiveId,
+        oldValue: keyResult.currentValue, 
+        newValue: progressValue 
+      });
       updateProgress.mutate({ currentValue: progressValue });
     }
   };
 
   const handleBooleanChange = (checked: boolean) => {
+    console.log('Updating boolean key result:', { 
+      id: keyResult.id, 
+      objectiveId: keyResult.objectiveId,
+      oldValue: keyResult.booleanValue, 
+      newValue: checked 
+    });
     updateProgress.mutate({ booleanValue: checked });
   };
 
