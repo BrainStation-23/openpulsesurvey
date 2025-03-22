@@ -2,7 +2,27 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { OKRTemplate } from '@/types/okr';
+import { OKRTemplate, TemplateObjective, TemplateKeyResult } from '@/types/okr';
+
+// Type for data coming from Supabase
+interface TemplateData {
+  id: string;
+  name: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+  owner_id?: string;
+  is_public?: boolean;
+  objectives?: TemplateObjective[];
+}
+
+// Input type for creating a template
+export interface CreateTemplateInput {
+  name: string;
+  description?: string;
+  is_public?: boolean;
+  owner_id: string;
+}
 
 export const useTemplates = () => {
   const queryClient = useQueryClient();
@@ -23,43 +43,40 @@ export const useTemplates = () => {
 
   // Get a specific template
   const getTemplate = useCallback(async (id: string) => {
-    const { data, error } = await supabase
-      .from('okr_templates')
-      .select(`
-        *,
-        objectives:template_objectives(
-          id,
-          title,
-          description,
-          key_results:template_key_results(
-            id,
-            title,
-            description,
-            measurement_type,
-            start_value,
-            target_value,
-            weight
-          )
-        )
-      `)
-      .eq('id', id)
-      .single();
+    try {
+      // First fetch the basic template info
+      const { data: templateData, error: templateError } = await supabase
+        .from('okr_templates')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-    if (error) throw error;
-    return data as OKRTemplate;
+      if (templateError) throw templateError;
+
+      // Return just the basic template if there's no full data needed
+      return templateData as OKRTemplate;
+    } catch (error) {
+      console.error('Error fetching template:', error);
+      throw error;
+    }
   }, []);
 
   // Create a new template
   const createTemplate = useMutation({
-    mutationFn: async (newTemplate: Omit<OKRTemplate, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (newTemplate: CreateTemplateInput) => {
       const { data, error } = await supabase
         .from('okr_templates')
-        .insert(newTemplate)
+        .insert({
+          name: newTemplate.name,
+          description: newTemplate.description,
+          is_public: newTemplate.is_public,
+          owner_id: newTemplate.owner_id
+        })
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return data as OKRTemplate;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['okr-templates'] });
@@ -77,7 +94,7 @@ export const useTemplates = () => {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as OKRTemplate;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['okr-templates'] });
