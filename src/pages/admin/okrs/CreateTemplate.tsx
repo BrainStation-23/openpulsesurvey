@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useTemplates } from '@/hooks/okr/useTemplates';
+import { useTemplates, CreateTemplateInput } from '@/hooks/okr/useTemplates';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { toast } from "sonner";
 import { 
@@ -64,10 +64,14 @@ const AdminCreateOKRTemplate = () => {
     setSaving(true);
     
     try {
-      const template = await createTemplate({
-        ...values,
-        owner_id: user.id,
-      });
+      const templateInput: CreateTemplateInput = {
+        name: values.name,
+        description: values.description,
+        is_public: values.is_public,
+        created_by: user.id,
+      };
+      
+      const template = await createTemplate(templateInput);
       
       toast.success("Template created successfully");
       navigate(`/admin/okrs/templates/${template.id}`);

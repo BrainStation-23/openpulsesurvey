@@ -126,7 +126,8 @@ export interface OKRTemplate {
   description?: string;
   created_at?: string;
   updated_at?: string;
-  owner_id?: string;
+  created_by: string;
   is_public?: boolean;
+  template_data?: any;
   objectives?: TemplateObjective[];
 }

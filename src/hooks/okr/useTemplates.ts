@@ -4,24 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { OKRTemplate, TemplateObjective, TemplateKeyResult } from '@/types/okr';
 
-// Type for data coming from Supabase
-interface TemplateData {
-  id: string;
-  name: string;
-  description?: string;
-  created_at?: string;
-  updated_at?: string;
-  owner_id?: string;
-  is_public?: boolean;
-  objectives?: TemplateObjective[];
-}
-
 // Input type for creating a template
 export interface CreateTemplateInput {
   name: string;
   description?: string;
   is_public?: boolean;
-  owner_id: string;
+  created_by: string;
 }
 
 export const useTemplates = () => {
@@ -70,7 +58,7 @@ export const useTemplates = () => {
           name: newTemplate.name,
           description: newTemplate.description,
           is_public: newTemplate.is_public,
-          owner_id: newTemplate.owner_id
+          created_by: newTemplate.created_by
         })
         .select()
         .single();
