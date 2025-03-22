@@ -1,3 +1,4 @@
+
 export type OKRCycleStatus = 'active' | 'upcoming' | 'completed' | 'archived';
 
 export interface OKRCycle {
@@ -26,6 +27,7 @@ export interface UpdateOKRCycleInput extends Partial<CreateOKRCycleInput> {
 export type ObjectiveStatus = 'draft' | 'in_progress' | 'at_risk' | 'on_track' | 'completed';
 export type ObjectiveVisibility = 'team' | 'organization' | 'private' | 'department';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'requested_changes';
+export type AlignmentType = 'parent_child' | 'supporting' | 'related';
 
 export interface Objective {
   id: string;
@@ -43,6 +45,24 @@ export interface Objective {
   updatedAt: Date;
 }
 
+export interface ObjectiveWithRelations extends Objective {
+  childObjectives?: Objective[];
+  alignedObjectives?: ObjectiveAlignment[];
+  parentObjective?: Objective;
+}
+
+export interface ObjectiveAlignment {
+  id: string;
+  sourceObjectiveId: string;
+  alignedObjectiveId: string;
+  alignmentType: AlignmentType;
+  weight: number;
+  createdBy: string;
+  createdAt: Date;
+  sourceObjective?: Objective;
+  alignedObjective?: Objective;
+}
+
 export interface CreateObjectiveInput {
   title: string;
   description?: string;
@@ -56,6 +76,13 @@ export interface UpdateObjectiveInput extends Partial<CreateObjectiveInput> {
   status?: ObjectiveStatus;
   progress?: number;
   approvalStatus?: ApprovalStatus;
+}
+
+export interface CreateAlignmentInput {
+  sourceObjectiveId: string;
+  alignedObjectiveId: string;
+  alignmentType: AlignmentType;
+  weight?: number;
 }
 
 export type KeyResultStatus = 'not_started' | 'in_progress' | 'at_risk' | 'on_track' | 'completed';

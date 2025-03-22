@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useObjective } from '@/hooks/okr/useObjective';
+import { useObjectiveWithRelations } from '@/hooks/okr/useObjectiveWithRelations';
 import { ObjectiveStatusBadge } from '@/components/okr/objectives/ObjectiveStatusBadge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ObjectiveStatus, UpdateObjectiveInput } from '@/types/okr';
@@ -28,6 +29,7 @@ import {
 import { EditObjectiveForm } from '@/components/okr/objectives/EditObjectiveForm';
 import { KeyResultsList } from '@/components/okr/key-results/KeyResultsList';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { ObjectiveAlignmentManager } from '@/components/okr/alignments/ObjectiveAlignmentManager';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -45,6 +47,10 @@ const UserObjectiveDetails = () => {
     deleteObjective,
     isDeleting
   } = useObjective(id);
+  
+  const { 
+    objective: objectiveWithRelations 
+  } = useObjectiveWithRelations(id);
   
   const isOwner = objective && userId === objective.ownerId;
   const canEdit = isOwner || isAdmin;
@@ -279,7 +285,15 @@ const UserObjectiveDetails = () => {
           </p>
         </CardFooter>
       </Card>
-
+      
+      {objectiveWithRelations && (
+        <ObjectiveAlignmentManager
+          objective={objectiveWithRelations}
+          isAdmin={false}
+          canEdit={canEdit}
+        />
+      )}
+      
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
