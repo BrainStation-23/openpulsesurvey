@@ -1,4 +1,3 @@
-
 export type OKRCycleStatus = 'active' | 'upcoming' | 'completed' | 'archived';
 
 export interface OKRCycle {
@@ -100,4 +99,34 @@ export interface CreateKeyResultInput {
 
 export interface UpdateKeyResultInput extends Partial<CreateKeyResultInput> {
   id: string;
+}
+
+export interface TemplateObjective {
+  id?: string;
+  title: string;
+  description?: string;
+  template_id?: string;
+  key_results?: TemplateKeyResult[];
+}
+
+export interface TemplateKeyResult {
+  id?: string;
+  title: string;
+  description?: string;
+  measurement_type: 'numeric' | 'percentage' | 'currency' | 'boolean';
+  start_value?: number;
+  target_value?: number;
+  weight: number; 
+  template_objective_id?: string;
+}
+
+export interface OKRTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+  owner_id?: string;
+  is_public?: boolean;
+  objectives?: TemplateObjective[];
 }
