@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ObjectiveWithRelations, Objective } from '@/types/okr';
+import { ObjectiveWithRelations, Objective, AlignmentType } from '@/types/okr';
 import { useObjective } from './useObjective';
 
 export const useObjectiveWithRelations = (id: string | undefined) => {
@@ -129,7 +129,7 @@ export const useObjectiveWithRelations = (id: string | undefined) => {
         id: a.id,
         sourceObjectiveId: a.source_objective_id,
         alignedObjectiveId: a.aligned_objective_id,
-        alignmentType: a.alignment_type,
+        alignmentType: a.alignment_type as AlignmentType,
         weight: a.weight,
         createdBy: a.created_by,
         createdAt: new Date(a.created_at),
@@ -152,7 +152,7 @@ export const useObjectiveWithRelations = (id: string | undefined) => {
         id: a.id,
         sourceObjectiveId: a.source_objective_id,
         alignedObjectiveId: a.aligned_objective_id,
-        alignmentType: a.alignment_type,
+        alignmentType: a.alignment_type as AlignmentType,
         weight: a.weight,
         createdBy: a.created_by,
         createdAt: new Date(a.created_at),

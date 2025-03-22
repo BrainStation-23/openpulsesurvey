@@ -154,6 +154,10 @@ export const useAlignments = (objectiveId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alignments', objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective-children', objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective-parent', objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective', objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective-alignments', objectiveId] });
       toast({
         title: 'Alignment created',
         description: 'The objectives have been aligned successfully.',
@@ -185,6 +189,10 @@ export const useAlignments = (objectiveId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alignments', objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective-children', objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective-parent', objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective', objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective-alignments', objectiveId] });
       toast({
         title: 'Alignment removed',
         description: 'The alignment has been removed successfully.',
