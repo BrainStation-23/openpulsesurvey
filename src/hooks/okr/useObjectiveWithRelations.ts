@@ -100,8 +100,14 @@ export const useObjectiveWithRelations = (id: string | undefined) => {
       const { data: sourceAlignments, error: sourceError } = await supabase
         .from('okr_alignments')
         .select(`
-          *,
-          aligned_objective:aligned_objective_id (
+          id,
+          source_objective_id,
+          aligned_objective_id,
+          alignment_type,
+          weight,
+          created_by,
+          created_at,
+          aligned_objective:objectives!aligned_objective_id (
             id, 
             title, 
             description, 
@@ -126,8 +132,14 @@ export const useObjectiveWithRelations = (id: string | undefined) => {
       const { data: targetAlignments, error: targetError } = await supabase
         .from('okr_alignments')
         .select(`
-          *,
-          source_objective:source_objective_id (
+          id,
+          source_objective_id,
+          aligned_objective_id,
+          alignment_type,
+          weight,
+          created_by,
+          created_at,
+          source_objective:objectives!source_objective_id (
             id, 
             title, 
             description, 
