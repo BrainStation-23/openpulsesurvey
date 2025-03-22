@@ -101,7 +101,19 @@ export const useObjectiveWithRelations = (id: string | undefined) => {
         .from('okr_alignments')
         .select(`
           *,
-          aligned_objective:aligned_objective_id (*)
+          aligned_objective:aligned_objective_id (
+            id, 
+            title, 
+            description, 
+            cycle_id, 
+            owner_id,
+            status,
+            progress,
+            visibility,
+            approval_status,
+            created_at,
+            updated_at
+          )
         `)
         .eq('source_objective_id', id);
       
@@ -115,7 +127,19 @@ export const useObjectiveWithRelations = (id: string | undefined) => {
         .from('okr_alignments')
         .select(`
           *,
-          source_objective:source_objective_id (*)
+          source_objective:source_objective_id (
+            id, 
+            title, 
+            description, 
+            cycle_id, 
+            owner_id,
+            status,
+            progress,
+            visibility,
+            approval_status,
+            created_at,
+            updated_at
+          )
         `)
         .eq('aligned_objective_id', id);
       
