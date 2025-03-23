@@ -132,6 +132,21 @@ export const useAlignments = (objectiveId?: string) => {
     enabled: !!objectiveId
   });
 
+  // Helper function to invalidate all related queries - moved inside the hook
+  const invalidateRelatedQueries = (id?: string) => {
+    if (id) {
+      queryClient.invalidateQueries({ queryKey: ['alignments', id] });
+      queryClient.invalidateQueries({ queryKey: ['objective-children', id] });
+      queryClient.invalidateQueries({ queryKey: ['objective-parent', id] });
+      queryClient.invalidateQueries({ queryKey: ['objective', id] });
+      queryClient.invalidateQueries({ queryKey: ['objective-alignments', id] });
+      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', id] });
+      
+      // Also invalidate the objectives list to update the hierarchy everywhere
+      queryClient.invalidateQueries({ queryKey: ['objectives'] });
+    }
+  };
+
   // Create a new alignment
   const createAlignment = useMutation({
     mutationFn: async (data: CreateAlignmentInput) => {
@@ -176,6 +191,7 @@ export const useAlignments = (objectiveId?: string) => {
       return newAlignment;
     },
     onSuccess: () => {
+      // Use the invalidateRelatedQueries function from the same scope
       invalidateRelatedQueries(objectiveId);
       toast({
         title: 'Alignment created',
@@ -233,6 +249,7 @@ export const useAlignments = (objectiveId?: string) => {
       return alignmentId;
     },
     onSuccess: () => {
+      // Use the invalidateRelatedQueries function from the same scope
       invalidateRelatedQueries(objectiveId);
       toast({
         title: 'Alignment removed',
@@ -281,22 +298,6 @@ export const useAlignments = (objectiveId?: string) => {
     return { 
       wouldCreateCycle: descendants.includes(parentId) 
     };
-  };
-
-  // Helper to invalidate all related queries
-  const invalidateRelatedQueries = (id?: string) => {
-    const queryClient = useQueryClient();
-    if (id) {
-      queryClient.invalidateQueries({ queryKey: ['alignments', id] });
-      queryClient.invalidateQueries({ queryKey: ['objective-children', id] });
-      queryClient.invalidateQueries({ queryKey: ['objective-parent', id] });
-      queryClient.invalidateQueries({ queryKey: ['objective', id] });
-      queryClient.invalidateQueries({ queryKey: ['objective-alignments', id] });
-      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', id] });
-      
-      // Also invalidate the objectives list to update the hierarchy everywhere
-      queryClient.invalidateQueries({ queryKey: ['objectives'] });
-    }
   };
 
   return {
