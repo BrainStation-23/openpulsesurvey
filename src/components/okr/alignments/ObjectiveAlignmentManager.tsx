@@ -44,11 +44,18 @@ export const ObjectiveAlignmentManager: React.FC<ObjectiveAlignmentManagerProps>
         </TabsList>
         
         <TabsContent value="hierarchy" className="pt-4">
-          <ObjectiveHierarchyView objective={objective} isAdmin={isAdmin} />
+          <ObjectiveHierarchyView 
+            objective={objective} 
+            isAdmin={isAdmin} 
+          />
         </TabsContent>
         
         <TabsContent value="aligned" className="pt-4">
-          <AlignedObjectivesView objectiveId={objective.id} isAdmin={isAdmin} />
+          <AlignedObjectivesView 
+            objectiveId={objective.id} 
+            isAdmin={isAdmin} 
+            canEdit={canEdit}
+          />
         </TabsContent>
       </Tabs>
 

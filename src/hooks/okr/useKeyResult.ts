@@ -1,43 +1,22 @@
 
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { KeyResult, CreateKeyResultInput, UpdateKeyResultInput, KeyResultStatus } from '@/types/okr';
+import { KeyResult, UpdateKeyResultInput, KeyResultStatus } from '@/types/okr';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
-
-const convertKeyResult = (data: any): KeyResult => {
-  return {
-    id: data.id,
-    title: data.title,
-    description: data.description,
-    objectiveId: data.objective_id,
-    ownerId: data.owner_id,
-    krType: data.kr_type,
-    measurementType: data.measurement_type,
-    unit: data.unit,
-    startValue: data.start_value,
-    currentValue: data.current_value,
-    targetValue: data.target_value,
-    booleanValue: data.boolean_value,
-    weight: data.weight,
-    status: data.status,
-    progress: data.progress,
-    createdAt: new Date(data.created_at),
-    updatedAt: new Date(data.updated_at)
-  };
-};
 
 export const useKeyResult = (id?: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  const { 
-    data: keyResult, 
-    isLoading, 
-    error 
+
+  // Fetch key result
+  const {
+    data: keyResult,
+    isLoading,
+    error
   } = useQuery({
-    queryKey: ['keyResult', id],
+    queryKey: ['key-result', id],
     queryFn: async () => {
       if (!id) return null;
       
@@ -48,145 +27,107 @@ export const useKeyResult = (id?: string) => {
         .single();
       
       if (error) {
-        console.error('Error fetching key result:', error);
         throw error;
       }
       
-      return convertKeyResult(data);
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        objectiveId: data.objective_id,
+        ownerId: data.owner_id,
+        krType: data.kr_type,
+        measurementType: data.measurement_type,
+        unit: data.unit,
+        startValue: data.start_value,
+        currentValue: data.current_value,
+        targetValue: data.target_value,
+        booleanValue: data.boolean_value,
+        weight: data.weight,
+        status: data.status,
+        progress: data.progress,
+        createdAt: new Date(data.created_at),
+        updatedAt: new Date(data.updated_at)
+      } as KeyResult;
     },
     enabled: !!id
   });
 
-  const createKeyResult = useMutation({
-    mutationFn: async (keyResultData: CreateKeyResultInput) => {
-      const { data, error } = await supabase
-        .from('key_results')
-        .insert({
-          title: keyResultData.title,
-          description: keyResultData.description,
-          kr_type: keyResultData.krType,
-          measurement_type: keyResultData.measurementType,
-          unit: keyResultData.unit,
-          start_value: keyResultData.startValue,
-          current_value: keyResultData.currentValue,
-          target_value: keyResultData.targetValue,
-          boolean_value: keyResultData.booleanValue,
-          weight: keyResultData.weight,
-          status: keyResultData.status,
-          objective_id: keyResultData.objectiveId,
-          owner_id: keyResultData.ownerId
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating key result:', error);
-        throw error;
-      }
-
-      return convertKeyResult(data);
-    },
-    onSuccess: (createdKeyResult) => {
-      // The objective progress is automatically updated by the database trigger
-      queryClient.invalidateQueries({ queryKey: ['keyResults'] });
-      queryClient.invalidateQueries({ queryKey: ['objective', createdKeyResult.objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', createdKeyResult.objectiveId] });
-      toast({
-        title: 'Success',
-        description: 'Key result created successfully',
-      });
-    },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Error creating key result',
-        description: error.message,
-      });
-    }
-  });
-
+  // Update key result status
   const updateStatus = useMutation({
-    mutationFn: async ({ status }: { status: KeyResultStatus }) => {
+    mutationFn: async (status: KeyResultStatus) => {
       if (!id) throw new Error('Key Result ID is required');
       
       const { data, error } = await supabase
         .from('key_results')
-        .update({ status })
+        .update({ 
+          status, 
+          updated_at: new Date() 
+        })
         .eq('id', id)
-        .select()
-        .single();
-
+        .select();
+      
       if (error) {
-        console.error('Error updating key result status:', error);
         throw error;
       }
-
-      return convertKeyResult(data);
+      
+      return data;
     },
-    onSuccess: (updatedKeyResult) => {
-      // The objective progress is automatically updated by the database trigger
-      queryClient.invalidateQueries({ queryKey: ['keyResult', id] });
-      queryClient.invalidateQueries({ queryKey: ['keyResults'] });
-      queryClient.invalidateQueries({ queryKey: ['objective', updatedKeyResult.objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', updatedKeyResult.objectiveId] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['key-result', id] });
+      queryClient.invalidateQueries({ queryKey: ['key-results'] });
+      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      
       toast({
-        title: 'Success',
-        description: 'Key result status updated successfully',
+        title: 'Status updated',
+        description: 'The key result status has been updated.',
       });
     },
     onError: (error) => {
       toast({
         variant: 'destructive',
-        title: 'Error updating key result status',
+        title: 'Error updating status',
         description: error.message,
       });
     }
   });
 
+  // Update key result
   const updateKeyResult = useMutation({
-    mutationFn: async (keyResultData: UpdateKeyResultInput) => {
+    mutationFn: async (data: UpdateKeyResultInput) => {
       if (!id) throw new Error('Key Result ID is required');
       
-      const updateData: any = {};
-      
-      if (keyResultData.title) updateData.title = keyResultData.title;
-      if (keyResultData.description !== undefined) updateData.description = keyResultData.description;
-      if (keyResultData.krType) updateData.kr_type = keyResultData.krType;
-      if (keyResultData.measurementType) updateData.measurement_type = keyResultData.measurementType;
-      if (keyResultData.unit !== undefined) updateData.unit = keyResultData.unit;
-      if (keyResultData.startValue !== undefined) updateData.start_value = keyResultData.startValue;
-      if (keyResultData.currentValue !== undefined) updateData.current_value = keyResultData.currentValue;
-      if (keyResultData.targetValue !== undefined) updateData.target_value = keyResultData.targetValue;
-      if (keyResultData.booleanValue !== undefined) updateData.boolean_value = keyResultData.booleanValue;
-      if (keyResultData.weight !== undefined) updateData.weight = keyResultData.weight;
-      if (keyResultData.status) updateData.status = keyResultData.status;
-      
-      // Log update attempt for debugging
-      console.log('Updating key result with values:', updateData);
-      
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('key_results')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-
+        .update({
+          title: data.title,
+          description: data.description,
+          owner_id: data.ownerId,
+          kr_type: data.krType,
+          measurement_type: data.measurementType,
+          unit: data.unit,
+          start_value: data.startValue,
+          current_value: data.currentValue,
+          target_value: data.targetValue,
+          boolean_value: data.booleanValue,
+          weight: data.weight || 1,
+          status: data.status,
+          updated_at: new Date()
+        })
+        .eq('id', id);
+      
       if (error) {
-        console.error('Error updating key result:', error);
         throw error;
       }
-
-      // No need to manually recalculate objective progress - the trigger handles it
-      return convertKeyResult(data);
     },
-    onSuccess: (updatedKeyResult) => {
-      queryClient.invalidateQueries({ queryKey: ['keyResult', id] });
-      queryClient.invalidateQueries({ queryKey: ['keyResults'] });
-      queryClient.invalidateQueries({ queryKey: ['objective', updatedKeyResult.objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', updatedKeyResult.objectiveId] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['key-result', id] });
+      queryClient.invalidateQueries({ queryKey: ['key-results'] });
+      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      
       toast({
-        title: 'Success',
-        description: 'Key result updated successfully',
+        title: 'Key result updated',
+        description: 'The key result has been updated successfully.',
       });
     },
     onError: (error) => {
@@ -198,97 +139,28 @@ export const useKeyResult = (id?: string) => {
     }
   });
 
-  const updateProgress = useMutation({
-    mutationFn: async ({ currentValue, booleanValue, progress }: { currentValue?: number, booleanValue?: boolean, progress?: number }) => {
-      if (!id) throw new Error('Key Result ID is required');
-      
-      const updateData: any = {};
-      
-      if (currentValue !== undefined) updateData.current_value = currentValue;
-      if (booleanValue !== undefined) {
-        updateData.boolean_value = booleanValue;
-        // For boolean type, progress is handled by the database trigger
-      } else if (progress !== undefined) {
-        // For explicit progress updates
-        updateData.progress = progress;
-      }
-      
-      console.log('Updating key result in DB:', { id, updateData });
-      
-      const { data, error } = await supabase
-        .from('key_results')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating key result progress:', error);
-        throw error;
-      }
-
-      // Get the resulting key result with the updated data
-      return convertKeyResult(data);
-    },
-    onSuccess: (updatedKeyResult) => {
-      queryClient.invalidateQueries({ queryKey: ['keyResult', id] });
-      queryClient.invalidateQueries({ queryKey: ['keyResults'] });
-      queryClient.invalidateQueries({ queryKey: ['objective', updatedKeyResult.objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', updatedKeyResult.objectiveId] });
-      toast({
-        title: 'Success',
-        description: 'Progress updated successfully',
-      });
-    },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Error updating progress',
-        description: error.message,
-      });
-    }
-  });
-
+  // Delete key result
   const deleteKeyResult = useMutation({
     mutationFn: async () => {
       if (!id) throw new Error('Key Result ID is required');
-      
       setIsDeleting(true);
-      
-      // Get the objectiveId before deletion to invalidate related queries
-      const { data: keyResultData, error: fetchError } = await supabase
-        .from('key_results')
-        .select('objective_id')
-        .eq('id', id)
-        .single();
-        
-      if (fetchError) {
-        console.error('Error fetching key result before deletion:', fetchError);
-        throw fetchError;
-      }
-      
-      const objectiveId = keyResultData.objective_id;
       
       const { error } = await supabase
         .from('key_results')
         .delete()
         .eq('id', id);
-
+      
       if (error) {
-        console.error('Error deleting key result:', error);
         throw error;
       }
-      
-      return { id, objectiveId };
     },
-    onSuccess: ({ objectiveId }) => {
-      // The database trigger will handle updating the objective progress
-      queryClient.invalidateQueries({ queryKey: ['keyResults'] });
-      queryClient.invalidateQueries({ queryKey: ['objective', objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', objectiveId] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['key-results'] });
+      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      
       toast({
-        title: 'Success',
-        description: 'Key result deleted successfully',
+        title: 'Key result deleted',
+        description: 'The key result has been deleted successfully.',
       });
       setIsDeleting(false);
     },
@@ -306,10 +178,8 @@ export const useKeyResult = (id?: string) => {
     keyResult,
     isLoading,
     error,
-    createKeyResult,
     updateStatus,
     updateKeyResult,
-    updateProgress,
     deleteKeyResult,
     isDeleting
   };

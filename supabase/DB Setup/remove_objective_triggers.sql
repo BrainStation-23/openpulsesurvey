@@ -44,6 +44,28 @@ BEGIN
         END IF;
     END IF;
     
+    -- Log the validation process 
+    INSERT INTO okr_history (
+        entity_id, 
+        entity_type,
+        change_type,
+        changed_by,
+        new_data
+    ) VALUES (
+        NEW.id,
+        'key_result_validation',
+        'progress_calculation',
+        NEW.owner_id,
+        jsonb_build_object(
+            'start_value', NEW.start_value,
+            'current_value', NEW.current_value,
+            'target_value', NEW.target_value,
+            'boolean_value', NEW.boolean_value,
+            'measurement_type', NEW.measurement_type,
+            'calculated_progress', NEW.progress
+        )
+    );
+    
     RETURN NEW;
 END;
 $function$;

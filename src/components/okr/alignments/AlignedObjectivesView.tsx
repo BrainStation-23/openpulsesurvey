@@ -5,20 +5,36 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ObjectiveStatusBadge } from '@/components/okr/objectives/ObjectiveStatusBadge';
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ObjectiveAlignment, Objective } from '@/types/okr';
 import { useObjectiveWithRelations } from '@/hooks/okr/useObjectiveWithRelations';
-import { ExternalLink, ArrowRightLeft } from 'lucide-react';
+import { useAlignments } from '@/hooks/okr/useAlignments';
+import { ExternalLink, ArrowRightLeft, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AlignedObjectiveProps {
   alignment: ObjectiveAlignment;
   isSource: boolean;
   isAdmin?: boolean;
+  canEdit?: boolean;
+  onRemove: (alignmentId: string) => void;
 }
 
 const AlignedObjectiveCard: React.FC<AlignedObjectiveProps> = ({ 
   alignment, 
   isSource,
-  isAdmin = false
+  isAdmin = false,
+  canEdit = false,
+  onRemove
 }) => {
   const objective = isSource ? alignment.alignedObjective : alignment.sourceObjective;
   const basePath = isAdmin ? '/admin' : '/user';
@@ -45,7 +61,19 @@ const AlignedObjectiveCard: React.FC<AlignedObjectiveProps> = ({
             <ExternalLink className="h-3 w-3 ml-1" />
           </Link>
         </div>
-        <ObjectiveStatusBadge status={objective.status} />
+        <div className="flex items-center gap-2">
+          <ObjectiveStatusBadge status={objective.status} />
+          {canEdit && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6 text-destructive hover:bg-destructive/10"
+              onClick={() => onRemove(alignment.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
       
       {objective.description && (
@@ -65,13 +93,28 @@ const AlignedObjectiveCard: React.FC<AlignedObjectiveProps> = ({
 interface AlignedObjectivesViewProps {
   objectiveId: string;
   isAdmin?: boolean;
+  canEdit?: boolean;
 }
 
 export const AlignedObjectivesView: React.FC<AlignedObjectivesViewProps> = ({ 
   objectiveId,
-  isAdmin = false
+  isAdmin = false,
+  canEdit = false
 }) => {
   const { objective, isLoading, error } = useObjectiveWithRelations(objectiveId);
+  const { deleteAlignment } = useAlignments(objectiveId);
+  const [alignmentToDelete, setAlignmentToDelete] = React.useState<string | null>(null);
+  
+  const handleRemoveAlignment = (alignmentId: string) => {
+    setAlignmentToDelete(alignmentId);
+  };
+
+  const confirmDelete = () => {
+    if (alignmentToDelete) {
+      deleteAlignment.mutate(alignmentToDelete);
+      setAlignmentToDelete(null);
+    }
+  };
   
   if (isLoading) {
     return (
@@ -128,6 +171,8 @@ export const AlignedObjectivesView: React.FC<AlignedObjectivesViewProps> = ({
                     alignment={alignment}
                     isSource={false}
                     isAdmin={isAdmin}
+                    canEdit={canEdit}
+                    onRemove={handleRemoveAlignment}
                   />
                 ))}
               </div>
@@ -142,12 +187,31 @@ export const AlignedObjectivesView: React.FC<AlignedObjectivesViewProps> = ({
                     alignment={alignment}
                     isSource={true}
                     isAdmin={isAdmin}
+                    canEdit={canEdit}
+                    onRemove={handleRemoveAlignment}
                   />
                 ))}
               </div>
             )}
           </div>
         )}
+
+        <AlertDialog open={!!alignmentToDelete} onOpenChange={(open) => !open && setAlignmentToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove Alignment</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to remove this alignment? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
+                Remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
