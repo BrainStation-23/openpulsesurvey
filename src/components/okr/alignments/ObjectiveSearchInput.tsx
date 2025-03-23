@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Objective } from '@/types/okr';
 import { useObjectives } from '@/hooks/okr/useObjectives';
-import { Spinner } from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface ObjectiveSearchInputProps {
   currentObjectiveId: string;
@@ -94,7 +94,7 @@ export const ObjectiveSearchInput = ({
           </div>
           {isLoading ? (
             <div className="py-6 text-center">
-              <Spinner className="mx-auto" />
+              <LoadingSpinner className="mx-auto" />
               <p className="text-sm text-muted-foreground mt-2">Loading objectives...</p>
             </div>
           ) : (
