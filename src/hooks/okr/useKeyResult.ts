@@ -97,13 +97,21 @@ export const useKeyResult = (id?: string) => {
     mutationFn: async (data: { currentValue?: number; booleanValue?: boolean }) => {
       if (!id) throw new Error('Key Result ID is required');
       
+      const updateData: any = {
+        updated_at: new Date().toISOString()
+      };
+      
+      if (data.currentValue !== undefined) {
+        updateData.current_value = data.currentValue;
+      }
+      
+      if (data.booleanValue !== undefined) {
+        updateData.boolean_value = data.booleanValue;
+      }
+      
       const { error } = await supabase
         .from('key_results')
-        .update({
-          current_value: data.currentValue !== undefined ? data.currentValue : undefined,
-          boolean_value: data.booleanValue !== undefined ? data.booleanValue : undefined,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', id);
       
       if (error) {
