@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Info, Check, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Info, Check, ChevronDown, User, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -42,6 +43,9 @@ import { EditObjectiveForm } from '@/components/okr/objectives/EditObjectiveForm
 import { KeyResultsList } from '@/components/okr/key-results/KeyResultsList';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { ObjectiveAlignmentManager } from '@/components/okr/alignments/ObjectiveAlignmentManager';
+import { useKeyResults } from '@/hooks/okr/useKeyResults';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -64,6 +68,27 @@ const UserObjectiveDetails = () => {
   const { 
     objective: objectiveWithRelations 
   } = useObjectiveWithRelations(id);
+
+  // Fetch key results
+  const { data: keyResults = [] } = useKeyResults(id);
+  
+  // Fetch creator info
+  const { data: creatorInfo } = useQuery({
+    queryKey: ['user', objective?.ownerId],
+    queryFn: async () => {
+      if (!objective?.ownerId) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', objective.ownerId)
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!objective?.ownerId
+  });
   
   const isOwner = objective && userId === objective.ownerId;
   const canEdit = isOwner || isAdmin;
@@ -100,6 +125,12 @@ const UserObjectiveDetails = () => {
   const handleBack = () => {
     navigate('/user/okrs/objectives');
   };
+  
+  const creatorName = creatorInfo 
+    ? `${creatorInfo.first_name || ''} ${creatorInfo.last_name || ''}`.trim() 
+    : 'Loading...';
+
+  const completedKeyResults = keyResults.filter(kr => kr.status === 'completed').length;
   
   if (isLoading) {
     return (
@@ -169,6 +200,10 @@ const UserObjectiveDetails = () => {
               {objective.description && (
                 <CardDescription className="mt-2">{objective.description}</CardDescription>
               )}
+              <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                <User className="h-3 w-3 mr-1" /> 
+                <span>Created by: {creatorName}</span>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {canEdit ? (
@@ -253,6 +288,14 @@ const UserObjectiveDetails = () => {
                         </Badge>
                       </dd>
                     </div>
+                    <div className="flex justify-between py-1 border-b">
+                      <dt className="font-medium">Key Results</dt>
+                      <dd className="text-right">
+                        <Badge variant="outline" className="bg-blue-50">
+                          {completedKeyResults} / {keyResults.length} completed
+                        </Badge>
+                      </dd>
+                    </div>
                   </dl>
                 </div>
                 
@@ -280,6 +323,42 @@ const UserObjectiveDetails = () => {
                   </dl>
                 </div>
               </div>
+
+              {keyResults.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Key Results Summary</h3>
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    {keyResults.map(kr => (
+                      <div key={kr.id} className="flex justify-between py-2 border-b items-center">
+                        <div className="flex items-center space-x-2">
+                          <Target className="h-4 w-4 text-gray-500" />
+                          <span>{kr.title}</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <div className="flex items-center">
+                            <div className="w-24 bg-muted rounded-full h-2 mr-2">
+                              <div 
+                                className={`rounded-full h-2 ${
+                                  kr.status === 'completed' 
+                                    ? 'bg-green-500' 
+                                    : kr.status === 'at_risk' 
+                                    ? 'bg-red-500' 
+                                    : 'bg-blue-500'
+                                }`}
+                                style={{ width: `${kr.progress || 0}%` }}
+                              />
+                            </div>
+                            <span>{kr.progress?.toFixed(0) || 0}%</span>
+                          </div>
+                          <Badge variant="outline" className={kr.status === 'completed' ? 'bg-green-50 text-green-700' : ''}>
+                            {kr.status.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </TabsContent>
           

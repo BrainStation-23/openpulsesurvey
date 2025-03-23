@@ -4,7 +4,7 @@ import { KeyResult, KeyResultStatus } from '@/types/okr';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, User } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -15,6 +15,8 @@ import { KeyResultStatusControls } from './KeyResultStatusControls';
 import { KeyResultDialogs } from './KeyResultDialogs';
 import { getProgressBarColor, getProgressDisplay } from './utils/progressBarUtils';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface KeyResultItemProps {
   keyResult: KeyResult;
@@ -33,6 +35,21 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     deleteKeyResult,
     isDeleting
   } = useKeyResult(keyResult.id);
+
+  // Fetch owner information
+  const { data: ownerInfo } = useQuery({
+    queryKey: ['user', keyResult.ownerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', keyResult.ownerId)
+        .single();
+        
+      if (error) throw error;
+      return data;
+    }
+  });
 
   // Effect to handle automatic status updates based on progress
   useEffect(() => {
@@ -89,6 +106,10 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     });
   };
 
+  const ownerName = ownerInfo 
+    ? `${ownerInfo.first_name || ''} ${ownerInfo.last_name || ''}`.trim() 
+    : 'Loading...';
+
   return (
     <Card className="mb-4">
       <CardHeader className="pb-3">
@@ -130,6 +151,10 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
                 </TooltipProvider>
               </div>
             )}
+          </div>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <User className="h-3 w-3 mr-1" /> 
+            <span>Owner: {ownerName}</span>
           </div>
           <Separator className="my-1" />
         </div>
