@@ -113,7 +113,7 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>Create Alignment</DialogTitle>
           <DialogDescription>
@@ -146,18 +146,33 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
             </Button>
           </div>
           
+          {selectedObjective && (
+            <div className="bg-accent/50 p-3 rounded-md">
+              <p className="text-sm font-medium">Selected objective:</p>
+              <p className="text-base">{selectedObjective.title}</p>
+              {selectedObjective.description && (
+                <p className="text-sm text-muted-foreground mt-1 truncate">
+                  {selectedObjective.description}
+                </p>
+              )}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="mt-2" 
+                onClick={() => setSelectedObjective(null)}
+              >
+                Clear selection
+              </Button>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <label className="text-sm font-medium">Select an objective:</label>
             <ObjectiveSearchInput 
               currentObjectiveId={sourceObjectiveId}
               onSelect={handleSelectObjective}
-              placeholder={selectedObjective?.title || "Search for objectives..."}
+              placeholder="Search for objectives..."
             />
-            {selectedObjective && (
-              <p className="text-sm text-muted-foreground">
-                Selected: {selectedObjective.title}
-              </p>
-            )}
           </div>
         </div>
         

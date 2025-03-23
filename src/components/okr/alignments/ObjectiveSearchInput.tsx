@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Objective } from '@/types/okr';
 import { useObjectives } from '@/hooks/okr/useObjectives';
@@ -23,7 +24,6 @@ export const ObjectiveSearchInput = ({
   placeholder = 'Search objectives...',
   className
 }: ObjectiveSearchInputProps) => {
-  const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { objectives, isLoading } = useObjectives();
   const [filteredObjectives, setFilteredObjectives] = useState<Objective[]>([]);
@@ -73,70 +73,69 @@ export const ObjectiveSearchInput = ({
   }, [objectives, currentObjectiveId, searchQuery]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn("w-full justify-between", className)}
-        >
-          {placeholder}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0">
-        <Command>
-          <div className="flex items-center border-b px-3">
-            <Search className="mr-2 h-4 w-4 shrink-0 opacity-70" />
-            <CommandInput 
-              placeholder={placeholder} 
-              onValueChange={setSearchQuery}
-              className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-            />
+    <div className={cn("space-y-4", className)}>
+      <div className="relative">
+        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder={placeholder}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-8"
+        />
+      </div>
+      
+      <div className="border rounded-md">
+        {isLoading ? (
+          <div className="py-8 text-center">
+            <LoadingSpinner className="mx-auto" />
+            <p className="text-sm text-muted-foreground mt-2">Loading objectives...</p>
           </div>
-          {isLoading ? (
-            <div className="py-6 text-center">
-              <LoadingSpinner className="mx-auto" />
-              <p className="text-sm text-muted-foreground mt-2">Loading objectives...</p>
+        ) : filteredObjectives.length > 0 ? (
+          <ScrollArea className="h-72">
+            <div className="p-2 grid gap-2">
+              {filteredObjectives.map((objective) => (
+                <ObjectiveCard 
+                  key={objective.id} 
+                  objective={objective} 
+                  onSelect={onSelect}
+                />
+              ))}
             </div>
-          ) : (
-            <>
-              <CommandEmpty>No objectives found.</CommandEmpty>
-              <CommandGroup>
-                <ScrollArea className="h-72">
-                  {filteredObjectives && filteredObjectives.length > 0 ? (
-                    filteredObjectives.map((objective) => (
-                      <CommandItem
-                        key={objective.id}
-                        value={objective.id}
-                        onSelect={() => {
-                          onSelect(objective);
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className="mr-2 h-4 w-4 opacity-0"
-                        />
-                        <div className="flex flex-col">
-                          <span>{objective.title}</span>
-                          <span className="text-xs text-muted-foreground truncate max-w-[300px]">
-                            {objective.description || 'No description'}
-                          </span>
-                        </div>
-                      </CommandItem>
-                    ))
-                  ) : (
-                    <div className="py-6 text-center">
-                      <p className="text-sm text-muted-foreground">No matching objectives found.</p>
-                    </div>
-                  )}
-                </ScrollArea>
-              </CommandGroup>
-            </>
-          )}
-        </Command>
-      </PopoverContent>
-    </Popover>
+          </ScrollArea>
+        ) : (
+          <div className="py-8 text-center">
+            <p className="text-sm text-muted-foreground">No matching objectives found.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Extracted this as a separate component for clarity
+const ObjectiveCard = ({ objective, onSelect }: { objective: Objective, onSelect: (objective: Objective) => void }) => {
+  return (
+    <Card className="hover:bg-accent cursor-pointer transition-colors">
+      <CardContent className="p-3">
+        <div className="flex justify-between items-start">
+          <div className="space-y-1">
+            <h4 className="font-medium text-sm">{objective.title}</h4>
+            {objective.description && (
+              <p className="text-xs text-muted-foreground truncate max-w-[300px]">
+                {objective.description}
+              </p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Badge variant="outline" className="text-xs">
+              {objective.status.replace('_', ' ')}
+            </Badge>
+            <Button size="sm" variant="secondary" onClick={() => onSelect(objective)}>
+              Select
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
