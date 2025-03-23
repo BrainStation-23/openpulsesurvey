@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, ChevronDown, Info } from 'lucide-react';
@@ -87,7 +88,7 @@ export const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({
                 )}
               </Button>
             ) : (
-              <div className="w-5 h-5"></div> {/* Spacer for leaf nodes */}
+              <div className="w-5 h-5"></div> /* Spacer for leaf nodes */
             )}
           </div>
           
