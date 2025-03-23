@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Info, Check, ChevronDown } from 'lucide-react';
@@ -172,8 +171,8 @@ const UserObjectiveDetails = () => {
               )}
             </div>
             <div className="flex items-center gap-2">
-              {canEdit && (
-                <>
+              {canEdit ? (
+                <div className="flex items-center gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="flex items-center gap-2">
@@ -209,9 +208,8 @@ const UserObjectiveDetails = () => {
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
                   </Button>
-                </>
-              )}
-              {!canEdit && (
+                </div>
+              ) : (
                 <ObjectiveStatusBadge status={objective.status} className="ml-2" />
               )}
             </div>
@@ -220,14 +218,15 @@ const UserObjectiveDetails = () => {
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="px-6">
-            <TabsList className="grid grid-cols-2 w-64">
+            <TabsList className="grid grid-cols-3 w-80">
               <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="key-results">Key Results</TabsTrigger>
               <TabsTrigger value="alignments">Alignments</TabsTrigger>
             </TabsList>
           </div>
           
           <TabsContent value="details" className="mt-0">
-            <CardContent className="space-y-6">
+            <CardContent className="pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">Details</h3>
@@ -281,19 +280,21 @@ const UserObjectiveDetails = () => {
                   </dl>
                 </div>
               </div>
-              
-              <Separator className="my-6" />
-              
+            </CardContent>
+          </TabsContent>
+          
+          <TabsContent value="key-results" className="mt-0">
+            <CardContent className="pt-6">
               {id && <KeyResultsList objectiveId={id} />}
             </CardContent>
           </TabsContent>
           
           <TabsContent value="alignments" className="mt-0">
             {objectiveWithRelations && (
-              <CardContent>
+              <CardContent className="pt-6">
                 <ObjectiveAlignmentManager
                   objective={objectiveWithRelations}
-                  isAdmin={false}
+                  isAdmin={isAdmin}
                   canEdit={canEdit}
                 />
               </CardContent>

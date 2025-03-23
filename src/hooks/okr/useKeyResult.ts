@@ -86,9 +86,11 @@ export const useKeyResult = (id?: string) => {
 
       return convertKeyResult(data);
     },
-    onSuccess: () => {
+    onSuccess: (createdKeyResult) => {
+      // The objective progress is automatically updated by the database trigger
       queryClient.invalidateQueries({ queryKey: ['keyResults'] });
-      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      queryClient.invalidateQueries({ queryKey: ['objective', createdKeyResult.objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', createdKeyResult.objectiveId] });
       toast({
         title: 'Success',
         description: 'Key result created successfully',
@@ -121,10 +123,12 @@ export const useKeyResult = (id?: string) => {
 
       return convertKeyResult(data);
     },
-    onSuccess: () => {
+    onSuccess: (updatedKeyResult) => {
+      // The objective progress is automatically updated by the database trigger
       queryClient.invalidateQueries({ queryKey: ['keyResult', id] });
       queryClient.invalidateQueries({ queryKey: ['keyResults'] });
-      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      queryClient.invalidateQueries({ queryKey: ['objective', updatedKeyResult.objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', updatedKeyResult.objectiveId] });
       toast({
         title: 'Success',
         description: 'Key result status updated successfully',
@@ -172,24 +176,14 @@ export const useKeyResult = (id?: string) => {
         throw error;
       }
 
-      // Manually recalculate objective progress in case triggers fail
-      try {
-        const { error: recalcError } = await supabase.rpc('recalculate_all_objective_progress');
-        if (recalcError) {
-          console.error('Error recalculating objective progress:', recalcError);
-        } else {
-          console.log('Successfully recalculated all objective progress');
-        }
-      } catch (recalcErr) {
-        console.error('Failed to call recalculate_all_objective_progress:', recalcErr);
-      }
-
+      // No need to manually recalculate objective progress - the trigger handles it
       return convertKeyResult(data);
     },
-    onSuccess: () => {
+    onSuccess: (updatedKeyResult) => {
       queryClient.invalidateQueries({ queryKey: ['keyResult', id] });
       queryClient.invalidateQueries({ queryKey: ['keyResults'] });
-      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      queryClient.invalidateQueries({ queryKey: ['objective', updatedKeyResult.objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', updatedKeyResult.objectiveId] });
       toast({
         title: 'Success',
         description: 'Key result updated successfully',
@@ -233,30 +227,14 @@ export const useKeyResult = (id?: string) => {
         throw error;
       }
 
-      // Get the objective ID to manually refresh it
-      const keyResult = convertKeyResult(data);
-      
-      // Log the key result after update
-      console.log('Key result after update:', keyResult);
-      
-      // Manually update the objective progress
-      try {
-        const { error: recalcError } = await supabase.rpc('recalculate_all_objective_progress');
-        if (recalcError) {
-          console.error('Error recalculating objective progress:', recalcError);
-        } else {
-          console.log('Successfully recalculated all objective progress');
-        }
-      } catch (recalcErr) {
-        console.error('Failed to call recalculate_all_objective_progress:', recalcErr);
-      }
-
+      // Get the resulting key result with the updated data
       return convertKeyResult(data);
     },
-    onSuccess: () => {
+    onSuccess: (updatedKeyResult) => {
       queryClient.invalidateQueries({ queryKey: ['keyResult', id] });
       queryClient.invalidateQueries({ queryKey: ['keyResults'] });
-      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      queryClient.invalidateQueries({ queryKey: ['objective', updatedKeyResult.objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', updatedKeyResult.objectiveId] });
       toast({
         title: 'Success',
         description: 'Progress updated successfully',
@@ -277,6 +255,20 @@ export const useKeyResult = (id?: string) => {
       
       setIsDeleting(true);
       
+      // Get the objectiveId before deletion to invalidate related queries
+      const { data: keyResultData, error: fetchError } = await supabase
+        .from('key_results')
+        .select('objective_id')
+        .eq('id', id)
+        .single();
+        
+      if (fetchError) {
+        console.error('Error fetching key result before deletion:', fetchError);
+        throw fetchError;
+      }
+      
+      const objectiveId = keyResultData.objective_id;
+      
       const { error } = await supabase
         .from('key_results')
         .delete()
@@ -287,11 +279,13 @@ export const useKeyResult = (id?: string) => {
         throw error;
       }
       
-      return id;
+      return { id, objectiveId };
     },
-    onSuccess: () => {
+    onSuccess: ({ objectiveId }) => {
+      // The database trigger will handle updating the objective progress
       queryClient.invalidateQueries({ queryKey: ['keyResults'] });
-      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      queryClient.invalidateQueries({ queryKey: ['objective', objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', objectiveId] });
       toast({
         title: 'Success',
         description: 'Key result deleted successfully',
