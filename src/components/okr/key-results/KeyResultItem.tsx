@@ -38,17 +38,17 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
   useEffect(() => {
     if (keyResult.progress === 100 && keyResult.status !== 'completed') {
       console.log('Auto-updating key result status to completed due to 100% progress');
-      updateStatus.mutate({ status: 'completed' });
+      updateStatus.mutate('completed');
     } else if (keyResult.progress > 0 && keyResult.status === 'not_started') {
       console.log('Auto-updating key result status to in_progress due to progress > 0');
-      updateStatus.mutate({ status: 'in_progress' });
+      updateStatus.mutate('in_progress');
     }
   }, [keyResult.progress, keyResult.status]);
 
   const handleStatusUpdate = (status: KeyResultStatus) => {
     if (!canEdit) return;
     console.log('Updating key result status:', { id: keyResult.id, status });
-    updateStatus.mutate({ status });
+    updateStatus.mutate(status);
   };
 
   const handleProgressUpdate = (progressValue: number) => {

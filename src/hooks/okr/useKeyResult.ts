@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { KeyResult, UpdateKeyResultInput, KeyResultStatus } from '@/types/okr';
+import { KeyResult, UpdateKeyResultInput, KeyResultStatus, CreateKeyResultInput } from '@/types/okr';
 import { useToast } from '@/hooks/use-toast';
 
 export const useKeyResult = (id?: string) => {
@@ -62,7 +62,7 @@ export const useKeyResult = (id?: string) => {
         .from('key_results')
         .update({ 
           status, 
-          updated_at: new Date() 
+          updated_at: new Date().toISOString() 
         })
         .eq('id', id)
         .select();
@@ -92,6 +92,43 @@ export const useKeyResult = (id?: string) => {
     }
   });
 
+  // Update key result progress (current value or boolean value)
+  const updateProgress = useMutation({
+    mutationFn: async (data: { currentValue?: number; booleanValue?: boolean }) => {
+      if (!id) throw new Error('Key Result ID is required');
+      
+      const { error } = await supabase
+        .from('key_results')
+        .update({
+          current_value: data.currentValue !== undefined ? data.currentValue : undefined,
+          boolean_value: data.booleanValue !== undefined ? data.booleanValue : undefined,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['key-result', id] });
+      queryClient.invalidateQueries({ queryKey: ['key-results'] });
+      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      
+      toast({
+        title: 'Progress updated',
+        description: 'The key result progress has been updated.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error updating progress',
+        description: error.message,
+      });
+    }
+  });
+
   // Update key result
   const updateKeyResult = useMutation({
     mutationFn: async (data: UpdateKeyResultInput) => {
@@ -112,7 +149,7 @@ export const useKeyResult = (id?: string) => {
           boolean_value: data.booleanValue,
           weight: data.weight || 1,
           status: data.status,
-          updated_at: new Date()
+          updated_at: new Date().toISOString()
         })
         .eq('id', id);
       
@@ -174,13 +211,58 @@ export const useKeyResult = (id?: string) => {
     }
   });
 
+  // Create key result
+  const createKeyResult = useMutation({
+    mutationFn: async (data: CreateKeyResultInput) => {
+      const { error } = await supabase
+        .from('key_results')
+        .insert({
+          title: data.title,
+          description: data.description,
+          objective_id: data.objectiveId,
+          owner_id: data.ownerId,
+          kr_type: data.krType,
+          measurement_type: data.measurementType,
+          unit: data.unit,
+          start_value: data.startValue || 0,
+          current_value: data.currentValue || 0,
+          target_value: data.targetValue,
+          boolean_value: data.booleanValue,
+          weight: data.weight || 1,
+          status: data.status || 'not_started',
+        });
+      
+      if (error) {
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['key-results'] });
+      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      
+      toast({
+        title: 'Key result created',
+        description: 'The new key result has been created successfully.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error creating key result',
+        description: error.message,
+      });
+    }
+  });
+
   return {
     keyResult,
     isLoading,
     error,
     updateStatus,
+    updateProgress,
     updateKeyResult,
     deleteKeyResult,
-    isDeleting
+    isDeleting,
+    createKeyResult
   };
 };
