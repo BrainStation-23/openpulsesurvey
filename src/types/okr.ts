@@ -27,7 +27,7 @@ export interface UpdateOKRCycleInput extends Partial<CreateOKRCycleInput> {
 export type ObjectiveStatus = 'draft' | 'in_progress' | 'at_risk' | 'on_track' | 'completed';
 export type ObjectiveVisibility = 'team' | 'organization' | 'private' | 'department';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'requested_changes';
-export type AlignmentType = 'parent_child' | 'supporting' | 'related';
+export type AlignmentType = 'parent_child'; // Simplified to only parent_child
 
 export interface Objective {
   id: string;

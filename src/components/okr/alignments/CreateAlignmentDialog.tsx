@@ -24,16 +24,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Objective, AlignmentType, CreateAlignmentInput } from '@/types/okr';
-import { useObjectives } from '@/hooks/okr/useObjectives';
 import { useAlignments } from '@/hooks/okr/useAlignments';
+import { ObjectiveSearchInput } from './ObjectiveSearchInput';
 
 const alignmentFormSchema = z.object({
-  alignedObjectiveId: z.string().min(1, "Please select an objective"),
-  alignmentType: z.enum(['parent_child', 'supporting', 'related']),
+  alignmentType: z.enum(['parent_child']),
   weight: z.number().min(1).max(10).default(1),
 });
 
@@ -50,39 +51,57 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
   sourceObjectiveId,
   onSuccess
 }) => {
-  const { objectives, isLoading } = useObjectives();
   const { createAlignment } = useAlignments(sourceObjectiveId);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedObjective, setSelectedObjective] = useState<Objective | null>(null);
+  const [relationDirection, setRelationDirection] = useState<'parent' | 'child'>('parent');
   
   const form = useForm<z.infer<typeof alignmentFormSchema>>({
     resolver: zodResolver(alignmentFormSchema),
     defaultValues: {
-      alignmentType: 'supporting',
+      alignmentType: 'parent_child',
       weight: 1,
     },
   });
   
-  // Filter out the current objective from the list
-  const availableObjectives = (objectives || []).filter(obj => 
-    obj.id !== sourceObjectiveId
-  );
+  const handleSelectObjective = (objective: Objective) => {
+    setSelectedObjective(objective);
+  };
+
+  const toggleRelationDirection = () => {
+    setRelationDirection(prev => prev === 'parent' ? 'child' : 'parent');
+  };
 
   const onSubmit = async (values: z.infer<typeof alignmentFormSchema>) => {
-    if (!sourceObjectiveId) return;
+    if (!sourceObjectiveId || !selectedObjective) return;
     
     setIsSubmitting(true);
     
     try {
-      const alignmentData: CreateAlignmentInput = {
-        sourceObjectiveId,
-        alignedObjectiveId: values.alignedObjectiveId,
-        alignmentType: values.alignmentType as AlignmentType,
-        weight: values.weight,
-      };
+      let alignmentData: CreateAlignmentInput;
+      
+      if (relationDirection === 'parent') {
+        // Current objective will be the child, selected objective will be the parent
+        alignmentData = {
+          sourceObjectiveId: selectedObjective.id,
+          alignedObjectiveId: sourceObjectiveId,
+          alignmentType: 'parent_child',
+          weight: values.weight,
+        };
+      } else {
+        // Current objective will be the parent, selected objective will be the child
+        alignmentData = {
+          sourceObjectiveId: sourceObjectiveId,
+          alignedObjectiveId: selectedObjective.id,
+          alignmentType: 'parent_child',
+          weight: values.weight,
+        };
+      }
       
       await createAlignment.mutateAsync(alignmentData);
       
       form.reset();
+      setSelectedObjective(null);
       onOpenChange(false);
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -98,68 +117,52 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Create Alignment</DialogTitle>
           <DialogDescription>
-            Connect this objective with another one to establish alignment.
+            Connect this objective with another to establish a parent-child relationship.
           </DialogDescription>
         </DialogHeader>
         
+        <Alert variant="default" className="bg-blue-50">
+          <InfoIcon className="h-4 w-4" />
+          <AlertDescription>
+            {relationDirection === 'parent' 
+              ? "The selected objective will be the parent of your current objective."
+              : "Your current objective will be the parent of the selected objective."
+            }
+          </AlertDescription>
+        </Alert>
+        
+        <div className="space-y-4 py-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Relationship Direction:</span>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={toggleRelationDirection}
+            >
+              {relationDirection === 'parent' 
+                ? "Selected objective is parent" 
+                : "Selected objective is child"
+              }
+            </Button>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Select an objective:</label>
+            <ObjectiveSearchInput 
+              currentObjectiveId={sourceObjectiveId}
+              onSelect={handleSelectObjective}
+              placeholder={selectedObjective?.title || "Search for objectives..."}
+            />
+            {selectedObjective && (
+              <p className="text-sm text-muted-foreground">
+                Selected: {selectedObjective.title}
+              </p>
+            )}
+          </div>
+        </div>
+        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="alignedObjectiveId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Objective to Align With</FormLabel>
-                  <FormControl>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={isLoading || isSubmitting}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an objective" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableObjectives.map((objective) => (
-                          <SelectItem key={objective.id} value={objective.id}>
-                            {objective.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="alignmentType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Alignment Type</FormLabel>
-                  <FormControl>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      disabled={isSubmitting}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select alignment type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="parent_child">Parent/Child</SelectItem>
-                        <SelectItem value="supporting">Supporting</SelectItem>
-                        <SelectItem value="related">Related</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
             <FormField
               control={form.control}
               name="weight"
@@ -200,7 +203,7 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
               </Button>
               <Button 
                 type="submit" 
-                disabled={isSubmitting || isLoading}
+                disabled={isSubmitting || !selectedObjective}
               >
                 {isSubmitting ? "Creating..." : "Create Alignment"}
               </Button>

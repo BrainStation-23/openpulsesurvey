@@ -41,7 +41,8 @@ export const useAlignments = (objectiveId?: string) => {
             visibility
           )
         `)
-        .eq('source_objective_id', objectiveId);
+        .eq('source_objective_id', objectiveId)
+        .eq('alignment_type', 'parent_child');
       
       if (sourceError) {
         console.error('Error fetching source alignments:', sourceError);
@@ -70,14 +71,15 @@ export const useAlignments = (objectiveId?: string) => {
             visibility
           )
         `)
-        .eq('aligned_objective_id', objectiveId);
+        .eq('aligned_objective_id', objectiveId)
+        .eq('alignment_type', 'parent_child');
       
       if (targetError) {
         console.error('Error fetching target alignments:', targetError);
         throw targetError;
       }
       
-      // Transform source alignments
+      // Transform source alignments (this objective is parent, aligned objectives are children)
       const formattedSourceAlignments = sourceAlignments.map(alignment => ({
         id: alignment.id,
         sourceObjectiveId: alignment.source_objective_id,
@@ -101,7 +103,7 @@ export const useAlignments = (objectiveId?: string) => {
         } : undefined
       }));
       
-      // Transform target alignments
+      // Transform target alignments (this objective is child, source objectives are parents)
       const formattedTargetAlignments = targetAlignments.map(alignment => ({
         id: alignment.id,
         sourceObjectiveId: alignment.source_objective_id,
@@ -133,6 +135,14 @@ export const useAlignments = (objectiveId?: string) => {
   // Create a new alignment
   const createAlignment = useMutation({
     mutationFn: async (data: CreateAlignmentInput) => {
+      // First, check if the relationship would create a cycle
+      if (data.alignmentType === 'parent_child') {
+        const cycleCheck = await checkForCycles(data.sourceObjectiveId, data.alignedObjectiveId);
+        if (cycleCheck.wouldCreateCycle) {
+          throw new Error("This alignment would create a circular dependency in your objectives hierarchy.");
+        }
+      }
+      
       const { data: newAlignment, error } = await supabase
         .from('okr_alignments')
         .insert({
@@ -150,15 +160,23 @@ export const useAlignments = (objectiveId?: string) => {
         throw error;
       }
 
+      // For parent-child relationships, also update the parent_objective_id in the child objective
+      if (data.alignmentType === 'parent_child') {
+        const { error: updateError } = await supabase
+          .from('objectives')
+          .update({ parent_objective_id: data.sourceObjectiveId })
+          .eq('id', data.alignedObjectiveId);
+        
+        if (updateError) {
+          console.error('Error updating parent reference:', updateError);
+          throw updateError;
+        }
+      }
+
       return newAlignment;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['alignments', objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective-children', objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective-parent', objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective', objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective-alignments', objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', objectiveId] });
+      invalidateRelatedQueries(objectiveId);
       toast({
         title: 'Alignment created',
         description: 'The objectives have been aligned successfully.',
@@ -176,6 +194,19 @@ export const useAlignments = (objectiveId?: string) => {
   // Delete an alignment
   const deleteAlignment = useMutation({
     mutationFn: async (alignmentId: string) => {
+      // First, get alignment details to know what we're deleting
+      const { data: alignmentDetails, error: fetchError } = await supabase
+        .from('okr_alignments')
+        .select('*')
+        .eq('id', alignmentId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching alignment details:', fetchError);
+        throw fetchError;
+      }
+
+      // Delete the alignment
       const { error } = await supabase
         .from('okr_alignments')
         .delete()
@@ -186,15 +217,23 @@ export const useAlignments = (objectiveId?: string) => {
         throw error;
       }
 
+      // If it was a parent-child relationship, also update the parent_objective_id to null
+      if (alignmentDetails.alignment_type === 'parent_child') {
+        const { error: updateError } = await supabase
+          .from('objectives')
+          .update({ parent_objective_id: null })
+          .eq('id', alignmentDetails.aligned_objective_id);
+        
+        if (updateError) {
+          console.error('Error removing parent reference:', updateError);
+          throw updateError;
+        }
+      }
+
       return alignmentId;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['alignments', objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective-children', objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective-parent', objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective', objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective-alignments', objectiveId] });
-      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', objectiveId] });
+      invalidateRelatedQueries(objectiveId);
       toast({
         title: 'Alignment removed',
         description: 'The alignment has been removed successfully.',
@@ -208,6 +247,57 @@ export const useAlignments = (objectiveId?: string) => {
       });
     }
   });
+
+  // Helper function to check if an alignment would create a cycle
+  const checkForCycles = async (parentId: string, childId: string) => {
+    // Here we check if making childId a child of parentId would create a cycle
+    // This happens if parentId is already a descendant of childId
+    
+    // Helper function to get all descendant IDs of an objective
+    const getDescendantIds = async (id: string): Promise<string[]> => {
+      const { data, error } = await supabase
+        .from('objectives')
+        .select('id')
+        .eq('parent_objective_id', id);
+
+      if (error) {
+        console.error('Error fetching descendants:', error);
+        return [];
+      }
+
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      const childIds = data.map(obj => obj.id);
+      const nestedDescendants = await Promise.all(childIds.map(getDescendantIds));
+      return [...childIds, ...nestedDescendants.flat()];
+    };
+
+    // Get all descendants of the child ID
+    const descendants = await getDescendantIds(childId);
+    
+    // If the potential parent is among the descendants, we would create a cycle
+    return { 
+      wouldCreateCycle: descendants.includes(parentId) 
+    };
+  };
+
+  // Helper to invalidate all related queries
+  const invalidateRelatedQueries = (id?: string) => {
+    const queryClient = useQueryClient();
+    if (id) {
+      queryClient.invalidateQueries({ queryKey: ['alignments', id] });
+      queryClient.invalidateQueries({ queryKey: ['objective-children', id] });
+      queryClient.invalidateQueries({ queryKey: ['objective-parent', id] });
+      queryClient.invalidateQueries({ queryKey: ['objective', id] });
+      queryClient.invalidateQueries({ queryKey: ['objective-alignments', id] });
+      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', id] });
+      
+      // Also invalidate the objectives list to update the hierarchy everywhere
+      queryClient.invalidateQueries({ queryKey: ['objectives'] });
+    }
+  };
 
   return {
     alignments,

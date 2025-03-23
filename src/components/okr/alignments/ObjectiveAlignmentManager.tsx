@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlignedObjectivesView } from './AlignedObjectivesView';
 import { ObjectiveHierarchyView } from './ObjectiveHierarchyView';
 import { CreateAlignmentDialog } from './CreateAlignmentDialog';
 import { ObjectiveWithRelations } from '@/types/okr';
@@ -25,7 +24,7 @@ export const ObjectiveAlignmentManager: React.FC<ObjectiveAlignmentManagerProps>
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Objective Alignments</h3>
+        <h3 className="text-lg font-medium">Objective Hierarchy</h3>
         {canEdit && (
           <Button 
             onClick={() => setIsCreateDialogOpen(true)} 
@@ -37,28 +36,11 @@ export const ObjectiveAlignmentManager: React.FC<ObjectiveAlignmentManagerProps>
         )}
       </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 w-64">
-          <TabsTrigger value="hierarchy">Hierarchy</TabsTrigger>
-          <TabsTrigger value="aligned">Aligned Objectives</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="hierarchy" className="pt-4">
-          <ObjectiveHierarchyView 
-            objective={objective} 
-            isAdmin={isAdmin} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="aligned" className="pt-4">
-          <AlignedObjectivesView 
-            objectiveId={objective.id} 
-            isAdmin={isAdmin} 
-            canEdit={canEdit}
-          />
-        </TabsContent>
-      </Tabs>
-
+      <ObjectiveHierarchyView 
+        objective={objective} 
+        isAdmin={isAdmin} 
+      />
+      
       <CreateAlignmentDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
