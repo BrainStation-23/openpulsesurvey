@@ -2803,6 +2803,12 @@ export type Database = {
         }
         Returns: number
       }
+      calculate_objective_progress_for_single_objective: {
+        Args: {
+          objective_id: string
+        }
+        Returns: undefined
+      }
       calculate_progress: {
         Args: {
           p_measurement_type: string

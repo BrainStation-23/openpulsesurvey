@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CreateObjectiveInput } from '@/types/okr';
+import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
 
 interface CreateObjectiveFormProps {
   onSubmit: (data: CreateObjectiveInput) => void;
@@ -28,14 +29,27 @@ interface CreateObjectiveFormProps {
 }
 
 export const CreateObjectiveForm = ({ onSubmit, isSubmitting, cycleId }: CreateObjectiveFormProps) => {
+  const { cycles, isLoading: cyclesLoading } = useOKRCycles();
+  
   const form = useForm<CreateObjectiveInput>({
     defaultValues: {
       title: '',
       description: '',
-      cycleId,
+      cycleId: cycleId || '',
       visibility: 'team',
     },
   });
+
+  // Find the active cycle if cycleId is not provided
+  React.useEffect(() => {
+    if (!cycleId && cycles && cycles.length > 0 && !form.getValues('cycleId')) {
+      // Find an active cycle or take the first one
+      const activeCycle = cycles.find(c => c.status === 'active') || cycles[0];
+      if (activeCycle) {
+        form.setValue('cycleId', activeCycle.id);
+      }
+    }
+  }, [cycleId, cycles, form]);
 
   return (
     <Form {...form}>
@@ -67,6 +81,35 @@ export const CreateObjectiveForm = ({ onSubmit, isSubmitting, cycleId }: CreateO
                   rows={4}
                 />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="cycleId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>OKR Cycle</FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                value={field.value || ''}
+                disabled={cyclesLoading}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select OKR cycle" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {cycles?.map(cycle => (
+                    <SelectItem key={cycle.id} value={cycle.id}>
+                      {cycle.name} {cycle.status === 'active' ? '(Active)' : `(${cycle.status})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -13,10 +14,19 @@ import { useObjectives } from '@/hooks/okr/useObjectives';
 import { ObjectivesGrid } from '@/components/okr/objectives/ObjectivesGrid';
 import { CreateObjectiveForm } from '@/components/okr/objectives/CreateObjectiveForm';
 import { CreateObjectiveInput } from '@/types/okr';
+import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
 
 const UserObjectives = () => {
   const { objectives, isLoading, createObjective } = useObjectives();
+  const { cycles, isLoading: cyclesLoading } = useOKRCycles();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  // Get the most recent active cycle, or the first cycle if none are active
+  const defaultCycleId = React.useMemo(() => {
+    if (!cycles || cycles.length === 0) return "";
+    const activeCycle = cycles.find(c => c.status === 'active');
+    return activeCycle?.id || cycles[0].id;
+  }, [cycles]);
 
   const handleCreateObjective = (data: CreateObjectiveInput) => {
     createObjective.mutate(data, {
@@ -67,11 +77,14 @@ const UserObjectives = () => {
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Create New Objective</DialogTitle>
+            <DialogDescription>
+              Create a new objective in an active OKR cycle
+            </DialogDescription>
           </DialogHeader>
           <CreateObjectiveForm 
             onSubmit={handleCreateObjective} 
             isSubmitting={createObjective.isPending} 
-            cycleId=""
+            cycleId={defaultCycleId}
           />
         </DialogContent>
       </Dialog>
