@@ -275,11 +275,15 @@ export const useKeyResult = (id?: string) => {
     }
     
     // Invalidate the objectives list and related queries
-    queryClient.invalidateQueries({ queryKey: ['objective'] });
     queryClient.invalidateQueries({ queryKey: ['objectives'] });
     
     // Invalidate any objective with relations query that might exist
     queryClient.invalidateQueries({ queryKey: ['objective-with-relations'] });
+    
+    // Add more specific invalidations
+    queryClient.invalidateQueries({ queryKey: ['keyResults'] });
+    
+    console.log('Invalidated queries after key result update');
   };
 
   return {
