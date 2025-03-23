@@ -74,9 +74,8 @@ export const useKeyResult = (id?: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['key-result', id] });
-      queryClient.invalidateQueries({ queryKey: ['key-results'] });
-      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      // Invalidate all potentially affected queries
+      invalidateRelatedQueries();
       
       toast({
         title: 'Status updated',
@@ -119,9 +118,8 @@ export const useKeyResult = (id?: string) => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['key-result', id] });
-      queryClient.invalidateQueries({ queryKey: ['key-results'] });
-      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      // Invalidate all potentially affected queries
+      invalidateRelatedQueries();
       
       toast({
         title: 'Progress updated',
@@ -166,9 +164,8 @@ export const useKeyResult = (id?: string) => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['key-result', id] });
-      queryClient.invalidateQueries({ queryKey: ['key-results'] });
-      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      // Invalidate all potentially affected queries
+      invalidateRelatedQueries();
       
       toast({
         title: 'Key result updated',
@@ -200,6 +197,7 @@ export const useKeyResult = (id?: string) => {
       }
     },
     onSuccess: () => {
+      // Invalidate all potentially affected queries
       queryClient.invalidateQueries({ queryKey: ['key-results'] });
       queryClient.invalidateQueries({ queryKey: ['objective'] });
       
@@ -245,6 +243,7 @@ export const useKeyResult = (id?: string) => {
       }
     },
     onSuccess: () => {
+      // Invalidate all potentially affected queries
       queryClient.invalidateQueries({ queryKey: ['key-results'] });
       queryClient.invalidateQueries({ queryKey: ['objective'] });
       
@@ -261,6 +260,27 @@ export const useKeyResult = (id?: string) => {
       });
     }
   });
+
+  // Helper function to invalidate all related queries consistently
+  const invalidateRelatedQueries = () => {
+    // Invalidate the specific key result
+    queryClient.invalidateQueries({ queryKey: ['key-result', id] });
+    
+    // Invalidate the key results list
+    queryClient.invalidateQueries({ queryKey: ['key-results'] });
+    
+    // Invalidate related objective data
+    if (keyResult?.objectiveId) {
+      queryClient.invalidateQueries({ queryKey: ['objective', keyResult.objectiveId] });
+    }
+    
+    // Invalidate the objectives list and related queries
+    queryClient.invalidateQueries({ queryKey: ['objective'] });
+    queryClient.invalidateQueries({ queryKey: ['objectives'] });
+    
+    // Invalidate any objective with relations query that might exist
+    queryClient.invalidateQueries({ queryKey: ['objective-with-relations'] });
+  };
 
   return {
     keyResult,
