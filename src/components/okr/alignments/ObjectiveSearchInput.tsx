@@ -30,7 +30,10 @@ export const ObjectiveSearchInput = ({
   
   // Filter objectives to prevent cyclic relationships and self-selection
   useEffect(() => {
-    if (!objectives) return;
+    if (!objectives || !objectives.length) {
+      setFilteredObjectives([]);
+      return;
+    }
     
     // Get all objectives except:
     // 1. The current objective itself
@@ -102,26 +105,32 @@ export const ObjectiveSearchInput = ({
               <CommandEmpty>No objectives found.</CommandEmpty>
               <CommandGroup>
                 <ScrollArea className="h-72">
-                  {filteredObjectives.map((objective) => (
-                    <CommandItem
-                      key={objective.id}
-                      value={objective.id}
-                      onSelect={() => {
-                        onSelect(objective);
-                        setOpen(false);
-                      }}
-                    >
-                      <Check
-                        className="mr-2 h-4 w-4 opacity-0"
-                      />
-                      <div className="flex flex-col">
-                        <span>{objective.title}</span>
-                        <span className="text-xs text-muted-foreground truncate max-w-[300px]">
-                          {objective.description || 'No description'}
-                        </span>
-                      </div>
-                    </CommandItem>
-                  ))}
+                  {filteredObjectives && filteredObjectives.length > 0 ? (
+                    filteredObjectives.map((objective) => (
+                      <CommandItem
+                        key={objective.id}
+                        value={objective.id}
+                        onSelect={() => {
+                          onSelect(objective);
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className="mr-2 h-4 w-4 opacity-0"
+                        />
+                        <div className="flex flex-col">
+                          <span>{objective.title}</span>
+                          <span className="text-xs text-muted-foreground truncate max-w-[300px]">
+                            {objective.description || 'No description'}
+                          </span>
+                        </div>
+                      </CommandItem>
+                    ))
+                  ) : (
+                    <div className="py-6 text-center">
+                      <p className="text-sm text-muted-foreground">No matching objectives found.</p>
+                    </div>
+                  )}
                 </ScrollArea>
               </CommandGroup>
             </>
