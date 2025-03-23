@@ -1,8 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ObjectiveHierarchyView } from './ObjectiveHierarchyView';
+import { ObjectiveTreeView } from './ObjectiveTreeView';
 import { CreateAlignmentDialog } from './CreateAlignmentDialog';
 import { ObjectiveWithRelations } from '@/types/okr';
 import { Plus } from 'lucide-react';
@@ -19,7 +18,6 @@ export const ObjectiveAlignmentManager: React.FC<ObjectiveAlignmentManagerProps>
   canEdit = false
 }) => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("hierarchy");
 
   return (
     <div className="space-y-4">
@@ -36,7 +34,7 @@ export const ObjectiveAlignmentManager: React.FC<ObjectiveAlignmentManagerProps>
         )}
       </div>
       
-      <ObjectiveHierarchyView 
+      <ObjectiveTreeView 
         objective={objective} 
         isAdmin={isAdmin} 
       />
