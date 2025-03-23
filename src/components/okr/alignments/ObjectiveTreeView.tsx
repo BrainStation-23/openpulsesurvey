@@ -32,6 +32,7 @@ interface ObjectiveNodeProps {
   showDeleteButton?: boolean;
   onDelete?: () => void;
   children?: React.ReactNode;
+  isLastChild?: boolean;
 }
 
 const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({ 
@@ -43,10 +44,11 @@ const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({
   canEdit = false,
   showDeleteButton = false,
   onDelete,
-  children
+  children,
+  isLastChild = false
 }) => {
   const basePath = isAdmin ? '/admin' : '/user';
-  const indentSize = level * 20; // 20px indentation per level
+  const indentSize = 20; // 20px indentation per level
   
   // Fetch owner info
   const { data: ownerInfo } = useQuery({
@@ -71,13 +73,37 @@ const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({
     : '';
 
   return (
-    <div>
+    <div className="relative">
       <div 
         className="flex items-start my-1 p-2 rounded-md hover:bg-muted/30 transition-colors relative"
-        style={{ marginLeft: `${indentSize}px` }}
+        style={{ marginLeft: `${level * indentSize}px` }}
       >
+        {/* Tree structure lines */}
+        {level > 0 && (
+          <div 
+            className="absolute border-l-2 border-gray-300" 
+            style={{ 
+              left: `${(level * indentSize) - 10}px`,
+              top: 0,
+              height: isLastChild ? '50%' : '100%',
+              bottom: isLastChild ? 'auto' : 0
+            }}
+          />
+        )}
+        
+        {level > 0 && (
+          <div 
+            className="absolute border-t-2 border-gray-300" 
+            style={{ 
+              left: `${(level * indentSize) - 10}px`,
+              width: '10px',
+              top: '50%'
+            }}
+          />
+        )}
+        
         {children && (
-          <div className="mr-1 mt-1 cursor-pointer" onClick={onToggle}>
+          <div className="mr-1 mt-1 cursor-pointer z-10" onClick={onToggle}>
             {isExpanded ? (
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             ) : (
@@ -86,7 +112,7 @@ const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({
           </div>
         )}
         
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 z-10">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <Link 
@@ -244,8 +270,9 @@ export const ObjectiveTreeView: React.FC<ObjectiveTreeViewProps> = ({
             onToggle={() => toggleNode(objective.id)}
             isAdmin={isAdmin}
             canEdit={canEdit}
+            isLastChild={!hasChildren}
           >
-            {hasChildren && childAlignments.map(alignment => (
+            {hasChildren && childAlignments.map((alignment, index) => (
               alignment.alignedObjective && (
                 <ObjectiveNode 
                   key={alignment.alignedObjectiveId}
@@ -257,6 +284,7 @@ export const ObjectiveTreeView: React.FC<ObjectiveTreeViewProps> = ({
                   canEdit={canEdit}
                   showDeleteButton={true}
                   onDelete={() => handleDeleteAlignment(alignment.id)}
+                  isLastChild={index === childAlignments.length - 1}
                 />
               )
             ))}
@@ -275,7 +303,7 @@ export const ObjectiveTreeView: React.FC<ObjectiveTreeViewProps> = ({
         isAdmin={isAdmin}
         canEdit={canEdit}
       >
-        {hasChildren && childAlignments.map(alignment => (
+        {hasChildren && childAlignments.map((alignment, index) => (
           alignment.alignedObjective && (
             <ObjectiveNode 
               key={alignment.alignedObjectiveId}
@@ -287,6 +315,7 @@ export const ObjectiveTreeView: React.FC<ObjectiveTreeViewProps> = ({
               canEdit={canEdit}
               showDeleteButton={true}
               onDelete={() => handleDeleteAlignment(alignment.id)}
+              isLastChild={index === childAlignments.length - 1}
             />
           )
         ))}
@@ -298,7 +327,9 @@ export const ObjectiveTreeView: React.FC<ObjectiveTreeViewProps> = ({
     <Card>
       <CardContent className="p-4">
         <div className="text-sm font-medium text-muted-foreground mb-3">Objective Hierarchy</div>
-        {renderObjectiveTree()}
+        <div className="tree-view-container">
+          {renderObjectiveTree()}
+        </div>
       </CardContent>
     </Card>
   );
