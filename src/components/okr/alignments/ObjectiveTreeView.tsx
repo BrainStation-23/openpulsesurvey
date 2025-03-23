@@ -124,10 +124,10 @@ export const ObjectiveTreeView: React.FC<ObjectiveTreeViewProps> = ({
   };
 
   return (
-    <Card>
+    <Card className="shadow-sm">
       <CardContent className="p-4">
         <div className="text-sm font-medium text-muted-foreground mb-3">Objective Hierarchy</div>
-        <div className="tree-view-container">
+        <div className="tree-view-container overflow-x-auto">
           {renderObjectiveTree()}
         </div>
       </CardContent>

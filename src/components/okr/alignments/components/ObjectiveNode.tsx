@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, ChevronDown, Trash2, User } from 'lucide-react';
+import { ChevronRight, ChevronDown, Trash2, User, Info } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ObjectiveStatusBadge } from '@/components/okr/objectives/ObjectiveStatusBadge';
 import { Objective } from '@/types/okr';
@@ -18,6 +18,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ObjectiveNodeProps {
   objective: Objective;
@@ -45,7 +51,7 @@ export const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({
   isLastChild = false
 }) => {
   const basePath = isAdmin ? '/admin' : '/user';
-  const indentSize = 20; // 20px indentation per level
+  const indentSize = 24; // Slightly larger indentation per level
   
   // Fetch owner info
   const { data: ownerInfo } = useQuery({
@@ -72,7 +78,7 @@ export const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({
   return (
     <div className="relative">
       <div 
-        className="flex items-start my-1 p-2 rounded-md hover:bg-muted/30 transition-colors relative"
+        className="flex items-start my-2 p-2 rounded-md hover:bg-muted/50 transition-colors relative"
         style={{ marginLeft: `${level * indentSize}px` }}
       >
         {/* Tree structure lines */}
@@ -80,7 +86,7 @@ export const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({
           <div 
             className="absolute border-l-2 border-gray-300" 
             style={{ 
-              left: `${(level * indentSize) - 10}px`,
+              left: `${(level * indentSize) - (indentSize/2)}px`,
               top: 0,
               height: isLastChild ? '50%' : '100%',
               bottom: isLastChild ? 'auto' : 0
@@ -92,42 +98,74 @@ export const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({
           <div 
             className="absolute border-t-2 border-gray-300" 
             style={{ 
-              left: `${(level * indentSize) - 10}px`,
-              width: '10px',
+              left: `${(level * indentSize) - (indentSize/2)}px`,
+              width: `${indentSize/2}px`,
               top: '50%'
             }}
           />
         )}
         
-        {children && (
-          <div className="mr-1 mt-1 cursor-pointer z-10" onClick={onToggle}>
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </div>
-        )}
+        <div className="mr-2 mt-1 cursor-pointer flex-shrink-0 z-10">
+          {children ? (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-5 w-5 p-0" 
+              onClick={onToggle}
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </Button>
+          ) : (
+            <div className="w-5 h-5"></div> {/* Spacer for leaf nodes */}
+          )}
+        </div>
         
         <div className="flex-1 min-w-0 z-10">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <Link 
-                to={`${basePath}/okrs/objectives/${objective.id}`} 
-                className="font-medium hover:underline text-sm block truncate"
-              >
-                {objective.title}
-              </Link>
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link 
+                      to={`${basePath}/okrs/objectives/${objective.id}`} 
+                      className="font-medium hover:underline text-sm block truncate"
+                    >
+                      {objective.title}
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="max-w-xs">
+                      <p className="font-semibold mb-1">{objective.title}</p>
+                      {objective.description && (
+                        <p className="text-xs text-muted-foreground">{objective.description}</p>
+                      )}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               
               <div className="flex items-center mt-1 text-xs space-x-2">
                 <ObjectiveStatusBadge status={objective.status} className="text-xs h-5 px-1.5" />
                 <span className="text-muted-foreground">{Math.round(objective.progress)}%</span>
                 
                 {ownerName && (
-                  <div className="flex items-center text-muted-foreground gap-1">
-                    <User className="h-3 w-3" />
-                    <span className="truncate max-w-[120px]">{ownerName}</span>
-                  </div>
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center text-muted-foreground gap-1">
+                          <User className="h-3 w-3" />
+                          <span className="truncate max-w-[120px]">{ownerName}</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Owner: {ownerName}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
               </div>
             </div>
