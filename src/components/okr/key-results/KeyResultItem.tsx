@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { KeyResult, KeyResultStatus } from '@/types/okr';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,7 +35,6 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     isDeleting
   } = useKeyResult(keyResult.id);
 
-  // Fetch owner information
   const { data: ownerInfo } = useQuery({
     queryKey: ['user', keyResult.ownerId],
     queryFn: async () => {
@@ -51,7 +49,6 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     }
   });
 
-  // Effect to handle automatic status updates based on progress
   useEffect(() => {
     if (keyResult.progress === 100 && keyResult.status !== 'completed') {
       console.log('Auto-updating key result status to completed due to 100% progress');
@@ -64,8 +61,22 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
 
   const handleStatusUpdate = (status: KeyResultStatus) => {
     if (!canEdit) return;
-    console.log('Updating key result status:', { id: keyResult.id, status });
-    updateStatus.mutate(status);
+    
+    if (status === 'completed' && keyResult.measurementType !== 'boolean') {
+      console.log('Marking key result as completed and setting current value to target', {
+        id: keyResult.id,
+        currentValue: keyResult.targetValue
+      });
+      
+      updateProgress.mutate({ currentValue: keyResult.targetValue }, {
+        onSuccess: () => {
+          updateStatus.mutate(status);
+        }
+      });
+    } else {
+      console.log('Updating key result status:', { id: keyResult.id, status });
+      updateStatus.mutate(status);
+    }
   };
 
   const handleProgressUpdate = (progressValue: number) => {
@@ -93,7 +104,14 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
       oldValue: keyResult.booleanValue, 
       newValue: checked 
     });
-    updateProgress.mutate({ booleanValue: checked });
+    
+    updateProgress.mutate({ booleanValue: checked }, {
+      onSuccess: () => {
+        if (checked && keyResult.status !== 'completed') {
+          updateStatus.mutate('completed');
+        }
+      }
+    });
   };
 
   const handleDelete = () => {

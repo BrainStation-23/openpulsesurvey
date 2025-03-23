@@ -19,7 +19,8 @@ export const KeyResultStatusControls: React.FC<KeyResultStatusControlsProps> = (
     <div className="mt-4">
       <h4 className="text-sm font-medium mb-2">Status: <span className="font-normal">{status.replace('_', ' ')}</span></h4>
       <div className="grid grid-cols-2 gap-2">
-        {status !== 'at_risk' && (
+        {/* Only show "Mark At Risk" button if not already completed */}
+        {status !== 'at_risk' && status !== 'completed' && (
           <Button 
             variant="outline" 
             size="sm"
@@ -31,7 +32,7 @@ export const KeyResultStatusControls: React.FC<KeyResultStatusControlsProps> = (
           </Button>
         )}
         
-        {status !== 'on_track' && progress < 100 && (
+        {status !== 'on_track' && progress < 100 && status !== 'completed' && (
           <Button 
             variant="outline" 
             size="sm"
