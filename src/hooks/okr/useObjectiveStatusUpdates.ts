@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Objective, ObjectiveStatus } from '@/types/okr';
 
 interface UseObjectiveStatusUpdatesProps {
@@ -17,12 +17,17 @@ export const useObjectiveStatusUpdates = ({
   canEdit,
   updateStatus
 }: UseObjectiveStatusUpdatesProps) => {
+  // Lock to prevent duplicate status update calls
+  const [isUpdating, setIsUpdating] = useState(false);
+  
   useEffect(() => {
-    if (!objective || !canEdit) return;
+    // Don't proceed if we're already updating, missing data or don't have permission
+    if (isUpdating || !objective || !canEdit) return;
     
     // Auto-complete objectives at 100% progress
     if (objective.progress === 100 && objective.status !== 'completed') {
       console.log('Automatically marking objective as completed (progress is 100%)');
+      setIsUpdating(true);
       updateStatus({ status: 'completed' });
       return;
     }
@@ -35,9 +40,17 @@ export const useObjectiveStatusUpdates = ({
       !['at_risk', 'on_track'].includes(objective.status)
     ) {
       console.log('Automatically changing objective from draft to in_progress (progress > 0)');
+      setIsUpdating(true);
       updateStatus({ status: 'in_progress' });
     }
-  }, [objective, canEdit, updateStatus]);
+  }, [objective, canEdit, updateStatus, isUpdating]);
+  
+  // Reset the lock when the objective status or progress changes
+  useEffect(() => {
+    if (objective && isUpdating) {
+      setIsUpdating(false);
+    }
+  }, [objective?.status, objective?.progress]);
   
   // Return whether the status can be changed from UI
   const canChangeStatus = objective && objective.progress < 100;
@@ -50,8 +63,20 @@ export const useObjectiveStatusUpdates = ({
     return ['draft', 'at_risk', 'on_track'].includes(status);
   };
   
+  // Safe status update handler - adds locking mechanism
+  const handleStatusUpdate = (status: ObjectiveStatus): void => {
+    if (!objective || !canEdit || !canChangeStatus || isUpdating) return;
+    
+    if (isStatusChangeAllowed(status)) {
+      setIsUpdating(true);
+      updateStatus({ status });
+    }
+  };
+  
   return {
     canChangeStatus,
-    isStatusChangeAllowed
+    isStatusChangeAllowed,
+    handleStatusUpdate,
+    isUpdating
   };
 };

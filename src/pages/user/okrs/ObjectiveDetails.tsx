@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Info, Check, ChevronDown, User, Target } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -46,6 +46,7 @@ import { useKeyResults } from '@/hooks/okr/useKeyResults';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PermissionsList } from '@/components/okr/permissions/PermissionsList';
+import { useObjectiveStatusUpdates } from '@/hooks/okr/useObjectiveStatusUpdates';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -91,32 +92,15 @@ const UserObjectiveDetails = () => {
   const isOwner = objective && userId === objective.ownerId;
   const canEdit = isOwner || isAdmin;
   
-  const canChangeStatus = objective && objective.progress < 100 && canEdit;
-  
-  useEffect(() => {
-    if (!objective || !canEdit) return;
-    
-    if (objective.progress === 100 && objective.status !== 'completed') {
-      updateStatus.mutate({ status: 'completed' });
-      return;
-    }
-    
-    if (
-      objective.status === 'draft' && 
-      objective.progress > 0 && 
-      !['at_risk', 'on_track'].includes(objective.status)
-    ) {
-      updateStatus.mutate({ status: 'in_progress' });
-    }
-  }, [objective, canEdit, updateStatus]);
-  
-  const handleStatusUpdate = (status: ObjectiveStatus) => {
-    if (!id || !canEdit || !canChangeStatus) return;
-    
-    if (status === 'draft' || status === 'at_risk' || status === 'on_track') {
-      updateStatus.mutate({ status });
-    }
-  };
+  const { 
+    canChangeStatus, 
+    handleStatusUpdate,
+    isUpdating
+  } = useObjectiveStatusUpdates({
+    objective,
+    canEdit,
+    updateStatus: updateStatus.mutate
+  });
   
   const handleDelete = () => {
     if (!canEdit) return;
@@ -228,9 +212,14 @@ const UserObjectiveDetails = () => {
                   {canChangeStatus ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          className="flex items-center gap-2"
+                          disabled={isUpdating}
+                        >
                           <ObjectiveStatusBadge status={objective.status} />
                           <ChevronDown className="h-4 w-4" />
+                          {isUpdating && <span className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-primary" />}
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -474,3 +463,4 @@ const UserObjectiveDetails = () => {
 };
 
 export default UserObjectiveDetails;
+
