@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Info, Check, ChevronDown, User, Target } from 'lucide-react';
@@ -349,8 +350,21 @@ const UserObjectiveDetails = () => {
                             </div>
                             <span>{kr.progress?.toFixed(0) || 0}%</span>
                           </div>
-                          <Badge variant="outline" className={kr.status === 'completed' ? 'bg-green-50 text-green-700' : ''}>
+                          <Badge 
+                            variant="outline" 
+                            className={kr.status === 'completed' ? 'bg-green-50 text-green-700' : ''}
+                          >
                             {kr.status.replace('_', ' ')}
+                          </Badge>
+                          <Badge 
+                            variant="outline" 
+                            className={
+                              kr.krType === 'committed' ? 'bg-blue-50 text-blue-700' : 
+                              kr.krType === 'aspirational' ? 'bg-purple-50 text-purple-700' : 
+                              'bg-gray-50 text-gray-700'
+                            }
+                          >
+                            {kr.krType.charAt(0).toUpperCase() + kr.krType.slice(1)}
                           </Badge>
                         </div>
                       </div>

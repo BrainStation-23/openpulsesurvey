@@ -1,13 +1,10 @@
 
 import React from 'react';
+import { Edit, Trash2 } from 'lucide-react';
 import { KeyResult } from '@/types/okr';
 import { CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, User } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { KeyResultStatusBadge } from '../KeyResultStatusBadge';
 import { useOwnerInfo } from '../hooks/useOwnerInfo';
 
 interface KeyResultHeaderProps {
@@ -24,54 +21,45 @@ export const KeyResultHeader: React.FC<KeyResultHeaderProps> = ({
   onDeleteClick
 }) => {
   const { ownerName } = useOwnerInfo(keyResult.ownerId);
+  
+  const getKrTypeColor = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'committed':
+        return 'bg-blue-50 text-blue-700';
+      case 'aspirational':
+        return 'bg-purple-50 text-purple-700';
+      default: // standard
+        return 'bg-gray-50 text-gray-700';
+    }
+  };
 
   return (
-    <CardHeader className="pb-3">
-      <div className="flex flex-col space-y-2">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-lg">{keyResult.title}</CardTitle>
-            <KeyResultStatusBadge status={keyResult.status} />
-            <Badge variant="outline" className="bg-gray-100 text-gray-800">
-              Weight: {keyResult.weight.toFixed(1)}
-            </Badge>
-          </div>
-          {canEdit && (
-            <div className="flex items-center gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={onEditClick}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Edit Key Result</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={onDeleteClick}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Delete Key Result</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <User className="h-3 w-3 mr-1" /> 
-          <span>Owner: {ownerName}</span>
-        </div>
-        <Separator className="my-1" />
+    <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+      <div>
+        <CardTitle className="text-lg font-medium">
+          {keyResult.title}
+          <Badge 
+            variant="outline" 
+            className={`ml-2 ${getKrTypeColor(keyResult.krType)}`}
+          >
+            {keyResult.krType.charAt(0).toUpperCase() + keyResult.krType.slice(1)}
+          </Badge>
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">Owned by: {ownerName}</p>
       </div>
+      
+      {canEdit && (
+        <div className="flex space-x-2">
+          <Button variant="ghost" size="sm" onClick={onEditClick}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onDeleteClick}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+        </div>
+      )}
     </CardHeader>
   );
 };
