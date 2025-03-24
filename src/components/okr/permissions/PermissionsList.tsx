@@ -124,9 +124,7 @@ export const PermissionsList = ({ objectiveId, canManagePermissions }: Permissio
     });
   };
   
-  const handleUpdateSubmit = (values: PermissionForm
-
-Values) => {
+  const handleUpdateSubmit = (values: PermissionFormValues) => {
     if (!permissionToEdit) return;
     
     updatePermission.mutate({
