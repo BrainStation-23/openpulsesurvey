@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,16 +36,25 @@ export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
                   </span>
                 </Link>
               </SidebarMenuButton>
-              {item.children?.map((child) => (
-                <SidebarMenuItem key={child.title} className="pl-4">
-                  <SidebarMenuButton asChild>
-                    <Link to={child.path}>
-                      <child.icon className="h-4 w-4" />
-                      <span>{child.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              
+              {/* Render child items conditionally as a separate list after the parent button */}
+              {item.children && item.children.length > 0 && (
+                <div className="mt-1 pl-4">
+                  {/* Create a separate menu for children */}
+                  <SidebarMenu>
+                    {item.children.map((child) => (
+                      <SidebarMenuItem key={child.title}>
+                        <SidebarMenuButton asChild>
+                          <Link to={child.path} className="flex items-center">
+                            <child.icon className="h-4 w-4" />
+                            <span>{child.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </div>
+              )}
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
