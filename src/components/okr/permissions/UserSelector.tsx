@@ -17,9 +17,9 @@ interface UserSelectorProps {
 
 interface UserProfile {
   id: string;
+  full_name: string;
   email: string;
-  first_name: string | null;
-  last_name: string | null;
+  avatar_url?: string;
 }
 
 export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search users..." }: UserSelectorProps) => {
@@ -27,39 +27,25 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
   const [showResults, setShowResults] = useState(false);
   
   const { data: users, isLoading } = useQuery({
-    queryKey: ['users', searchQuery],
+    queryKey: ['searchUsers', searchQuery],
     queryFn: async () => {
-      if (!searchQuery.trim() && !selectedUsers.length) {
-        return [];
+      if (!searchQuery.trim() || searchQuery.length < 2) return [];
+      
+      // Call the database function to search users
+      const { data, error } = await supabase.rpc(
+        'search_users',
+        { search_term: searchQuery }
+      );
+      
+      if (error) {
+        console.error('Error searching users:', error);
+        throw error;
       }
       
-      // Use the database search function
-      const { data, error } = await supabase.rpc("search_users", {
-        search_text: searchQuery,
-        page_number: 1,
-        page_size: 20,
-        sbu_filter: null,
-        level_filter: null,
-        location_filter: null,
-        employment_type_filter: null,
-        employee_role_filter: null,
-        employee_type_filter: null
-      });
-      
-      if (error) throw error;
-      
-      // Transform the data to match the UserProfile interface
-      return data.map((item: any) => {
-        const profile = JSON.parse(item.profile);
-        return {
-          id: profile.id,
-          email: profile.email,
-          first_name: profile.first_name,
-          last_name: profile.last_name
-        } as UserProfile;
-      });
+      console.log('Search users result:', data);
+      return data as UserProfile[];
     },
-    enabled: searchQuery.trim().length > 0 || selectedUsers.length > 0,
+    enabled: searchQuery.trim().length >= 2,
     staleTime: 1000 * 60 * 5 // 5 minutes
   });
   
@@ -68,32 +54,33 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
     queryFn: async () => {
       if (!selectedUsers.length) return [];
       
+      // Get details for selected users
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, first_name, last_name')
+        .select('id, first_name, last_name, email')
         .in('id', selectedUsers);
         
-      if (error) throw error;
-      return data as UserProfile[];
+      if (error) {
+        console.error('Error fetching selected user details:', error);
+        throw error;
+      }
+      
+      return data.map(user => ({
+        id: user.id,
+        full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email,
+        email: user.email
+      })) as UserProfile[];
     },
     enabled: selectedUsers.length > 0
   });
   
   const handleSelectUser = (userId: string) => {
-    // If already selected, remove it, otherwise add it
     if (selectedUsers.includes(userId)) {
       onChange(selectedUsers.filter(id => id !== userId));
     } else {
       onChange([...selectedUsers, userId]);
       setSearchQuery('');
     }
-  };
-  
-  const getUserDisplayName = (user: UserProfile) => {
-    if (user.first_name && user.last_name) {
-      return `${user.first_name} ${user.last_name}`;
-    }
-    return user.email;
   };
 
   useEffect(() => {
@@ -119,16 +106,20 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
-              setShowResults(true);
+              if (e.target.value.trim().length >= 2) {
+                setShowResults(true);
+              }
             }}
             onClick={(e) => {
               e.stopPropagation();
-              setShowResults(true);
+              if (searchQuery.trim().length >= 2) {
+                setShowResults(true);
+              }
             }}
           />
         </div>
         
-        {showResults && (
+        {showResults && searchQuery.trim().length >= 2 && (
           <div className="absolute w-full mt-1 bg-card border rounded-md shadow-md z-50">
             <ScrollArea className="h-[200px]">
               {isLoading ? (
@@ -151,9 +142,12 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
                           handleSelectUser(user.id);
                         }}
                       >
-                        <div>
-                          <div className="font-medium">{getUserDisplayName(user)}</div>
-                          <div className="text-xs text-muted-foreground">{user.email}</div>
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium">{user.full_name}</span>
+                            <span className="text-xs text-muted-foreground">{user.email}</span>
+                          </div>
                         </div>
                         {selectedUsers.includes(user.id) && (
                           <div className="text-primary">
@@ -166,7 +160,7 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
                     ))
                   ) : (
                     <div className="p-4 text-center text-muted-foreground">
-                      {searchQuery.trim() ? 'No users found' : 'Type to search users'}
+                      {searchQuery.trim().length >= 2 ? 'No users found' : 'Type at least 2 characters to search'}
                     </div>
                   )}
                 </>
@@ -185,7 +179,7 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
               variant="secondary"
               className="flex items-center gap-1 py-1.5 px-2"
             >
-              <span className="max-w-[150px] truncate">{getUserDisplayName(user)}</span>
+              <span>{user.full_name}</span>
               <Button
                 variant="ghost"
                 size="sm"
