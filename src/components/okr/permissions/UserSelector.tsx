@@ -31,10 +31,14 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
     queryFn: async () => {
       if (!searchQuery.trim() || searchQuery.length < 2) return [];
       
-      // Call the database function to search users
+      // Call the database function to search users with the correct parameter name
       const { data, error } = await supabase.rpc(
         'search_users',
-        { search_term: searchQuery }
+        { 
+          search_text: searchQuery,
+          page_number: 1,
+          page_size: 20
+        }
       );
       
       if (error) {
@@ -43,7 +47,24 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
       }
       
       console.log('Search users result:', data);
-      return data as UserProfile[];
+      
+      // Transform the response data to match UserProfile interface
+      if (data && Array.isArray(data)) {
+        return data.map(item => {
+          const profileData = typeof item.profile === 'string' 
+            ? JSON.parse(item.profile) 
+            : item.profile;
+            
+          return {
+            id: profileData.id,
+            full_name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || profileData.email,
+            email: profileData.email,
+            avatar_url: profileData.profile_image_url
+          } as UserProfile;
+        });
+      }
+      
+      return [];
     },
     enabled: searchQuery.trim().length >= 2,
     staleTime: 1000 * 60 * 5 // 5 minutes
