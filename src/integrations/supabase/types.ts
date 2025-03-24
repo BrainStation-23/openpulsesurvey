@@ -3036,6 +3036,12 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      recalculate_objective_progress: {
+        Args: {
+          p_objective_id: string
+        }
+        Returns: undefined
+      }
       reorder_questions: {
         Args: {
           p_session_id: string
