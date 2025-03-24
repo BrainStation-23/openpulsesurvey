@@ -69,6 +69,18 @@ export const SBUSelector = ({ selectedSBUs, onChange, placeholder = "Search busi
     }
   };
 
+  const handleSelectAllSBUs = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (sbus && sbus.length > 0) {
+      onChange(sbus.map(sbu => sbu.id));
+    }
+  };
+
+  const handleClearAllSBUs = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onChange([]);
+  };
+
   useEffect(() => {
     const handleClickOutside = () => {
       setShowResults(false);
@@ -99,6 +111,30 @@ export const SBUSelector = ({ selectedSBUs, onChange, placeholder = "Search busi
               setShowResults(true);
             }}
           />
+        </div>
+        
+        {/* Selection Controls */}
+        <div className="mt-2 flex justify-between items-center">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleSelectAllSBUs}
+            className="text-xs h-7 px-2"
+          >
+            Select All
+          </Button>
+          {selectedSBUs.length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleClearAllSBUs}
+              className="text-xs h-7 px-2"
+            >
+              Clear All
+            </Button>
+          )}
         </div>
         
         {showResults && (
@@ -163,7 +199,11 @@ export const SBUSelector = ({ selectedSBUs, onChange, placeholder = "Search busi
                 variant="ghost"
                 size="sm"
                 className="h-4 w-4 p-0 ml-1 hover:bg-secondary"
-                onClick={() => handleSelectSBU(sbu.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleSelectSBU(sbu.id);
+                }}
+                type="button"
               >
                 <X className="h-3 w-3" />
                 <span className="sr-only">Remove</span>

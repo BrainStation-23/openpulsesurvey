@@ -73,6 +73,18 @@ export const EmployeeRoleSelector = ({
     }
   };
 
+  const handleSelectAllRoles = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (roles && roles.length > 0) {
+      onChange(roles.map(role => role.id));
+    }
+  };
+
+  const handleClearAllRoles = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onChange([]);
+  };
+
   useEffect(() => {
     const handleClickOutside = () => {
       setShowResults(false);
@@ -103,6 +115,30 @@ export const EmployeeRoleSelector = ({
               setShowResults(true);
             }}
           />
+        </div>
+        
+        {/* Selection Controls */}
+        <div className="mt-2 flex justify-between items-center">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleSelectAllRoles}
+            className="text-xs h-7 px-2"
+          >
+            Select All
+          </Button>
+          {selectedRoles.length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleClearAllRoles}
+              className="text-xs h-7 px-2"
+            >
+              Clear All
+            </Button>
+          )}
         </div>
         
         {showResults && (
@@ -167,7 +203,11 @@ export const EmployeeRoleSelector = ({
                 variant="ghost"
                 size="sm"
                 className="h-4 w-4 p-0 ml-1 hover:bg-secondary"
-                onClick={() => handleSelectRole(role.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleSelectRole(role.id);
+                }}
+                type="button"
               >
                 <X className="h-3 w-3" />
                 <span className="sr-only">Remove</span>
