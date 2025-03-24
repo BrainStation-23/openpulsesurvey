@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, X, User, Filter } from 'lucide-react';
+import { Search, X, User } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,7 +32,6 @@ interface FilterOptions {
 export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search users..." }: UserSelectorProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({
     sbuFilter: null,
     levelFilter: null,
@@ -174,7 +173,8 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const resetFilters = () => {
+  const resetFilters = (e: React.MouseEvent) => {
+    e.preventDefault();
     setFilters({
       sbuFilter: null,
       levelFilter: null,
@@ -198,107 +198,97 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder={placeholder}
-              className="pl-9 pr-4"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                if (e.target.value.trim().length >= 2) {
-                  setShowResults(true);
-                }
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (searchQuery.trim().length >= 2) {
-                  setShowResults(true);
-                }
-              }}
-            />
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-10 flex items-center gap-1"
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder={placeholder}
+            className="pl-9 pr-4"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              if (e.target.value.trim().length >= 2) {
+                setShowResults(true);
+              }
+            }}
             onClick={(e) => {
               e.stopPropagation();
-              setShowFilters(!showFilters);
+              if (searchQuery.trim().length >= 2) {
+                setShowResults(true);
+              }
             }}
-          >
-            <Filter className="h-4 w-4" />
-            {hasActiveFilters && <span className="rounded-full bg-primary w-2 h-2" />}
-          </Button>
+          />
         </div>
         
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="border rounded-md p-3 space-y-3 bg-card" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center">
-              <h4 className="text-sm font-medium">Filters</h4>
-              {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={resetFilters} className="h-7 px-2">
-                  Reset
-                </Button>
-              )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <Select 
-                value={filters.sbuFilter || "null"}
-                onValueChange={(value) => handleFilterChange('sbuFilter', value === "null" ? null : value)}
+        {/* Filters Panel - Always visible */}
+        <div className="border rounded-md p-3 space-y-3 bg-card" onClick={(e) => e.stopPropagation()}>
+          <div className="flex justify-between items-center">
+            <h4 className="text-sm font-medium">Filters</h4>
+            {hasActiveFilters && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={resetFilters} 
+                className="h-7 px-2"
+                type="button"
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Business Unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="null">All SBUs</SelectItem>
-                  {sbus?.map((sbu) => (
-                    <SelectItem key={sbu.id} value={sbu.id}>
-                      {sbu.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Select 
-                value={filters.levelFilter || "null"}
-                onValueChange={(value) => handleFilterChange('levelFilter', value === "null" ? null : value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="null">All Levels</SelectItem>
-                  {levels?.map((level) => (
-                    <SelectItem key={level.id} value={level.id}>
-                      {level.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Select 
-                value={filters.locationFilter || "null"}
-                onValueChange={(value) => handleFilterChange('locationFilter', value === "null" ? null : value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="null">All Locations</SelectItem>
-                  {locations?.map((location) => (
-                    <SelectItem key={location.id} value={location.id}>
-                      {location.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                Reset
+              </Button>
+            )}
           </div>
-        )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <Select 
+              value={filters.sbuFilter || "null"}
+              onValueChange={(value) => handleFilterChange('sbuFilter', value === "null" ? null : value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Business Unit" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="null">All SBUs</SelectItem>
+                {sbus?.map((sbu) => (
+                  <SelectItem key={sbu.id} value={sbu.id}>
+                    {sbu.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select 
+              value={filters.levelFilter || "null"}
+              onValueChange={(value) => handleFilterChange('levelFilter', value === "null" ? null : value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="null">All Levels</SelectItem>
+                {levels?.map((level) => (
+                  <SelectItem key={level.id} value={level.id}>
+                    {level.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select 
+              value={filters.locationFilter || "null"}
+              onValueChange={(value) => handleFilterChange('locationFilter', value === "null" ? null : value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="null">All Locations</SelectItem>
+                {locations?.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         
         {showResults && searchQuery.trim().length >= 2 && (
           <div className="absolute w-full mt-1 bg-card border rounded-md shadow-md z-50">
@@ -365,7 +355,11 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
                 variant="ghost"
                 size="sm"
                 className="h-4 w-4 p-0 ml-1 hover:bg-secondary"
-                onClick={() => handleSelectUser(user.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleSelectUser(user.id);
+                }}
+                type="button"
               >
                 <X className="h-3 w-3" />
                 <span className="sr-only">Remove</span>
