@@ -247,14 +247,14 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <Select 
-                value={filters.sbuFilter || ""}
-                onValueChange={(value) => handleFilterChange('sbuFilter', value === "" ? null : value)}
+                value={filters.sbuFilter || "null"}
+                onValueChange={(value) => handleFilterChange('sbuFilter', value === "null" ? null : value)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Business Unit" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All SBUs</SelectItem>
+                  <SelectItem value="null">All SBUs</SelectItem>
                   {sbus?.map((sbu) => (
                     <SelectItem key={sbu.id} value={sbu.id}>
                       {sbu.name}
@@ -264,14 +264,14 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
               </Select>
               
               <Select 
-                value={filters.levelFilter || ""}
-                onValueChange={(value) => handleFilterChange('levelFilter', value === "" ? null : value)}
+                value={filters.levelFilter || "null"}
+                onValueChange={(value) => handleFilterChange('levelFilter', value === "null" ? null : value)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Level" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Levels</SelectItem>
+                  <SelectItem value="null">All Levels</SelectItem>
                   {levels?.map((level) => (
                     <SelectItem key={level.id} value={level.id}>
                       {level.name}
@@ -281,14 +281,14 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
               </Select>
               
               <Select 
-                value={filters.locationFilter || ""}
-                onValueChange={(value) => handleFilterChange('locationFilter', value === "" ? null : value)}
+                value={filters.locationFilter || "null"}
+                onValueChange={(value) => handleFilterChange('locationFilter', value === "null" ? null : value)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Location" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Locations</SelectItem>
+                  <SelectItem value="null">All Locations</SelectItem>
                   {locations?.map((location) => (
                     <SelectItem key={location.id} value={location.id}>
                       {location.name}
