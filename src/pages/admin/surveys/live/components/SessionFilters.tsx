@@ -56,7 +56,11 @@ export function SessionFilters({
             key={status}
             variant={getStatusVariant(status)}
             className="cursor-pointer capitalize"
-            onClick={() => onStatusChange(status)}
+            onClick={(e) => {
+              e.preventDefault(); // Prevent any form submission
+              onStatusChange(status);
+            }}
+            type="button" // Make sure it's treated as a button
           >
             {status}
           </Badge>

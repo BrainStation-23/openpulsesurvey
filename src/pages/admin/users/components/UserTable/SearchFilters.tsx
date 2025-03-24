@@ -1,3 +1,4 @@
+
 import { Search, Upload, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,7 @@ export function SearchFilters({
               <button
                 onClick={() => setSearchTerm("")}
                 className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
+                type="button"
               >
                 <X className="h-4 w-4" />
               </button>
