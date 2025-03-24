@@ -1,6 +1,7 @@
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ObjectiveWithRelations } from '@/types/okr';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useObjectiveTree } from './hooks/useObjectiveTree';
@@ -15,9 +16,11 @@ import {
   useEdgesState,
   Node,
   Edge,
+  Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ObjectiveNode } from './components/ObjectiveNode';
+import { Maximize2, Minimize2 } from 'lucide-react';
 
 interface ObjectiveGraphViewProps {
   objective: ObjectiveWithRelations;
@@ -32,6 +35,8 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
 }) => {
   const { userId, isAdmin: userIsAdmin } = useCurrentUser();
   const { deleteAlignment } = useAlignments(objective.id);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const graphRef = useRef<HTMLDivElement>(null);
   
   const {
     rootObjective,
@@ -50,6 +55,33 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     }
   };
 
+  // Toggle fullscreen functionality
+  const toggleFullscreen = () => {
+    if (!graphRef.current) return;
+    
+    if (!isFullscreen) {
+      if (graphRef.current.requestFullscreen) {
+        graphRef.current.requestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  // Listen for fullscreen change events
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   // Memoized node types to prevent unnecessary re-renders
   const nodeTypes = useMemo(() => ({
     objectiveNode: ObjectiveNode
@@ -65,10 +97,13 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
   }, [rootObjective, currentObjectivePath, processHierarchyData, setNodes, setEdges]);
 
   return (
-    <Card className="shadow-sm">
+    <Card className={`shadow-sm ${isFullscreen ? 'fullscreen-card' : ''}`}>
       <CardContent className="p-4">
         <div className="text-sm font-medium text-muted-foreground mb-3">Objective Hierarchy Graph</div>
-        <div className="h-[500px] border rounded-md overflow-hidden">
+        <div 
+          ref={graphRef}
+          className={`${isFullscreen ? 'h-screen w-full' : 'h-[500px]'} border rounded-md overflow-hidden relative`}
+        >
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -80,6 +115,16 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
             maxZoom={2}
             proOptions={{ hideAttribution: true }}
           >
+            <Panel position="top-right">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="bg-white" 
+                onClick={toggleFullscreen}
+              >
+                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+            </Panel>
             <Controls />
             <MiniMap 
               zoomable 

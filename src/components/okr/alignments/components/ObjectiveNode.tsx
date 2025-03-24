@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowRight, UserCircle2, Trash2 } from 'lucide-react';
+import { ArrowRight, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ObjectiveNodeOwnerInfo } from './ObjectiveNodeOwnerInfo';
 
 interface ObjectiveNodeProps {
   data: {
@@ -137,10 +138,7 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
               </span>
             </div>
 
-            <div className="flex items-center text-xs text-muted-foreground">
-              <UserCircle2 className="h-3 w-3 mr-1" />
-              <span className="truncate">Owner: {objective.ownerId.substring(0, 8)}...</span>
-            </div>
+            <ObjectiveNodeOwnerInfo ownerId={objective.ownerId} />
           </div>
         </div>
       </div>

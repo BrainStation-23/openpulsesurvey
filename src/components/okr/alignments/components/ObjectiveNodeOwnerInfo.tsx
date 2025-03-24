@@ -1,8 +1,7 @@
 
 import React from 'react';
 import { User } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useOwnerInfo } from '@/components/okr/key-results/hooks/useOwnerInfo';
 import {
   Tooltip,
   TooltipContent,
@@ -17,27 +16,8 @@ interface ObjectiveNodeOwnerInfoProps {
 export const ObjectiveNodeOwnerInfo: React.FC<ObjectiveNodeOwnerInfoProps> = ({ 
   ownerId 
 }) => {
-  const { data: ownerInfo } = useQuery({
-    queryKey: ['user', ownerId],
-    queryFn: async () => {
-      if (!ownerId) return null;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('id', ownerId)
-        .single();
-        
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!ownerId
-  });
+  const { ownerName } = useOwnerInfo(ownerId || '');
   
-  const ownerName = ownerInfo 
-    ? `${ownerInfo.first_name || ''} ${ownerInfo.last_name || ''}`.trim() 
-    : '';
-
   if (!ownerName) return null;
 
   return (
