@@ -1,9 +1,10 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { ObjectiveWithRelations } from '@/types/okr';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useObjectiveTree } from './hooks/useObjectiveTree';
+import { useAlignments } from '@/hooks/okr/useAlignments';
 import {
   ReactFlow,
   MiniMap,
@@ -12,24 +13,27 @@ import {
   BackgroundVariant,
   useNodesState,
   useEdgesState,
+  Node,
+  Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ObjectiveNode } from './components/ObjectiveNode';
 
-interface ObjectiveTreeViewProps {
+interface ObjectiveGraphViewProps {
   objective: ObjectiveWithRelations;
   isAdmin?: boolean;
+  canEdit?: boolean;
 }
 
-export const ObjectiveTreeView: React.FC<ObjectiveTreeViewProps> = ({ 
+export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({ 
   objective,
-  isAdmin = false
+  isAdmin = false,
+  canEdit = false
 }) => {
   const { userId, isAdmin: userIsAdmin } = useCurrentUser();
-  const canEdit = userIsAdmin || isAdmin || objective.ownerId === userId;
+  const { deleteAlignment } = useAlignments(objective.id);
   
   const {
-    handleDeleteAlignment,
     rootObjective,
     currentObjectivePath,
     processHierarchyData
@@ -38,23 +42,32 @@ export const ObjectiveTreeView: React.FC<ObjectiveTreeViewProps> = ({
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Use the rootObjective to build the graph
+  const handleDeleteAlignment = async (alignmentId: string) => {
+    try {
+      await deleteAlignment.mutateAsync(alignmentId);
+    } catch (error) {
+      console.error('Error deleting alignment:', error);
+    }
+  };
+
+  // Memoized node types to prevent unnecessary re-renders
+  const nodeTypes = useMemo(() => ({
+    objectiveNode: ObjectiveNode
+  }), []);
+
+  // Prepare the graph data when the root objective changes
   useEffect(() => {
     if (rootObjective) {
       const { nodes: graphNodes, edges: graphEdges } = processHierarchyData(rootObjective, currentObjectivePath);
       setNodes(graphNodes);
       setEdges(graphEdges);
     }
-  }, [rootObjective, currentObjectivePath, processHierarchyData]);
-
-  const nodeTypes = {
-    objectiveNode: ObjectiveNode
-  };
+  }, [rootObjective, currentObjectivePath, processHierarchyData, setNodes, setEdges]);
 
   return (
     <Card className="shadow-sm">
       <CardContent className="p-4">
-        <div className="text-sm font-medium text-muted-foreground mb-3">Objective Hierarchy</div>
+        <div className="text-sm font-medium text-muted-foreground mb-3">Objective Hierarchy Graph</div>
         <div className="h-[500px] border rounded-md overflow-hidden">
           <ReactFlow
             nodes={nodes}
@@ -68,7 +81,16 @@ export const ObjectiveTreeView: React.FC<ObjectiveTreeViewProps> = ({
             proOptions={{ hideAttribution: true }}
           >
             <Controls />
-            <MiniMap zoomable pannable />
+            <MiniMap 
+              zoomable 
+              pannable 
+              nodeStrokeWidth={3}
+              nodeStrokeColor={(n) => {
+                if (n.id === objective.id) return '#f59e0b';
+                return currentObjectivePath.includes(n.id) ? '#9333ea' : '#64748b';
+              }}
+              nodeBorderRadius={10}
+            />
             <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
           </ReactFlow>
         </div>

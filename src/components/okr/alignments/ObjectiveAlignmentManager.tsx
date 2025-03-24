@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { ObjectiveTreeView } from './ObjectiveTreeView';
+import { ObjectiveGraphView } from './ObjectiveGraphView';
 import { CreateAlignmentDialog } from './CreateAlignmentDialog';
 import { ObjectiveWithRelations } from '@/types/okr';
 import { Plus } from 'lucide-react';
@@ -35,9 +35,10 @@ export const ObjectiveAlignmentManager: React.FC<ObjectiveAlignmentManagerProps>
         )}
       </div>
       
-      <ObjectiveTreeView 
+      <ObjectiveGraphView 
         objective={objective} 
         isAdmin={isAdmin} 
+        canEdit={canEdit}
       />
       
       <CreateAlignmentDialog

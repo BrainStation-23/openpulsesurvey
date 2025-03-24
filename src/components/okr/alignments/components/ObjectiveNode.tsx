@@ -10,13 +10,26 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowRight, UserCircle2 } from 'lucide-react';
+import { ArrowRight, UserCircle2, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ObjectiveNodeProps {
   data: {
     objective: Objective;
     isAdmin: boolean;
     isCurrentObjective: boolean;
+    isInPath: boolean;
     canDelete: boolean;
     onDelete?: () => void;
   };
@@ -24,16 +37,19 @@ interface ObjectiveNodeProps {
 }
 
 export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
-  const { objective, isAdmin, isCurrentObjective, canDelete, onDelete } = data;
+  const { objective, isAdmin, isCurrentObjective, isInPath, canDelete, onDelete } = data;
   const basePath = isAdmin ? '/admin' : '/user';
+  
+  // Different styling based on the node's status
+  const getBgColor = () => {
+    if (isCurrentObjective) return 'bg-amber-50 border-amber-300';
+    if (isInPath) return 'bg-purple-50 border-purple-200';
+    return 'bg-white border-gray-200';
+  };
   
   return (
     <TooltipProvider>
-      <div className={`p-3 rounded-lg shadow-md ${
-        isCurrentObjective 
-          ? 'bg-amber-50 border border-amber-300' 
-          : 'bg-white border border-gray-200'
-      }`}>
+      <div className={`p-3 rounded-lg shadow-md ${getBgColor()} transition-colors duration-200`}>
         {/* Handles for connections */}
         <Handle
           type="target"
@@ -58,7 +74,8 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
                 <Link 
                   to={`${basePath}/okrs/objectives/${objective.id}`} 
                   className={`font-medium hover:underline text-sm block truncate ${
-                    isCurrentObjective ? 'text-amber-800 font-bold' : ''
+                    isCurrentObjective ? 'text-amber-800 font-bold' : 
+                    isInPath ? 'text-purple-800' : ''
                   }`}
                 >
                   {objective.title}
@@ -74,6 +91,31 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
               </TooltipContent>
             </Tooltip>
             <ObjectiveStatusBadge status={objective.status} className="ml-2 text-xs h-5 px-1.5" />
+            
+            {canDelete && onDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="icon" variant="ghost" className="h-5 w-5 ml-auto">
+                    <Trash2 className="h-3 w-3 text-red-500" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remove Alignment?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will remove the relationship between these objectives.
+                      The objectives themselves will not be deleted.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={onDelete}>
+                      Remove
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
           
           <div className="mt-2 space-y-1">
