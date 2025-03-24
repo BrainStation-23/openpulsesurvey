@@ -17,13 +17,22 @@ interface KeyResultsListProps {
 
 export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const { data: keyResults, isLoading, error } = useKeyResults(objectiveId);
+  const { data: keyResults, isLoading, error, refetch } = useKeyResults(objectiveId);
   const { objective } = useObjective(objectiveId);
   const { userId, isAdmin } = useCurrentUser();
   
   const isOwner = objective && objective.ownerId === userId;
   const isPublicObjective = objective && (objective.visibility === 'organization' || objective.visibility === 'team');
   const canAddKeyResult = isAdmin || isOwner || isPublicObjective;
+
+  // Handle form close with successful submission
+  const handleFormClose = (success: boolean = false) => {
+    setIsAddDialogOpen(false);
+    // If the form was submitted successfully, refetch key results
+    if (success) {
+      refetch();
+    }
+  };
 
   if (isLoading) {
     return (
@@ -99,7 +108,11 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
       {keyResults && keyResults.length > 0 ? (
         <div>
           {keyResults.map((keyResult: KeyResult) => (
-            <KeyResultItem key={keyResult.id} keyResult={keyResult} />
+            <KeyResultItem 
+              key={keyResult.id} 
+              keyResult={keyResult} 
+              onDelete={() => refetch()}
+            />
           ))}
         </div>
       ) : (
@@ -126,7 +139,7 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) =
           </DialogHeader>
           <KeyResultForm
             objectiveId={objectiveId}
-            onClose={() => setIsAddDialogOpen(false)}
+            onClose={(success) => handleFormClose(success)}
             mode="create"
           />
         </DialogContent>

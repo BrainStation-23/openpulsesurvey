@@ -20,7 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface KeyResultFormProps {
   objectiveId: string;
   keyResult?: KeyResult;
-  onClose: () => void;
+  onClose: (success?: boolean) => void; // Updated to accept success parameter
   mode: 'create' | 'edit';
 }
 
@@ -96,7 +96,10 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
       
       createKeyResult.mutate(newKeyResult, {
         onSuccess: () => {
-          onClose();
+          onClose(true); // Pass true to indicate successful creation
+        },
+        onError: () => {
+          onClose(false); // Pass false on error
         }
       });
     } else if (mode === 'edit' && keyResult) {
@@ -117,7 +120,10 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
       
       updateKeyResult.mutate(updatedKeyResult, {
         onSuccess: () => {
-          onClose();
+          onClose(true); // Pass true to indicate successful update
+        },
+        onError: () => {
+          onClose(false); // Pass false on error
         }
       });
     }

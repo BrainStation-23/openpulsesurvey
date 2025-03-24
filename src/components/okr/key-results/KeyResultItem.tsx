@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { KeyResult } from '@/types/okr';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -18,9 +17,10 @@ import { useKeyResultAutoStatusUpdate } from './hooks/useKeyResultAutoStatusUpda
 
 interface KeyResultItemProps {
   keyResult: KeyResult;
+  onDelete?: () => void;
 }
 
-export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
+export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult, onDelete }) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { userId, isAdmin } = useCurrentUser();
@@ -34,7 +34,6 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     isDeleting
   } = useKeyResult(keyResult.id);
 
-  // Use custom hook for auto status updates
   useKeyResultAutoStatusUpdate(keyResult, updateStatus, updateProgress);
 
   const handleStatusUpdate = (status) => {
@@ -98,6 +97,9 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult }) => {
     deleteKeyResult.mutate(undefined, {
       onSuccess: () => {
         setIsDeleteDialogOpen(false);
+        if (onDelete) {
+          onDelete();
+        }
       }
     });
   };

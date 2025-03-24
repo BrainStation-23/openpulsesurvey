@@ -22,14 +22,22 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
   // Helper function to invalidate related queries
   const invalidateRelatedQueries = () => {
     // Invalidate the specific key result
-    queryClient.invalidateQueries({ queryKey: ['key-result', id] });
+    if (id) {
+      queryClient.invalidateQueries({ queryKey: ['key-result', id] });
+    }
     
-    // Invalidate the key results list
-    queryClient.invalidateQueries({ queryKey: ['key-results'] });
+    // Invalidate the key results list for this objective
+    if (objectiveId) {
+      queryClient.invalidateQueries({ queryKey: ['keyResults', objectiveId] });
+    }
+    
+    // Invalidate all key results queries (broader invalidation)
+    queryClient.invalidateQueries({ queryKey: ['keyResults'] });
     
     // Invalidate related objective data
     if (objectiveId) {
       queryClient.invalidateQueries({ queryKey: ['objective', objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['objective-with-relations', objectiveId] });
     }
     
     // Invalidate the objectives list and related queries
@@ -38,10 +46,7 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
     // Invalidate any objective with relations query that might exist
     queryClient.invalidateQueries({ queryKey: ['objective-with-relations'] });
     
-    // Add more specific invalidations
-    queryClient.invalidateQueries({ queryKey: ['keyResults'] });
-    
-    console.log('Invalidated queries after key result update');
+    console.log('Invalidated queries after key result update/creation/deletion:', { id, objectiveId });
   };
 
   // Update key result status
@@ -114,8 +119,7 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
     },
     onSuccess: () => {
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['key-results'] });
-      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      invalidateRelatedQueries();
       
       toast({
         title: 'Key result deleted',
@@ -138,8 +142,7 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
     mutationFn: (data: CreateKeyResultInput) => createKeyResultData(data),
     onSuccess: () => {
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['key-results'] });
-      queryClient.invalidateQueries({ queryKey: ['objective'] });
+      invalidateRelatedQueries();
       
       toast({
         title: 'Key result created',
