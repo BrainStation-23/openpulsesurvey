@@ -129,10 +129,7 @@ export const PermissionForm = ({
         <Button
           type="button"
           variant="outline"
-          onClick={(e) => {
-            e.preventDefault();
-            onCancel();
-          }}
+          onClick={onCancel}
           disabled={isSubmitting}
         >
           Cancel

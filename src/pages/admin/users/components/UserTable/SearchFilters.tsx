@@ -76,10 +76,7 @@ export function SearchFilters({
             />
             {searchTerm && !isSearching && (
               <button
-                onClick={(e) => {
-                  e.preventDefault(); // Prevent form submission
-                  setSearchTerm("");
-                }}
+                onClick={() => setSearchTerm("")}
                 className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
                 type="button"
               >
@@ -98,6 +95,7 @@ export function SearchFilters({
             </span>
           )}
         </div>
+
       </div>
 
       <FilterPanel
