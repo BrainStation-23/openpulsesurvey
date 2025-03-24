@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, X, UserRound } from 'lucide-react';
+import { Search, X, UserCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,7 +34,6 @@ export const EmployeeRoleSelector = ({
       const query = supabase
         .from('employee_roles')
         .select('id, name')
-        .eq('status', 'active')
         .order('name', { ascending: true });
         
       if (searchQuery) {
@@ -130,7 +129,7 @@ export const EmployeeRoleSelector = ({
                         }}
                       >
                         <div className="flex items-center">
-                          <UserRound className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <UserCircle className="h-4 w-4 mr-2 text-muted-foreground" />
                           <span>{role.name}</span>
                         </div>
                         {selectedRoles.includes(role.id) && (

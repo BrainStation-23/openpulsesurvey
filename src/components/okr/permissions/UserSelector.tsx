@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, X } from 'lucide-react';
+import { Search, X, User } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -29,21 +29,37 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
   const { data: users, isLoading } = useQuery({
     queryKey: ['users', searchQuery],
     queryFn: async () => {
-      // If we have a search query, filter by it
-      const query = supabase
-        .from('profiles')
-        .select('id, email, first_name, last_name')
-        .order('first_name', { ascending: true });
-        
-      if (searchQuery) {
-        query.or(`first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`);
+      if (!searchQuery.trim() && !selectedUsers.length) {
+        return [];
       }
       
-      const { data, error } = await query.limit(20);
+      // Use the database search function
+      const { data, error } = await supabase.rpc("search_users", {
+        search_text: searchQuery,
+        page_number: 1,
+        page_size: 20,
+        sbu_filter: null,
+        level_filter: null,
+        location_filter: null,
+        employment_type_filter: null,
+        employee_role_filter: null,
+        employee_type_filter: null
+      });
       
       if (error) throw error;
-      return data as UserProfile[];
+      
+      // Transform the data to match the UserProfile interface
+      return data.map((item: any) => {
+        const profile = JSON.parse(item.profile);
+        return {
+          id: profile.id,
+          email: profile.email,
+          first_name: profile.first_name,
+          last_name: profile.last_name
+        } as UserProfile;
+      });
     },
+    enabled: searchQuery.trim().length > 0 || selectedUsers.length > 0,
     staleTime: 1000 * 60 * 5 // 5 minutes
   });
   
@@ -114,7 +130,7 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
         
         {showResults && (
           <div className="absolute w-full mt-1 bg-card border rounded-md shadow-md z-50">
-            <ScrollArea className="max-h-[200px]">
+            <ScrollArea className="h-[200px]">
               {isLoading ? (
                 <div className="p-2 space-y-2">
                   <Skeleton className="h-8 w-full" />

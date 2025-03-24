@@ -32,7 +32,7 @@ export const PermissionDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[750px]">
+      <DialogContent className="sm:max-w-[850px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
