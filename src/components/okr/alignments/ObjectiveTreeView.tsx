@@ -82,7 +82,7 @@ export const ObjectiveTreeView: React.FC<ObjectiveTreeViewProps> = ({
       >
         {node.children && node.children.length > 0 && expandedNodes[node.id] && (
           <React.Fragment>
-            {node.children.map((child: any, index: number) => 
+            {node.children.map((child: any) => 
               renderObjectiveHierarchyNode(child, level + 1, highlightPath)
             )}
           </React.Fragment>

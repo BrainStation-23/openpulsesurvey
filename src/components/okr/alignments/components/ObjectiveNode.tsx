@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, ChevronDown, Info, ArrowRight } from 'lucide-react';
+import { ChevronRight, ChevronDown, ArrowRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ObjectiveStatusBadge } from '@/components/okr/objectives/ObjectiveStatusBadge';
 import { Objective } from '@/types/okr';
