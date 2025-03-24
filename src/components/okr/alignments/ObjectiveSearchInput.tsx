@@ -7,9 +7,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Objective } from '@/types/okr';
+import { Objective, ObjectiveAlignment } from '@/types/okr';
 import { useObjectives } from '@/hooks/okr/useObjectives';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useAlignments } from '@/hooks/okr/useAlignments';
 
 interface ObjectiveSearchInputProps {
   currentObjectiveId: string;
@@ -26,19 +27,45 @@ export const ObjectiveSearchInput = ({
 }: ObjectiveSearchInputProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { objectives, isLoading } = useObjectives();
+  const { alignments } = useAlignments(currentObjectiveId);
   const [filteredObjectives, setFilteredObjectives] = useState<Objective[]>([]);
   
-  // Filter objectives to prevent cyclic relationships and self-selection
+  // Create a set of already aligned objective IDs
+  const getAlreadyAlignedIds = () => {
+    if (!alignments || !alignments.length) return new Set<string>();
+    
+    const alignedIds = new Set<string>();
+    
+    alignments.forEach(alignment => {
+      // For alignments where this objective is the source (parent)
+      if (alignment.sourceObjectiveId === currentObjectiveId && alignment.alignedObjectiveId) {
+        alignedIds.add(alignment.alignedObjectiveId);
+      }
+      
+      // For alignments where this objective is the target (child)
+      if (alignment.alignedObjectiveId === currentObjectiveId && alignment.sourceObjectiveId) {
+        alignedIds.add(alignment.sourceObjectiveId);
+      }
+    });
+    
+    return alignedIds;
+  };
+  
+  // Filter objectives to prevent cyclic relationships, self-selection, and already aligned objectives
   useEffect(() => {
     if (!objectives || !objectives.length) {
       setFilteredObjectives([]);
       return;
     }
     
+    // Get already aligned objective IDs
+    const alignedIds = getAlreadyAlignedIds();
+    
     // Get all objectives except:
     // 1. The current objective itself
     // 2. Objectives that already have this objective as parent
     // 3. Child objectives of the current objective (to prevent cycles)
+    // 4. Objectives that are already aligned with this objective
     const childIdsToExclude = new Set<string>();
     
     // Helper function to recursively collect all child IDs
@@ -61,6 +88,9 @@ export const ObjectiveSearchInput = ({
       // Exclude already child objectives (to prevent cycles)
       if (childIdsToExclude.has(obj.id)) return false;
       
+      // Exclude already aligned objectives
+      if (alignedIds.has(obj.id)) return false;
+      
       // Apply search query
       if (searchQuery) {
         return obj.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -70,7 +100,7 @@ export const ObjectiveSearchInput = ({
     });
     
     setFilteredObjectives(filtered);
-  }, [objectives, currentObjectiveId, searchQuery]);
+  }, [objectives, currentObjectiveId, searchQuery, alignments]);
 
   return (
     <div className={cn("space-y-4", className)}>
