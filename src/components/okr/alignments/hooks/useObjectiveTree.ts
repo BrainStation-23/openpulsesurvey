@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { ObjectiveWithRelations, Objective } from '@/types/okr';
 import { useAlignments } from '@/hooks/okr/useAlignments';
 import { supabase } from '@/integrations/supabase/client';
+import { Edge, Node } from '@xyflow/react';
 
 interface HierarchyNode {
   id: string;
@@ -11,11 +13,6 @@ interface HierarchyNode {
 }
 
 export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boolean, canEdit: boolean) => {
-  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
-    [objective.id]: true, // Main objective is expanded by default
-    ...(objective.parentObjective ? { [objective.parentObjective.id]: true } : {})
-  });
-  
   const [rootObjective, setRootObjective] = useState<Objective | null>(null);
   const [currentObjectivePath, setCurrentObjectivePath] = useState<string[]>([]);
   const { deleteAlignment } = useAlignments(objective.id);
@@ -60,11 +57,6 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
           } as Objective;
           
           path.unshift(currentObj.id);
-          
-          setExpandedNodes(prev => ({
-            ...prev,
-            [currentObj.id]: true
-          }));
         }
         
         setRootObjective(currentObj);
@@ -76,13 +68,6 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
     
     findRootAndPath();
   }, [objective]);
-
-  const toggleNode = (objectiveId: string) => {
-    setExpandedNodes(prev => ({
-      ...prev,
-      [objectiveId]: !prev[objectiveId]
-    }));
-  };
 
   const findParentAlignmentId = () => {
     if (!objective.alignedObjectives) return null;
@@ -104,87 +89,6 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
     );
   };
 
-  const buildObjectiveHierarchy = (rootObj: Objective): HierarchyNode => {
-    const rootNode: HierarchyNode = {
-      id: rootObj.id,
-      objective: rootObj,
-      parentId: null,
-      children: []
-    };
-    
-    if (rootObj.id === objective.id) {
-      return rootNode;
-    }
-    
-    const addChildren = (node: HierarchyNode) => {
-      if (node.id === objective.id && objective.childObjectives) {
-        objective.childObjectives.forEach(childObj => {
-          const childNode: HierarchyNode = {
-            id: childObj.id,
-            objective: childObj,
-            parentId: node.id,
-            children: []
-          };
-          node.children.push(childNode);
-        });
-        
-        findChildAlignments().forEach(alignment => {
-          if (alignment.alignedObjective) {
-            const childNode: HierarchyNode = {
-              id: alignment.alignedObjectiveId,
-              objective: alignment.alignedObjective,
-              parentId: node.id,
-              children: []
-            };
-            if (!node.children.some(child => child.id === childNode.id)) {
-              node.children.push(childNode);
-            }
-          }
-        });
-      }
-      
-      if (objective.parentObjectiveId === node.id) {
-        const ourNode: HierarchyNode = {
-          id: objective.id,
-          objective: objective,
-          parentId: node.id,
-          children: []
-        };
-        node.children.push(ourNode);
-        addChildren(ourNode);
-      } else if (node.id === objective.id) {
-      } else {
-        const pathIndex = currentObjectivePath.indexOf(node.id);
-        if (pathIndex >= 0 && pathIndex < currentObjectivePath.length - 1) {
-          const nextInPath = currentObjectivePath[pathIndex + 1];
-          if (objective.id === nextInPath) {
-            const ourNode: HierarchyNode = {
-              id: objective.id,
-              objective: objective,
-              parentId: node.id,
-              children: []
-            };
-            node.children.push(ourNode);
-            addChildren(ourNode);
-          } else if (objective.parentObjective && objective.parentObjective.id === nextInPath) {
-            const parentNode: HierarchyNode = {
-              id: objective.parentObjective.id,
-              objective: objective.parentObjective,
-              parentId: node.id,
-              children: []
-            };
-            node.children.push(parentNode);
-            addChildren(parentNode);
-          }
-        }
-      }
-    };
-    
-    addChildren(rootNode);
-    
-    return rootNode;
-  };
-
   const handleDeleteAlignment = async (alignmentId: string) => {
     try {
       await deleteAlignment.mutateAsync(alignmentId);
@@ -193,14 +97,119 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
     }
   };
 
+  // New function for generating React Flow nodes and edges
+  const processHierarchyData = useCallback((rootObj: Objective, highlightPath: string[]) => {
+    const nodes: Node[] = [];
+    const edges: Edge[] = [];
+    const processedNodes = new Set<string>();
+    
+    // Recursive function to process each node
+    const processNode = (obj: Objective, level: number, x: number, y: number, parentId?: string) => {
+      if (processedNodes.has(obj.id)) return;
+      
+      const isCurrentObjective = obj.id === objective.id;
+      const isInPath = highlightPath.includes(obj.id);
+      
+      // Create node
+      nodes.push({
+        id: obj.id,
+        type: 'objectiveNode',
+        position: { x, y },
+        data: {
+          objective: obj,
+          isAdmin,
+          isCurrentObjective,
+          isInPath,
+          canDelete: canEdit && parentId !== undefined,
+          onDelete: parentId ? () => {
+            // Find the alignment and delete it
+            const alignment = objective.alignedObjectives?.find(
+              a => (a.sourceObjectiveId === parentId && a.alignedObjectiveId === obj.id) || 
+                   (a.sourceObjectiveId === obj.id && a.alignedObjectiveId === parentId)
+            );
+            if (alignment) handleDeleteAlignment(alignment.id);
+          } : undefined
+        }
+      });
+      
+      processedNodes.add(obj.id);
+      
+      // Create edge if there's a parent
+      if (parentId) {
+        edges.push({
+          id: `${parentId}-${obj.id}`,
+          source: parentId,
+          target: obj.id,
+          type: 'smoothstep',
+          style: { 
+            stroke: isInPath ? '#f59e0b' : '#64748b', 
+            strokeWidth: isInPath ? 3 : 2 
+          }
+        });
+      }
+      
+      // Process child objectives
+      if (obj.id === objective.id && objective.childObjectives) {
+        const childCount = objective.childObjectives.length;
+        const startX = x - ((childCount - 1) * 300) / 2;
+        
+        objective.childObjectives.forEach((childObj, idx) => {
+          processNode(childObj, level + 1, startX + idx * 300, y + 200, obj.id);
+        });
+      }
+      
+      // Process alignments if this is the current objective
+      if (obj.id === objective.id) {
+        const alignments = findChildAlignments();
+        if (alignments.length > 0) {
+          const alignmentCount = alignments.length;
+          const startX = x - ((alignmentCount - 1) * 300) / 2;
+          
+          alignments.forEach((alignment, idx) => {
+            if (alignment.alignedObjective) {
+              processNode(
+                alignment.alignedObjective, 
+                level + 1, 
+                startX + idx * 300, 
+                y + 200, 
+                obj.id
+              );
+            }
+          });
+        }
+      }
+      
+      // If this is part of the path and not the current objective, process its children
+      // to continue building the path
+      if (isInPath && !isCurrentObjective) {
+        const pathIdx = highlightPath.indexOf(obj.id);
+        if (pathIdx >= 0 && pathIdx < highlightPath.length - 1) {
+          const nextId = highlightPath[pathIdx + 1];
+          
+          // If the next one in path is the current objective
+          if (nextId === objective.id) {
+            processNode(objective, level + 1, x, y + 200, obj.id);
+          }
+          // If the next one is the parent of current objective  
+          else if (objective.parentObjective && nextId === objective.parentObjective.id) {
+            processNode(objective.parentObjective, level + 1, x, y + 200, obj.id);
+          }
+        }
+      }
+    };
+    
+    // Start processing from the root
+    processNode(rootObj, 0, 0, 0);
+    
+    return { nodes, edges };
+  }, [objective, isAdmin, canEdit, handleDeleteAlignment, findChildAlignments]);
+
   return {
-    expandedNodes,
-    toggleNode,
     findParentAlignmentId,
     findChildAlignments,
     handleDeleteAlignment,
     rootObjective,
-    buildObjectiveHierarchy,
+    processHierarchyData,
     currentObjectivePath
   };
 };

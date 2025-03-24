@@ -5,6 +5,7 @@ import { ObjectiveTreeView } from './ObjectiveTreeView';
 import { CreateAlignmentDialog } from './CreateAlignmentDialog';
 import { ObjectiveWithRelations } from '@/types/okr';
 import { Plus } from 'lucide-react';
+import './styles/ObjectiveFlowStyles.css';
 
 interface ObjectiveAlignmentManagerProps {
   objective: ObjectiveWithRelations;

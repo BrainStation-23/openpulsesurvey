@@ -3038,7 +3038,7 @@ export type Database = {
       }
       recalculate_objective_progress: {
         Args: {
-          p_objective_id: string
+          objective_id_param: string
         }
         Returns: undefined
       }
