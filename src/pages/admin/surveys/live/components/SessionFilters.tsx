@@ -60,7 +60,6 @@ export function SessionFilters({
               e.preventDefault(); // Prevent any form submission
               onStatusChange(status);
             }}
-            type="button" // Make sure it's treated as a button
           >
             {status}
           </Badge>
