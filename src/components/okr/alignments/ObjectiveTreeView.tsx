@@ -23,77 +23,26 @@ export const ObjectiveTreeView: React.FC<ObjectiveTreeViewProps> = ({
     toggleNode,
     findParentAlignmentId,
     findChildAlignments,
-    handleDeleteAlignment
+    handleDeleteAlignment,
+    rootObjective,
+    buildObjectiveHierarchy,
+    currentObjectivePath
   } = useObjectiveTree(objective, isAdmin, canEdit);
 
   // Render the tree structure
   const renderObjectiveTree = () => {
-    // First check if we have a parent
-    const hasParent = !!objective.parentObjective;
-    // Get all child alignments
-    const childAlignments = findChildAlignments();
-    const hasChildren = childAlignments.length > 0;
-    
-    // If no parent and no children, just render the current objective
-    if (!hasParent && !hasChildren) {
-      return (
-        <ObjectiveNode 
-          objective={objective}
-          level={0}
-          isExpanded={true}
-          onToggle={() => {}}
-          isAdmin={isAdmin}
-          canEdit={canEdit}
-        />
-      );
-    }
-    
-    // If we have a parent, start the tree with it
-    if (hasParent) {
-      const parentAlignmentId = findParentAlignmentId();
+    // If we have a root objective (either the current objective is the root, or we found its root)
+    if (rootObjective) {
+      // Build the full hierarchy from the root
+      const hierarchy = buildObjectiveHierarchy(rootObjective);
       
-      return (
-        <ObjectiveNode 
-          objective={objective.parentObjective!}
-          level={0}
-          isExpanded={expandedNodes[objective.parentObjective!.id] || false}
-          onToggle={() => toggleNode(objective.parentObjective!.id)}
-          isAdmin={isAdmin}
-          canEdit={canEdit}
-          showDeleteButton={!!parentAlignmentId}
-          onDelete={parentAlignmentId ? () => handleDeleteAlignment(parentAlignmentId) : undefined}
-        >
-          <ObjectiveNode 
-            objective={objective}
-            level={1}
-            isExpanded={expandedNodes[objective.id] || false}
-            onToggle={() => toggleNode(objective.id)}
-            isAdmin={isAdmin}
-            canEdit={canEdit}
-            isLastChild={!hasChildren}
-          >
-            {hasChildren && childAlignments.map((alignment, index) => (
-              alignment.alignedObjective && (
-                <ObjectiveNode 
-                  key={alignment.alignedObjectiveId}
-                  objective={alignment.alignedObjective}
-                  level={2}
-                  isExpanded={expandedNodes[alignment.alignedObjectiveId] || false}
-                  onToggle={() => toggleNode(alignment.alignedObjectiveId)}
-                  isAdmin={isAdmin}
-                  canEdit={canEdit}
-                  showDeleteButton={true}
-                  onDelete={() => handleDeleteAlignment(alignment.id)}
-                  isLastChild={index === childAlignments.length - 1}
-                />
-              )
-            ))}
-          </ObjectiveNode>
-        </ObjectiveNode>
-      );
+      // Create a path array of objective IDs leading from root to current objective
+      // to highlight the current objective in the tree
+      
+      return renderObjectiveHierarchyNode(hierarchy, 0, currentObjectivePath);
     }
     
-    // If no parent but we have children
+    // Fallback if no hierarchy found
     return (
       <ObjectiveNode 
         objective={objective}
@@ -102,23 +51,42 @@ export const ObjectiveTreeView: React.FC<ObjectiveTreeViewProps> = ({
         onToggle={() => toggleNode(objective.id)}
         isAdmin={isAdmin}
         canEdit={canEdit}
+        isCurrentObjective={true}
+      />
+    );
+  };
+
+  // Recursive function to render hierarchy nodes
+  const renderObjectiveHierarchyNode = (node: any, level: number, highlightPath: string[]) => {
+    const isCurrentObjective = node.id === objective.id;
+    const isInPath = highlightPath.includes(node.id);
+    const alignmentId = isCurrentObjective ? null : 
+                        (node.parentId === objective.id ? 
+                          findChildAlignments().find(a => a.alignedObjectiveId === node.id)?.id : 
+                          node.parentId === objective.parentObjectiveId ? findParentAlignmentId() : null);
+    
+    return (
+      <ObjectiveNode
+        key={node.id}
+        objective={node.objective}
+        level={level}
+        isExpanded={expandedNodes[node.id] || false}
+        onToggle={() => toggleNode(node.id)}
+        isAdmin={isAdmin}
+        canEdit={canEdit}
+        showDeleteButton={alignmentId !== null}
+        onDelete={alignmentId ? () => handleDeleteAlignment(alignmentId) : undefined}
+        isLastChild={!node.children || node.children.length === 0}
+        isCurrentObjective={isCurrentObjective}
+        isInCurrentPath={isInPath}
       >
-        {hasChildren && childAlignments.map((alignment, index) => (
-          alignment.alignedObjective && (
-            <ObjectiveNode 
-              key={alignment.alignedObjectiveId}
-              objective={alignment.alignedObjective}
-              level={1}
-              isExpanded={expandedNodes[alignment.alignedObjectiveId] || false}
-              onToggle={() => toggleNode(alignment.alignedObjectiveId)}
-              isAdmin={isAdmin}
-              canEdit={canEdit}
-              showDeleteButton={true}
-              onDelete={() => handleDeleteAlignment(alignment.id)}
-              isLastChild={index === childAlignments.length - 1}
-            />
-          )
-        ))}
+        {node.children && node.children.length > 0 && expandedNodes[node.id] && (
+          <React.Fragment>
+            {node.children.map((child: any, index: number) => 
+              renderObjectiveHierarchyNode(child, level + 1, highlightPath)
+            )}
+          </React.Fragment>
+        )}
       </ObjectiveNode>
     );
   };
