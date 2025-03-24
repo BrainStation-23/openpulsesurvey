@@ -55,71 +55,70 @@ export const PermissionForm = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <Label className="mb-2 block">Users</Label>
-              <UserSelector
-                selectedUsers={values.userIds}
-                onChange={(userIds) => handleChange('userIds', userIds)}
-                placeholder="Search users..."
-              />
-            </div>
-
-            <div>
-              <Label className="mb-2 block">Business Units</Label>
-              <SBUSelector
-                selectedSBUs={values.sbuIds}
-                onChange={(sbuIds) => handleChange('sbuIds', sbuIds)}
-                placeholder="Search business units..."
-              />
-            </div>
+        {/* Users section - takes full width */}
+        <div className="mb-6">
+          <Label className="mb-2 block">Users</Label>
+          <UserSelector
+            selectedUsers={values.userIds}
+            onChange={(userIds) => handleChange('userIds', userIds)}
+            placeholder="Search users..."
+          />
+        </div>
+        
+        {/* Business Units and Employee Roles in two columns */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <Label className="mb-2 block">Business Units</Label>
+            <SBUSelector
+              selectedSBUs={values.sbuIds}
+              onChange={(sbuIds) => handleChange('sbuIds', sbuIds)}
+              placeholder="Search business units..."
+            />
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <Label className="mb-2 block">Employee Roles</Label>
-              <EmployeeRoleSelector
-                selectedRoles={values.employeeRoleIds}
-                onChange={(roleIds) => handleChange('employeeRoleIds', roleIds)}
-                placeholder="Search employee roles..."
+          <div>
+            <Label className="mb-2 block">Employee Roles</Label>
+            <EmployeeRoleSelector
+              selectedRoles={values.employeeRoleIds}
+              onChange={(roleIds) => handleChange('employeeRoleIds', roleIds)}
+              placeholder="Search employee roles..."
+            />
+          </div>
+        </div>
+        
+        {/* Access level section - full width horizontal */}
+        <div>
+          <h3 className="text-sm font-medium mb-2">What level of access?</h3>
+          <div className="bg-secondary/20 p-4 rounded-lg flex flex-wrap gap-6">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="canView"
+                checked={values.canView}
+                onCheckedChange={(checked) => handleChange('canView', checked)}
               />
+              <Label htmlFor="canView" className="cursor-pointer">
+                Can view
+              </Label>
             </div>
-            
-            <div className="mt-6">
-              <h3 className="text-sm font-medium mb-2">What level of access?</h3>
-              <div className="bg-secondary/20 p-4 rounded-lg space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="canView"
-                    checked={values.canView}
-                    onCheckedChange={(checked) => handleChange('canView', checked)}
-                  />
-                  <Label htmlFor="canView" className="cursor-pointer">
-                    Can view
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="canEdit"
-                    checked={values.canEdit}
-                    onCheckedChange={(checked) => handleChange('canEdit', checked)}
-                  />
-                  <Label htmlFor="canEdit" className="cursor-pointer">
-                    Can edit
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="canComment"
-                    checked={values.canComment}
-                    onCheckedChange={(checked) => handleChange('canComment', checked)}
-                  />
-                  <Label htmlFor="canComment" className="cursor-pointer">
-                    Can comment
-                  </Label>
-                </div>
-              </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="canEdit"
+                checked={values.canEdit}
+                onCheckedChange={(checked) => handleChange('canEdit', checked)}
+              />
+              <Label htmlFor="canEdit" className="cursor-pointer">
+                Can edit
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="canComment"
+                checked={values.canComment}
+                onCheckedChange={(checked) => handleChange('canComment', checked)}
+              />
+              <Label htmlFor="canComment" className="cursor-pointer">
+                Can comment
+              </Label>
             </div>
           </div>
         </div>
