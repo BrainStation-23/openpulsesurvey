@@ -107,7 +107,7 @@ export const EmployeeRoleSelector = ({
         
         {showResults && (
           <div className="absolute w-full mt-1 bg-card border rounded-md shadow-md z-50">
-            <ScrollArea className="max-h-[200px]">
+            <ScrollArea className="h-[200px]">
               {isLoading ? (
                 <div className="p-2 space-y-2">
                   <Skeleton className="h-8 w-full" />
