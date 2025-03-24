@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Info, Check, ChevronDown, User, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -93,12 +94,37 @@ const UserObjectiveDetails = () => {
   const isOwner = objective && userId === objective.ownerId;
   const canEdit = isOwner || isAdmin;
   
-  const handleStatusUpdate = (status: ObjectiveStatus) => {
-    if (!id || !canEdit) return;
+  // Determine if status can be changed from UI
+  const canChangeStatus = objective && objective.progress < 100 && canEdit;
+  
+  // Automatically check and update status based on progress
+  useEffect(() => {
+    if (!objective || !canEdit) return;
     
-    updateStatus.mutate({ 
-      status
-    });
+    // Auto-complete objectives at 100% progress
+    if (objective.progress === 100 && objective.status !== 'completed') {
+      updateStatus.mutate({ status: 'completed' });
+      return;
+    }
+    
+    // Change from draft to in_progress when progress > 0 and not already at_risk or on_track
+    if (
+      objective.status === 'draft' && 
+      objective.progress > 0 && 
+      objective.status !== 'at_risk' && 
+      objective.status !== 'on_track'
+    ) {
+      updateStatus.mutate({ status: 'in_progress' });
+    }
+  }, [objective, canEdit, updateStatus]);
+  
+  const handleStatusUpdate = (status: ObjectiveStatus) => {
+    if (!id || !canEdit || !canChangeStatus) return;
+    
+    // Only allow changing to draft, at_risk, or on_track from UI
+    if (status === 'draft' || status === 'at_risk' || status === 'on_track') {
+      updateStatus.mutate({ status });
+    }
   };
   
   const handleDelete = () => {
@@ -208,32 +234,36 @@ const UserObjectiveDetails = () => {
             <div className="flex items-center gap-2">
               {canEdit ? (
                 <div className="flex items-center gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="flex items-center gap-2">
-                        <ObjectiveStatusBadge status={objective.status} />
-                        <ChevronDown className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleStatusUpdate('draft')}>
-                        Draft
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusUpdate('in_progress')}>
-                        In Progress
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusUpdate('at_risk')}>
-                        At Risk
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusUpdate('on_track')}>
-                        On Track
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusUpdate('completed')}>
-                        <Check className="h-4 w-4 mr-2" />
-                        Completed
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {canChangeStatus ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="flex items-center gap-2">
+                          <ObjectiveStatusBadge status={objective.status} />
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleStatusUpdate('draft')}>
+                          Draft
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusUpdate('at_risk')}>
+                          At Risk
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusUpdate('on_track')}>
+                          On Track
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <ObjectiveStatusBadge status={objective.status} />
+                      {objective.status === 'completed' && (
+                        <Badge variant="outline" className="bg-green-50 text-green-800">
+                          Completed objectives can't be edited
+                        </Badge>
+                      )}
+                    </div>
+                  )}
                   
                   <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
                     <Edit className="h-4 w-4 mr-2" />

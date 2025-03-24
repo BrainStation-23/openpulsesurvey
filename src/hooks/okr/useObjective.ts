@@ -53,6 +53,11 @@ export const useObjective = (id: string | undefined) => {
     mutationFn: async ({ status }: { status: ObjectiveStatus }) => {
       if (!id) throw new Error('Objective ID is required');
       
+      // Don't allow changing the status of a completed objective if progress is 100%
+      if (objective?.progress === 100 && status !== 'completed') {
+        throw new Error('Cannot change the status of a completed objective');
+      }
+      
       const updateData: any = {};
       
       if (status) updateData.status = status;
@@ -99,8 +104,48 @@ export const useObjective = (id: string | undefined) => {
       if (objectiveData.visibility) updateData.visibility = objectiveData.visibility;
       if (objectiveData.parentObjectiveId !== undefined) updateData.parent_objective_id = objectiveData.parentObjectiveId;
       if (objectiveData.sbuId !== undefined) updateData.sbu_id = objectiveData.sbuId;
-      if (objectiveData.status) updateData.status = objectiveData.status;
+      if (objectiveData.status) {
+        // Apply the status change rules when updating objective
+        if (objective) {
+          // Don't allow changing status to anything other than completed if progress is 100%
+          if (objective.progress === 100 && objectiveData.status !== 'completed') {
+            throw new Error('Cannot change the status of a completed objective');
+          }
+          
+          // Auto change to in_progress if progress > 0 and status is draft
+          if (
+            objective.status === 'draft' &&
+            (objectiveData.progress || objective.progress) > 0 && 
+            !['at_risk', 'on_track', 'completed'].includes(objectiveData.status)
+          ) {
+            updateData.status = 'in_progress';
+          } else {
+            updateData.status = objectiveData.status;
+          }
+        } else {
+          updateData.status = objectiveData.status;
+        }
+      }
       if (objectiveData.approvalStatus) updateData.approval_status = objectiveData.approvalStatus;
+      
+      // Handle progress updates with status logic
+      if (objectiveData.progress !== undefined) {
+        updateData.progress = objectiveData.progress;
+        
+        // Auto-complete if progress is 100%
+        if (objectiveData.progress === 100) {
+          updateData.status = 'completed';
+        }
+        // Auto transition from draft to in_progress if progress > 0
+        else if (
+          objective && 
+          objective.status === 'draft' && 
+          objectiveData.progress > 0 &&
+          !updateData.status
+        ) {
+          updateData.status = 'in_progress';
+        }
+      }
       
       const { data, error } = await supabase
         .from('objectives')
