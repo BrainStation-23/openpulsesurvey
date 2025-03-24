@@ -76,7 +76,10 @@ export function SearchFilters({
             />
             {searchTerm && !isSearching && (
               <button
-                onClick={() => setSearchTerm("")}
+                onClick={(e) => {
+                  e.preventDefault(); // Prevent form submission
+                  setSearchTerm("");
+                }}
                 className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
                 type="button"
               >

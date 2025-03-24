@@ -73,7 +73,10 @@ export function FilterPanel({
       <div className="flex items-center justify-between">
         <Button
           variant="ghost"
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={(e) => {
+            e.preventDefault(); // Prevent form submission
+            setIsExpanded(!isExpanded);
+          }}
           className="flex items-center gap-2"
           type="button" // Add explicit type="button" to prevent form submission
         >
@@ -95,7 +98,10 @@ export function FilterPanel({
           <Button
             variant="ghost"
             size="sm"
-            onClick={clearAllFilters}
+            onClick={(e) => {
+              e.preventDefault(); // Prevent form submission
+              clearAllFilters();
+            }}
             className="text-muted-foreground hover:text-foreground"
             type="button" // Add explicit type="button" to prevent form submission
           >
@@ -204,7 +210,10 @@ export function FilterPanel({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => addFilter('status', 'active')}
+            onClick={(e) => {
+              e.preventDefault(); // Prevent form submission
+              addFilter('status', 'active');
+            }}
             type="button" // Add explicit type="button" to prevent form submission
           >
             Active Users
@@ -212,7 +221,10 @@ export function FilterPanel({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => addFilter('role', 'admin')}
+            onClick={(e) => {
+              e.preventDefault(); // Prevent form submission
+              addFilter('role', 'admin');
+            }}
             type="button" // Add explicit type="button" to prevent form submission
           >
             Admins
