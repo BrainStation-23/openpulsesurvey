@@ -1,29 +1,15 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ObjectiveWithRelations, Objective } from '@/types/okr';
 import { useAlignments } from '@/hooks/okr/useAlignments';
 
 export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boolean, canEdit: boolean) => {
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
     [objective.id]: true, // Main objective is expanded by default
+    ...(objective.parentObjective ? { [objective.parentObjective.id]: true } : {})
   });
   
   const { deleteAlignment } = useAlignments(objective.id);
-
-  // Automatically expand the parent objective and current objective
-  useEffect(() => {
-    const newExpandedNodes = { ...expandedNodes };
-    
-    // Always expand the current objective
-    newExpandedNodes[objective.id] = true;
-    
-    // Expand parent if exists
-    if (objective.parentObjective) {
-      newExpandedNodes[objective.parentObjective.id] = true;
-    }
-    
-    setExpandedNodes(newExpandedNodes);
-  }, [objective.id, objective.parentObjective]);
 
   const toggleNode = (objectiveId: string) => {
     setExpandedNodes(prev => ({

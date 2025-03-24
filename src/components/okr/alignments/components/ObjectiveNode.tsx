@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, ChevronDown, Info, ArrowRight } from 'lucide-react';
+import { ChevronRight, ChevronDown, Info } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ObjectiveStatusBadge } from '@/components/okr/objectives/ObjectiveStatusBadge';
 import { Objective } from '@/types/okr';
@@ -25,7 +25,6 @@ interface ObjectiveNodeProps {
   onDelete?: () => void;
   children?: React.ReactNode;
   isLastChild?: boolean;
-  isCurrentObjective?: boolean;
 }
 
 export const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({ 
@@ -38,8 +37,7 @@ export const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({
   showDeleteButton = false,
   onDelete,
   children,
-  isLastChild = false,
-  isCurrentObjective = false
+  isLastChild = false
 }) => {
   const basePath = isAdmin ? '/admin' : '/user';
   const indentSize = 24; // Slightly larger indentation per level
@@ -48,9 +46,7 @@ export const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({
     <TooltipProvider>
       <div className="relative">
         <div 
-          className={`flex items-start my-2 p-2 rounded-md hover:bg-muted/50 transition-colors relative ${
-            isCurrentObjective ? 'bg-primary/10 border border-primary/30' : ''
-          }`}
+          className="flex items-start my-2 p-2 rounded-md hover:bg-muted/50 transition-colors relative"
           style={{ marginLeft: `${level * indentSize}px` }}
         >
           {/* Tree structure lines */}
@@ -98,15 +94,12 @@ export const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({
           
           <div className="flex-1 min-w-0 z-10">
             <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0 flex items-center">
-                {isCurrentObjective && (
-                  <ArrowRight className="h-4 w-4 text-primary mr-1 flex-shrink-0" />
-                )}
+              <div className="flex-1 min-w-0">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link 
                       to={`${basePath}/okrs/objectives/${objective.id}`} 
-                      className={`font-medium hover:underline text-sm block truncate ${isCurrentObjective ? 'text-primary font-semibold' : ''}`}
+                      className="font-medium hover:underline text-sm block truncate"
                     >
                       {objective.title}
                     </Link>
@@ -120,17 +113,17 @@ export const ObjectiveNode: React.FC<ObjectiveNodeProps> = ({
                     </div>
                   </TooltipContent>
                 </Tooltip>
+                
+                <div className="flex items-center mt-1 text-xs space-x-2">
+                  <ObjectiveStatusBadge status={objective.status} className="text-xs h-5 px-1.5" />
+                  <span className="text-muted-foreground">{Math.round(objective.progress)}%</span>
+                  <ObjectiveNodeOwnerInfo ownerId={objective.ownerId} />
+                </div>
               </div>
               
               {showDeleteButton && canEdit && onDelete ? (
                 <ObjectiveNodeDeleteButton onDelete={onDelete} />
               ) : null}
-            </div>
-            
-            <div className="flex items-center mt-1 text-xs space-x-2">
-              <ObjectiveStatusBadge status={objective.status} className="text-xs h-5 px-1.5" />
-              <span className="text-muted-foreground">{Math.round(objective.progress)}%</span>
-              <ObjectiveNodeOwnerInfo ownerId={objective.ownerId} />
             </div>
           </div>
         </div>
