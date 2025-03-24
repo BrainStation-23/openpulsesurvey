@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { ObjectiveWithRelations, Objective } from '@/types/okr';
+import { ObjectiveWithRelations, Objective, ObjectiveAlignment, AlignmentType } from '@/types/okr';
 import { useAlignments } from '@/hooks/okr/useAlignments';
 import { supabase } from '@/integrations/supabase/client';
 import { Edge, Node } from '@xyflow/react';
@@ -118,6 +118,9 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
           source_objective_id,
           aligned_objective_id,
           alignment_type,
+          weight,
+          created_by,
+          created_at,
           aligned_objective:objectives!aligned_objective_id (*)
         `)
         .eq('source_objective_id', objectiveId);
@@ -158,7 +161,10 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
           id: align.id,
           sourceObjectiveId: align.source_objective_id,
           alignedObjectiveId: align.aligned_objective_id,
-          alignmentType: align.alignment_type,
+          alignmentType: align.alignment_type as AlignmentType,
+          weight: align.weight || 1,
+          createdBy: align.created_by,
+          createdAt: new Date(align.created_at),
           alignedObjective: align.aligned_objective ? {
             id: align.aligned_objective.id,
             title: align.aligned_objective.title,
@@ -174,10 +180,10 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
             createdAt: new Date(align.aligned_objective.created_at),
             updatedAt: new Date(align.aligned_objective.updated_at)
           } : undefined
-        }))
+        })) as ObjectiveAlignment[]
       };
       
-      return obj;
+      return obj as ObjectiveWithRelations;
     } catch (error) {
       console.error('Error fetching objective with relations:', error);
       return null;

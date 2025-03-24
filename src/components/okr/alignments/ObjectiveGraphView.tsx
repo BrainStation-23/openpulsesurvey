@@ -90,9 +90,13 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
   // Prepare the graph data when the root objective changes
   useEffect(() => {
     if (rootObjective) {
-      const { nodes: graphNodes, edges: graphEdges } = processHierarchyData(rootObjective, currentObjectivePath);
-      setNodes(graphNodes);
-      setEdges(graphEdges);
+      const loadGraphData = async () => {
+        const graphData = await processHierarchyData(rootObjective, currentObjectivePath);
+        setNodes(graphData.nodes);
+        setEdges(graphData.edges);
+      };
+      
+      loadGraphData();
     }
   }, [rootObjective, currentObjectivePath, processHierarchyData, setNodes, setEdges]);
 
