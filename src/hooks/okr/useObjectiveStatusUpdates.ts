@@ -32,8 +32,7 @@ export const useObjectiveStatusUpdates = ({
     if (
       objective.status === 'draft' && 
       objective.progress > 0 && 
-      objective.status !== 'at_risk' && 
-      objective.status !== 'on_track'
+      !['at_risk', 'on_track'].includes(objective.status)
     ) {
       console.log('Automatically changing objective from draft to in_progress (progress > 0)');
       updateStatus({ status: 'in_progress' });

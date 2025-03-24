@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Info, Check, ChevronDown, User, Target } from 'lucide-react';
@@ -109,8 +108,7 @@ const AdminObjectiveDetails = () => {
     if (
       objective.status === 'draft' && 
       objective.progress > 0 && 
-      objective.status !== 'at_risk' && 
-      objective.status !== 'on_track'
+      !['at_risk', 'on_track'].includes(objective.status)
     ) {
       updateStatus.mutate({ status: 'in_progress' });
     }

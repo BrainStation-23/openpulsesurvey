@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Info, Check, ChevronDown, User, Target } from 'lucide-react';
@@ -70,10 +69,8 @@ const UserObjectiveDetails = () => {
     objective: objectiveWithRelations 
   } = useObjectiveWithRelations(id);
 
-  // Fetch key results
   const { data: keyResults = [] } = useKeyResults(id);
   
-  // Fetch creator info
   const { data: creatorInfo } = useQuery({
     queryKey: ['user', objective?.ownerId],
     queryFn: async () => {
@@ -94,25 +91,20 @@ const UserObjectiveDetails = () => {
   const isOwner = objective && userId === objective.ownerId;
   const canEdit = isOwner || isAdmin;
   
-  // Determine if status can be changed from UI
   const canChangeStatus = objective && objective.progress < 100 && canEdit;
   
-  // Automatically check and update status based on progress
   useEffect(() => {
     if (!objective || !canEdit) return;
     
-    // Auto-complete objectives at 100% progress
     if (objective.progress === 100 && objective.status !== 'completed') {
       updateStatus.mutate({ status: 'completed' });
       return;
     }
     
-    // Change from draft to in_progress when progress > 0 and not already at_risk or on_track
     if (
       objective.status === 'draft' && 
       objective.progress > 0 && 
-      objective.status !== 'at_risk' && 
-      objective.status !== 'on_track'
+      !['at_risk', 'on_track'].includes(objective.status)
     ) {
       updateStatus.mutate({ status: 'in_progress' });
     }
@@ -121,7 +113,6 @@ const UserObjectiveDetails = () => {
   const handleStatusUpdate = (status: ObjectiveStatus) => {
     if (!id || !canEdit || !canChangeStatus) return;
     
-    // Only allow changing to draft, at_risk, or on_track from UI
     if (status === 'draft' || status === 'at_risk' || status === 'on_track') {
       updateStatus.mutate({ status });
     }
