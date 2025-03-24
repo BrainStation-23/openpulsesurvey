@@ -45,6 +45,7 @@ import { ObjectiveAlignmentManager } from '@/components/okr/alignments/Objective
 import { useKeyResults } from '@/hooks/okr/useKeyResults';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { PermissionsList } from '@/components/okr/permissions/PermissionsList';
 
 const AdminObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -68,10 +69,8 @@ const AdminObjectiveDetails = () => {
     objective: objectiveWithRelations 
   } = useObjectiveWithRelations(id);
 
-  // Fetch key results
   const { data: keyResults = [] } = useKeyResults(id);
   
-  // Fetch creator info
   const { data: creatorInfo } = useQuery({
     queryKey: ['user', objective?.ownerId],
     queryFn: async () => {

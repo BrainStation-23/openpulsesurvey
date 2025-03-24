@@ -17,8 +17,8 @@ export interface ObjectivePermission {
   canEdit: boolean;
   canComment: boolean;
   createdBy: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string; // Changed from Date to string for consistency with Supabase
+  updatedAt: string; // Changed from Date to string for consistency with Supabase
 }
 
 export interface PermissionFormValues {
@@ -142,7 +142,7 @@ export const useObjectivePermissions = (objectiveId: string | undefined) => {
           can_view: values.canView,
           can_edit: values.canEdit,
           can_comment: values.canComment,
-          updated_at: new Date()
+          updated_at: new Date().toISOString() // Convert Date to string for Supabase
         })
         .eq('id', id)
         .select()

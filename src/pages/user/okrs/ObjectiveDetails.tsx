@@ -45,6 +45,7 @@ import { ObjectiveAlignmentManager } from '@/components/okr/alignments/Objective
 import { useKeyResults } from '@/hooks/okr/useKeyResults';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { PermissionsList } from '@/components/okr/permissions/PermissionsList';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
