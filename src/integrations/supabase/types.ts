@@ -1651,6 +1651,27 @@ export type Database = {
           },
         ]
       }
+      okr_progress_calculation_lock: {
+        Row: {
+          created_at: string
+          locked: boolean
+          objective_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          locked?: boolean
+          objective_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          locked?: boolean
+          objective_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       okr_templates: {
         Row: {
           category: string | null
@@ -2787,6 +2808,12 @@ export type Database = {
           details: Json
         }[]
       }
+      calculate_cascaded_objective_progress: {
+        Args: {
+          p_objective_id: string
+        }
+        Returns: undefined
+      }
       calculate_instance_completion_rate: {
         Args: {
           instance_id: string
@@ -3000,6 +3027,10 @@ export type Database = {
           user_uid: string
         }
         Returns: boolean
+      }
+      recalculate_all_cascaded_objective_progress: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       recalculate_all_objective_progress: {
         Args: Record<PropertyKey, never>
