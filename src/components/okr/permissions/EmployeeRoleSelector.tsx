@@ -1,24 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Check, ChevronsUpDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Search, X, UserRound } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface EmployeeRoleSelectorProps {
   selectedRoles: string[];
@@ -34,10 +23,10 @@ interface EmployeeRole {
 export const EmployeeRoleSelector = ({ 
   selectedRoles, 
   onChange, 
-  placeholder = "Select employee roles..." 
+  placeholder = "Search employee roles..." 
 }: EmployeeRoleSelectorProps) => {
-  const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showResults, setShowResults] = useState(false);
   
   const { data: roles, isLoading } = useQuery({
     queryKey: ['employeeRoles', searchQuery],
@@ -81,83 +70,109 @@ export const EmployeeRoleSelector = ({
       onChange(selectedRoles.filter(id => id !== roleId));
     } else {
       onChange([...selectedRoles, roleId]);
+      setSearchQuery('');
     }
   };
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowResults(false);
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
   
   return (
-    <div className="space-y-2">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="w-full justify-between"
-          >
-            {selectedRoles.length 
-              ? `${selectedRoles.length} role${selectedRoles.length > 1 ? 's' : ''} selected` 
-              : placeholder}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
-          <Command>
-            <CommandInput 
-              placeholder="Search employee roles..." 
-              value={searchQuery}
-              onValueChange={setSearchQuery}
-            />
-            {isLoading ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                Loading employee roles...
-              </div>
-            ) : (
-              <>
-                <CommandEmpty>No employee roles found.</CommandEmpty>
-                <CommandGroup>
-                  <ScrollArea className="h-72">
-                    {roles?.map((role) => (
-                      <CommandItem
+    <div className="space-y-3">
+      <div className="relative">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder={placeholder}
+            className="pl-9 pr-4"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowResults(true);
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowResults(true);
+            }}
+          />
+        </div>
+        
+        {showResults && (
+          <div className="absolute w-full mt-1 bg-card border rounded-md shadow-md z-50">
+            <ScrollArea className="max-h-[200px]">
+              {isLoading ? (
+                <div className="p-2 space-y-2">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              ) : (
+                <>
+                  {roles && roles.length > 0 ? (
+                    roles.map(role => (
+                      <div 
                         key={role.id}
-                        value={role.id}
-                        onSelect={() => handleSelectRole(role.id)}
+                        className={`p-2 cursor-pointer hover:bg-accent flex items-center justify-between ${
+                          selectedRoles.includes(role.id) ? 'bg-secondary/50' : ''
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectRole(role.id);
+                        }}
                       >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedRoles.includes(role.id) ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {role.name}
-                      </CommandItem>
-                    ))}
-                  </ScrollArea>
-                </CommandGroup>
-              </>
-            )}
-          </Command>
-        </PopoverContent>
-      </Popover>
+                        <div className="flex items-center">
+                          <UserRound className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <span>{role.name}</span>
+                        </div>
+                        {selectedRoles.includes(role.id) && (
+                          <div className="text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M20 6 9 17l-5-5"/>
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">
+                      {searchQuery.trim() ? 'No employee roles found' : 'Type to search employee roles'}
+                    </div>
+                  )}
+                </>
+              )}
+            </ScrollArea>
+          </div>
+        )}
+      </div>
       
-      {/* Show selected roles as badges */}
+      {/* Selected roles badges */}
       {selectedRoleDetails && selectedRoleDetails.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
+        <div className="flex flex-wrap gap-1.5 py-2">
           {selectedRoleDetails.map(role => (
             <Badge 
               key={role.id} 
               variant="secondary"
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 py-1.5 px-2"
             >
-              {role.name}
-              <button 
-                className="ml-1 rounded-full hover:bg-muted p-0.5" 
+              <span>{role.name}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-4 w-4 p-0 ml-1 hover:bg-secondary"
                 onClick={() => handleSelectRole(role.id)}
               >
+                <X className="h-3 w-3" />
                 <span className="sr-only">Remove</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
-                </svg>
-              </button>
+              </Button>
             </Badge>
           ))}
         </div>

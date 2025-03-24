@@ -1,24 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Check, ChevronsUpDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Search, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface UserSelectorProps {
   selectedUsers: string[];
@@ -33,9 +22,9 @@ interface UserProfile {
   last_name: string | null;
 }
 
-export const UserSelector = ({ selectedUsers, onChange, placeholder = "Select users..." }: UserSelectorProps) => {
-  const [open, setOpen] = useState(false);
+export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search users..." }: UserSelectorProps) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showResults, setShowResults] = useState(false);
   
   const { data: users, isLoading } = useQuery({
     queryKey: ['users', searchQuery],
@@ -80,6 +69,7 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Select us
       onChange(selectedUsers.filter(id => id !== userId));
     } else {
       onChange([...selectedUsers, userId]);
+      setSearchQuery('');
     }
   };
   
@@ -89,84 +79,106 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Select us
     }
     return user.email;
   };
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowResults(false);
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
   
   return (
-    <div className="space-y-2">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="w-full justify-between"
-          >
-            {selectedUsers.length 
-              ? `${selectedUsers.length} user${selectedUsers.length > 1 ? 's' : ''} selected` 
-              : placeholder}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
-          <Command>
-            <CommandInput 
-              placeholder="Search users..." 
-              value={searchQuery}
-              onValueChange={setSearchQuery}
-            />
-            {isLoading ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                Loading users...
-              </div>
-            ) : (
-              <>
-                <CommandEmpty>No users found.</CommandEmpty>
-                <CommandGroup>
-                  <ScrollArea className="h-72">
-                    {users?.map((user) => (
-                      <CommandItem
+    <div className="space-y-3">
+      <div className="relative">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder={placeholder}
+            className="pl-9 pr-4"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowResults(true);
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowResults(true);
+            }}
+          />
+        </div>
+        
+        {showResults && (
+          <div className="absolute w-full mt-1 bg-card border rounded-md shadow-md z-50">
+            <ScrollArea className="max-h-[200px]">
+              {isLoading ? (
+                <div className="p-2 space-y-2">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              ) : (
+                <>
+                  {users && users.length > 0 ? (
+                    users.map(user => (
+                      <div 
                         key={user.id}
-                        value={user.id}
-                        onSelect={() => handleSelectUser(user.id)}
+                        className={`p-2 cursor-pointer hover:bg-accent flex items-center justify-between ${
+                          selectedUsers.includes(user.id) ? 'bg-secondary/50' : ''
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectUser(user.id);
+                        }}
                       >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedUsers.includes(user.id) ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex flex-col">
-                          <span>{getUserDisplayName(user)}</span>
-                          <span className="text-xs text-muted-foreground">{user.email}</span>
+                        <div>
+                          <div className="font-medium">{getUserDisplayName(user)}</div>
+                          <div className="text-xs text-muted-foreground">{user.email}</div>
                         </div>
-                      </CommandItem>
-                    ))}
-                  </ScrollArea>
-                </CommandGroup>
-              </>
-            )}
-          </Command>
-        </PopoverContent>
-      </Popover>
+                        {selectedUsers.includes(user.id) && (
+                          <div className="text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M20 6 9 17l-5-5"/>
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">
+                      {searchQuery.trim() ? 'No users found' : 'Type to search users'}
+                    </div>
+                  )}
+                </>
+              )}
+            </ScrollArea>
+          </div>
+        )}
+      </div>
       
-      {/* Show selected users as badges */}
+      {/* Selected users badges */}
       {selectedUserDetails && selectedUserDetails.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
+        <div className="flex flex-wrap gap-1.5 py-2">
           {selectedUserDetails.map(user => (
             <Badge 
               key={user.id} 
               variant="secondary"
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 py-1.5 px-2"
             >
-              {getUserDisplayName(user)}
-              <button 
-                className="ml-1 rounded-full hover:bg-muted p-0.5" 
+              <span className="max-w-[150px] truncate">{getUserDisplayName(user)}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-4 w-4 p-0 ml-1 hover:bg-secondary"
                 onClick={() => handleSelectUser(user.id)}
               >
+                <X className="h-3 w-3" />
                 <span className="sr-only">Remove</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
-                </svg>
-              </button>
+              </Button>
             </Badge>
           ))}
         </div>
