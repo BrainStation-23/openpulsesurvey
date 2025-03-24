@@ -98,7 +98,6 @@ export function SearchFilters({
             </span>
           )}
         </div>
-
       </div>
 
       <FilterPanel

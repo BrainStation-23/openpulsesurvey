@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Filter, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -48,8 +48,6 @@ export function FilterPanel({
   employeeRoles,
   employeeTypes,
 }: FilterPanelProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
-
   const hasActiveFilters = [
     selectedSBU,
     selectedLevel,
@@ -71,29 +69,7 @@ export function FilterPanel({
   return (
     <div className="space-y-4 bg-background rounded-lg border p-4">
       <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          onClick={(e) => {
-            e.preventDefault(); // Prevent form submission
-            setIsExpanded(!isExpanded);
-          }}
-          className="flex items-center gap-2"
-          type="button" // Add explicit type="button" to prevent form submission
-        >
-          <Filter className="h-4 w-4" />
-          <span>Filters</span>
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-4 w-4" />
-          )}
-          {hasActiveFilters && (
-            <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-              {[selectedSBU, selectedLevel, selectedLocation, selectedEmploymentType, selectedEmployeeRole, selectedEmployeeType]
-                .filter(filter => filter !== 'all').length}
-            </span>
-          )}
-        </Button>
+        <h3 className="text-sm font-medium">Filters</h3>
         {hasActiveFilters && (
           <Button
             variant="ghost"
@@ -111,7 +87,7 @@ export function FilterPanel({
         )}
       </div>
 
-      <div className={cn("space-y-4", !isExpanded && "hidden")}>
+      <div className="space-y-4">
         <div className="space-y-2">
           <h3 className="text-sm font-medium">Primary Filters</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
