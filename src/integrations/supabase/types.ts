@@ -2825,6 +2825,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      check_okr_objective_access: {
+        Args: {
+          p_user_id: string
+          p_objective_id: string
+          p_access_type: string
+        }
+        Returns: boolean
+      }
       check_user_board_access: {
         Args: {
           p_user_id: string

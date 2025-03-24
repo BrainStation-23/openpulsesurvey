@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Info, Check, ChevronDown, User, Target } from 'lucide-react';
@@ -243,10 +242,11 @@ const AdminObjectiveDetails = () => {
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="px-6">
-            <TabsList className="grid grid-cols-3 w-80">
+            <TabsList className="grid grid-cols-4 w-[400px]">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="key-results">Key Results</TabsTrigger>
               <TabsTrigger value="alignments">Alignments</TabsTrigger>
+              <TabsTrigger value="permissions">Permissions</TabsTrigger>
             </TabsList>
           </div>
           
@@ -399,6 +399,15 @@ const AdminObjectiveDetails = () => {
                 />
               </CardContent>
             )}
+          </TabsContent>
+          
+          <TabsContent value="permissions" className="mt-0">
+            <CardContent className="pt-6">
+              <PermissionsList 
+                objectiveId={id} 
+                canManagePermissions={true}
+              />
+            </CardContent>
           </TabsContent>
         </Tabs>
         
