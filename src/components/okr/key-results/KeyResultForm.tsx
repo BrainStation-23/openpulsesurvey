@@ -368,7 +368,14 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
         </div>
 
         <div className="flex justify-end space-x-2 pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={(e) => {
+              e.preventDefault();
+              onClose(false);
+            }}
+          >
             Cancel
           </Button>
           <Button 
