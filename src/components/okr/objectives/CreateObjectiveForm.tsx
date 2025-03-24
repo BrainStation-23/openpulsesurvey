@@ -133,6 +133,7 @@ export const CreateObjectiveForm = ({ onSubmit, isSubmitting, cycleId }: CreateO
                 <SelectContent>
                   <SelectItem value="personal">Personal</SelectItem>
                   <SelectItem value="team">Team</SelectItem>
+                  <SelectItem value="department">Department</SelectItem>
                   <SelectItem value="organization">Organization</SelectItem>
                 </SelectContent>
               </Select>
