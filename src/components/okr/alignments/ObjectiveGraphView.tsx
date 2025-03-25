@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,10 +84,8 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     let mounted = true;
     
     const loadGraphData = async () => {
-      // Only process data if we have a root objective and data hasn't been loaded yet
       if (!rootObjective || dataLoadedRef.current) return;
       
-      // Check if we already have processed this data
       if (rootObjective && hasProcessedData && 
           hasProcessedData(rootObjective.id, currentObjectivePath)) {
         console.log('Using cached hierarchy data');
@@ -226,4 +223,3 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     </Card>
   );
 };
-
