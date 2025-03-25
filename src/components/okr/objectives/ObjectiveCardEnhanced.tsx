@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ListChecks, Users } from "lucide-react";
+import { ChevronRight, ListChecks, Users, Building2, Building, User, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ObjectiveStatusBadge } from "./ObjectiveStatusBadge";
 import { ObjectiveWithOwner } from '@/types/okr-extended';
@@ -31,6 +31,22 @@ export const ObjectiveCardEnhanced: React.FC<ObjectiveCardEnhancedProps> = ({
       .map((n) => n[0])
       .join("")
       .toUpperCase();
+  };
+
+  // Get visibility icon based on visibility type
+  const getVisibilityIcon = () => {
+    switch (objective.visibility) {
+      case 'organization':
+        return <Globe className="h-3 w-3" />;
+      case 'department':
+        return <Building className="h-3 w-3" />;
+      case 'team':
+        return <Users className="h-3 w-3" />;
+      case 'private':
+        return <User className="h-3 w-3" />;
+      default:
+        return <Globe className="h-3 w-3" />;
+    }
   };
 
   return (
@@ -66,8 +82,12 @@ export const ObjectiveCardEnhanced: React.FC<ObjectiveCardEnhancedProps> = ({
               <span>{childCount} Child Objectives</span>
             </Badge>
             
-            <Badge variant={objective.visibility === 'private' ? 'default' : 'outline'} className="capitalize">
-              {objective.visibility}
+            <Badge 
+              variant={objective.visibility === 'private' ? 'default' : 'outline'} 
+              className="flex items-center gap-1 capitalize"
+            >
+              {getVisibilityIcon()}
+              <span>{objective.visibility}</span>
             </Badge>
           </div>
 
@@ -90,7 +110,7 @@ export const ObjectiveCardEnhanced: React.FC<ObjectiveCardEnhancedProps> = ({
           className="w-full" 
           asChild
         >
-          <Link to={`/user/okrs/objectives/${objective.id}`}>
+          <Link to={`/${isAdmin ? 'admin' : 'user'}/okrs/objectives/${objective.id}`}>
             View Details
             <ChevronRight className="ml-1 h-4 w-4" />
           </Link>

@@ -1,15 +1,25 @@
 
 import React from 'react';
-import { ObjectiveCard } from './ObjectiveCard';
+import { ObjectiveCardEnhanced } from './ObjectiveCardEnhanced';
 import { Objective } from '@/types/okr';
+import { ObjectiveWithOwner } from '@/types/okr-extended';
 
 interface ObjectivesGridProps {
-  objectives: Objective[];
+  objectives: ObjectiveWithOwner[] | Objective[];
   isLoading: boolean;
   isAdmin?: boolean;
 }
 
 export const ObjectivesGrid = ({ objectives, isLoading, isAdmin = false }: ObjectivesGridProps) => {
+  // Calculate child counts
+  const objectiveChildCounts: Record<string, number> = {};
+  
+  objectives.forEach(obj => {
+    // For each objective, count how many objectives have it as their parent
+    const childCount = objectives.filter(o => o.parentObjectiveId === obj.id).length;
+    objectiveChildCounts[obj.id] = childCount;
+  });
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -34,7 +44,12 @@ export const ObjectivesGrid = ({ objectives, isLoading, isAdmin = false }: Objec
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {objectives.map((objective) => (
-        <ObjectiveCard key={objective.id} objective={objective} isAdmin={isAdmin} />
+        <ObjectiveCardEnhanced 
+          key={objective.id} 
+          objective={objective as ObjectiveWithOwner} 
+          childCount={objectiveChildCounts[objective.id] || 0}
+          isAdmin={isAdmin} 
+        />
       ))}
     </div>
   );
