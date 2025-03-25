@@ -121,6 +121,98 @@ export const useOKRCycle = (id: string | undefined) => {
     }
   });
   
+  const checkCycleObjectives = async (cycleId: string) => {
+    const { count, error } = await supabase
+      .from('objectives')
+      .select('id', { count: 'exact', head: true })
+      .eq('cycle_id', cycleId);
+      
+    if (error) {
+      console.error('Error checking objectives:', error);
+      throw error;
+    }
+    
+    return count || 0;
+  };
+  
+  const getAvailableCycles = async () => {
+    if (!id) return [];
+    
+    const { data, error } = await supabase
+      .from('okr_cycles')
+      .select('id, name, status')
+      .neq('id', id);
+      
+    if (error) {
+      console.error('Error fetching available cycles:', error);
+      throw error;
+    }
+    
+    return data;
+  };
+  
+  const moveObjectivesToCycle = useMutation({
+    mutationFn: async ({ sourceCycleId, targetCycleId }: { sourceCycleId: string, targetCycleId: string }) => {
+      const { data, error } = await supabase
+        .from('objectives')
+        .update({ cycle_id: targetCycleId })
+        .eq('cycle_id', sourceCycleId)
+        .select('id');
+        
+      if (error) {
+        console.error('Error moving objectives:', error);
+        throw error;
+      }
+      
+      return data.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['objectives'] });
+      toast({
+        title: 'Success',
+        description: `${count} objectives moved successfully`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error moving objectives',
+        description: error.message,
+      });
+    }
+  });
+  
+  const deleteObjectivesInCycle = useMutation({
+    mutationFn: async (cycleId: string) => {
+      const { data, error } = await supabase
+        .from('objectives')
+        .delete()
+        .eq('cycle_id', cycleId)
+        .select('id');
+        
+      if (error) {
+        console.error('Error deleting objectives:', error);
+        throw error;
+      }
+      
+      return data.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['objectives'] });
+      toast({
+        title: 'Success',
+        description: `${count} objectives deleted successfully`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error deleting objectives',
+        description: error.message,
+      });
+    }
+  });
+  
   const deleteCycle = useMutation({
     mutationFn: async (cycleId: string) => {
       const { error } = await supabase
@@ -137,6 +229,17 @@ export const useOKRCycle = (id: string | undefined) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['okrCycles'] });
+      toast({
+        title: 'Success',
+        description: 'OKR cycle deleted successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error deleting cycle',
+        description: error.message,
+      });
     }
   });
 
@@ -146,6 +249,10 @@ export const useOKRCycle = (id: string | undefined) => {
     error,
     updateStatus,
     updateCycle,
-    deleteCycle
+    deleteCycle,
+    checkCycleObjectives,
+    getAvailableCycles,
+    moveObjectivesToCycle,
+    deleteObjectivesInCycle
   };
 };

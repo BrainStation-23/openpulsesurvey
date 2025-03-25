@@ -26,16 +26,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useOKRCycle } from '@/hooks/okr/useOKRCycle';
 import { useObjectives } from '@/hooks/okr/useObjectives';
 import { CycleStatusBadge } from '@/components/okr/cycles/CycleStatusBadge';
@@ -43,13 +33,14 @@ import { ObjectivesGrid } from '@/components/okr/objectives/ObjectivesGrid';
 import { CreateObjectiveForm } from '@/components/okr/objectives/CreateObjectiveForm';
 import { OKRCycleStatus, CreateObjectiveInput } from '@/types/okr';
 import { EditCycleForm } from '@/components/okr/cycles/EditCycleForm';
+import { DeleteCycleDialog } from '@/components/okr/cycles/DeleteCycleDialog';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminOKRCycleDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { cycle, isLoading, error, updateStatus, deleteCycle } = useOKRCycle(id);
+  const { cycle, isLoading, error, updateStatus } = useOKRCycle(id);
   const { 
     objectives, 
     isLoading: isLoadingObjectives, 
@@ -59,7 +50,6 @@ const AdminOKRCycleDetails = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   
   const handleStatusChange = (status: string) => {
     updateStatus.mutate(status as OKRCycleStatus);
@@ -83,29 +73,6 @@ const AdminOKRCycleDetails = () => {
 
   const handleDeleteCycle = () => {
     setDeleteDialogOpen(true);
-  };
-
-  const confirmDeleteCycle = () => {
-    if (!id) return;
-
-    setIsDeleting(true);
-    deleteCycle.mutate(id, {
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "OKR cycle deleted successfully",
-        });
-        navigate('/admin/okrs/cycles');
-      },
-      onError: (error) => {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: `Failed to delete cycle: ${error.message}`,
-        });
-        setIsDeleting(false);
-      }
-    });
   };
 
   if (isLoading) {
@@ -290,28 +257,14 @@ const AdminOKRCycleDetails = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the OKR cycle "{cycle.name}" and all associated data.
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDeleteCycle} 
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete Cycle Dialog */}
+      {cycle && (
+        <DeleteCycleDialog
+          cycle={cycle}
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+        />
+      )}
     </div>
   );
 };
