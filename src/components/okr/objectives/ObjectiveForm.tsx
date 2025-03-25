@@ -58,7 +58,7 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
 }) => {
   const { userId, isAdmin } = useCurrentUser();
   const [parentObjectiveOptions, setParentObjectiveOptions] = useState<{ id: string; title: string }[]>([]);
-  const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
+  const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
 
   // Get OKR cycles
   const { data: cycles } = useQuery({
@@ -102,11 +102,11 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
     },
   });
 
-  // Set selectedOwners based on form value
+  // Set selectedOwner based on form value
   useEffect(() => {
     const currentOwner = form.watch('ownerId');
     if (currentOwner) {
-      setSelectedOwners([currentOwner]);
+      setSelectedOwner(currentOwner);
     }
   }, [form.watch('ownerId')]);
 
@@ -145,13 +145,12 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
     });
   };
 
-  // Handle owner change
-  const handleOwnerChange = (userIds: string[]) => {
-    // Use the first selected user as owner
-    if (userIds.length > 0) {
-      form.setValue('ownerId', userIds[0]);
+  // Handle owner change - now accepts a single userId
+  const handleOwnerChange = (userId: string | null) => {
+    if (userId) {
+      form.setValue('ownerId', userId);
     }
-    setSelectedOwners(userIds);
+    setSelectedOwner(userId);
   };
 
   return (
@@ -291,9 +290,10 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
                   <FormLabel>Owner</FormLabel>
                   <FormControl>
                     <UserSelector
-                      selectedUsers={selectedOwners}
+                      selectedUsers={selectedOwner ? [selectedOwner] : []}
                       onChange={handleOwnerChange}
                       placeholder="Search for objective owner..."
+                      singleSelect={true}
                     />
                   </FormControl>
                   <FormMessage />
