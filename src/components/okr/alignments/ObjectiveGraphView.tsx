@@ -19,8 +19,9 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ObjectiveNode } from './components/ObjectiveNode';
-import { Maximize2, Minimize2 } from 'lucide-react';
+import { Maximize2, Minimize2, AlertTriangle } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useToast } from "@/hooks/use-toast";
 
 interface ObjectiveGraphViewProps {
   objective: ObjectiveWithRelations;
@@ -37,7 +38,9 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const graphRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const dataLoadedRef = useRef(false);
+  const { toast } = useToast();
   
   const {
     rootObjective,
@@ -88,26 +91,51 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
       // Check if we already have processed this data
       if (rootObjective && hasProcessedData && 
           hasProcessedData(rootObjective.id, currentObjectivePath)) {
-        dataLoadedRef.current = true;
-        setIsLoading(false);
+        console.log('Using cached hierarchy data');
+        const cachedData = await processHierarchyData(rootObjective, currentObjectivePath, true);
+        if (mounted) {
+          if (cachedData.nodes.length === 0) {
+            console.error('No nodes found in cached data');
+            setError('No objectives found in the hierarchy. The graph may be empty.');
+          } else {
+            console.log(`Loaded ${cachedData.nodes.length} nodes and ${cachedData.edges.length} edges from cache`);
+            setNodes(cachedData.nodes);
+            setEdges(cachedData.edges);
+          }
+          dataLoadedRef.current = true;
+          setIsLoading(false);
+        }
         return;
       }
       
       setIsLoading(true);
+      setError(null);
       
       try {
         console.log('Processing hierarchy data for display...');
-        const graphData = await processHierarchyData(rootObjective, currentObjectivePath);
+        const graphData = await processHierarchyData(rootObjective, currentObjectivePath, false);
         
         if (mounted) {
-          setNodes(graphData.nodes);
-          setEdges(graphData.edges);
+          if (!graphData || graphData.nodes.length === 0) {
+            console.error('No nodes found in processed hierarchy data');
+            setError('No objectives found in the hierarchy. The graph may be empty.');
+          } else {
+            console.log(`Processed ${graphData.nodes.length} nodes and ${graphData.edges.length} edges`);
+            setNodes(graphData.nodes);
+            setEdges(graphData.edges);
+          }
           dataLoadedRef.current = true;
           setIsLoading(false);
         }
       } catch (error) {
         console.error('Error processing hierarchy data:', error);
         if (mounted) {
+          setError(`Error loading objective hierarchy: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          toast({
+            variant: "destructive",
+            title: "Error loading objective hierarchy",
+            description: error instanceof Error ? error.message : 'An unexpected error occurred'
+          });
           setIsLoading(false);
         }
       }
@@ -118,7 +146,7 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     return () => {
       mounted = false;
     };
-  }, [rootObjective, currentObjectivePath, processHierarchyData, hasProcessedData]);
+  }, [rootObjective, currentObjectivePath, processHierarchyData, hasProcessedData, toast]);
 
   const reactFlowOptions = useMemo(() => ({
     fitView: true,
@@ -141,6 +169,20 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
               <div className="text-center space-y-3">
                 <LoadingSpinner size={36} />
                 <p className="text-sm text-muted-foreground">Building objective hierarchy...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-full w-full">
+              <div className="text-center space-y-3">
+                <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto" />
+                <p className="text-sm text-muted-foreground">{error}</p>
+              </div>
+            </div>
+          ) : nodes.length === 0 ? (
+            <div className="flex items-center justify-center h-full w-full">
+              <div className="text-center space-y-3">
+                <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto" />
+                <p className="text-sm text-muted-foreground">No objectives found in the hierarchy</p>
               </div>
             </div>
           ) : (
@@ -184,3 +226,4 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     </Card>
   );
 };
+

@@ -26,14 +26,18 @@ export const useHierarchyProcessor = ({
   } | null>(null);
   
   // Process objective data into graph nodes and edges
-  const processHierarchyData = useCallback(async (rootObj: Objective, highlightPath: string[]) => {
+  const processHierarchyData = useCallback(async (
+    rootObj: Objective, 
+    highlightPath: string[],
+    useCache: boolean = false
+  ) => {
     console.log('Starting to process hierarchy data');
     
     // Create a hash of the current path to use for caching
     const pathHash = highlightPath.join('-');
     
     // Check if we've already processed this exact hierarchy and path
-    if (lastProcessedResult.current && 
+    if (useCache && lastProcessedResult.current && 
         lastProcessedResult.current.rootId === rootObj.id &&
         lastProcessedResult.current.pathHash === pathHash) {
       console.log('Using cached hierarchy data');
@@ -48,7 +52,7 @@ export const useHierarchyProcessor = ({
     const calculateNodePosition = (level: number, index: number, totalNodesInLevel: number) => {
       const horizontalSpacing = 300;
       const verticalSpacing = 150;
-      const levelWidth = totalNodesInLevel * horizontalSpacing;
+      const levelWidth = Math.max(totalNodesInLevel * horizontalSpacing, horizontalSpacing);
       const startX = -levelWidth / 2 + horizontalSpacing / 2;
       
       return {
@@ -59,6 +63,8 @@ export const useHierarchyProcessor = ({
     
     // Process nodes breadth-first instead of depth-first to improve performance
     const processHierarchy = async () => {
+      console.log(`Processing hierarchy starting from objective: ${rootObj.id} (${rootObj.title})`);
+      
       const queue: Array<{
         obj: Objective | ObjectiveWithRelations,
         level: number,
@@ -75,7 +81,12 @@ export const useHierarchyProcessor = ({
       while (queue.length > 0) {
         const { obj, level, index, totalNodesInLevel, parentId } = queue.shift()!;
         
-        if (processedNodes.has(obj.id)) continue;
+        if (processedNodes.has(obj.id)) {
+          console.log(`Node ${obj.id} already processed, skipping`);
+          continue;
+        }
+        
+        console.log(`Processing node ${obj.id} (${obj.title}) at level ${level}, index ${index}`);
         
         const isCurrentObjective = obj.id === objective.id;
         const isInPath = highlightPath.includes(obj.id);
@@ -84,7 +95,7 @@ export const useHierarchyProcessor = ({
         const position = calculateNodePosition(level, index, totalNodesInLevel);
         
         // Create node
-        nodes.push({
+        const nodeData = {
           id: obj.id,
           type: 'objectiveNode',
           position,
@@ -103,13 +114,16 @@ export const useHierarchyProcessor = ({
               if (alignment) handleDeleteAlignment(alignment.id);
             } : undefined
           }
-        });
+        };
+        
+        nodes.push(nodeData);
+        console.log(`Added node: ${obj.id} (${obj.title}) at position (${position.x}, ${position.y})`);
         
         processedNodes.add(obj.id);
         
         // Create edge if there's a parent
         if (parentId) {
-          edges.push({
+          const edgeData = {
             id: `${parentId}-${obj.id}`,
             source: parentId,
             target: obj.id,
@@ -119,15 +133,21 @@ export const useHierarchyProcessor = ({
               stroke: isInPath ? '#9333ea' : '#64748b', 
               strokeWidth: isInPath ? 3 : 2 
             }
-          });
+          };
+          
+          edges.push(edgeData);
+          console.log(`Added edge: ${parentId} -> ${obj.id}`);
         }
         
         // Fetch complete objective data with relations if needed
         let objWithRelations = obj as ObjectiveWithRelations;
         if (!('childObjectives' in obj) || !('alignedObjectives' in obj)) {
+          console.log(`Fetching complete data for objective: ${obj.id}`);
           const fetchedObj = await fetchObjectiveWithRelations(obj.id);
           if (fetchedObj) {
             objWithRelations = fetchedObj;
+          } else {
+            console.warn(`Failed to fetch data for objective: ${obj.id}`);
           }
         }
         
@@ -136,6 +156,7 @@ export const useHierarchyProcessor = ({
         
         // Add direct child objectives
         if (objWithRelations.childObjectives && objWithRelations.childObjectives.length > 0) {
+          console.log(`Adding ${objWithRelations.childObjectives.length} child objectives for ${obj.id}`);
           childNodes.push(...objWithRelations.childObjectives);
         }
         
@@ -146,15 +167,20 @@ export const useHierarchyProcessor = ({
                         alignment.sourceObjectiveId === obj.id
           );
           
+          console.log(`Adding ${alignments.length} aligned objectives for ${obj.id}`);
+          
           alignments.forEach(alignment => {
             if (alignment.alignedObjective) {
               childNodes.push(alignment.alignedObjective);
+            } else {
+              console.warn(`Alignment ${alignment.id} is missing alignedObjective data`);
             }
           });
         }
         
         // Add child nodes to queue
         if (childNodes.length > 0) {
+          console.log(`Queuing ${childNodes.length} child nodes for ${obj.id}`);
           childNodes.forEach((childObj, idx) => {
             queue.push({
               obj: childObj,
@@ -164,6 +190,8 @@ export const useHierarchyProcessor = ({
               parentId: obj.id
             });
           });
+        } else {
+          console.log(`No child nodes found for ${obj.id}`);
         }
       }
     };
@@ -179,6 +207,19 @@ export const useHierarchyProcessor = ({
     };
     
     console.log(`Processed ${nodes.length} nodes and ${edges.length} edges`);
+    
+    // Validate that nodes and edges are correctly formatted
+    if (nodes.length === 0) {
+      console.warn('No nodes were generated for the hierarchy');
+    }
+    
+    // Check for common issues
+    nodes.forEach(node => {
+      if (!node.id) console.error('Node missing ID', node);
+      if (!node.position) console.error('Node missing position', node);
+      if (!node.data?.objective) console.error('Node missing objective data', node);
+    });
+    
     return result;
   }, [objective, isAdmin, canEdit, handleDeleteAlignment, fetchObjectiveWithRelations]);
 
@@ -192,3 +233,4 @@ export const useHierarchyProcessor = ({
     }
   };
 };
+
