@@ -163,7 +163,7 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
                 nodeStrokeWidth={3}
                 nodeStrokeColor={(n) => {
                   if (n.id === objective.id) return '#f59e0b';
-                  return currentObjectivePath.includes(n.id) ? '#9333ea' : '#64748b';
+                  return currentObjectivePath.includes(n.id as string) ? '#9333ea' : '#64748b';
                 }}
                 nodeBorderRadius={10}
               />
