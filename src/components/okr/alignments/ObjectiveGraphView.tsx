@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ObjectiveWithRelations } from '@/types/okr';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useObjectiveTree } from './hooks/useObjectiveTree';
-import { useAlignments } from '@/hooks/okr/useAlignments';
 import {
   ReactFlow,
   MiniMap,
@@ -34,7 +34,6 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
   canEdit = false
 }) => {
   const { userId, isAdmin: userIsAdmin } = useCurrentUser();
-  const { deleteAlignment } = useAlignments(objective.id);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const graphRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,14 +46,6 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-
-  const handleDeleteAlignment = async (alignmentId: string) => {
-    try {
-      await deleteAlignment.mutateAsync(alignmentId);
-    } catch (error) {
-      console.error('Error deleting alignment:', error);
-    }
-  };
 
   const toggleFullscreen = () => {
     if (!graphRef.current) return;
@@ -88,29 +79,30 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
   useEffect(() => {
     let mounted = true;
     
-    if (rootObjective && !isLoading) {
+    const loadGraphData = async () => {
+      // Only process data if we have a root objective
+      if (!rootObjective) return;
+      
       setIsLoading(true);
       
-      const loadGraphData = async () => {
-        try {
-          console.log('Processing hierarchy data...');
-          const graphData = await processHierarchyData(rootObjective, currentObjectivePath);
-          
-          if (mounted) {
-            setNodes(graphData.nodes);
-            setEdges(graphData.edges);
-            setIsLoading(false);
-          }
-        } catch (error) {
-          console.error('Error processing hierarchy data:', error);
-          if (mounted) {
-            setIsLoading(false);
-          }
+      try {
+        console.log('Processing hierarchy data...');
+        const graphData = await processHierarchyData(rootObjective, currentObjectivePath);
+        
+        if (mounted) {
+          setNodes(graphData.nodes);
+          setEdges(graphData.edges);
+          setIsLoading(false);
         }
-      };
-      
-      loadGraphData();
-    }
+      } catch (error) {
+        console.error('Error processing hierarchy data:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    loadGraphData();
 
     return () => {
       mounted = false;
