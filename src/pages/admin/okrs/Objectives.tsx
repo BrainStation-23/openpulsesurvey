@@ -11,13 +11,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useObjectives } from '@/hooks/okr/useObjectives';
+import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
 import { ObjectivesGrid } from '@/components/okr/objectives/ObjectivesGrid';
 import { CreateObjectiveForm } from '@/components/okr/objectives/CreateObjectiveForm';
 import { CreateObjectiveInput } from '@/types/okr';
-import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
 import { useToast } from '@/hooks/use-toast';
 import { ObjectiveVisibilityCategory, useObjectivesByVisibility } from '@/hooks/okr/useObjectivesByVisibility';
+import { useObjectives } from '@/hooks/okr/useObjectives';
 
 const AdminAllObjectives = () => {
   const { toast } = useToast();
@@ -32,7 +32,7 @@ const AdminAllObjectives = () => {
     return activeCycle?.id || cycles[0].id;
   }, [cycles]);
 
-  // Use the visibility-filtered objectives hook instead of the regular objectives hook
+  // Use the visibility-filtered objectives hook
   const { 
     objectives, 
     organizationalObjectives,
@@ -41,8 +41,10 @@ const AdminAllObjectives = () => {
     privateObjectives,
     isLoading, 
     refetch, 
-    createObjective 
   } = useObjectivesByVisibility();
+  
+  // Use the regular objectives hook for the createObjective mutation
+  const { createObjective } = useObjectives();
   
   // Determine which objectives to show based on selected category
   const displayedObjectives = selectedCategory === 'all' 
