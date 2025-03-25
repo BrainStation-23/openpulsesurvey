@@ -37,6 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useObjectivesByVisibility } from '@/hooks/okr/useObjectivesByVisibility';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Target, Building2, Building, Users2, User } from "lucide-react";
+import { ObjectiveCardEnhanced } from '@/components/okr/objectives/ObjectiveCardEnhanced';
 
 const AdminOKRCycleDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -279,12 +280,11 @@ const AdminOKRCycleDetails = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {displayedObjectives.map((objective) => (
                   <div key={objective.id}>
-                    {/* Use the ObjectiveCardEnhanced component directly */}
-                    {React.createElement(React.lazy(() => import('@/components/okr/objectives/ObjectiveCardEnhanced')), {
-                      objective,
-                      childCount: displayedObjectives.filter(o => o.parentObjectiveId === objective.id).length,
-                      isAdmin: true
-                    })}
+                    <ObjectiveCardEnhanced
+                      objective={objective}
+                      childCount={displayedObjectives.filter(o => o.parentObjectiveId === objective.id).length}
+                      isAdmin={true}
+                    />
                   </div>
                 ))}
               </div>
