@@ -162,9 +162,11 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
                 pannable 
                 nodeStrokeWidth={3}
                 nodeStrokeColor={(n) => {
-                  // Convert n.id to string explicitly for type safety
+                  // Fix the type issue by ensuring we're working with string types when comparing
                   const nodeId = String(n.id);
-                  if (nodeId === objective.id) return '#f59e0b';
+                  const objectiveId = String(objective.id);
+                  
+                  if (nodeId === objectiveId) return '#f59e0b';
                   return currentObjectivePath.includes(nodeId) ? '#9333ea' : '#64748b';
                 }}
                 nodeBorderRadius={10}
