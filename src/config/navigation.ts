@@ -1,12 +1,11 @@
 
 import { 
   LayoutDashboard, 
-  Settings2, 
+  Settings, 
   Users, 
   FileText, 
   Grid,
   ClipboardList,
-  Database,
   Mail,
   MapPin,
   Layers,
@@ -16,36 +15,49 @@ import {
   UserRound,
   Trophy,
   Radio,
-  Kanban
+  Kanban,
+  Target,
+  Building2,
+  Database,
+  BarChart,
+  ChevronDown,
+  Rocket
 } from "lucide-react";
 
+// Navigation item with optional children for nested navigation
 export type NavigationItem = {
   title: string;
   icon: any;
   path: string;
   children?: NavigationItem[];
+  section?: string;
 };
 
+// Organized navigation items grouped by logical sections
 export const navigationItems: NavigationItem[] = [
   {
     title: "Dashboard",
     icon: LayoutDashboard,
     path: "/admin/dashboard",
+    section: "core"
   },
   {
     title: "My Surveys",
     icon: ClipboardList,
     path: "/admin/my-surveys",
+    section: "core"
   },
   {
     title: "Users",
     icon: Users,
     path: "/admin/users",
+    section: "core"
   },
   {
     title: "Surveys",
     icon: FileText,
     path: "/admin/surveys",
+    section: "surveys",
     children: [
       {
         title: "Campaigns",
@@ -65,18 +77,48 @@ export const navigationItems: NavigationItem[] = [
     ],
   },
   {
+    title: "OKRs",
+    icon: Target,
+    path: "/admin/okrs",
+    section: "okrs",
+    children: [
+      {
+        title: "Dashboard",
+        icon: BarChart,
+        path: "/admin/okrs/dashboard",
+      },
+      {
+        title: "Cycles",
+        icon: Grid,
+        path: "/admin/okrs/cycles",
+      },
+      {
+        title: "Templates",
+        icon: FileText,
+        path: "/admin/okrs/templates",
+      },
+      {
+        title: "Objectives",
+        icon: Rocket,
+        path: "/admin/okrs/objectives",
+      }
+    ],
+  },
+  {
     title: "Achievements",
     icon: Trophy,
     path: "/admin/achievements",
+    section: "core"
   },
   {
     title: "Platform Config",
-    icon: Settings2,
+    icon: Settings,
     path: "/admin/config",
+    section: "config",
     children: [
       {
         title: "SBUs",
-        icon: Database,
+        icon: Building2,
         path: "/admin/config/sbus",
       },
       {
@@ -118,7 +160,16 @@ export const navigationItems: NavigationItem[] = [
   },
   {
     title: "Settings",
-    icon: Settings2,
+    icon: Settings,
     path: "/admin/settings",
+    section: "config"
   },
+];
+
+// Grouping data for the sidebar sections
+export const navigationSections = [
+  { id: "core", label: "Main Navigation" },
+  { id: "surveys", label: "Survey Management" },
+  { id: "okrs", label: "OKR System" },
+  { id: "config", label: "Configuration" },
 ];

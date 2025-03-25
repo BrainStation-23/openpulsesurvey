@@ -1,6 +1,6 @@
 
 [build]
-  command = "NODE_OPTIONS='--max-old-space-size=4096' npm run build"
+  command = "NODE_OPTIONS='--max-old-space-size=8192' npm run build"
   publish = "dist"
 
 [[redirects]]
@@ -20,4 +20,3 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
     Content-Security-Policy = "default-src 'self' https://iqpgjxbqoeioqlfzosvu.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://iqpgjxbqoeioqlfzosvu.supabase.co https://*.supabase.co"
-

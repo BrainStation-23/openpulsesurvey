@@ -1,0 +1,107 @@
+
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: white;
+  border: 2px solid #64748b;
+  transition: all 0.3s ease;
+}
+
+.react-flow__handle:hover {
+  background-color: #f59e0b;
+  transform: scale(1.2);
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+  transition: stroke 0.3s ease;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: #f59e0b;
+  stroke-width: 3;
+}
+
+.react-flow__minimap {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__controls {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__controls button {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.react-flow__controls button:hover {
+  background-color: #f8fafc;
+  color: #f59e0b;
+}
+
+.react-flow__controls button path {
+  fill: currentColor;
+}
+
+.react-flow__attribution {
+  display: none;
+}
+
+.react-flow__node {
+  transition: transform 0.2s ease;
+}
+
+.react-flow__node:hover {
+  transform: translateY(-2px);
+}
+
+.react-flow__node.selected {
+  box-shadow: 0 0 0 2px #f59e0b;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #f59e0b;
+  stroke-width: 3;
+}
+
+.react-flow__background {
+  background-color: #f8fafc;
+}
+
+/* Fullscreen styles */
+.fullscreen-card {
+  margin: 0;
+  padding: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  border-radius: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  background-color: white;
+}
+
+.fullscreen-card .p-4 {
+  padding: 1rem;
+  height: 100%;
+}
+
+.fullscreen-card .p-4 > div:first-child {
+  margin-bottom: 0.5rem;
+}
+
+.fullscreen-card .h-screen {
+  height: calc(100vh - 3rem);
+}

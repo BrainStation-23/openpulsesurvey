@@ -40,5 +40,13 @@ export default defineConfig(({ mode }) => ({
       },
     },
     chunkSizeWarningLimit: 2000,
+    // Added minify options to reduce build size
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
   },
 }));

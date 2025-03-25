@@ -39,9 +39,13 @@ export function QuestionControls({
           <Button
             variant="outline"
             size="sm"
-            onClick={onResetAll}
+            onClick={(e) => {
+              e.preventDefault(); // Prevent form submission
+              onResetAll();
+            }}
             disabled={!hasActiveOrCompletedQuestions}
             className="gap-2"
+            type="button" // Explicitly set button type
           >
             <RotateCcw className="h-4 w-4" />
             Reset All
@@ -53,7 +57,10 @@ export function QuestionControls({
               key={filter.key}
               variant={currentFilter === filter.key ? "default" : "outline"}
               className="cursor-pointer hover:bg-secondary/80 transition-colors"
-              onClick={() => onFilterChange(filter.key)}
+              onClick={(e) => {
+                e.preventDefault(); // Prevent form submission
+                onFilterChange(filter.key);
+              }}
             >
               {filter.label} ({filter.count})
             </Badge>
