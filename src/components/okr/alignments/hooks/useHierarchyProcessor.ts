@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { Objective, ObjectiveWithRelations } from '@/types/okr';
 import { Node, Edge } from '@xyflow/react';
 
@@ -18,10 +18,28 @@ export const useHierarchyProcessor = ({
   handleDeleteAlignment,
   fetchObjectiveWithRelations
 }: HierarchyProcessorProps) => {
+  // Use a ref to store the last processed result to prevent reprocessing the same data
+  const lastProcessedResult = useRef<{
+    rootId: string;
+    pathHash: string;
+    result: { nodes: Node[]; edges: Edge[] };
+  } | null>(null);
   
   // Process objective data into graph nodes and edges
   const processHierarchyData = useCallback(async (rootObj: Objective, highlightPath: string[]) => {
     console.log('Starting to process hierarchy data');
+    
+    // Create a hash of the current path to use for caching
+    const pathHash = highlightPath.join('-');
+    
+    // Check if we've already processed this exact hierarchy and path
+    if (lastProcessedResult.current && 
+        lastProcessedResult.current.rootId === rootObj.id &&
+        lastProcessedResult.current.pathHash === pathHash) {
+      console.log('Using cached hierarchy data');
+      return lastProcessedResult.current.result;
+    }
+    
     const nodes: Node[] = [];
     const edges: Edge[] = [];
     const processedNodes = new Set<string>();
@@ -151,10 +169,26 @@ export const useHierarchyProcessor = ({
     };
     
     await processHierarchy();
-    console.log(`Processed ${nodes.length} nodes and ${edges.length} edges`);
     
-    return { nodes, edges };
+    // Store the result in cache
+    const result = { nodes, edges };
+    lastProcessedResult.current = {
+      rootId: rootObj.id,
+      pathHash,
+      result
+    };
+    
+    console.log(`Processed ${nodes.length} nodes and ${edges.length} edges`);
+    return result;
   }, [objective, isAdmin, canEdit, handleDeleteAlignment, fetchObjectiveWithRelations]);
 
-  return { processHierarchyData };
+  return { 
+    processHierarchyData,
+    // Return a method to check if we already have processed data
+    hasProcessedData: (rootId: string, path: string[]) => {
+      const pathHash = path.join('-');
+      return lastProcessedResult.current?.rootId === rootId && 
+             lastProcessedResult.current?.pathHash === pathHash;
+    }
+  };
 };

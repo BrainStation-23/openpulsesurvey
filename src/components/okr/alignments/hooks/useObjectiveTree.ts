@@ -16,7 +16,7 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
   const { findParentAlignmentId, findChildAlignments, handleDeleteAlignment } = useAlignmentHelpers(objective);
   
   // Get hierarchy processor
-  const { processHierarchyData } = useHierarchyProcessor({
+  const { processHierarchyData, hasProcessedData } = useHierarchyProcessor({
     isAdmin,
     canEdit,
     objective,
@@ -30,6 +30,7 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
     findParentAlignmentId,
     findChildAlignments,
     handleDeleteAlignment,
-    processHierarchyData
+    processHierarchyData,
+    hasProcessedData
   };
 };

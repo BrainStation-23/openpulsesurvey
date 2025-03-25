@@ -3,13 +3,16 @@ import { useCallback, useState } from 'react';
 import { ObjectiveWithRelations, ObjectiveAlignment, Objective, AlignmentType } from '@/types/okr';
 import { supabase } from '@/integrations/supabase/client';
 
-export const useObjectiveData = (cachedData: Map<string, ObjectiveWithRelations>) => {
-  const [objectiveCache, setObjectiveCache] = useState<Map<string, ObjectiveWithRelations>>(cachedData);
+export const useObjectiveData = (initialCache: Map<string, ObjectiveWithRelations>) => {
+  const [objectiveCache, setObjectiveCache] = useState<Map<string, ObjectiveWithRelations>>(
+    initialCache || new Map()
+  );
 
   // Fetch an objective and its related data with caching
   const fetchObjectiveWithRelations = useCallback(async (objectiveId: string) => {
     // Check cache first
     if (objectiveCache.has(objectiveId)) {
+      console.log(`Using cached objective: ${objectiveId}`);
       return objectiveCache.get(objectiveId);
     }
     
@@ -107,7 +110,11 @@ export const useObjectiveData = (cachedData: Map<string, ObjectiveWithRelations>
       
       // Cache the result
       const objWithRelations = obj as ObjectiveWithRelations;
-      setObjectiveCache(prev => new Map(prev).set(objectiveId, objWithRelations));
+      setObjectiveCache(prev => {
+        const newCache = new Map(prev);
+        newCache.set(objectiveId, objWithRelations);
+        return newCache;
+      });
       
       return objWithRelations;
     } catch (error) {

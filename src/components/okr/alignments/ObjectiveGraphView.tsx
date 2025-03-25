@@ -37,11 +37,13 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const graphRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const dataLoadedRef = useRef(false);
   
   const {
     rootObjective,
     currentObjectivePath,
-    processHierarchyData
+    processHierarchyData,
+    hasProcessedData
   } = useObjectiveTree(objective, isAdmin, canEdit);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -80,18 +82,27 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     let mounted = true;
     
     const loadGraphData = async () => {
-      // Only process data if we have a root objective
-      if (!rootObjective) return;
+      // Only process data if we have a root objective and data hasn't been loaded yet
+      if (!rootObjective || dataLoadedRef.current) return;
+      
+      // Check if we already have processed this data
+      if (rootObjective && hasProcessedData && 
+          hasProcessedData(rootObjective.id, currentObjectivePath)) {
+        dataLoadedRef.current = true;
+        setIsLoading(false);
+        return;
+      }
       
       setIsLoading(true);
       
       try {
-        console.log('Processing hierarchy data...');
+        console.log('Processing hierarchy data for display...');
         const graphData = await processHierarchyData(rootObjective, currentObjectivePath);
         
         if (mounted) {
           setNodes(graphData.nodes);
           setEdges(graphData.edges);
+          dataLoadedRef.current = true;
           setIsLoading(false);
         }
       } catch (error) {
@@ -107,7 +118,7 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     return () => {
       mounted = false;
     };
-  }, [rootObjective, currentObjectivePath, processHierarchyData]);
+  }, [rootObjective, currentObjectivePath, processHierarchyData, hasProcessedData]);
 
   const reactFlowOptions = useMemo(() => ({
     fitView: true,
