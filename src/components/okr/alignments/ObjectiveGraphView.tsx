@@ -86,7 +86,9 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
   }), []);
 
   useEffect(() => {
-    if (rootObjective) {
+    let mounted = true;
+    
+    if (rootObjective && !isLoading) {
       setIsLoading(true);
       
       const loadGraphData = async () => {
@@ -94,18 +96,26 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
           console.log('Processing hierarchy data...');
           const graphData = await processHierarchyData(rootObjective, currentObjectivePath);
           
-          setNodes(graphData.nodes);
-          setEdges(graphData.edges);
+          if (mounted) {
+            setNodes(graphData.nodes);
+            setEdges(graphData.edges);
+            setIsLoading(false);
+          }
         } catch (error) {
           console.error('Error processing hierarchy data:', error);
-        } finally {
-          setIsLoading(false);
+          if (mounted) {
+            setIsLoading(false);
+          }
         }
       };
       
       loadGraphData();
     }
-  }, [rootObjective, currentObjectivePath, processHierarchyData, setNodes, setEdges]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [rootObjective, currentObjectivePath, processHierarchyData]);
 
   const reactFlowOptions = useMemo(() => ({
     fitView: true,
