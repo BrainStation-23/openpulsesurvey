@@ -15,9 +15,11 @@ import { ObjectivesGrid } from '@/components/okr/objectives/ObjectivesGrid';
 import { CreateObjectiveForm } from '@/components/okr/objectives/CreateObjectiveForm';
 import { CreateObjectiveInput } from '@/types/okr';
 import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
+import { useToast } from '@/hooks/use-toast';
 
 const AdminAllObjectives = () => {
-  const { objectives, isLoading, createObjective } = useObjectives();
+  const { toast } = useToast();
+  const { objectives, isLoading, createObjective, refetch } = useObjectives();
   const { cycles, isLoading: cyclesLoading } = useOKRCycles();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   
@@ -32,6 +34,12 @@ const AdminAllObjectives = () => {
     createObjective.mutate(data, {
       onSuccess: () => {
         setCreateDialogOpen(false);
+        // Immediately refetch objectives to show the newly created one
+        refetch();
+        toast({
+          title: 'Success',
+          description: 'Objective created successfully',
+        });
       }
     });
   };
