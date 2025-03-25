@@ -106,8 +106,9 @@ export const useObjectivesByVisibility = (cycleId?: string) => {
         }
         
         return data.map(obj => {
-          const ownerData = obj.owners ? obj.owners[0] : null;
-          
+          // Extract owner data from the owners array properly
+          const ownerData = obj.owners && obj.owners.length > 0 ? obj.owners[0] : null;
+
           return {
             ...obj,
             id: obj.id,
