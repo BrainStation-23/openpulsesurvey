@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -11,15 +11,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useObjectives } from '@/hooks/okr/useObjectives';
-import { ObjectivesGrid } from '@/components/okr/objectives/ObjectivesGrid';
+import { ObjectiveCard } from '@/components/okr/objectives/ObjectiveCard';
 import { CreateObjectiveForm } from '@/components/okr/objectives/CreateObjectiveForm';
 import { CreateObjectiveInput } from '@/types/okr';
 import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
+import { useToast } from '@/hooks/use-toast';
 
 const UserObjectives = () => {
-  const { objectives, isLoading, createObjective } = useObjectives();
+  const { toast } = useToast();
+  const { objectives, isLoading, createObjective, refetch } = useObjectives();
   const { cycles, isLoading: cyclesLoading } = useOKRCycles();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [objectiveChildCounts, setObjectiveChildCounts] = useState<Record<string, number>>({});
 
   // Get the most recent active cycle, or the first cycle if none are active
   const defaultCycleId = React.useMemo(() => {
@@ -28,10 +31,31 @@ const UserObjectives = () => {
     return activeCycle?.id || cycles[0].id;
   }, [cycles]);
 
+  // Get child counts for objectives
+  useEffect(() => {
+    if (objectives && objectives.length > 0) {
+      const counts: Record<string, number> = {};
+      
+      objectives.forEach(obj => {
+        // Count how many objectives have this objective as parent
+        const childCount = objectives.filter(o => o.parentObjectiveId === obj.id).length;
+        counts[obj.id] = childCount;
+      });
+      
+      setObjectiveChildCounts(counts);
+    }
+  }, [objectives]);
+
   const handleCreateObjective = (data: CreateObjectiveInput) => {
     createObjective.mutate(data, {
       onSuccess: () => {
         setCreateDialogOpen(false);
+        // Immediately refetch objectives to show the newly created one
+        refetch();
+        toast({
+          title: 'Success',
+          description: 'Objective created successfully',
+        });
       }
     });
   };
@@ -58,7 +82,16 @@ const UserObjectives = () => {
               ))}
             </div>
           ) : objectives && objectives.length > 0 ? (
-            <ObjectivesGrid objectives={objectives} isLoading={isLoading} isAdmin={false} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {objectives.map((objective) => (
+                <ObjectiveCard 
+                  key={objective.id} 
+                  objective={objective} 
+                  isAdmin={false} 
+                  childCount={objectiveChildCounts[objective.id] || 0}
+                />
+              ))}
+            </div>
           ) : (
             <div className="text-center py-12">
               <p className="text-muted-foreground">

@@ -1,30 +1,42 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, ArrowRight } from "lucide-react";
-import { useObjectives } from '@/hooks/okr/useObjectives';
+import { Plus, ArrowRight, Target, Calendar, Users, BarChart, Building2, Building, User, Users2 } from "lucide-react";
+import { useObjectivesByVisibility, ObjectiveVisibilityCategory } from '@/hooks/okr/useObjectivesByVisibility';
 import { ObjectiveStatusBadge } from '@/components/okr/objectives/ObjectiveStatusBadge';
 import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
 import { Progress } from '@/components/ui/progress';
+import { ObjectiveCardEnhanced } from '@/components/okr/objectives/ObjectiveCardEnhanced';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 const UserOKRDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
   const [selectedCycle, setSelectedCycle] = useState<string | null>(null);
   
   const { cycles, isLoading: isLoadingCycles } = useOKRCycles();
-  const { objectives, isLoading: isLoadingObjectives } = useObjectives(selectedCycle);
+  const { 
+    objectives, 
+    organizationalObjectives,
+    departmentalObjectives,
+    teamObjectives,
+    privateObjectives,
+    selectedCategory,
+    setSelectedCategory,
+    isLoading: isLoadingObjectives,
+    refetch
+  } = useObjectivesByVisibility(selectedCycle || undefined);
   
-  // Auto-select the active cycle if available
-  React.useEffect(() => {
+  const [objectiveChildCounts, setObjectiveChildCounts] = useState<Record<string, number>>({});
+  
+  useEffect(() => {
     if (cycles && cycles.length > 0 && !selectedCycle) {
       const activeCycle = cycles.find(cycle => cycle.status === 'active');
       if (activeCycle) {
         setSelectedCycle(activeCycle.id);
       } else {
-        // If no active cycle, select the most recent one
         const sortedCycles = [...cycles].sort((a, b) => 
           new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
         );
@@ -34,6 +46,19 @@ const UserOKRDashboard = () => {
       }
     }
   }, [cycles, selectedCycle]);
+  
+  useEffect(() => {
+    if (objectives && objectives.length > 0) {
+      const counts: Record<string, number> = {};
+      
+      objectives.forEach(obj => {
+        const childCount = objectives.filter(o => o.parentObjectiveId === obj.id).length;
+        counts[obj.id] = childCount;
+      });
+      
+      setObjectiveChildCounts(counts);
+    }
+  }, [objectives]);
 
   const handleViewObjective = (id: string) => {
     navigate(`/user/okrs/objectives/${id}`);
@@ -44,6 +69,22 @@ const UserOKRDashboard = () => {
   };
 
   const activeCycle = cycles?.find(cycle => cycle.id === selectedCycle);
+  
+  const displayedObjectives = selectedCategory === 'all' 
+    ? objectives 
+    : selectedCategory === 'organization' 
+      ? organizationalObjectives
+      : selectedCategory === 'department'
+        ? departmentalObjectives
+        : selectedCategory === 'team'
+          ? teamObjectives
+          : privateObjectives;
+  
+  const totalObjectives = displayedObjectives?.length || 0;
+  const completedObjectives = displayedObjectives?.filter(o => o.status === 'completed').length || 0;
+  const averageProgress = totalObjectives > 0 
+    ? displayedObjectives?.reduce((sum, obj) => sum + obj.progress, 0) / totalObjectives 
+    : 0;
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -63,6 +104,44 @@ const UserOKRDashboard = () => {
         </Card>
       ) : cycles && cycles.length > 0 ? (
         <>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total Objectives</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <Target className="h-4 w-4 text-muted-foreground mr-2" />
+                  <div className="text-2xl font-bold">{totalObjectives}</div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Overall Progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="text-2xl font-bold">{Math.round(averageProgress)}%</div>
+                  <Progress value={averageProgress} className="h-2" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Completed Objectives</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <BarChart className="h-4 w-4 text-muted-foreground mr-2" />
+                  <div className="text-2xl font-bold">{completedObjectives} / {totalObjectives}</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
             <CardHeader>
               <CardTitle>OKR Cycles</CardTitle>
@@ -94,61 +173,82 @@ const UserOKRDashboard = () => {
           {activeCycle && (
             <Card>
               <CardHeader>
-                <CardTitle>{activeCycle.name}</CardTitle>
-                <CardDescription>
-                  {new Date(activeCycle.startDate).toLocaleDateString()} - {new Date(activeCycle.endDate).toLocaleDateString()}
-                </CardDescription>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+                  <div>
+                    <CardTitle>{activeCycle.name}</CardTitle>
+                    <CardDescription>
+                      {new Date(activeCycle.startDate).toLocaleDateString()} - {new Date(activeCycle.endDate).toLocaleDateString()}
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center mt-2 md:mt-0">
+                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {Math.ceil((new Date(activeCycle.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days remaining
+                    </span>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent>
-                {isLoadingObjectives ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="h-24 animate-pulse bg-muted rounded-md" />
-                    ))}
-                  </div>
-                ) : objectives && objectives.length > 0 ? (
-                  <div className="space-y-6">
-                    {objectives.map((objective) => (
-                      <div key={objective.id} className="border rounded-lg p-4">
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2">
-                          <div className="flex items-center gap-2 mb-2 md:mb-0">
-                            <h3 className="text-lg font-medium">{objective.title}</h3>
-                            <ObjectiveStatusBadge status={objective.status} />
-                          </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleViewObjective(objective.id)}
-                          >
-                            View Details <ArrowRight className="ml-2 h-4 w-4" />
-                          </Button>
-                        </div>
-                        
-                        <div className="mb-4">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium">Progress</span>
-                            <span className="text-sm">{objective.progress.toFixed(0)}%</span>
-                          </div>
-                          <Progress value={objective.progress} className="h-2" />
-                        </div>
-                        
-                        {objective.description && (
-                          <p className="text-sm text-muted-foreground mb-4">{objective.description}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">
-                      You don't have any objectives for this cycle yet. Create your first objective to get started.
-                    </p>
-                    <Button onClick={handleCreateObjective} className="mt-4">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create Objective
-                    </Button>
-                  </div>
-                )}
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Objective Visibility</h3>
+                  <Tabs 
+                    value={selectedCategory} 
+                    onValueChange={(value) => setSelectedCategory(value as ObjectiveVisibilityCategory)}
+                    className="w-full"
+                  >
+                    <TabsList className="w-full mb-4 overflow-x-auto flex flex-nowrap">
+                      <TabsTrigger value="all" className="flex items-center gap-1">
+                        <Target className="h-4 w-4" />
+                        <span>All</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="organization" className="flex items-center gap-1">
+                        <Building2 className="h-4 w-4" />
+                        <span>Organization</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="department" className="flex items-center gap-1">
+                        <Building className="h-4 w-4" />
+                        <span>Department</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="team" className="flex items-center gap-1">
+                        <Users2 className="h-4 w-4" />
+                        <span>Team</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="private" className="flex items-center gap-1">
+                        <User className="h-4 w-4" />
+                        <span>Private</span>
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+
+                  {isLoadingObjectives ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="h-64 animate-pulse bg-muted rounded-md" />
+                      ))}
+                    </div>
+                  ) : displayedObjectives.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {displayedObjectives.map((objective) => (
+                        <ObjectiveCardEnhanced 
+                          key={objective.id} 
+                          objective={objective}
+                          childCount={objectiveChildCounts[objective.id] || 0}
+                          keyResultsCount={objective.keyResultsCount}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground">
+                        No {selectedCategory !== 'all' ? selectedCategory : ''} objectives found for this cycle.
+                      </p>
+                      <Button onClick={handleCreateObjective} className="mt-4">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Objective
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}

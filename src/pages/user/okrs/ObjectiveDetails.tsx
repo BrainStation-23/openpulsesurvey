@@ -444,7 +444,7 @@ const UserObjectiveDetails = () => {
       </AlertDialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>Edit Objective</DialogTitle>
           </DialogHeader>
@@ -463,4 +463,3 @@ const UserObjectiveDetails = () => {
 };
 
 export default UserObjectiveDetails;
-

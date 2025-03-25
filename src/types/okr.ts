@@ -70,6 +70,7 @@ export interface CreateObjectiveInput {
   visibility: ObjectiveVisibility;
   parentObjectiveId?: string;
   sbuId?: string;
+  ownerId?: string;
 }
 
 export interface UpdateObjectiveInput extends Partial<CreateObjectiveInput> {

@@ -12,8 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface UserSelectorProps {
   selectedUsers: string[];
-  onChange: (users: string[]) => void;
+  onChange: (users: string[] | string | null) => void;
   placeholder?: string;
+  singleSelect?: boolean; // Add this prop to control single/multi selection mode
 }
 
 interface UserProfile {
@@ -29,7 +30,12 @@ interface FilterOptions {
   locationFilter: string | null;
 }
 
-export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search users..." }: UserSelectorProps) => {
+export const UserSelector = ({ 
+  selectedUsers, 
+  onChange, 
+  placeholder = "Search users...",
+  singleSelect = false // Default to multi-select for backward compatibility
+}: UserSelectorProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({
@@ -161,11 +167,29 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
   });
   
   const handleSelectUser = (userId: string) => {
-    if (selectedUsers.includes(userId)) {
-      onChange(selectedUsers.filter(id => id !== userId));
-    } else {
-      onChange([...selectedUsers, userId]);
+    if (singleSelect) {
+      // For single select mode, replace the current selection with the new one
+      onChange(userId);
       setSearchQuery('');
+      setShowResults(false);
+    } else {
+      // For multi-select mode, add to or remove from the array
+      if (selectedUsers.includes(userId)) {
+        onChange(selectedUsers.filter(id => id !== userId));
+      } else {
+        onChange([...selectedUsers, userId]);
+        setSearchQuery('');
+      }
+    }
+  };
+
+  const handleRemoveUser = (userId: string) => {
+    if (singleSelect) {
+      // For single select, removing means clearing the selection
+      onChange(null);
+    } else {
+      // For multi-select, remove from array
+      onChange(selectedUsers.filter(id => id !== userId));
     }
   };
 
@@ -202,7 +226,7 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder={placeholder}
+            placeholder={singleSelect && selectedUsers.length > 0 ? "User selected" : placeholder}
             className="pl-9 pr-4"
             value={searchQuery}
             onChange={(e) => {
@@ -217,7 +241,23 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
                 setShowResults(true);
               }
             }}
+            disabled={singleSelect && selectedUsers.length > 0}
           />
+          {singleSelect && selectedUsers.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRemoveUser(selectedUsers[0]);
+              }}
+              type="button"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Clear selection</span>
+            </Button>
+          )}
         </div>
         
         {/* Filters Panel - Always visible */}
@@ -341,8 +381,8 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
         )}
       </div>
       
-      {/* Selected users badges */}
-      {selectedUserDetails && selectedUserDetails.length > 0 && (
+      {/* Selected users badges - modified for single select mode */}
+      {selectedUserDetails && selectedUserDetails.length > 0 && !singleSelect && (
         <div className="flex flex-wrap gap-1.5 py-2">
           {selectedUserDetails.map(user => (
             <Badge 
@@ -357,7 +397,7 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
                 className="h-4 w-4 p-0 ml-1 hover:bg-secondary"
                 onClick={(e) => {
                   e.preventDefault();
-                  handleSelectUser(user.id);
+                  handleRemoveUser(user.id);
                 }}
                 type="button"
               >
@@ -366,6 +406,15 @@ export const UserSelector = ({ selectedUsers, onChange, placeholder = "Search us
               </Button>
             </Badge>
           ))}
+        </div>
+      )}
+      
+      {/* For single select mode, show selected user info differently */}
+      {singleSelect && selectedUserDetails && selectedUserDetails.length > 0 && (
+        <div className="flex items-center gap-2 mt-1">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">{selectedUserDetails[0].full_name}</span>
+          <span className="text-xs text-muted-foreground">{selectedUserDetails[0].email}</span>
         </div>
       )}
     </div>

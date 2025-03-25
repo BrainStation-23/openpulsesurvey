@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Target, Building2, Building, Users2, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,16 +10,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useObjectives } from '@/hooks/okr/useObjectives';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
 import { ObjectivesGrid } from '@/components/okr/objectives/ObjectivesGrid';
 import { CreateObjectiveForm } from '@/components/okr/objectives/CreateObjectiveForm';
 import { CreateObjectiveInput } from '@/types/okr';
-import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
+import { useToast } from '@/hooks/use-toast';
+import { ObjectiveVisibilityCategory, useObjectivesByVisibility } from '@/hooks/okr/useObjectivesByVisibility';
+import { useObjectives } from '@/hooks/okr/useObjectives';
 
 const AdminAllObjectives = () => {
-  const { objectives, isLoading, createObjective } = useObjectives();
+  const { toast } = useToast();
   const { cycles, isLoading: cyclesLoading } = useOKRCycles();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<ObjectiveVisibilityCategory>('all');
   
   // Get the most recent active cycle, or the first cycle if none are active
   const defaultCycleId = React.useMemo(() => {
@@ -28,10 +32,41 @@ const AdminAllObjectives = () => {
     return activeCycle?.id || cycles[0].id;
   }, [cycles]);
 
+  // Use the visibility-filtered objectives hook
+  const { 
+    objectives, 
+    organizationalObjectives,
+    departmentalObjectives,
+    teamObjectives,
+    privateObjectives,
+    isLoading, 
+    refetch, 
+  } = useObjectivesByVisibility();
+  
+  // Use the regular objectives hook for the createObjective mutation
+  const { createObjective } = useObjectives();
+  
+  // Determine which objectives to show based on selected category
+  const displayedObjectives = selectedCategory === 'all' 
+    ? objectives 
+    : selectedCategory === 'organization' 
+      ? organizationalObjectives
+      : selectedCategory === 'department'
+        ? departmentalObjectives
+        : selectedCategory === 'team'
+          ? teamObjectives
+          : privateObjectives;
+
   const handleCreateObjective = (data: CreateObjectiveInput) => {
     createObjective.mutate(data, {
       onSuccess: () => {
         setCreateDialogOpen(false);
+        // Immediately refetch objectives to show the newly created one
+        refetch();
+        toast({
+          title: 'Success',
+          description: 'Objective created successfully',
+        });
       }
     });
   };
@@ -50,26 +85,58 @@ const AdminAllObjectives = () => {
         <CardHeader>
           <CardTitle>Organization Objectives</CardTitle>
         </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-64 bg-muted rounded-lg animate-pulse" />
-              ))}
-            </div>
-          ) : objectives && objectives.length > 0 ? (
-            <ObjectivesGrid objectives={objectives} isLoading={isLoading} isAdmin={true} />
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                No objectives found. Create your first objective to get started.
-              </p>
-              <Button onClick={() => setCreateDialogOpen(true)} className="mt-4">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Objective
-              </Button>
-            </div>
-          )}
+        <CardContent className="space-y-6">
+          <div>
+            <h3 className="text-lg font-medium mb-4">Objective Visibility</h3>
+            <Tabs 
+              value={selectedCategory} 
+              onValueChange={(value) => setSelectedCategory(value as ObjectiveVisibilityCategory)}
+              className="w-full"
+            >
+              <TabsList className="w-full mb-4 overflow-x-auto flex flex-nowrap">
+                <TabsTrigger value="all" className="flex items-center gap-1">
+                  <Target className="h-4 w-4" />
+                  <span>All</span>
+                </TabsTrigger>
+                <TabsTrigger value="organization" className="flex items-center gap-1">
+                  <Building2 className="h-4 w-4" />
+                  <span>Organization</span>
+                </TabsTrigger>
+                <TabsTrigger value="department" className="flex items-center gap-1">
+                  <Building className="h-4 w-4" />
+                  <span>Department</span>
+                </TabsTrigger>
+                <TabsTrigger value="team" className="flex items-center gap-1">
+                  <Users2 className="h-4 w-4" />
+                  <span>Team</span>
+                </TabsTrigger>
+                <TabsTrigger value="private" className="flex items-center gap-1">
+                  <User className="h-4 w-4" />
+                  <span>Private</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="h-64 bg-muted rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : displayedObjectives && displayedObjectives.length > 0 ? (
+              <ObjectivesGrid objectives={displayedObjectives} isLoading={isLoading} isAdmin={true} />
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  No {selectedCategory !== 'all' ? selectedCategory : ''} objectives found. Create your first objective to get started.
+                </p>
+                <Button onClick={() => setCreateDialogOpen(true)} className="mt-4">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Objective
+                </Button>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

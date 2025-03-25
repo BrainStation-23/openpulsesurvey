@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Objective, UpdateObjectiveInput, ObjectiveStatus } from '@/types/okr';
@@ -104,6 +103,7 @@ export const useObjective = (id: string | undefined) => {
       if (objectiveData.visibility) updateData.visibility = objectiveData.visibility;
       if (objectiveData.parentObjectiveId !== undefined) updateData.parent_objective_id = objectiveData.parentObjectiveId;
       if (objectiveData.sbuId !== undefined) updateData.sbu_id = objectiveData.sbuId;
+      if (objectiveData.ownerId) updateData.owner_id = objectiveData.ownerId;
       if (objectiveData.status) {
         // Apply the status change rules when updating objective
         if (objective) {

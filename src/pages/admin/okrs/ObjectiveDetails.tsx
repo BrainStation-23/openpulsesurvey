@@ -453,7 +453,7 @@ const AdminObjectiveDetails = () => {
       </AlertDialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Objective</DialogTitle>
           </DialogHeader>
