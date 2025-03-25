@@ -21,6 +21,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { ObjectiveNode } from './components/ObjectiveNode';
 import { Maximize2, Minimize2 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface ObjectiveGraphViewProps {
   objective: ObjectiveWithRelations;
@@ -37,6 +38,7 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
   const { deleteAlignment } = useAlignments(objective.id);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const graphRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   const {
     rootObjective,
@@ -87,18 +89,38 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     objectiveNode: ObjectiveNode
   }), []);
 
-  // Prepare the graph data when the root objective changes
+  // Prepare the graph data only when rootObjective changes
   useEffect(() => {
     if (rootObjective) {
+      setIsLoading(true);
+      
       const loadGraphData = async () => {
-        const graphData = await processHierarchyData(rootObjective, currentObjectivePath);
-        setNodes(graphData.nodes);
-        setEdges(graphData.edges);
+        try {
+          console.log('Processing hierarchy data...');
+          const graphData = await processHierarchyData(rootObjective, currentObjectivePath);
+          
+          // Update nodes and edges atomically to avoid flickering
+          setNodes(graphData.nodes);
+          setEdges(graphData.edges);
+        } catch (error) {
+          console.error('Error processing hierarchy data:', error);
+        } finally {
+          setIsLoading(false);
+        }
       };
       
       loadGraphData();
     }
   }, [rootObjective, currentObjectivePath, processHierarchyData, setNodes, setEdges]);
+
+  // Memoize ReactFlow options to prevent re-renders
+  const reactFlowOptions = useMemo(() => ({
+    fitView: true,
+    minZoom: 0.1,
+    maxZoom: 2,
+    proOptions: { hideAttribution: true },
+    fitViewOptions: { padding: 0.2 }
+  }), []);
 
   return (
     <Card className={`shadow-sm ${isFullscreen ? 'fullscreen-card' : ''}`}>
@@ -108,40 +130,46 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
           ref={graphRef}
           className={`${isFullscreen ? 'h-screen w-full' : 'h-[500px]'} border rounded-md overflow-hidden relative`}
         >
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            nodeTypes={nodeTypes}
-            fitView
-            minZoom={0.1}
-            maxZoom={2}
-            proOptions={{ hideAttribution: true }}
-          >
-            <Panel position="top-right">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="bg-white" 
-                onClick={toggleFullscreen}
-              >
-                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </Button>
-            </Panel>
-            <Controls />
-            <MiniMap 
-              zoomable 
-              pannable 
-              nodeStrokeWidth={3}
-              nodeStrokeColor={(n) => {
-                if (n.id === objective.id) return '#f59e0b';
-                return currentObjectivePath.includes(n.id) ? '#9333ea' : '#64748b';
-              }}
-              nodeBorderRadius={10}
-            />
-            <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-          </ReactFlow>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full w-full">
+              <div className="text-center space-y-3">
+                <LoadingSpinner size="lg" />
+                <p className="text-sm text-muted-foreground">Building objective hierarchy...</p>
+              </div>
+            </div>
+          ) : (
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              nodeTypes={nodeTypes}
+              {...reactFlowOptions}
+            >
+              <Panel position="top-right">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-white" 
+                  onClick={toggleFullscreen}
+                >
+                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+              </Panel>
+              <Controls />
+              <MiniMap 
+                zoomable 
+                pannable 
+                nodeStrokeWidth={3}
+                nodeStrokeColor={(n) => {
+                  if (n.id === objective.id) return '#f59e0b';
+                  return currentObjectivePath.includes(n.id) ? '#9333ea' : '#64748b';
+                }}
+                nodeBorderRadius={10}
+              />
+              <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+            </ReactFlow>
+          )}
         </div>
       </CardContent>
     </Card>

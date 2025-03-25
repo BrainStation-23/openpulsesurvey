@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ObjectiveWithRelations, Objective, ObjectiveAlignment, AlignmentType } from '@/types/okr';
 import { useAlignments } from '@/hooks/okr/useAlignments';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +9,7 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
   const [rootObjective, setRootObjective] = useState<Objective | null>(null);
   const [currentObjectivePath, setCurrentObjectivePath] = useState<string[]>([]);
   const { deleteAlignment } = useAlignments(objective.id);
+  const [cachedData, setCachedData] = useState<Map<string, ObjectiveWithRelations>>(new Map());
 
   useEffect(() => {
     const findRootAndPath = async () => {
@@ -25,29 +26,39 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
         const path = [currentObj.id];
         
         while (currentObj.parentObjectiveId) {
-          const { data, error } = await supabase
-            .from('objectives')
-            .select('*')
-            .eq('id', currentObj.parentObjectiveId)
-            .single();
-            
-          if (error || !data) break;
+          // Check cache first before making a database call
+          const cachedObj = cachedData.get(currentObj.parentObjectiveId);
           
-          currentObj = {
-            id: data.id,
-            title: data.title,
-            description: data.description,
-            cycleId: data.cycle_id,
-            ownerId: data.owner_id,
-            status: data.status,
-            progress: data.progress,
-            visibility: data.visibility,
-            parentObjectiveId: data.parent_objective_id,
-            sbuId: data.sbu_id,
-            approvalStatus: data.approval_status,
-            createdAt: new Date(data.created_at),
-            updatedAt: new Date(data.updated_at)
-          } as Objective;
+          if (cachedObj) {
+            currentObj = cachedObj;
+          } else {
+            const { data, error } = await supabase
+              .from('objectives')
+              .select('*')
+              .eq('id', currentObj.parentObjectiveId)
+              .single();
+              
+            if (error || !data) break;
+            
+            currentObj = {
+              id: data.id,
+              title: data.title,
+              description: data.description,
+              cycleId: data.cycle_id,
+              ownerId: data.owner_id,
+              status: data.status,
+              progress: data.progress,
+              visibility: data.visibility,
+              parentObjectiveId: data.parent_objective_id,
+              sbuId: data.sbu_id,
+              approvalStatus: data.approval_status,
+              createdAt: new Date(data.created_at),
+              updatedAt: new Date(data.updated_at)
+            } as Objective;
+            
+            // Update cache with the new object
+            setCachedData(prev => new Map(prev).set(currentObj.id, currentObj as ObjectiveWithRelations));
+          }
           
           path.unshift(currentObj.id);
         }
@@ -60,7 +71,7 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
     };
     
     findRootAndPath();
-  }, [objective]);
+  }, [objective, cachedData]);
 
   const findParentAlignmentId = useCallback(() => {
     if (!objective.alignedObjectives) return null;
@@ -90,9 +101,15 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
     }
   };
 
-  // Fetch an objective and its related data
+  // Fetch an objective and its related data with caching
   const fetchObjectiveWithRelations = useCallback(async (objectiveId: string) => {
+    // Check cache first
+    if (cachedData.has(objectiveId)) {
+      return cachedData.get(objectiveId);
+    }
+    
     try {
+      console.log(`Fetching objective with relations: ${objectiveId}`);
       // Fetch the objective
       const { data: objectiveData, error: objectiveError } = await supabase
         .from('objectives')
@@ -183,15 +200,20 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
         })) as ObjectiveAlignment[]
       };
       
-      return obj as ObjectiveWithRelations;
+      // Cache the result
+      const objWithRelations = obj as ObjectiveWithRelations;
+      setCachedData(prev => new Map(prev).set(objectiveId, objWithRelations));
+      
+      return objWithRelations;
     } catch (error) {
       console.error('Error fetching objective with relations:', error);
       return null;
     }
-  }, []);
+  }, [cachedData]);
 
-  // Process objective data into graph nodes and edges
+  // Process objective data into graph nodes and edges, with memoization
   const processHierarchyData = useCallback(async (rootObj: Objective, highlightPath: string[]) => {
+    console.log('Starting to process hierarchy data');
     const nodes: Node[] = [];
     const edges: Edge[] = [];
     const processedNodes = new Set<string>();
@@ -209,102 +231,119 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boo
       };
     };
     
-    // Recursive function to process each node
-    const processNode = async (
-      obj: Objective | ObjectiveWithRelations, 
-      level: number = 0, 
-      index: number = 0, 
-      totalNodesInLevel: number = 1, 
-      parentId?: string
-    ) => {
-      if (processedNodes.has(obj.id)) return;
+    // Process nodes breadth-first instead of depth-first to improve performance
+    const processHierarchy = async () => {
+      const queue: Array<{
+        obj: Objective | ObjectiveWithRelations,
+        level: number,
+        index: number,
+        totalNodesInLevel: number,
+        parentId?: string
+      }> = [{
+        obj: rootObj,
+        level: 0,
+        index: 0,
+        totalNodesInLevel: 1
+      }];
       
-      const isCurrentObjective = obj.id === objective.id;
-      const isInPath = highlightPath.includes(obj.id);
-      
-      // Calculate position based on level and index
-      const position = calculateNodePosition(level, index, totalNodesInLevel);
-      
-      // Create node
-      nodes.push({
-        id: obj.id,
-        type: 'objectiveNode',
-        position,
-        data: {
-          objective: obj,
-          isAdmin,
-          isCurrentObjective,
-          isInPath,
-          canDelete: canEdit && parentId !== undefined,
-          onDelete: parentId ? () => {
-            // Find the alignment and delete it
-            const alignment = objective.alignedObjectives?.find(
-              a => (a.sourceObjectiveId === parentId && a.alignedObjectiveId === obj.id) || 
-                   (a.sourceObjectiveId === obj.id && a.alignedObjectiveId === parentId)
-            );
-            if (alignment) handleDeleteAlignment(alignment.id);
-          } : undefined
-        }
-      });
-      
-      processedNodes.add(obj.id);
-      
-      // Create edge if there's a parent
-      if (parentId) {
-        edges.push({
-          id: `${parentId}-${obj.id}`,
-          source: parentId,
-          target: obj.id,
-          type: 'smoothstep',
-          animated: isInPath,
-          style: { 
-            stroke: isInPath ? '#9333ea' : '#64748b', 
-            strokeWidth: isInPath ? 3 : 2 
-          }
-        });
-      }
-      
-      // Fetch complete objective data with relations if needed
-      let objWithRelations = obj as ObjectiveWithRelations;
-      if (!('childObjectives' in obj) || !('alignedObjectives' in obj)) {
-        const fetchedObj = await fetchObjectiveWithRelations(obj.id);
-        if (fetchedObj) {
-          objWithRelations = fetchedObj;
-        }
-      }
-      
-      // Process child objectives
-      const childNodes: Objective[] = [];
-      
-      // Add direct child objectives
-      if (objWithRelations.childObjectives && objWithRelations.childObjectives.length > 0) {
-        childNodes.push(...objWithRelations.childObjectives);
-      }
-      
-      // Add aligned objectives
-      if (objWithRelations.alignedObjectives && objWithRelations.alignedObjectives.length > 0) {
-        const alignments = objWithRelations.alignedObjectives.filter(
-          alignment => alignment.alignmentType === 'parent_child' && 
-                      alignment.sourceObjectiveId === obj.id
-        );
+      while (queue.length > 0) {
+        const { obj, level, index, totalNodesInLevel, parentId } = queue.shift()!;
         
-        alignments.forEach(alignment => {
-          if (alignment.alignedObjective) {
-            childNodes.push(alignment.alignedObjective);
+        if (processedNodes.has(obj.id)) continue;
+        
+        const isCurrentObjective = obj.id === objective.id;
+        const isInPath = highlightPath.includes(obj.id);
+        
+        // Calculate position
+        const position = calculateNodePosition(level, index, totalNodesInLevel);
+        
+        // Create node
+        nodes.push({
+          id: obj.id,
+          type: 'objectiveNode',
+          position,
+          draggable: true, // Allow dragging for better UX
+          data: {
+            objective: obj,
+            isAdmin,
+            isCurrentObjective,
+            isInPath,
+            canDelete: canEdit && parentId !== undefined,
+            onDelete: parentId ? () => {
+              const alignment = objective.alignedObjectives?.find(
+                a => (a.sourceObjectiveId === parentId && a.alignedObjectiveId === obj.id) || 
+                    (a.sourceObjectiveId === obj.id && a.alignedObjectiveId === parentId)
+              );
+              if (alignment) handleDeleteAlignment(alignment.id);
+            } : undefined
           }
         });
-      }
-      
-      // Process all child nodes
-      if (childNodes.length > 0) {
-        await Promise.all(childNodes.map((childObj, idx) => 
-          processNode(childObj, level + 1, idx, childNodes.length, obj.id)
-        ));
+        
+        processedNodes.add(obj.id);
+        
+        // Create edge if there's a parent
+        if (parentId) {
+          edges.push({
+            id: `${parentId}-${obj.id}`,
+            source: parentId,
+            target: obj.id,
+            type: 'smoothstep',
+            animated: isInPath,
+            style: { 
+              stroke: isInPath ? '#9333ea' : '#64748b', 
+              strokeWidth: isInPath ? 3 : 2 
+            }
+          });
+        }
+        
+        // Fetch complete objective data with relations if needed
+        let objWithRelations = obj as ObjectiveWithRelations;
+        if (!('childObjectives' in obj) || !('alignedObjectives' in obj)) {
+          const fetchedObj = await fetchObjectiveWithRelations(obj.id);
+          if (fetchedObj) {
+            objWithRelations = fetchedObj;
+          }
+        }
+        
+        // Process child objectives
+        const childNodes: Objective[] = [];
+        
+        // Add direct child objectives
+        if (objWithRelations.childObjectives && objWithRelations.childObjectives.length > 0) {
+          childNodes.push(...objWithRelations.childObjectives);
+        }
+        
+        // Add aligned objectives
+        if (objWithRelations.alignedObjectives && objWithRelations.alignedObjectives.length > 0) {
+          const alignments = objWithRelations.alignedObjectives.filter(
+            alignment => alignment.alignmentType === 'parent_child' && 
+                        alignment.sourceObjectiveId === obj.id
+          );
+          
+          alignments.forEach(alignment => {
+            if (alignment.alignedObjective) {
+              childNodes.push(alignment.alignedObjective);
+            }
+          });
+        }
+        
+        // Add child nodes to queue
+        if (childNodes.length > 0) {
+          childNodes.forEach((childObj, idx) => {
+            queue.push({
+              obj: childObj,
+              level: level + 1,
+              index: idx,
+              totalNodesInLevel: childNodes.length,
+              parentId: obj.id
+            });
+          });
+        }
       }
     };
     
-    // Start processing from the root
-    await processNode(rootObj, 0, 0, 1);
+    await processHierarchy();
+    console.log(`Processed ${nodes.length} nodes and ${edges.length} edges`);
     
     return { nodes, edges };
   }, [objective, isAdmin, canEdit, handleDeleteAlignment, fetchObjectiveWithRelations]);
