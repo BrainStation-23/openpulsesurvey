@@ -41,6 +41,9 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
   const { objective, isAdmin, isCurrentObjective, isInPath, canDelete, onDelete } = data;
   const basePath = isAdmin ? '/admin' : '/user';
   
+  // Log node rendering for debugging
+  console.log(`Rendering node: ${objective.id} (${objective.title})`);
+  
   // Different styling based on the node's status
   const getBgColor = () => {
     if (isCurrentObjective) return 'bg-amber-50 border-amber-300';
@@ -145,3 +148,4 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
     </TooltipProvider>
   );
 };
+

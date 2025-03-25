@@ -1,11 +1,9 @@
-
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ObjectiveWithRelations } from '@/types/okr';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useObjectiveTree } from './hooks/useObjectiveTree';
-import { useAlignments } from '@/hooks/okr/useAlignments';
 import {
   ReactFlow,
   MiniMap,
@@ -20,7 +18,9 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ObjectiveNode } from './components/ObjectiveNode';
-import { Maximize2, Minimize2 } from 'lucide-react';
+import { Maximize2, Minimize2, AlertTriangle } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useToast } from "@/hooks/use-toast";
 
 interface ObjectiveGraphViewProps {
   objective: ObjectiveWithRelations;
@@ -34,28 +34,23 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
   canEdit = false
 }) => {
   const { userId, isAdmin: userIsAdmin } = useCurrentUser();
-  const { deleteAlignment } = useAlignments(objective.id);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const graphRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const dataLoadedRef = useRef(false);
+  const { toast } = useToast();
   
   const {
     rootObjective,
     currentObjectivePath,
-    processHierarchyData
+    processHierarchyData,
+    hasProcessedData
   } = useObjectiveTree(objective, isAdmin, canEdit);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  const handleDeleteAlignment = async (alignmentId: string) => {
-    try {
-      await deleteAlignment.mutateAsync(alignmentId);
-    } catch (error) {
-      console.error('Error deleting alignment:', error);
-    }
-  };
-
-  // Toggle fullscreen functionality
   const toggleFullscreen = () => {
     if (!graphRef.current) return;
     
@@ -70,7 +65,6 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     }
   };
 
-  // Listen for fullscreen change events
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -82,23 +76,82 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     };
   }, []);
 
-  // Memoized node types to prevent unnecessary re-renders
   const nodeTypes = useMemo(() => ({
     objectiveNode: ObjectiveNode
   }), []);
 
-  // Prepare the graph data when the root objective changes
   useEffect(() => {
-    if (rootObjective) {
-      const loadGraphData = async () => {
-        const graphData = await processHierarchyData(rootObjective, currentObjectivePath);
-        setNodes(graphData.nodes);
-        setEdges(graphData.edges);
-      };
+    let mounted = true;
+    
+    const loadGraphData = async () => {
+      if (!rootObjective || dataLoadedRef.current) return;
       
-      loadGraphData();
-    }
-  }, [rootObjective, currentObjectivePath, processHierarchyData, setNodes, setEdges]);
+      if (rootObjective && hasProcessedData && 
+          hasProcessedData(rootObjective.id, currentObjectivePath)) {
+        console.log('Using cached hierarchy data');
+        const cachedData = await processHierarchyData(rootObjective, currentObjectivePath, true);
+        if (mounted) {
+          if (cachedData.nodes.length === 0) {
+            console.error('No nodes found in cached data');
+            setError('No objectives found in the hierarchy. The graph may be empty.');
+          } else {
+            console.log(`Loaded ${cachedData.nodes.length} nodes and ${cachedData.edges.length} edges from cache`);
+            setNodes(cachedData.nodes);
+            setEdges(cachedData.edges);
+          }
+          dataLoadedRef.current = true;
+          setIsLoading(false);
+        }
+        return;
+      }
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        console.log('Processing hierarchy data for display...');
+        const graphData = await processHierarchyData(rootObjective, currentObjectivePath, false);
+        
+        if (mounted) {
+          if (!graphData || graphData.nodes.length === 0) {
+            console.error('No nodes found in processed hierarchy data');
+            setError('No objectives found in the hierarchy. The graph may be empty.');
+          } else {
+            console.log(`Processed ${graphData.nodes.length} nodes and ${graphData.edges.length} edges`);
+            setNodes(graphData.nodes);
+            setEdges(graphData.edges);
+          }
+          dataLoadedRef.current = true;
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error processing hierarchy data:', error);
+        if (mounted) {
+          setError(`Error loading objective hierarchy: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          toast({
+            variant: "destructive",
+            title: "Error loading objective hierarchy",
+            description: error instanceof Error ? error.message : 'An unexpected error occurred'
+          });
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    loadGraphData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [rootObjective, currentObjectivePath, processHierarchyData, hasProcessedData, toast]);
+
+  const reactFlowOptions = useMemo(() => ({
+    fitView: true,
+    minZoom: 0.1,
+    maxZoom: 2,
+    proOptions: { hideAttribution: true },
+    fitViewOptions: { padding: 0.2 }
+  }), []);
 
   return (
     <Card className={`shadow-sm ${isFullscreen ? 'fullscreen-card' : ''}`}>
@@ -108,40 +161,63 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
           ref={graphRef}
           className={`${isFullscreen ? 'h-screen w-full' : 'h-[500px]'} border rounded-md overflow-hidden relative`}
         >
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            nodeTypes={nodeTypes}
-            fitView
-            minZoom={0.1}
-            maxZoom={2}
-            proOptions={{ hideAttribution: true }}
-          >
-            <Panel position="top-right">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="bg-white" 
-                onClick={toggleFullscreen}
-              >
-                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </Button>
-            </Panel>
-            <Controls />
-            <MiniMap 
-              zoomable 
-              pannable 
-              nodeStrokeWidth={3}
-              nodeStrokeColor={(n) => {
-                if (n.id === objective.id) return '#f59e0b';
-                return currentObjectivePath.includes(n.id) ? '#9333ea' : '#64748b';
-              }}
-              nodeBorderRadius={10}
-            />
-            <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-          </ReactFlow>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full w-full">
+              <div className="text-center space-y-3">
+                <LoadingSpinner size={36} />
+                <p className="text-sm text-muted-foreground">Building objective hierarchy...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-full w-full">
+              <div className="text-center space-y-3">
+                <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto" />
+                <p className="text-sm text-muted-foreground">{error}</p>
+              </div>
+            </div>
+          ) : nodes.length === 0 ? (
+            <div className="flex items-center justify-center h-full w-full">
+              <div className="text-center space-y-3">
+                <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto" />
+                <p className="text-sm text-muted-foreground">No objectives found in the hierarchy</p>
+              </div>
+            </div>
+          ) : (
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              nodeTypes={nodeTypes}
+              {...reactFlowOptions}
+            >
+              <Panel position="top-right">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-white" 
+                  onClick={toggleFullscreen}
+                >
+                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+              </Panel>
+              <Controls />
+              <MiniMap 
+                zoomable 
+                pannable 
+                nodeStrokeWidth={3}
+                nodeStrokeColor={(n) => {
+                  const nodeId = String(n.id);
+                  const objectiveId = String(objective.id);
+                  
+                  if (nodeId === objectiveId) return '#f59e0b';
+                  return currentObjectivePath.includes(nodeId) ? '#9333ea' : '#64748b';
+                }}
+                nodeBorderRadius={10}
+              />
+              <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+            </ReactFlow>
+          )}
         </div>
       </CardContent>
     </Card>
