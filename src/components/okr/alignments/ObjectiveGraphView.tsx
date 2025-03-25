@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,7 +56,6 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     }
   };
 
-  // Toggle fullscreen functionality
   const toggleFullscreen = () => {
     if (!graphRef.current) return;
     
@@ -72,7 +70,6 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     }
   };
 
-  // Listen for fullscreen change events
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -84,12 +81,10 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     };
   }, []);
 
-  // Memoized node types to prevent unnecessary re-renders
   const nodeTypes = useMemo(() => ({
     objectiveNode: ObjectiveNode
   }), []);
 
-  // Prepare the graph data only when rootObjective changes
   useEffect(() => {
     if (rootObjective) {
       setIsLoading(true);
@@ -99,7 +94,6 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
           console.log('Processing hierarchy data...');
           const graphData = await processHierarchyData(rootObjective, currentObjectivePath);
           
-          // Update nodes and edges atomically to avoid flickering
           setNodes(graphData.nodes);
           setEdges(graphData.edges);
         } catch (error) {
@@ -113,7 +107,6 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     }
   }, [rootObjective, currentObjectivePath, processHierarchyData, setNodes, setEdges]);
 
-  // Memoize ReactFlow options to prevent re-renders
   const reactFlowOptions = useMemo(() => ({
     fitView: true,
     minZoom: 0.1,
@@ -133,7 +126,7 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
           {isLoading ? (
             <div className="flex items-center justify-center h-full w-full">
               <div className="text-center space-y-3">
-                <LoadingSpinner size="lg" />
+                <LoadingSpinner size={36} />
                 <p className="text-sm text-muted-foreground">Building objective hierarchy...</p>
               </div>
             </div>
@@ -162,7 +155,6 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
                 pannable 
                 nodeStrokeWidth={3}
                 nodeStrokeColor={(n) => {
-                  // Fix the type issue by ensuring we're working with string types when comparing
                   const nodeId = String(n.id);
                   const objectiveId = String(objective.id);
                   
