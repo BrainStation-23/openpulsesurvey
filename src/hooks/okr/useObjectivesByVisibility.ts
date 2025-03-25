@@ -103,6 +103,7 @@ export const useObjectivesByVisibility = (cycleId?: string) => {
           // Get private objectives - only objectives owned by the current user
           query = query.eq('visibility', 'private').eq('owner_id', user.id);
         }
+        // Note: For 'all' category, we don't apply any visibility filter, so all objectives will be returned
         
         // Order by creation date
         query = query.order('created_at', { ascending: false });
