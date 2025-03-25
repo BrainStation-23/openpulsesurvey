@@ -285,7 +285,7 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem key="none" value="none">None</SelectItem>
                   {parentObjectiveOptions.map(obj => (
                     <SelectItem key={obj.id} value={obj.id}>
                       {obj.title}
@@ -314,7 +314,7 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem key="none" value="none">None</SelectItem>
                   {sbus?.map(sbu => (
                     <SelectItem key={sbu.id} value={sbu.id}>
                       {sbu.name}
