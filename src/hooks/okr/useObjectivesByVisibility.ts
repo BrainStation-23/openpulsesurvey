@@ -8,6 +8,15 @@ import { ObjectiveWithOwner } from '@/types/okr-extended';
 
 export type ObjectiveVisibilityCategory = 'all' | 'organization' | 'department' | 'team' | 'private';
 
+// Define the owner profile structure from Supabase
+interface OwnerProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string;
+  profile_image_url: string | null;
+}
+
 export const useObjectivesByVisibility = (cycleId?: string) => {
   const { user } = useCurrentUser();
   const [selectedCategory, setSelectedCategory] = useState<ObjectiveVisibilityCategory>('all');
@@ -106,8 +115,10 @@ export const useObjectivesByVisibility = (cycleId?: string) => {
         }
         
         return data.map(obj => {
-          // Extract owner data from the owners array properly
-          const ownerData = obj.owners && obj.owners.length > 0 ? obj.owners[0] : null;
+          // Extract owner data from the owners array, ensuring it's properly typed
+          const ownerData = obj.owners && Array.isArray(obj.owners) && obj.owners.length > 0 
+            ? obj.owners[0] as unknown as OwnerProfile 
+            : null;
 
           return {
             ...obj,
