@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { ArrowLeft, CalendarRange, Clock, AlertCircle, Plus } from 'lucide-react';
+import { ArrowLeft, CalendarRange, Clock, AlertCircle, Plus, Pencil, Trash2 } from 'lucide-react';
 import { 
   Card, 
   CardContent, 
@@ -24,17 +24,32 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useOKRCycle } from '@/hooks/okr/useOKRCycle';
 import { useObjectives } from '@/hooks/okr/useObjectives';
 import { CycleStatusBadge } from '@/components/okr/cycles/CycleStatusBadge';
 import { ObjectivesGrid } from '@/components/okr/objectives/ObjectivesGrid';
 import { CreateObjectiveForm } from '@/components/okr/objectives/CreateObjectiveForm';
 import { OKRCycleStatus, CreateObjectiveInput } from '@/types/okr';
+import { EditCycleForm } from '@/components/okr/cycles/EditCycleForm';
+import { useToast } from '@/hooks/use-toast';
 
 const AdminOKRCycleDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const { cycle, isLoading, error, updateStatus } = useOKRCycle(id);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { cycle, isLoading, error, updateStatus, deleteCycle } = useOKRCycle(id);
   const { 
     objectives, 
     isLoading: isLoadingObjectives, 
@@ -42,6 +57,9 @@ const AdminOKRCycleDetails = () => {
   } = useObjectives(id);
   
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const handleStatusChange = (status: string) => {
     updateStatus.mutate(status as OKRCycleStatus);
@@ -51,6 +69,41 @@ const AdminOKRCycleDetails = () => {
     createObjective.mutate(data, {
       onSuccess: () => {
         setCreateDialogOpen(false);
+        toast({
+          title: "Success",
+          description: "Objective created successfully",
+        });
+      }
+    });
+  };
+
+  const handleEditCycle = () => {
+    setEditDialogOpen(true);
+  };
+
+  const handleDeleteCycle = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteCycle = () => {
+    if (!id) return;
+
+    setIsDeleting(true);
+    deleteCycle.mutate(id, {
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "OKR cycle deleted successfully",
+        });
+        navigate('/admin/okrs/cycles');
+      },
+      onError: (error) => {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: `Failed to delete cycle: ${error.message}`,
+        });
+        setIsDeleting(false);
       }
     });
   };
@@ -72,7 +125,7 @@ const AdminOKRCycleDetails = () => {
         <Button variant="outline" asChild className="mb-6">
           <Link to="/admin/okrs/cycles">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cycles
-          </Link>.
+          </Link>
         </Button>
         
         <Card>
@@ -120,6 +173,25 @@ const AdminOKRCycleDetails = () => {
             </SelectContent>
           </Select>
         </div>
+      </div>
+      
+      <div className="flex justify-end gap-2">
+        <Button 
+          variant="outline" 
+          onClick={handleEditCycle}
+          className="flex items-center gap-2"
+        >
+          <Pencil className="h-4 w-4" />
+          Edit Cycle
+        </Button>
+        <Button 
+          variant="destructive" 
+          onClick={handleDeleteCycle}
+          className="flex items-center gap-2"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete Cycle
+        </Button>
       </div>
       
       <Card>
@@ -186,6 +258,7 @@ const AdminOKRCycleDetails = () => {
         </CardContent>
       </Card>
 
+      {/* Create Objective Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -198,6 +271,47 @@ const AdminOKRCycleDetails = () => {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Edit Cycle Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit OKR Cycle</DialogTitle>
+            <DialogDescription>
+              Update the details of this OKR cycle
+            </DialogDescription>
+          </DialogHeader>
+          {cycle && (
+            <EditCycleForm 
+              cycle={cycle}
+              onClose={() => setEditDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the OKR cycle "{cycle.name}" and all associated data.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteCycle} 
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
