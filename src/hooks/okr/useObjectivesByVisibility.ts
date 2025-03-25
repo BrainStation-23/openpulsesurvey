@@ -57,11 +57,12 @@ export const useObjectivesByVisibility = (cycleId?: string) => {
         }
         
         // Base query to get objectives
+        // Fix: Specify the exact foreign key relationship using !inner(...)
         let query = supabase
           .from('objectives')
           .select(`
             *,
-            owners:profiles(id, first_name, last_name, email, profile_image_url),
+            owners:profiles!objectives_owner_id_fkey(id, first_name, last_name, email, profile_image_url),
             key_results:key_results(id)
           `);
         
