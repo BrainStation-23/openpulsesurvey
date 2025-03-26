@@ -2,15 +2,17 @@
 import { useState } from 'react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BasicInfoTab } from '../admin/users/components/EditUserDialog/BasicInfoTab';
 import { EmploymentDetailsTab } from '../admin/users/components/EditUserDialog/EmploymentDetailsTab';
+import { SBUAssignmentTab } from '../admin/users/components/EditUserDialog/SBUAssignmentTab';
+import { ManagementTab } from '../admin/users/components/EditUserDialog/ManagementTab';
 import { useProfileManagement } from '../admin/users/hooks/useProfileManagement';
+import { useSupervisorManagement } from '../admin/users/hooks/useSupervisorManagement';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function UserProfile() {
   const { userId } = useCurrentUser();
@@ -57,6 +59,12 @@ export default function UserProfile() {
     updateProfileMutation,
   } = useProfileManagement(user);
 
+  const {
+    supervisors,
+    handleSupervisorChange,
+    handlePrimarySupervisorChange,
+  } = useSupervisorManagement(user);
+
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -64,12 +72,6 @@ export default function UserProfile() {
       </div>
     );
   }
-
-  const getInitials = () => {
-    const first = firstName?.charAt(0) || '';
-    const last = lastName?.charAt(0) || '';
-    return (first + last).toUpperCase();
-  };
 
   const handleSave = async () => {
     try {
@@ -113,72 +115,75 @@ export default function UserProfile() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="md:col-span-1">
-          <CardHeader>
-            <CardTitle>Profile Picture</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center">
-            <Avatar className="h-32 w-32">
-              <AvatarImage src={profileImageUrl} alt={`${firstName} ${lastName}`} />
-              <AvatarFallback className="text-2xl">{getInitials()}</AvatarFallback>
-            </Avatar>
-          </CardContent>
-        </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Personal Information</CardTitle>
+          <CardDescription>
+            View and manage your personal details
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList>
+              <TabsTrigger value="basic">Basic Information</TabsTrigger>
+              <TabsTrigger value="employment">Employment Details</TabsTrigger>
+              <TabsTrigger value="sbus">SBU Assignment</TabsTrigger>
+              <TabsTrigger value="management">Management</TabsTrigger>
+            </TabsList>
 
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-            <CardDescription>
-              View and manage your personal details
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="basic" className="w-full">
-              <TabsList>
-                <TabsTrigger value="basic">Basic Information</TabsTrigger>
-                <TabsTrigger value="employment">Employment Details</TabsTrigger>
-              </TabsList>
+            <TabsContent value="basic">
+              <BasicInfoTab
+                firstName={firstName}
+                setFirstName={setFirstName}
+                lastName={lastName}
+                setLastName={setLastName}
+                profileImageUrl={profileImageUrl}
+                setProfileImageUrl={setProfileImageUrl}
+                orgId={orgId}
+                setOrgId={setOrgId}
+                gender={gender}
+                setGender={setGender}
+                dateOfBirth={dateOfBirth}
+                setDateOfBirth={setDateOfBirth}
+                disabled={!isEditing}
+              />
+            </TabsContent>
 
-              <TabsContent value="basic">
-                <BasicInfoTab
-                  firstName={firstName}
-                  setFirstName={setFirstName}
-                  lastName={lastName}
-                  setLastName={setLastName}
-                  profileImageUrl={profileImageUrl}
-                  setProfileImageUrl={setProfileImageUrl}
-                  orgId={orgId}
-                  setOrgId={setOrgId}
-                  gender={gender}
-                  setGender={setGender}
-                  dateOfBirth={dateOfBirth}
-                  setDateOfBirth={setDateOfBirth}
-                  disabled={!isEditing}
+            <TabsContent value="employment">
+              <EmploymentDetailsTab
+                designation={designation}
+                setDesignation={setDesignation}
+                selectedLocation={selectedLocation}
+                setSelectedLocation={setSelectedLocation}
+                selectedEmploymentType={selectedEmploymentType}
+                setSelectedEmploymentType={setSelectedEmploymentType}
+                selectedLevel={selectedLevel}
+                setSelectedLevel={setSelectedLevel}
+                selectedEmployeeRole={selectedEmployeeRole}
+                setSelectedEmployeeRole={setSelectedEmployeeRole}
+                selectedEmployeeType={selectedEmployeeType}
+                setSelectedEmployeeType={setSelectedEmployeeType}
+                disabled={!isEditing}
+              />
+            </TabsContent>
+
+            <TabsContent value="sbus">
+              {user && <SBUAssignmentTab user={user} />}
+            </TabsContent>
+
+            <TabsContent value="management">
+              {user && (
+                <ManagementTab
+                  user={user}
+                  supervisors={supervisors}
+                  onSupervisorChange={handleSupervisorChange}
+                  onPrimarySupervisorChange={handlePrimarySupervisorChange}
                 />
-              </TabsContent>
-
-              <TabsContent value="employment">
-                <EmploymentDetailsTab
-                  designation={designation}
-                  setDesignation={setDesignation}
-                  selectedLocation={selectedLocation}
-                  setSelectedLocation={setSelectedLocation}
-                  selectedEmploymentType={selectedEmploymentType}
-                  setSelectedEmploymentType={setSelectedEmploymentType}
-                  selectedLevel={selectedLevel}
-                  setSelectedLevel={setSelectedLevel}
-                  selectedEmployeeRole={selectedEmployeeRole}
-                  setSelectedEmployeeRole={setSelectedEmployeeRole}
-                  selectedEmployeeType={selectedEmployeeType}
-                  setSelectedEmployeeType={setSelectedEmployeeType}
-                  disabled={!isEditing}
-                />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }
