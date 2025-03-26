@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ interface BasicInfoTabProps {
   setGender: (value: GenderType) => void;
   dateOfBirth: Date | undefined;
   setDateOfBirth: (value: Date | undefined) => void;
+  disabled?: boolean;
 }
 
 export function BasicInfoTab({
@@ -43,6 +45,7 @@ export function BasicInfoTab({
   setGender,
   dateOfBirth,
   setDateOfBirth,
+  disabled = false,
 }: BasicInfoTabProps) {
   return (
     <div className="grid gap-4">
@@ -60,6 +63,7 @@ export function BasicInfoTab({
             value={profileImageUrl}
             onChange={(e) => setProfileImageUrl(e.target.value)}
             placeholder="https://example.com/image.jpg"
+            disabled={disabled}
           />
         </div>
       </div>
@@ -70,6 +74,7 @@ export function BasicInfoTab({
           id="firstName"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
+          disabled={disabled}
         />
       </div>
 
@@ -79,6 +84,7 @@ export function BasicInfoTab({
           id="lastName"
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
+          disabled={disabled}
         />
       </div>
 
@@ -89,6 +95,7 @@ export function BasicInfoTab({
           value={orgId}
           onChange={(e) => setOrgId(e.target.value)}
           placeholder="Enter organization ID"
+          disabled={disabled}
         />
       </div>
 
@@ -98,17 +105,18 @@ export function BasicInfoTab({
           value={gender}
           onValueChange={(value: GenderType) => setGender(value)}
           className="flex gap-4"
+          disabled={disabled}
         >
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="male" id="male" />
+            <RadioGroupItem value="male" id="male" disabled={disabled} />
             <Label htmlFor="male">Male</Label>
           </div>
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="female" id="female" />
+            <RadioGroupItem value="female" id="female" disabled={disabled} />
             <Label htmlFor="female">Female</Label>
           </div>
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="other" id="other" />
+            <RadioGroupItem value="other" id="other" disabled={disabled} />
             <Label htmlFor="other">Other</Label>
           </div>
         </RadioGroup>
@@ -124,6 +132,7 @@ export function BasicInfoTab({
                 "w-full justify-start text-left font-normal",
                 !dateOfBirth && "text-muted-foreground"
               )}
+              disabled={disabled}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {dateOfBirth ? format(dateOfBirth, "PPP") : "Pick a date"}
@@ -135,6 +144,7 @@ export function BasicInfoTab({
               selected={dateOfBirth}
               onSelect={setDateOfBirth}
               initialFocus
+              disabled={(date) => date > new Date() || date < new Date("1900-01-01") || disabled}
             />
           </PopoverContent>
         </Popover>
