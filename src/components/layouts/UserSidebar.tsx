@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { LogOut, LayoutDashboard, ClipboardList, Settings2, Trophy, Kanban, Target, UserCircle } from "lucide-react";
+import { LogOut, LayoutDashboard, ClipboardList, Settings2, Trophy, Kanban, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePendingSurveysCount } from "@/hooks/use-pending-surveys-count";
 import {
@@ -15,11 +15,6 @@ const navigationItems = [
     title: "Dashboard",
     icon: LayoutDashboard,
     path: "/user/dashboard",
-  },
-  {
-    title: "My Profile",
-    icon: UserCircle,
-    path: "/user/profile",
   },
   {
     title: "My Surveys",

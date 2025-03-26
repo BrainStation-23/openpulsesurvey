@@ -1,69 +1,40 @@
-
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "../types";
 import { toast } from "sonner";
 
 export function useSupervisorManagement(user: User | null) {
-  console.log('useSupervisorManagement hook called with user:', user?.id);
-  const startTime = performance.now();
-  
   const queryClient = useQueryClient();
   const [primarySupervisor, setPrimarySupervisor] = useState<string | null>(null);
 
-  const { data: supervisors = [], isLoading: supervisorsLoading } = useQuery({
+  const { data: supervisors = [] } = useQuery({
     queryKey: ["supervisors", user?.id],
     queryFn: async () => {
-      console.log('Starting supervisors fetch for user:', user?.id);
-      const fetchStartTime = performance.now();
-      
-      if (!user) {
-        console.log('No user provided, returning empty array');
-        return [];
-      }
+      if (!user) return [];
 
-      try {
-        const { data, error } = await supabase
-          .from("user_supervisors")
-          .select(`
-            supervisor_id,
-            is_primary,
-            supervisor:profiles!user_supervisors_supervisor_id_fkey (
-              id,
-              first_name,
-              last_name,
-              profile_image_url
-            )
-          `)
-          .eq("user_id", user.id);
-
-        const fetchDuration = performance.now() - fetchStartTime;
-        console.log(`Supervisors fetch completed in ${fetchDuration.toFixed(2)}ms`);
-        
-        if (error) {
-          console.error('Error fetching supervisors:', error);
-          throw error;
-        }
-
-        console.log('Supervisors data received:', data);
-        return data.map(({ supervisor, is_primary }) => ({
-          ...supervisor,
+      const { data, error } = await supabase
+        .from("user_supervisors")
+        .select(`
+          supervisor_id,
           is_primary,
-        }));
-      } catch (error) {
-        console.error('Error in supervisors query:', error);
-        throw error;
-      }
-    },
-    enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+          supervisor:profiles!user_supervisors_supervisor_id_fkey (
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq("user_id", user.id);
 
-  useEffect(() => {
-    const hookDuration = performance.now() - startTime;
-    console.log(`useSupervisorManagement initialization took ${hookDuration.toFixed(2)}ms`);
-  }, [startTime]);
+      if (error) throw error;
+
+      return data.map(({ supervisor, is_primary }) => ({
+        ...supervisor,
+        is_primary,
+      }));
+    },
+    enabled: !!user,
+  });
 
   const updateSupervisorMutation = useMutation({
     mutationFn: async ({
@@ -151,7 +122,6 @@ export function useSupervisorManagement(user: User | null) {
 
   return {
     supervisors,
-    supervisorsLoading,
     handleSupervisorChange,
     handlePrimarySupervisorChange,
   };

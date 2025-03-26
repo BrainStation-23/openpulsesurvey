@@ -21,7 +21,6 @@ interface EmploymentDetailsTabProps {
   setSelectedEmployeeRole: (value: string) => void;
   selectedEmployeeType: string;
   setSelectedEmployeeType: (value: string) => void;
-  disabled?: boolean;
 }
 
 export function EmploymentDetailsTab({
@@ -37,7 +36,6 @@ export function EmploymentDetailsTab({
   setSelectedEmployeeRole,
   selectedEmployeeType,
   setSelectedEmployeeType,
-  disabled = false,
 }: EmploymentDetailsTabProps) {
   const { data: locations } = useQuery({
     queryKey: ["locations"],
@@ -122,16 +120,14 @@ export function EmploymentDetailsTab({
                   value={selectedLevel}
                   onValueChange={setSelectedLevel}
                   className="grid grid-cols-2 gap-4"
-                  disabled={disabled}
                 >
                   {levels?.map((level) => (
                     <div
                       key={level.id}
                       className={`flex items-center space-x-2 rounded-lg border p-4 transition-colors
-                        ${selectedLevel === level.id ? 'bg-primary/5 border-primary' : 'hover:bg-muted'} 
-                        ${disabled ? 'opacity-70' : ''}`}
+                        ${selectedLevel === level.id ? 'bg-primary/5 border-primary' : 'hover:bg-muted'}`}
                     >
-                      <RadioGroupItem value={level.id} id={level.id} disabled={disabled} />
+                      <RadioGroupItem value={level.id} id={level.id} />
                       <Label htmlFor={level.id} className="flex-1 cursor-pointer">
                         {level.name}
                       </Label>
@@ -149,16 +145,14 @@ export function EmploymentDetailsTab({
                   value={selectedEmployeeRole}
                   onValueChange={setSelectedEmployeeRole}
                   className="grid grid-cols-2 gap-4"
-                  disabled={disabled}
                 >
                   {employeeRoles?.map((role) => (
                     <div
                       key={role.id}
                       className={`flex items-center space-x-2 rounded-lg border p-4 transition-colors
-                        ${selectedEmployeeRole === role.id ? 'bg-primary/5 border-primary' : 'hover:bg-muted'}
-                        ${disabled ? 'opacity-70' : ''}`}
+                        ${selectedEmployeeRole === role.id ? 'bg-primary/5 border-primary' : 'hover:bg-muted'}`}
                     >
-                      <RadioGroupItem value={role.id} id={role.id} disabled={disabled} />
+                      <RadioGroupItem value={role.id} id={role.id} />
                       <Label htmlFor={role.id} className="flex-1 cursor-pointer">
                         {role.name}
                       </Label>
@@ -176,16 +170,14 @@ export function EmploymentDetailsTab({
                   value={selectedEmployeeType}
                   onValueChange={setSelectedEmployeeType}
                   className="grid grid-cols-2 gap-4"
-                  disabled={disabled}
                 >
                   {employeeTypes?.map((type) => (
                     <div
                       key={type.id}
                       className={`flex items-center space-x-2 rounded-lg border p-4 transition-colors
-                        ${selectedEmployeeType === type.id ? 'bg-primary/5 border-primary' : 'hover:bg-muted'}
-                        ${disabled ? 'opacity-70' : ''}`}
+                        ${selectedEmployeeType === type.id ? 'bg-primary/5 border-primary' : 'hover:bg-muted'}`}
                     >
-                      <RadioGroupItem value={type.id} id={type.id} disabled={disabled} />
+                      <RadioGroupItem value={type.id} id={type.id} />
                       <Label htmlFor={type.id} className="flex-1 cursor-pointer">
                         {type.name}
                       </Label>
@@ -206,7 +198,6 @@ export function EmploymentDetailsTab({
                     onChange={(e) => setDesignation(e.target.value)}
                     placeholder="Enter your job title"
                     className="pl-10"
-                    disabled={disabled}
                   />
                   <Briefcase className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                 </div>
@@ -237,16 +228,14 @@ export function EmploymentDetailsTab({
                   value={selectedLocation}
                   onValueChange={setSelectedLocation}
                   className="grid gap-3"
-                  disabled={disabled}
                 >
                   {locations?.map((location) => (
                     <div
                       key={location.id}
                       className={`flex items-center space-x-2 rounded-lg border p-4 transition-colors
-                        ${selectedLocation === location.id ? 'bg-primary/5 border-primary' : 'hover:bg-muted'}
-                        ${disabled ? 'opacity-70' : ''}`}
+                        ${selectedLocation === location.id ? 'bg-primary/5 border-primary' : 'hover:bg-muted'}`}
                     >
-                      <RadioGroupItem value={location.id} id={location.id} disabled={disabled} />
+                      <RadioGroupItem value={location.id} id={location.id} />
                       <Label htmlFor={location.id} className="flex-1 cursor-pointer">
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -272,16 +261,14 @@ export function EmploymentDetailsTab({
                   value={selectedEmploymentType}
                   onValueChange={setSelectedEmploymentType}
                   className="grid gap-3"
-                  disabled={disabled}
                 >
                   {employmentTypes?.map((type) => (
                     <div
                       key={type.id}
                       className={`flex items-center space-x-2 rounded-lg border p-4 transition-colors
-                        ${selectedEmploymentType === type.id ? 'bg-primary/5 border-primary' : 'hover:bg-muted'}
-                        ${disabled ? 'opacity-70' : ''}`}
+                        ${selectedEmploymentType === type.id ? 'bg-primary/5 border-primary' : 'hover:bg-muted'}`}
                     >
-                      <RadioGroupItem value={type.id} id={type.id} disabled={disabled} />
+                      <RadioGroupItem value={type.id} id={type.id} />
                       <Label htmlFor={type.id} className="cursor-pointer">
                         {type.name}
                       </Label>

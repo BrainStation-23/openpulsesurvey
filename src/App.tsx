@@ -27,7 +27,6 @@ import JoinLiveSession from "./pages/live/JoinLiveSession";
 // User pages
 import UserDashboard from "./pages/user/Dashboard";
 import UserSettings from "./pages/user/Settings";
-import UserProfile from "./pages/user/Profile"; // Add import for the new user profile page
 import UserMySurveys from "./pages/user/my-surveys";
 import UserSurveyResponse from "./pages/user/my-surveys/[id]";
 import UserAchievementsPage from "./pages/user/achievements";
@@ -115,7 +114,6 @@ const App = () => (
             <Route path="/user" element={<UserLayout />}>
               <Route index element={<Navigate to="/user/dashboard" replace />} />
               <Route path="dashboard" element={<UserDashboard />} />
-              <Route path="profile" element={<UserProfile />} />
               <Route path="my-surveys" element={<UserMySurveys />} />
               <Route path="my-surveys/:assignmentId/:instanceId" element={<UserSurveyResponse />} />
               <Route path="settings" element={<UserSettings />} />
@@ -129,7 +127,6 @@ const App = () => (
               <Route path="okrs/objectives/:id" element={<UserObjectiveDetails />} />
             </Route>
             
-            {/* Admin routes */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboard />} />

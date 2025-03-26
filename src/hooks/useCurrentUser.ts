@@ -1,86 +1,52 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { User } from '@supabase/supabase-js';
 
-export interface User {
-  id: string;
-  email: string;
-  first_name?: string;
-  last_name?: string;
-  profile_image_url?: string;
-}
-
-export function useCurrentUser() {
-  const [userId, setUserId] = useState<string | null>(null);
+export const useCurrentUser = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    async function getUserInfo() {
+    const getUser = async () => {
       try {
         setIsLoading(true);
-        // Get user session
-        const { data: { user: authUser } } = await supabase.auth.getUser();
         
-        if (!authUser) {
-          setUserId(null);
-          setUser(null);
-          setIsAdmin(false);
-          return;
+        // Get the authenticated user
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+        
+        // If there's a user, check if they have admin role
+        if (user) {
+          const { data: roles } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id);
+            
+          setIsAdmin(roles?.some(r => r.role === 'admin') || false);
         }
-        
-        setUserId(authUser.id);
-        
-        // Get user profile data
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authUser.id)
-          .single();
-          
-        if (profileError) {
-          throw profileError;
-        }
-        
-        // Set user information
-        setUser({
-          id: authUser.id,
-          email: authUser.email || '',
-          first_name: profileData?.first_name,
-          last_name: profileData?.last_name,
-          profile_image_url: profileData?.profile_image_url
-        });
-        
-        // Check if user is admin
-        const { data: roleData, error: roleError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', authUser.id)
-          .single();
-          
-        if (!roleError && roleData) {
-          setIsAdmin(roleData.role === 'admin');
-        }
-        
-        setError(null);
-      } catch (err) {
-        console.error('Error getting user:', err);
-        setError(err instanceof Error ? err : new Error('Failed to get user'));
+      } catch (error) {
+        console.error("Error fetching user:", error);
       } finally {
         setIsLoading(false);
       }
-    }
+    };
 
-    getUserInfo();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    getUser();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setUser(session?.user || null);
+      
+      // Check for admin role when auth state changes
       if (session?.user) {
-        getUserInfo();
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id);
+          
+        setIsAdmin(roles?.some(r => r.role === 'admin') || false);
       } else {
-        setUserId(null);
-        setUser(null);
         setIsAdmin(false);
       }
     });
@@ -90,5 +56,5 @@ export function useCurrentUser() {
     };
   }, []);
 
-  return { userId, user, isAdmin, isLoading, error };
-}
+  return { user, isLoading, userId: user?.id, isAdmin };
+};

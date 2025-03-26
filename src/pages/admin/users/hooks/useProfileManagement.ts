@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -6,9 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, GenderType } from "../types";
 
 export function useProfileManagement(user: User | null) {
-  console.log('useProfileManagement hook called with user:', user?.id);
-  const startTime = performance.now();
-  
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [profileImageUrl, setProfileImageUrl] = useState("");
@@ -23,40 +19,42 @@ export function useProfileManagement(user: User | null) {
   const [selectedEmployeeType, setSelectedEmployeeType] = useState("");
   const queryClient = useQueryClient();
 
-  // Don't refetch profile data - it's already provided by parent
-  const { error: profileError } = useQuery({
+  const { data: profileData, error: profileError } = useQuery({
     queryKey: ['profile', user?.id],
-    queryFn: async () => user,
-    enabled: false, // Don't actually run this query
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*, levels(*)')
+        .eq('id', user?.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      console.log('Fetched profile data:', data);
+      return data;
+    },
+    enabled: !!user?.id,
   });
 
   useEffect(() => {
-    if (user) {
-      console.log('Setting initial form values from user data');
-      setFirstName(user.first_name || '');
-      setLastName(user.last_name || '');
-      setProfileImageUrl(user.profile_image_url || '');
-      // Map the property names correctly according to the User type
-      setSelectedLevel(user.level || '');
-      setOrgId(user.org_id || '');
-      setGender(user.gender || 'male');
-      setDateOfBirth(user.date_of_birth ? new Date(user.date_of_birth) : undefined);
-      setDesignation(user.designation || '');
-      setSelectedLocation(user.location || '');
-      setSelectedEmploymentType(user.employment_type || '');
-      setSelectedEmployeeRole(user.employee_role || '');
-      setSelectedEmployeeType(user.employee_type || '');
+    if (profileData) {
+      console.log('Setting initial form values:', profileData);
+      setFirstName(profileData.first_name || '');
+      setLastName(profileData.last_name || '');
+      setProfileImageUrl(profileData.profile_image_url || '');
+      setSelectedLevel(profileData.level_id || '');
+      setOrgId(profileData.org_id || '');
+      setGender(profileData.gender || 'male');
+      setDateOfBirth(profileData.date_of_birth ? new Date(profileData.date_of_birth) : undefined);
+      setDesignation(profileData.designation || '');
+      setSelectedLocation(profileData.location_id || '');
+      setSelectedEmploymentType(profileData.employment_type_id || '');
+      setSelectedEmployeeRole(profileData.employee_role_id || '');
+      setSelectedEmployeeType(profileData.employee_type_id || '');
     }
-  }, [user]);
-
-  useEffect(() => {
-    const hookDuration = performance.now() - startTime;
-    console.log(`useProfileManagement hook initialization took ${hookDuration.toFixed(2)}ms`);
-  }, [startTime]);
+  }, [profileData]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
-      console.log('Executing profile update mutation');
       if (!user) return;
 
       const updateData = {
@@ -113,7 +111,6 @@ export function useProfileManagement(user: User | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["userProfile", user?.id] });
       toast.success("Profile updated successfully");
     },
     onError: (error) => {
@@ -147,7 +144,7 @@ export function useProfileManagement(user: User | null) {
     setSelectedEmployeeRole,
     selectedEmployeeType,
     setSelectedEmployeeType,
-    profileData: user,
+    profileData,
     profileError,
     updateProfileMutation,
   };
