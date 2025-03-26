@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Loader2 } from 'lucide-react';
@@ -10,7 +11,6 @@ import { useProfileManagement } from '../admin/users/hooks/useProfileManagement'
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useState } from 'react';
 
 export default function UserProfile() {
   const { userId } = useCurrentUser();
