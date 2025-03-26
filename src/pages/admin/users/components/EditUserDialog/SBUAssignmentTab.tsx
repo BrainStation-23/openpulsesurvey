@@ -10,7 +10,7 @@ interface SBUAssignmentTabProps {
   readOnly?: boolean;
 }
 
-export function SBUAssignmentTab({ user, readOnly = true }: SBUAssignmentTabProps) {
+export function SBUAssignmentTab({ user, readOnly = false }: SBUAssignmentTabProps) {
   console.log('Rendering SBUAssignmentTab for user:', user?.id);
   const startTime = performance.now();
   

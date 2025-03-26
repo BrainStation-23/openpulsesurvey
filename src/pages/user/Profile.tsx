@@ -13,11 +13,11 @@ import { useProfileManagement } from '../admin/users/hooks/useProfileManagement'
 import { useSupervisorManagement } from '../admin/users/hooks/useSupervisorManagement';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function UserProfile() {
   console.log('UserProfile component rendering');
-  const startTime = performance.now();
-  const { userId } = useCurrentUser();
+  const { userId, user: authUser } = useCurrentUser();
   console.log('UserId from useCurrentUser:', userId);
   const [isEditing, setIsEditing] = useState(false);
   
@@ -31,21 +31,72 @@ export default function UserProfile() {
       }
       
       try {
-        console.log('Fetching user data from API...');
+        console.log('Fetching user data from Supabase...');
         const startFetchTime = performance.now();
-        const response = await fetch(`/api/users/${userId}`);
-        const result = await response.json();
+        
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select(`
+            id,
+            email,
+            first_name,
+            last_name,
+            profile_image_url,
+            level_id,
+            levels (
+              id,
+              name,
+              status
+            ),
+            user_sbus (
+              id,
+              user_id,
+              sbu_id,
+              is_primary,
+              sbu:sbus (
+                id,
+                name
+              )
+            ),
+            org_id,
+            gender,
+            date_of_birth,
+            designation,
+            location_id,
+            employment_type_id,
+            employee_role_id,
+            employee_type_id,
+            status
+          `)
+          .eq("id", userId)
+          .maybeSingle();
+        
         const fetchDuration = performance.now() - startFetchTime;
-        console.log(`API fetch completed in ${fetchDuration.toFixed(2)}ms`);
+        console.log(`Supabase fetch completed in ${fetchDuration.toFixed(2)}ms`);
         
-        const { data, error } = result;
-        
-        if (error) {
-          console.error('Error fetching user data:', error);
-          throw error;
+        if (profileError) {
+          console.error('Error fetching profile data:', profileError);
+          throw profileError;
         }
-        console.log('User data received:', data);
-        return data;
+        
+        if (!profileData) {
+          throw new Error('Profile not found');
+        }
+        
+        // Get user role
+        const { data: roleData, error: roleError } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId)
+          .maybeSingle();
+        
+        if (roleError) throw roleError;
+        
+        console.log('User data received:', profileData);
+        return {
+          ...profileData,
+          user_roles: roleData
+        };
       } catch (error) {
         console.error('Error in queryFn:', error);
         throw error;
@@ -101,11 +152,6 @@ export default function UserProfile() {
   } = useSupervisorManagement(user);
 
   console.log('Supervisors loaded:', supervisors?.length || 0);
-
-  useEffect(() => {
-    const loadTime = performance.now() - startTime;
-    console.log(`Total profile page load time: ${loadTime.toFixed(2)}ms`);
-  }, [startTime, user, supervisors]);
 
   if (isLoading) {
     console.log('Profile page in loading state');
@@ -228,7 +274,7 @@ export default function UserProfile() {
             </TabsContent>
 
             <TabsContent value="sbus">
-              {user && <SBUAssignmentTab user={user} />}
+              {user && <SBUAssignmentTab user={user} readOnly={true} />}
             </TabsContent>
 
             <TabsContent value="management">
@@ -238,6 +284,7 @@ export default function UserProfile() {
                   supervisors={supervisors}
                   onSupervisorChange={() => {}} // No-op function since it's read-only
                   onPrimarySupervisorChange={() => {}} // No-op function since it's read-only
+                  readOnly={true}
                 />
               )}
             </TabsContent>

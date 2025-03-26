@@ -23,48 +23,30 @@ export function useProfileManagement(user: User | null) {
   const [selectedEmployeeType, setSelectedEmployeeType] = useState("");
   const queryClient = useQueryClient();
 
-  const { data: profileData, error: profileError } = useQuery({
+  // Don't refetch profile data - it's already provided by parent
+  const { error: profileError } = useQuery({
     queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      console.log('Starting profile data fetch for user:', user?.id);
-      const queryStartTime = performance.now();
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*, levels(*)')
-        .eq('id', user?.id)
-        .maybeSingle();
-      
-      const queryDuration = performance.now() - queryStartTime;
-      console.log(`Profile query completed in ${queryDuration.toFixed(2)}ms`);
-      
-      if (error) {
-        console.error('Error fetching profile data:', error);
-        throw error;
-      }
-      console.log('Fetched profile data:', data);
-      return data;
-    },
-    enabled: !!user?.id,
+    queryFn: async () => user,
+    enabled: false, // Don't actually run this query
   });
 
   useEffect(() => {
-    if (profileData) {
-      console.log('Setting initial form values:', profileData);
-      setFirstName(profileData.first_name || '');
-      setLastName(profileData.last_name || '');
-      setProfileImageUrl(profileData.profile_image_url || '');
-      setSelectedLevel(profileData.level_id || '');
-      setOrgId(profileData.org_id || '');
-      setGender(profileData.gender || 'male');
-      setDateOfBirth(profileData.date_of_birth ? new Date(profileData.date_of_birth) : undefined);
-      setDesignation(profileData.designation || '');
-      setSelectedLocation(profileData.location_id || '');
-      setSelectedEmploymentType(profileData.employment_type_id || '');
-      setSelectedEmployeeRole(profileData.employee_role_id || '');
-      setSelectedEmployeeType(profileData.employee_type_id || '');
+    if (user) {
+      console.log('Setting initial form values from user data');
+      setFirstName(user.first_name || '');
+      setLastName(user.last_name || '');
+      setProfileImageUrl(user.profile_image_url || '');
+      setSelectedLevel(user.level_id || '');
+      setOrgId(user.org_id || '');
+      setGender(user.gender || 'male');
+      setDateOfBirth(user.date_of_birth ? new Date(user.date_of_birth) : undefined);
+      setDesignation(user.designation || '');
+      setSelectedLocation(user.location_id || '');
+      setSelectedEmploymentType(user.employment_type_id || '');
+      setSelectedEmployeeRole(user.employee_role_id || '');
+      setSelectedEmployeeType(user.employee_type_id || '');
     }
-  }, [profileData]);
+  }, [user]);
 
   useEffect(() => {
     const hookDuration = performance.now() - startTime;
@@ -164,7 +146,7 @@ export function useProfileManagement(user: User | null) {
     setSelectedEmployeeRole,
     selectedEmployeeType,
     setSelectedEmployeeType,
-    profileData,
+    profileData: user,
     profileError,
     updateProfileMutation,
   };

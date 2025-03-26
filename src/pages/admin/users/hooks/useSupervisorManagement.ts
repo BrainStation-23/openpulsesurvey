@@ -32,7 +32,8 @@ export function useSupervisorManagement(user: User | null) {
             supervisor:profiles!user_supervisors_supervisor_id_fkey (
               id,
               first_name,
-              last_name
+              last_name,
+              profile_image_url
             )
           `)
           .eq("user_id", user.id);
@@ -55,7 +56,8 @@ export function useSupervisorManagement(user: User | null) {
         throw error;
       }
     },
-    enabled: !!user,
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   useEffect(() => {
