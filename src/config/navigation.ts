@@ -21,7 +21,8 @@ import {
   Database,
   BarChart,
   ChevronDown,
-  Rocket
+  Rocket,
+  UserCircle
 } from "lucide-react";
 
 // Navigation item with optional children for nested navigation
@@ -39,6 +40,12 @@ export const navigationItems: NavigationItem[] = [
     title: "Dashboard",
     icon: LayoutDashboard,
     path: "/admin/dashboard",
+    section: "core"
+  },
+  {
+    title: "My Profile",
+    icon: UserCircle,
+    path: "/admin/profile",
     section: "core"
   },
   {

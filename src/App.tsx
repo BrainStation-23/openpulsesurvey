@@ -24,6 +24,9 @@ import LiveEntryPage from "./pages/live/LiveEntryPage";
 import PublicLiveSession from "./pages/live/PublicLiveSession";
 import JoinLiveSession from "./pages/live/JoinLiveSession";
 
+// Common pages
+import ProfilePage from "./pages/common/Profile";
+
 // User pages
 import UserDashboard from "./pages/user/Dashboard";
 import UserSettings from "./pages/user/Settings";
@@ -117,6 +120,7 @@ const App = () => (
               <Route path="my-surveys" element={<UserMySurveys />} />
               <Route path="my-surveys/:assignmentId/:instanceId" element={<UserSurveyResponse />} />
               <Route path="settings" element={<UserSettings />} />
+              <Route path="profile" element={<ProfilePage />} />
               <Route path="achievements" element={<UserAchievementsPage />} />
               <Route path="issue-boards" element={<UserIssueBoards />} />
               <Route path="issue-boards/:id" element={<UserIssueBoardView />} />
@@ -130,6 +134,7 @@ const App = () => (
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="profile" element={<ProfilePage />} />
               <Route path="users" element={<Users />} />
               <Route path="users/:id/edit" element={<EditUserPage />} />
               <Route path="my-surveys" element={<MySurveysPage />} />
