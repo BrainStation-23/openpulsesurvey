@@ -91,7 +91,7 @@ export default function UserProfile() {
         <div className="flex gap-2">
           {!isEditing ? (
             <Button onClick={() => setIsEditing(true)}>
-              Edit Profile
+              Edit Basic Information
             </Button>
           ) : (
             <>
@@ -135,7 +135,7 @@ export default function UserProfile() {
               <BasicInfoTab
                 firstName={firstName}
                 setFirstName={setFirstName}
-                lastName={lastName}
+                lastName={setLastName}
                 setLastName={setLastName}
                 profileImageUrl={profileImageUrl}
                 setProfileImageUrl={setProfileImageUrl}
@@ -163,7 +163,7 @@ export default function UserProfile() {
                 setSelectedEmployeeRole={setSelectedEmployeeRole}
                 selectedEmployeeType={selectedEmployeeType}
                 setSelectedEmployeeType={setSelectedEmployeeType}
-                disabled={!isEditing}
+                disabled={true} // Always disabled - read-only
               />
             </TabsContent>
 
