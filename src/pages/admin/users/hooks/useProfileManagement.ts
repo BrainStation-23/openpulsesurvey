@@ -36,15 +36,16 @@ export function useProfileManagement(user: User | null) {
       setFirstName(user.first_name || '');
       setLastName(user.last_name || '');
       setProfileImageUrl(user.profile_image_url || '');
-      setSelectedLevel(user.level_id || '');
+      // Map the property names correctly according to the User type
+      setSelectedLevel(user.level || '');
       setOrgId(user.org_id || '');
       setGender(user.gender || 'male');
       setDateOfBirth(user.date_of_birth ? new Date(user.date_of_birth) : undefined);
       setDesignation(user.designation || '');
-      setSelectedLocation(user.location_id || '');
-      setSelectedEmploymentType(user.employment_type_id || '');
-      setSelectedEmployeeRole(user.employee_role_id || '');
-      setSelectedEmployeeType(user.employee_type_id || '');
+      setSelectedLocation(user.location || '');
+      setSelectedEmploymentType(user.employment_type || '');
+      setSelectedEmployeeRole(user.employee_role || '');
+      setSelectedEmployeeType(user.employee_type || '');
     }
   }, [user]);
 
