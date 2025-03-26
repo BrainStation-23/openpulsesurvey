@@ -266,23 +266,23 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Level</p>
-                  <p className="text-muted-foreground">{profileUser.levels?.name || "Not specified"}</p>
+                  <p className="text-muted-foreground">{profileUser.level || "Not specified"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Employment Type</p>
-                  <p className="text-muted-foreground">{profileUser.employment_type_id || "Not specified"}</p>
+                  <p className="text-muted-foreground">{profileUser.employment_type || "Not specified"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Employee Role</p>
-                  <p className="text-muted-foreground">{profileUser.employee_role_id || "Not specified"}</p>
+                  <p className="text-muted-foreground">{profileUser.employee_role || "Not specified"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Employee Type</p>
-                  <p className="text-muted-foreground">{profileUser.employee_type_id || "Not specified"}</p>
+                  <p className="text-muted-foreground">{profileUser.employee_type || "Not specified"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Location</p>
-                  <p className="text-muted-foreground">{profileUser.location_id || "Not specified"}</p>
+                  <p className="text-muted-foreground">{profileUser.location || "Not specified"}</p>
                 </div>
               </div>
             </div>
@@ -357,4 +357,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
