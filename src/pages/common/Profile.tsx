@@ -64,9 +64,25 @@ export default function ProfilePage() {
           date_of_birth,
           designation,
           location_id,
+          locations (
+            id,
+            name
+          ),
           employment_type_id,
+          employment_types (
+            id,
+            name
+          ),
           employee_role_id,
+          employee_roles (
+            id,
+            name
+          ),
           employee_type_id,
+          employee_types (
+            id,
+            name
+          ),
           status
         `)
         .eq("id", currentUser.id)
@@ -89,10 +105,19 @@ export default function ProfilePage() {
 
       if (roleError) throw roleError;
 
-      return {
+      // Process the data to add level, location, etc. as single values
+      const processedData = {
         ...profileData,
+        level: profileData.levels?.name || null,
+        employment_type: profileData.employment_types?.name || null,
+        employee_role: profileData.employee_roles?.name || null,
+        employee_type: profileData.employee_types?.name || null,
+        location: profileData.locations?.name || null,
         user_roles: roleData
       } as User;
+
+      console.log("Processed user data:", processedData);
+      return processedData;
     },
     enabled: !!currentUser?.id,
   });
@@ -262,7 +287,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <p className="text-sm font-medium mb-1">Designation</p>
-                  <p className="text-muted-foreground">{designation || "Not specified"}</p>
+                  <p className="text-muted-foreground">{profileUser.designation || "Not specified"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Level</p>
