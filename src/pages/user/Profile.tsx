@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useQuery } from '@tanstack/react-query';
@@ -175,8 +176,8 @@ export default function UserProfile() {
                 <ManagementTab
                   user={user}
                   supervisors={supervisors}
-                  onSupervisorChange={handleSupervisorChange}
-                  onPrimarySupervisorChange={handlePrimarySupervisorChange}
+                  onSupervisorChange={() => {}} // No-op function since it's read-only
+                  onPrimarySupervisorChange={() => {}} // No-op function since it's read-only
                 />
               )}
             </TabsContent>
