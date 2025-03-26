@@ -14,11 +14,12 @@ import { useSupervisorManagement } from "@/pages/admin/users/hooks/useSupervisor
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/pages/admin/users/types";
+import { InfoIcon } from "lucide-react";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user: currentUser, isLoading: isAuthLoading } = useCurrentUser();
+  const { user: currentUser, isLoading: isAuthLoading, isAdmin } = useCurrentUser();
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -188,6 +189,21 @@ export default function ProfilePage() {
     }
   };
 
+  // Display a read-only notice for non-admin users on restricted tabs
+  const ReadOnlyNotice = () => {
+    if (!isAdmin) {
+      return (
+        <div className="bg-muted p-3 rounded-md flex items-center gap-2 mb-4">
+          <InfoIcon className="h-5 w-5 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">
+            This information is read-only. Please contact an administrator if you need to make changes.
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -225,37 +241,120 @@ export default function ProfilePage() {
         </TabsContent>
 
         <TabsContent value="employment">
-          <EmploymentDetailsTab
-            designation={designation}
-            setDesignation={setDesignation}
-            selectedLocation={selectedLocation}
-            setSelectedLocation={setSelectedLocation}
-            selectedEmploymentType={selectedEmploymentType}
-            setSelectedEmploymentType={setSelectedEmploymentType}
-            selectedLevel={selectedLevel}
-            setSelectedLevel={setSelectedLevel}
-            selectedEmployeeRole={selectedEmployeeRole}
-            setSelectedEmployeeRole={setSelectedEmployeeRole}
-            selectedEmployeeType={selectedEmployeeType}
-            setSelectedEmployeeType={setSelectedEmployeeType}
-          />
+          <ReadOnlyNotice />
+          {isAdmin ? (
+            <EmploymentDetailsTab
+              designation={designation}
+              setDesignation={setDesignation}
+              selectedLocation={selectedLocation}
+              setSelectedLocation={setSelectedLocation}
+              selectedEmploymentType={selectedEmploymentType}
+              setSelectedEmploymentType={setSelectedEmploymentType}
+              selectedLevel={selectedLevel}
+              setSelectedLevel={setSelectedLevel}
+              selectedEmployeeRole={selectedEmployeeRole}
+              setSelectedEmployeeRole={setSelectedEmployeeRole}
+              selectedEmployeeType={selectedEmployeeType}
+              setSelectedEmployeeType={setSelectedEmployeeType}
+            />
+          ) : (
+            <div className="space-y-6 border p-6 rounded-md bg-background/50">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm font-medium mb-1">Designation</p>
+                  <p className="text-muted-foreground">{designation || "Not specified"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Level</p>
+                  <p className="text-muted-foreground">{profileUser.levels?.name || "Not specified"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Employment Type</p>
+                  <p className="text-muted-foreground">{profileUser.employment_type_id || "Not specified"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Employee Role</p>
+                  <p className="text-muted-foreground">{profileUser.employee_role_id || "Not specified"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Employee Type</p>
+                  <p className="text-muted-foreground">{profileUser.employee_type_id || "Not specified"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Location</p>
+                  <p className="text-muted-foreground">{profileUser.location_id || "Not specified"}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="sbus">
-          {profileUser && <SBUAssignmentTab user={profileUser} />}
+          <ReadOnlyNotice />
+          {isAdmin ? (
+            profileUser && <SBUAssignmentTab user={profileUser} />
+          ) : (
+            <div className="space-y-6 border p-6 rounded-md bg-background/50">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">SBU Assignments</h3>
+                {profileUser.user_sbus && profileUser.user_sbus.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    {profileUser.user_sbus.map((sbu) => (
+                      <div key={sbu.id} className="flex justify-between items-center p-2 border rounded-md">
+                        <div className="flex flex-col">
+                          <span>{sbu.sbu?.name}</span>
+                          {sbu.is_primary && (
+                            <span className="text-xs text-muted-foreground">Primary</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No SBUs assigned</p>
+                )}
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="management">
-          {profileUser && (
-            <ManagementTab
-              user={profileUser}
-              supervisors={supervisors}
-              onSupervisorChange={handleSupervisorChange}
-              onPrimarySupervisorChange={handlePrimarySupervisorChange}
-            />
+          <ReadOnlyNotice />
+          {isAdmin ? (
+            profileUser && (
+              <ManagementTab
+                user={profileUser}
+                supervisors={supervisors}
+                onSupervisorChange={handleSupervisorChange}
+                onPrimarySupervisorChange={handlePrimarySupervisorChange}
+              />
+            )
+          ) : (
+            <div className="space-y-6 border p-6 rounded-md bg-background/50">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Supervisors</h3>
+                {supervisors && supervisors.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    {supervisors.map((supervisor) => (
+                      <div key={supervisor.id} className="p-2 border rounded-md">
+                        <div className="flex flex-col">
+                          <span>{supervisor.first_name} {supervisor.last_name}</span>
+                          {supervisor.is_primary && (
+                            <span className="text-xs text-muted-foreground">Primary Supervisor</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No supervisors assigned</p>
+                )}
+              </div>
+            </div>
           )}
         </TabsContent>
       </Tabs>
     </div>
   );
 }
+
