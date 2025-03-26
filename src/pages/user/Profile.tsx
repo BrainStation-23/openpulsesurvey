@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
@@ -15,21 +15,48 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function UserProfile() {
+  console.log('UserProfile component rendering');
+  const startTime = performance.now();
   const { userId } = useCurrentUser();
+  console.log('UserId from useCurrentUser:', userId);
   const [isEditing, setIsEditing] = useState(false);
   
-  const { data: user, isLoading } = useQuery({
+  const { data: user, isLoading, error } = useQuery({
     queryKey: ["userProfile", userId],
     queryFn: async () => {
-      if (!userId) return null;
+      console.log('Starting userProfile query for userId:', userId);
+      if (!userId) {
+        console.log('No userId available, returning null');
+        return null;
+      }
       
-      const { data, error } = await fetch(`/api/users/${userId}`).then(res => res.json());
-      
-      if (error) throw error;
-      return data;
+      try {
+        console.log('Fetching user data from API...');
+        const startFetchTime = performance.now();
+        const response = await fetch(`/api/users/${userId}`);
+        const result = await response.json();
+        const fetchDuration = performance.now() - startFetchTime;
+        console.log(`API fetch completed in ${fetchDuration.toFixed(2)}ms`);
+        
+        const { data, error } = result;
+        
+        if (error) {
+          console.error('Error fetching user data:', error);
+          throw error;
+        }
+        console.log('User data received:', data);
+        return data;
+      } catch (error) {
+        console.error('Error in queryFn:', error);
+        throw error;
+      }
     },
     enabled: !!userId,
   });
+
+  useEffect(() => {
+    console.log('User data updated:', user);
+  }, [user]);
 
   const {
     firstName,
@@ -59,13 +86,29 @@ export default function UserProfile() {
     updateProfileMutation,
   } = useProfileManagement(user);
 
+  console.log('Profile management data loaded:', {
+    firstName,
+    lastName,
+    selectedLevel,
+    selectedLocation,
+    selectedEmploymentType
+  });
+
   const {
     supervisors,
     handleSupervisorChange,
     handlePrimarySupervisorChange,
   } = useSupervisorManagement(user);
 
+  console.log('Supervisors loaded:', supervisors?.length || 0);
+
+  useEffect(() => {
+    const loadTime = performance.now() - startTime;
+    console.log(`Total profile page load time: ${loadTime.toFixed(2)}ms`);
+  }, [startTime, user, supervisors]);
+
   if (isLoading) {
+    console.log('Profile page in loading state');
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -73,8 +116,25 @@ export default function UserProfile() {
     );
   }
 
+  if (error) {
+    console.error('Error loading profile:', error);
+    toast.error("Failed to load profile");
+    return (
+      <div className="container mx-auto py-8">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center text-red-500">
+              Failed to load profile. Please try again later.
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const handleSave = async () => {
     try {
+      console.log('Starting profile update...');
       await updateProfileMutation.mutateAsync();
       toast.success("Profile updated successfully");
       setIsEditing(false);

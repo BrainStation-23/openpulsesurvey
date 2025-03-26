@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -22,7 +21,10 @@ export interface ProfileFormData {
 }
 
 export function useUserProfile() {
+  console.log('useUserProfile hook called');
+  const startTime = performance.now();
   const { userId } = useCurrentUser();
+  console.log('userId from useCurrentUser in useUserProfile:', userId);
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState<ProfileFormData>({
@@ -43,23 +45,42 @@ export function useUserProfile() {
   const { data: profileData, isLoading: isProfileLoading } = useQuery({
     queryKey: ['userProfile', userId],
     queryFn: async () => {
-      if (!userId) return null;
+      console.log('Fetching user profile data, userId:', userId);
+      const fetchStartTime = performance.now();
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          levels (*),
-          locations (*),
-          employment_types (*),
-          employee_roles (*),
-          employee_types (*)
-        `)
-        .eq('id', userId)
-        .single();
+      if (!userId) {
+        console.log('No userId available, returning null from useUserProfile');
+        return null;
+      }
       
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select(`
+            *,
+            levels (*),
+            locations (*),
+            employment_types (*),
+            employee_roles (*),
+            employee_types (*)
+          `)
+          .eq('id', userId)
+          .single();
+        
+        const fetchDuration = performance.now() - fetchStartTime;
+        console.log(`Profile fetch completed in ${fetchDuration.toFixed(2)}ms`);
+        
+        if (error) {
+          console.error('Error fetching profile in useUserProfile:', error);
+          throw error;
+        }
+        
+        console.log('Profile data received in useUserProfile:', data);
+        return data;
+      } catch (error) {
+        console.error('Error in profile query:', error);
+        throw error;
+      }
     },
     enabled: !!userId,
   });
@@ -68,13 +89,22 @@ export function useUserProfile() {
   const { data: levels } = useQuery({
     queryKey: ['levels'],
     queryFn: async () => {
+      console.log('Fetching levels data');
+      const fetchStartTime = performance.now();
+      
       const { data, error } = await supabase
         .from('levels')
         .select('*')
         .eq('status', 'active')
         .order('name');
       
-      if (error) throw error;
+      const fetchDuration = performance.now() - fetchStartTime;
+      console.log(`Levels fetch completed in ${fetchDuration.toFixed(2)}ms`);
+      
+      if (error) {
+        console.error('Error fetching levels:', error);
+        throw error;
+      }
       return data || [];
     },
   });
@@ -137,6 +167,7 @@ export function useUserProfile() {
   // Update form data when profile data is loaded
   useEffect(() => {
     if (profileData) {
+      console.log('Setting form data from profile in useUserProfile');
       setFormData({
         firstName: profileData.first_name || '',
         lastName: profileData.last_name || '',
@@ -152,6 +183,11 @@ export function useUserProfile() {
       });
     }
   }, [profileData]);
+
+  useEffect(() => {
+    const hookDuration = performance.now() - startTime;
+    console.log(`useUserProfile hook initialization took ${hookDuration.toFixed(2)}ms`);
+  }, [startTime]);
 
   // Handle form data change
   const handleChange = (field: keyof ProfileFormData, value: any) => {

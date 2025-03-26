@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -5,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, GenderType } from "../types";
 
 export function useProfileManagement(user: User | null) {
+  console.log('useProfileManagement hook called with user:', user?.id);
+  const startTime = performance.now();
+  
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [profileImageUrl, setProfileImageUrl] = useState("");
@@ -22,13 +26,22 @@ export function useProfileManagement(user: User | null) {
   const { data: profileData, error: profileError } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
+      console.log('Starting profile data fetch for user:', user?.id);
+      const queryStartTime = performance.now();
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*, levels(*)')
         .eq('id', user?.id)
         .maybeSingle();
       
-      if (error) throw error;
+      const queryDuration = performance.now() - queryStartTime;
+      console.log(`Profile query completed in ${queryDuration.toFixed(2)}ms`);
+      
+      if (error) {
+        console.error('Error fetching profile data:', error);
+        throw error;
+      }
       console.log('Fetched profile data:', data);
       return data;
     },
@@ -53,8 +66,14 @@ export function useProfileManagement(user: User | null) {
     }
   }, [profileData]);
 
+  useEffect(() => {
+    const hookDuration = performance.now() - startTime;
+    console.log(`useProfileManagement hook initialization took ${hookDuration.toFixed(2)}ms`);
+  }, [startTime]);
+
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
+      console.log('Executing profile update mutation');
       if (!user) return;
 
       const updateData = {
@@ -111,6 +130,7 @@ export function useProfileManagement(user: User | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["userProfile", user?.id] });
       toast.success("Profile updated successfully");
     },
     onError: (error) => {
