@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,6 +21,7 @@ import {
   ReadOnlySBUAssignments, 
   ReadOnlyManagement 
 } from "./profile/ReadOnlyTabs";
+import { Button } from "@/components/ui/button";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -30,7 +30,6 @@ export default function ProfilePage() {
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch the complete user profile data
   const { data: userData, error: userError } = useQuery({
     queryKey: ["userProfile", currentUser?.id],
     queryFn: async () => {
@@ -112,7 +111,6 @@ export default function ProfilePage() {
 
       if (roleError) throw roleError;
 
-      // Process the data to add level, location, etc. as single values
       const processedData = {
         ...profileData,
         level: profileData.levels?.name || null,
