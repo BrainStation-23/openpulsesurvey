@@ -144,7 +144,7 @@ export default function UserProfile() {
                 <BasicInfoTab
                   firstName={firstName}
                   setFirstName={setFirstName}
-                  lastName={setLastName}
+                  lastName={lastName}
                   setLastName={setLastName}
                   profileImageUrl={profileImageUrl}
                   setProfileImageUrl={setProfileImageUrl}
