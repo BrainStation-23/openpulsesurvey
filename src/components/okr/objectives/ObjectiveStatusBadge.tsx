@@ -3,7 +3,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Circle, CheckCircle, AlertCircle, Clock, PlayCircle, PauseCircle } from 'lucide-react';
 
-export type ObjectiveStatus = 'draft' | 'pending' | 'in_progress' | 'on_hold' | 'completed' | 'canceled';
+export type ObjectiveStatus = 'draft' | 'pending' | 'in_progress' | 'on_hold' | 'completed' | 'canceled' | 'at_risk' | 'on_track';
 
 interface ObjectiveStatusBadgeProps {
   status: ObjectiveStatus;
@@ -31,6 +31,16 @@ export const ObjectiveStatusBadge: React.FC<ObjectiveStatusBadgeProps> = ({ stat
       icon: PauseCircle,
       label: 'On Hold',
       variant: 'warning',
+    },
+    at_risk: {
+      icon: AlertCircle,
+      label: 'At Risk',
+      variant: 'destructive',
+    },
+    on_track: {
+      icon: PlayCircle,
+      label: 'On Track',
+      variant: 'default',
     },
     completed: {
       icon: CheckCircle,

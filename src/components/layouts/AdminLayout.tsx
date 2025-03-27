@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +5,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { useToast } from "@/hooks/use-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AdminHeader from "./AdminHeader";
-import AdminSidebar from "./AdminSidebar";
+import { AdminSidebar } from "./AdminSidebar";
 
 export default function AdminLayout() {
   const navigate = useNavigate();

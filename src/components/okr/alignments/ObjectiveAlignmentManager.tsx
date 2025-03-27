@@ -11,9 +11,15 @@ import { ObjectiveProgress } from '@/components/okr/objectives/ObjectiveProgress
 
 interface ObjectiveAlignmentManagerProps {
   objectiveId: string;
+  isAdmin?: boolean;
+  canEdit?: boolean;
 }
 
-export function ObjectiveAlignmentManager({ objectiveId }: ObjectiveAlignmentManagerProps) {
+export function ObjectiveAlignmentManager({ 
+  objectiveId, 
+  isAdmin = false, 
+  canEdit = false 
+}: ObjectiveAlignmentManagerProps) {
   const [isCreatingAlignment, setIsCreatingAlignment] = useState(false);
   const { 
     alignmentsFrom, 

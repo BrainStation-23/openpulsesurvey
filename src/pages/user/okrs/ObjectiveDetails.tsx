@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Calendar, Edit, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, Edit, Users, Plus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ObjectiveProgress } from '@/components/okr/objectives/ObjectiveProgress';
 import { ObjectiveStatusBadge } from '@/components/okr/objectives/ObjectiveStatusBadge';
@@ -12,43 +13,8 @@ import { ObjectiveAlignments } from '@/components/okr/objectives/ObjectiveAlignm
 import { useToast } from '@/hooks/use-toast';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { CreateAlignmentDialog } from '@/components/okr/alignments/CreateAlignmentDialog';
-
-// Placeholder hook for getting objective details
-const useObjectiveDetails = (objectiveId: string) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  
-  const placeholderObjective = {
-    id: objectiveId,
-    title: "Example Objective",
-    description: "This is an example objective for demonstration purposes.",
-    start_date: "2023-01-01",
-    end_date: "2023-12-31",
-    status: "in_progress",
-    progress: 35,
-    visibility: "department",
-    owner_id: "user-123",
-    owner_name: "John Doe",
-    cycle_id: "cycle-456",
-    cycle_name: "Q3 2023",
-    creation_source: "manual",
-    approval_status: "approved",
-    created_at: "2023-01-01T00:00:00Z",
-    updated_at: "2023-01-15T00:00:00Z",
-  };
-  
-  const placeholderUpdate = () => {
-    // Do nothing
-  };
-  
-  return {
-    objective: placeholderObjective,
-    isLoading,
-    error,
-    updateStatus: { mutate: placeholderUpdate, isLoading: false },
-    updateObjective: { mutate: placeholderUpdate, isLoading: false }
-  };
-};
+import { useObjective } from '@/hooks/okr/useObjective';
+import { ObjectiveStatus, ObjectiveVisibility } from '@/types/okr';
 
 export default function ObjectiveDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -62,7 +28,7 @@ export default function ObjectiveDetailsPage() {
     error,
     updateStatus,
     updateObjective
-  } = useObjectiveDetails(objectiveId);
+  } = useObjective(objectiveId);
 
   if (isLoading) {
     return (
@@ -86,7 +52,7 @@ export default function ObjectiveDetailsPage() {
     );
   }
 
-  const handleUpdateStatus = (status: string) => {
+  const handleUpdateStatus = (status: ObjectiveStatus) => {
     updateStatus.mutate({ status });
   };
 
@@ -115,8 +81,8 @@ export default function ObjectiveDetailsPage() {
             <div>
               <CardTitle className="text-2xl font-bold">{objective.title}</CardTitle>
               <div className="flex items-center gap-2 mt-2">
-                <ObjectiveStatusBadge status={objective.status || 'draft'} />
-                <ObjectiveVisibilityBadge visibility={objective.visibility || 'private'} />
+                <ObjectiveStatusBadge status={objective.status} />
+                <ObjectiveVisibilityBadge visibility={objective.visibility} />
                 <Badge variant="outline" className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
                   {objective.cycle_name || 'No cycle'}

@@ -1,3 +1,4 @@
+
 import { LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Sidebar } from '@/components/ui/sidebar';
@@ -79,7 +80,6 @@ export function AdminSidebar() {
   return (
     <Sidebar className="hidden border-r bg-background lg:block">
       <div className="h-full px-3 py-4">
-        {/* Instead of defaultCollapsed, use className to control initial state */}
         <div className="space-y-1">
           {sidebarItems.map((item, index) => (
             <SidebarItem

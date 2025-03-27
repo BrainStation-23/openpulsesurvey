@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-type OkrPermissionType = 
+export type OkrPermissionType = 
   | 'create_objectives'
   | 'create_org_objectives'
   | 'create_dept_objectives'
@@ -29,17 +29,32 @@ export function useOkrPermissions() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    async function checkAdminStatus() {
+    async function fetchCurrentUser() {
       try {
         const { data: user } = await supabase.auth.getUser();
-        if (!user.user) return;
+        if (user.user) {
+          setCurrentUserId(user.user.id);
+          return user.user.id;
+        }
+        return null;
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        return null;
+      }
+    }
+
+    async function checkAdminStatus() {
+      try {
+        const userId = await fetchCurrentUser();
+        if (!userId) return;
         
         const { data } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', user.user.id)
+          .eq('user_id', userId)
           .single();
         
         if (data && data.role === 'admin') {
@@ -58,7 +73,7 @@ export function useOkrPermissions() {
           });
         } else {
           // Fetch individual permissions for non-admin users
-          await fetchUserPermissions();
+          await fetchUserPermissions(userId);
         }
         setLoading(false);
       } catch (error) {
@@ -70,12 +85,15 @@ export function useOkrPermissions() {
     checkAdminStatus();
   }, []);
 
-  async function fetchUserPermissions() {
+  async function fetchUserPermissions(userId: string) {
+    if (!userId) return;
+    
     try {
       // Check generic permission to create objectives
       const { data: canCreateObjectives } = await supabase.rpc(
-        'check_okr_create_permission',
+        'check_user_has_permission',
         { 
+          p_user_id: userId,
           p_permission_type: 'create_objectives',
           p_visibility: null
         }
@@ -83,8 +101,9 @@ export function useOkrPermissions() {
       
       // Check permission to create org-level objectives
       const { data: canCreateOrgObjectives } = await supabase.rpc(
-        'check_okr_create_permission',
+        'check_user_has_permission',
         { 
+          p_user_id: userId,
           p_permission_type: 'create_objectives',
           p_visibility: 'organization'
         }
@@ -92,8 +111,9 @@ export function useOkrPermissions() {
       
       // Check permission to create dept-level objectives
       const { data: canCreateDeptObjectives } = await supabase.rpc(
-        'check_okr_create_permission',
+        'check_user_has_permission',
         { 
+          p_user_id: userId,
           p_permission_type: 'create_objectives',
           p_visibility: 'department'
         }
@@ -101,8 +121,9 @@ export function useOkrPermissions() {
       
       // Check permission to create team-level objectives
       const { data: canCreateTeamObjectives } = await supabase.rpc(
-        'check_okr_create_permission',
+        'check_user_has_permission',
         { 
+          p_user_id: userId,
           p_permission_type: 'create_objectives',
           p_visibility: 'team'
         }
@@ -110,8 +131,9 @@ export function useOkrPermissions() {
       
       // Check permission to create key results
       const { data: canCreateKeyResults } = await supabase.rpc(
-        'check_okr_create_permission',
+        'check_user_has_permission',
         { 
+          p_user_id: userId,
           p_permission_type: 'create_key_results',
           p_visibility: null
         }
@@ -119,8 +141,9 @@ export function useOkrPermissions() {
       
       // Check permission to create alignments
       const { data: canCreateAlignments } = await supabase.rpc(
-        'check_okr_create_permission',
+        'check_user_has_permission',
         { 
+          p_user_id: userId,
           p_permission_type: 'create_alignments',
           p_visibility: null
         }
@@ -128,8 +151,9 @@ export function useOkrPermissions() {
       
       // Check permission to align with org-level objectives
       const { data: canAlignWithOrgObjectives } = await supabase.rpc(
-        'check_okr_create_permission',
+        'check_user_has_permission',
         { 
+          p_user_id: userId,
           p_permission_type: 'create_alignments',
           p_visibility: 'organization'
         }
@@ -137,8 +161,9 @@ export function useOkrPermissions() {
       
       // Check permission to align with dept-level objectives
       const { data: canAlignWithDeptObjectives } = await supabase.rpc(
-        'check_okr_create_permission',
+        'check_user_has_permission',
         { 
+          p_user_id: userId,
           p_permission_type: 'create_alignments',
           p_visibility: 'department'
         }
@@ -146,8 +171,9 @@ export function useOkrPermissions() {
       
       // Check permission to align with team-level objectives
       const { data: canAlignWithTeamObjectives } = await supabase.rpc(
-        'check_okr_create_permission',
+        'check_user_has_permission',
         { 
+          p_user_id: userId,
           p_permission_type: 'create_alignments',
           p_visibility: 'team'
         }
@@ -178,10 +204,12 @@ export function useOkrPermissions() {
   async function checkIsObjectiveOwner(objectiveId: string): Promise<boolean> {
     try {
       if (isAdmin) return true;
+      if (!currentUserId) return false;
       
       const { data: isOwner } = await supabase.rpc(
-        'check_objective_owner_permission',
+        'check_user_is_owner',
         { 
+          p_user_id: currentUserId,
           p_objective_id: objectiveId
         }
       );
@@ -193,10 +221,30 @@ export function useOkrPermissions() {
     }
   }
 
+  // Helper method to check if user can create objectives with specific visibility
+  function canCreateObjectiveWithVisibility(visibility: string): boolean {
+    if (isAdmin) return true;
+    
+    switch(visibility) {
+      case 'organization':
+        return permissions.create_org_objectives;
+      case 'department':
+        return permissions.create_dept_objectives;
+      case 'team':
+        return permissions.create_team_objectives;
+      default:
+        return permissions.create_objectives;
+    }
+  }
+
   return {
     permissions,
     isAdmin,
-    loading,
-    checkIsObjectiveOwner
+    isLoading: loading,
+    canCreateObjectives: permissions.create_objectives,
+    canCreateKeyResults: permissions.create_key_results,
+    canCreateAlignments: permissions.create_alignments,
+    canCreateObjectiveWithVisibility,
+    isObjectiveOwner: checkIsObjectiveOwner
   };
 }

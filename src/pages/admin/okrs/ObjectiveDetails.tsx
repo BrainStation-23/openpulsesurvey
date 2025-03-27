@@ -405,7 +405,7 @@ const AdminObjectiveDetails = () => {
             {objectiveWithRelations && (
               <CardContent className="pt-6">
                 <ObjectiveAlignmentManager
-                  objective={objectiveWithRelations}
+                  objectiveId={id}
                   isAdmin={true}
                   canEdit={canEdit}
                 />

@@ -1,314 +1,277 @@
-
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { Checkbox } from '@/components/ui/checkbox';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 import { useToast } from '@/hooks/use-toast';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { supabase } from '@/integrations/supabase/client';
+import { Checkbox } from "@/components/ui/checkbox"
 
-interface EmployeeRole {
-  id: string;
-  name: string;
-  color_code?: string;
-  status: 'active' | 'inactive';
-  description?: string;
-}
+const permissionSchema = z.object({
+  can_create_objectives: z.array(z.string()).optional(),
+  can_create_key_results: z.boolean().default(false),
+  can_create_alignments: z.boolean().default(false),
+})
 
-interface OkrRoleSettings {
-  id: string;
-  can_create_objectives: string[];
-  can_create_org_objectives: string[];
-  can_create_dept_objectives: string[];
-  can_create_team_objectives: string[];
-  can_create_key_results: string[];
-  can_create_alignments: string[];
-  can_align_with_org_objectives: string[];
-  can_align_with_dept_objectives: string[];
-  can_align_with_team_objectives: string[];
-}
-
-export default function OkrSettings() {
-  const [employeeRoles, setEmployeeRoles] = useState<EmployeeRole[]>([]);
-  const [settings, setSettings] = useState<OkrRoleSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+const AdminOkrSettings = () => {
+  const [permissionData, setPermissionData] = useState<{
+    can_create_objectives: string[];
+    can_create_key_results: boolean;
+    can_create_alignments: boolean;
+  } | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
+  const form = useForm<z.infer<typeof permissionSchema>>({
+    resolver: zodResolver(permissionSchema),
+    defaultValues: {
+      can_create_objectives: [],
+      can_create_key_results: false,
+      can_create_alignments: false,
+    },
+  })
+
   useEffect(() => {
-    const fetchData = async () => {
+    // Fetch permission data from Supabase
+    const fetchPermissionData = async () => {
       try {
-        // Fetch employee roles
-        const { data: rolesData, error: rolesError } = await supabase
-          .from('employee_roles')
+        const { data, error } = await supabase
+          .from('okr_permissions')
           .select('*')
-          .order('name');
-
-        if (rolesError) throw rolesError;
-        
-        // Add description property to match EmployeeRole interface
-        const roles = rolesData.map(role => ({
-          ...role,
-          description: role.name
-        }));
-        
-        setEmployeeRoles(roles);
-
-        // Fetch OKR role settings
-        const { data: settingsData, error: settingsError } = await supabase
-          .from('okr_role_settings')
-          .select('*')
-          .limit(1)
           .single();
 
-        if (settingsError && settingsError.code !== 'PGRST116') {
-          throw settingsError;
+        if (error) {
+          console.error('Error fetching permission data:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to load OKR settings',
+          });
+          return;
         }
 
-        if (settingsData) {
-          setSettings(settingsData as unknown as OkrRoleSettings);
-        } else {
-          // Create default settings if none exist
-          const { data: newSettings, error: createError } = await supabase
-            .from('okr_role_settings')
-            .insert({
-              can_create_objectives: [],
-              can_create_org_objectives: [],
-              can_create_dept_objectives: [],
-              can_create_team_objectives: [],
-              can_create_key_results: [],
-              can_create_alignments: [],
-              can_align_with_org_objectives: [],
-              can_align_with_dept_objectives: [],
-              can_align_with_team_objectives: []
-            })
-            .select()
-            .single();
-
-          if (createError) throw createError;
-          setSettings(newSettings as unknown as OkrRoleSettings);
-        }
+        setPermissionData(data);
+        form.reset(data);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching permission data:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to load settings',
           variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to load OKR settings',
         });
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchData();
-  }, [toast]);
+    fetchPermissionData();
+  }, [form, toast]);
 
-  const handleSaveSettings = async () => {
-    if (!settings) return;
-    
-    setSaving(true);
+  const onSubmit = async (values: z.infer<typeof permissionSchema>) => {
     try {
       const { error } = await supabase
-        .from('okr_role_settings')
-        .update({
-          can_create_objectives: settings.can_create_objectives,
-          can_create_org_objectives: settings.can_create_org_objectives,
-          can_create_dept_objectives: settings.can_create_dept_objectives,
-          can_create_team_objectives: settings.can_create_team_objectives,
-          can_create_key_results: settings.can_create_key_results,
-          can_create_alignments: settings.can_create_alignments,
-          can_align_with_org_objectives: settings.can_align_with_org_objectives,
-          can_align_with_dept_objectives: settings.can_align_with_dept_objectives,
-          can_align_with_team_objectives: settings.can_align_with_team_objectives
-        })
-        .eq('id', settings.id);
+        .from('okr_permissions')
+        .upsert(values, { onConflict: 'id' });
 
-      if (error) throw error;
-      
+      if (error) {
+        console.error('Error updating permissions:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to update OKR settings',
+        });
+        return;
+      }
+
       toast({
         title: 'Success',
-        description: 'Settings saved successfully',
+        description: 'OKR settings updated successfully',
       });
+      setIsDialogOpen(false);
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error('Error updating permissions:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to save settings',
         variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update OKR settings',
       });
-    } finally {
-      setSaving(false);
     }
-  };
-
-  const handleRoleToggle = (roleId: string, settingKey: keyof OkrRoleSettings) => {
-    if (!settings) return;
-    
-    const currentSetting = settings[settingKey] || [];
-    const updatedSetting = currentSetting.includes(roleId)
-      ? currentSetting.filter(id => id !== roleId)
-      : [...currentSetting, roleId];
-    
-    setSettings({
-      ...settings,
-      [settingKey]: updatedSetting
-    });
-  };
-
-  const isRoleSelected = (roleId: string, settingKey: keyof OkrRoleSettings): boolean => {
-    if (!settings) return false;
-    return (settings[settingKey] || []).includes(roleId);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <LoadingSpinner />
-      </div>
-    );
   }
 
+  // Check if it's an array before filtering
+  const activeRoleIds = Array.isArray(permissionData?.can_create_objectives) 
+    ? permissionData.can_create_objectives.filter(id => !!id)
+    : [];
+
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">OKR Role Settings</h1>
-        <Button 
-          onClick={handleSaveSettings} 
-          disabled={saving}
-        >
-          {saving ? <LoadingSpinner size={16} className="mr-2" /> : null}
-          Save Settings
-        </Button>
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">OKR Settings</h1>
       </div>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Objective Creation Permissions</CardTitle>
-          <CardDescription>
-            Configure which employee roles can create objectives with different visibility levels.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
-              <div className="font-semibold">Employee Role</div>
-              <div className="font-semibold text-center">Create Objectives</div>
-              <div className="font-semibold text-center">Organization-level</div>
-              <div className="font-semibold text-center">Department-level</div>
-              <div className="font-semibold text-center">Team-level</div>
-            </div>
-            
-            {employeeRoles.map(role => (
-              <div key={role.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
-                <div>{role.name}</div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={isRoleSelected(role.id, 'can_create_objectives')}
-                    onCheckedChange={() => handleRoleToggle(role.id, 'can_create_objectives')}
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={isRoleSelected(role.id, 'can_create_org_objectives')}
-                    onCheckedChange={() => handleRoleToggle(role.id, 'can_create_org_objectives')}
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={isRoleSelected(role.id, 'can_create_dept_objectives')}
-                    onCheckedChange={() => handleRoleToggle(role.id, 'can_create_dept_objectives')}
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={isRoleSelected(role.id, 'can_create_team_objectives')}
-                    onCheckedChange={() => handleRoleToggle(role.id, 'can_create_team_objectives')}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Key Results Permissions</CardTitle>
-          <CardDescription>
-            Configure which employee roles can create key results.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-              <div className="font-semibold">Employee Role</div>
-              <div className="font-semibold text-center">Create Key Results</div>
-            </div>
-            
-            {employeeRoles.map(role => (
-              <div key={role.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                <div>{role.name}</div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={isRoleSelected(role.id, 'can_create_key_results')}
-                    onCheckedChange={() => handleRoleToggle(role.id, 'can_create_key_results')}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Alignment Permissions</CardTitle>
+          <CardTitle>Manage Permissions</CardTitle>
           <CardDescription>
-            Configure which employee roles can create alignments between objectives.
+            Configure permissions for OKR creation and management.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-              <div className="font-semibold">Employee Role</div>
-              <div className="font-semibold text-center">Create Alignments</div>
-              <div className="font-semibold text-center">Align with Org-level</div>
-              <div className="font-semibold text-center">Align with Dept-level</div>
-              <div className="font-semibold text-center">Align with Team-level</div>
+          <Button onClick={() => setIsDialogOpen(true)}>
+            Edit Permissions
+          </Button>
+          {permissionData && (
+            <div className="mt-4">
+              <h3 className="text-lg font-medium">Current Permissions:</h3>
+              <ul className="list-disc list-inside">
+                <li>
+                  Can Create Objectives: {activeRoleIds.length > 0 ? activeRoleIds.join(', ') : 'No roles'}
+                </li>
+                <li>
+                  Can Create Key Results: {permissionData.can_create_key_results ? 'Yes' : 'No'}
+                </li>
+                <li>
+                  Can Create Alignments: {permissionData.can_create_alignments ? 'Yes' : 'No'}
+                </li>
+              </ul>
             </div>
-            
-            {employeeRoles.map(role => (
-              <div key={role.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                <div>{role.name}</div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={isRoleSelected(role.id, 'can_create_alignments')}
-                    onCheckedChange={() => handleRoleToggle(role.id, 'can_create_alignments')}
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={isRoleSelected(role.id, 'can_align_with_org_objectives')}
-                    onCheckedChange={() => handleRoleToggle(role.id, 'can_align_with_org_objectives')}
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={isRoleSelected(role.id, 'can_align_with_dept_objectives')}
-                    onCheckedChange={() => handleRoleToggle(role.id, 'can_align_with_dept_objectives')}
-                  />
-                </div>
-                <div className="flex justify-center">
-                  <Checkbox
-                    checked={isRoleSelected(role.id, 'can_align_with_team_objectives')}
-                    onCheckedChange={() => handleRoleToggle(role.id, 'can_align_with_team_objectives')}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          )}
         </CardContent>
       </Card>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit OKR Permissions</DialogTitle>
+            <DialogDescription>
+              Configure which roles can create objectives, key results, and alignments.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <FormField
+                control={form.control}
+                name="can_create_objectives"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Roles that can create objectives</FormLabel>
+                    <Select
+                      multiple
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select roles" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="employee">Employee</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Select the roles that have permission to create objectives.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="can_create_key_results"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Can create key results</FormLabel>
+                      <FormDescription>
+                        Allow all users to create key results.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="can_create_alignments"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Can create alignments</FormLabel>
+                      <FormDescription>
+                        Allow all users to create alignments.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit">Update Permissions</Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-}
+};
+
+export default AdminOkrSettings;
