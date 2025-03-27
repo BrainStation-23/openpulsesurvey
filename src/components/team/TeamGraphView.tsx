@@ -107,15 +107,18 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
     // Calculate positions for team members in a semi-circle below the supervisor
     const radius = Math.max(teamMembers.length * 25, 150);
     const centerX = 250;
-    const startY = supervisor ? 180 : 100;
+    const startY = supervisor ? 200 : 100;
     
     teamMembers.forEach((member, index) => {
+      // Calculate position in a semi-circle formation
       const angle = (Math.PI * (index + 1)) / (teamMembers.length + 1);
       const x = centerX + radius * Math.cos(angle) - 100;
       const y = startY + radius * Math.sin(angle);
       
+      const nodeId = `member-${member.id}`;
+      
       newNodes.push({
-        id: `member-${member.id}`,
+        id: nodeId,
         type: 'teamMember',
         position: { x, y },
         data: {
@@ -129,10 +132,14 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
       // Add edge from supervisor to team member
       if (supervisor) {
         newEdges.push({
-          id: `edge-supervisor-${member.id}`,
+          id: `edge-${supervisor.id}-${member.id}`,
           source: `supervisor-${supervisor.id}`,
-          target: `member-${member.id}`,
+          target: nodeId,
           type: 'smoothstep',
+          style: { 
+            stroke: '#64748b', 
+            strokeWidth: 2 
+          },
           animated: false
         });
       }
