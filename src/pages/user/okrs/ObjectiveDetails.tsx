@@ -1,241 +1,189 @@
-
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, AlertTriangle, Edit, Trash2, Link } from "lucide-react";
-import { useObjective } from '@/hooks/okr/useObjective';
+import { useParams, Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Calendar, Edit, Users } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ObjectiveProgress } from '@/components/okr/objectives/ObjectiveProgress';
-import { ObjectiveFormWithPermissions } from '@/components/okr/objectives/ObjectiveFormWithPermissions';
-import { KeyResultsListWithPermissions } from '@/components/okr/key-results/KeyResultsListWithPermissions';
-import { UpdateObjectiveInput } from '@/types/okr';
-import { useToast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { ObjectiveAlignments } from '@/components/okr/objectives/ObjectiveAlignments';
-import { ObjectiveVisibilityBadge } from '@/components/okr/objectives/ObjectiveVisibilityBadge';
 import { ObjectiveStatusBadge } from '@/components/okr/objectives/ObjectiveStatusBadge';
+import { ObjectiveVisibilityBadge } from '@/components/okr/objectives/ObjectiveVisibilityBadge';
+import { ObjectiveAlignments } from '@/components/okr/objectives/ObjectiveAlignments';
+import { useToast } from '@/hooks/use-toast';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { CreateAlignmentDialog } from '@/components/okr/alignments/CreateAlignmentDialog';
 
-const ObjectiveDetailsPage = () => {
+// Placeholder hook for getting objective details
+const useObjectiveDetails = (objectiveId: string) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  
+  const placeholderObjective = {
+    id: objectiveId,
+    title: "Example Objective",
+    description: "This is an example objective for demonstration purposes.",
+    start_date: "2023-01-01",
+    end_date: "2023-12-31",
+    status: "in_progress",
+    progress: 35,
+    visibility: "department",
+    owner_id: "user-123",
+    owner_name: "John Doe",
+    cycle_id: "cycle-456",
+    cycle_name: "Q3 2023",
+    creation_source: "manual",
+    approval_status: "approved",
+    created_at: "2023-01-01T00:00:00Z",
+    updated_at: "2023-01-15T00:00:00Z",
+  };
+  
+  const placeholderUpdate = () => {
+    // Do nothing
+  };
+  
+  return {
+    objective: placeholderObjective,
+    isLoading,
+    error,
+    updateStatus: { mutate: placeholderUpdate, isLoading: false },
+    updateObjective: { mutate: placeholderUpdate, isLoading: false }
+  };
+};
+
+export default function ObjectiveDetailsPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const [isEditingAlignments, setIsEditingAlignments] = useState(false);
   const { toast } = useToast();
-  const { userId, isAdmin } = useCurrentUser();
-  const [editMode, setEditMode] = useState(false);
-  const { 
-    objective, 
-    isLoading, 
-    isError, 
-    updateObjective, 
-    deleteObjective,
-    refetch 
-  } = useObjective(id);
-
-  const isOwner = objective?.ownerId === userId;
-  const canEdit = isAdmin || isOwner;
-
-  const handleUpdate = (data: UpdateObjectiveInput) => {
-    if (!id) return;
-    
-    updateObjective.mutate({ ...data, id }, {
-      onSuccess: () => {
-        toast({
-          title: 'Success',
-          description: 'Objective updated successfully',
-        });
-        setEditMode(false);
-        refetch();
-      },
-      onError: (error: any) => {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: `Failed to update objective: ${error.message}`,
-        });
-      }
-    });
-  };
-
-  const handleDelete = () => {
-    if (!id) return;
-    
-    deleteObjective.mutate(id, {
-      onSuccess: () => {
-        toast({
-          title: 'Success',
-          description: 'Objective deleted successfully',
-        });
-        navigate('/dashboard/okrs/objectives');
-      },
-      onError: (error: any) => {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: `Failed to delete objective: ${error.message}`,
-        });
-      }
-    });
-  };
+  const objectiveId = id || '';
+  
+  const {
+    objective,
+    isLoading,
+    error,
+    updateStatus,
+    updateObjective
+  } = useObjectiveDetails(objectiveId);
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="h-8 w-2/3 bg-gray-200 animate-pulse rounded my-2"></div>
-            <div className="h-4 bg-gray-200 animate-pulse rounded my-2"></div>
-            <div className="h-4 bg-gray-200 animate-pulse rounded my-2"></div>
-          </CardContent>
-        </Card>
+      <div className="container mx-auto py-8 flex justify-center">
+        <LoadingSpinner size={40} />
       </div>
     );
   }
 
-  if (isError || !objective) {
+  if (error) {
     return (
-      <div className="container mx-auto py-6">
-        <Card>
-          <CardContent className="p-6 text-center">
-            <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Objective Not Found</h2>
-            <p className="text-muted-foreground mb-4">The objective you're looking for doesn't exist or you don't have permission to view it.</p>
-            <Button onClick={() => navigate('/dashboard/okrs/objectives')} variant="outline">
-              <ChevronLeft className="mr-2 h-4 w-4" /> Back to Objectives
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (editMode) {
-    return (
-      <div className="container mx-auto py-6 space-y-6">
-        <div className="flex items-center">
-          <Button onClick={() => setEditMode(false)} variant="outline" className="mr-4">
-            <ChevronLeft className="mr-2 h-4 w-4" /> Cancel
+      <div className="container mx-auto py-8">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold text-red-600">Error</h2>
+          <p className="text-gray-600">{error.message}</p>
+          <Button asChild variant="outline" className="mt-4">
+            <Link to="/dashboard/okrs/objectives">Back to Objectives</Link>
           </Button>
-          <h1 className="text-3xl font-bold">Edit Objective</h1>
         </div>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Edit Objective</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ObjectiveFormWithPermissions
-              onSubmit={handleUpdate}
-              isSubmitting={updateObjective.isPending}
-              objective={objective}
-              onCancel={() => setEditMode(false)}
-            />
-          </CardContent>
-        </Card>
       </div>
     );
   }
+
+  const handleUpdateStatus = (status: string) => {
+    updateStatus.mutate({ status });
+  };
+
+  const handleEditClick = () => {
+    // Implement this if needed
+  };
 
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
-        <div className="flex items-center">
-          <Button onClick={() => navigate('/dashboard/okrs/objectives')} variant="outline" className="mr-4">
-            <ChevronLeft className="mr-2 h-4 w-4" /> Back
-          </Button>
-          <h1 className="text-3xl font-bold">{objective.title}</h1>
-        </div>
-        
-        {canEdit && (
-          <div className="flex space-x-2">
-            <Button onClick={() => setEditMode(true)} variant="outline">
-              <Edit className="mr-2 h-4 w-4" /> Edit
-            </Button>
-            
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Confirm Deletion</DialogTitle>
-                  <DialogDescription>
-                    Are you sure you want to delete this objective? This action cannot be undone.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="flex justify-end space-x-2 pt-4">
-                  <Button variant="outline" onClick={() => document.querySelector('[role=dialog]')?.dispatchEvent(new Event('close', { bubbles: true }))}>
-                    Cancel
-                  </Button>
-                  <Button variant="destructive" onClick={handleDelete}>
-                    Delete
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        )}
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/dashboard/okrs/objectives">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Objectives
+          </Link>
+        </Button>
+        <Button size="sm" onClick={handleEditClick}>
+          <Edit className="h-4 w-4 mr-2" />
+          Edit Objective
+        </Button>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="space-y-6 lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Objective Details</CardTitle>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <ObjectiveVisibilityBadge visibility={objective.visibility} />
-                <ObjectiveStatusBadge status={objective.status} />
+
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-2xl font-bold">{objective.title}</CardTitle>
+              <div className="flex items-center gap-2 mt-2">
+                <ObjectiveStatusBadge status={objective.status || 'draft'} />
+                <ObjectiveVisibilityBadge visibility={objective.visibility || 'private'} />
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {objective.cycle_name || 'No cycle'}
+                </Badge>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  {objective.owner_name || 'Unknown owner'}
+                </Badge>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="text-lg font-medium mb-2">Description</h3>
-                <p className="text-muted-foreground">
-                  {objective.description || "No description provided."}
-                </p>
+            </div>
+            <ObjectiveProgress progress={objective.progress || 0} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">{objective.description}</p>
+        </CardContent>
+      </Card>
+
+      <Tabs defaultValue="keyResults">
+        <TabsList>
+          <TabsTrigger value="keyResults">Key Results</TabsTrigger>
+          <TabsTrigger value="alignments">Alignments</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="keyResults" className="py-4">
+          <Card>
+            <CardContent className="py-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">Key Results</h3>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Key Result
+                </Button>
               </div>
               
-              <div>
-                <h3 className="text-lg font-medium mb-2">Progress</h3>
-                <ObjectiveProgress progress={objective.progress} status={objective.status} />
+              <div className="text-center py-8 text-muted-foreground">
+                No key results added yet.
               </div>
             </CardContent>
           </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <KeyResultsListWithPermissions objectiveId={objective.id} />
-            </CardContent>
-          </Card>
-        </div>
+        </TabsContent>
         
-        <div className="space-y-6">
+        <TabsContent value="alignments" className="py-4">
+          <ObjectiveAlignments 
+            objectiveId={objectiveId} 
+            onCreateAlignment={() => setIsEditingAlignments(true)}
+          />
+          
+          <CreateAlignmentDialog 
+            isOpen={isEditingAlignments}
+            onOpenChange={setIsEditingAlignments}
+            sourceObjectiveId={objectiveId}
+          />
+        </TabsContent>
+        
+        <TabsContent value="history" className="py-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Link className="h-5 w-5 mr-2" />
-                Alignments
-              </CardTitle>
-              <CardDescription>
-                How this objective aligns with others
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ObjectiveAlignments objectiveId={objective.id} />
+            <CardContent className="py-6">
+              <h3 className="text-lg font-medium mb-4">Objective History</h3>
+              <div className="text-center py-8 text-muted-foreground">
+                No history available.
+              </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
-};
-
-export default ObjectiveDetailsPage;
+}

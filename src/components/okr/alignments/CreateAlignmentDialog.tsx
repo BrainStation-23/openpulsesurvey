@@ -1,149 +1,156 @@
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { useObjectiveAlignments } from '@/hooks/okr/useObjectiveAlignments';
 import { ObjectiveSearchInput } from './ObjectiveSearchInput';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-const formSchema = z.object({
-  alignedObjectiveId: z.string().min(1, 'Please select an objective'),
-  alignmentType: z.enum(['parent_child', 'peer', 'strategic']),
-  alignmentNotes: z.string().optional(),
-});
-
-type FormData = z.infer<typeof formSchema>;
-
-interface CreateAlignmentDialogProps {
-  objectiveId: string;
+export interface CreateAlignmentDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  sourceObjectiveId: string;
   onSuccess?: () => void;
 }
 
-export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
-  objectiveId,
-  onSuccess,
-}) => {
-  const [selectedObjectiveTitle, setSelectedObjectiveTitle] = useState<string>('');
-  const { createAlignment } = useObjectiveAlignments(objectiveId);
-
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      alignedObjectiveId: '',
-      alignmentType: 'parent_child',
-      alignmentNotes: '',
-    },
-  });
-
-  const onSubmit = (data: FormData) => {
-    createAlignment.mutate(
-      {
-        sourceObjectiveId: objectiveId,
-        alignedObjectiveId: data.alignedObjectiveId,
-        alignmentType: data.alignmentType,
-        alignmentNotes: data.alignmentNotes,
-      },
-      {
-        onSuccess: () => {
-          if (onSuccess) onSuccess();
-          form.reset();
-        },
-      }
-    );
-  };
+export function CreateAlignmentDialog({ 
+  isOpen, 
+  onOpenChange, 
+  sourceObjectiveId,
+  onSuccess 
+}: CreateAlignmentDialogProps) {
+  const [targetObjectiveId, setTargetObjectiveId] = useState('');
+  const [targetObjectiveTitle, setTargetObjectiveTitle] = useState('');
+  const [alignmentType, setAlignmentType] = useState('contributes_to');
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const handleObjectiveSelected = (id: string, title: string) => {
-    form.setValue('alignedObjectiveId', id);
-    setSelectedObjectiveTitle(title);
+    setTargetObjectiveId(id);
+    setTargetObjectiveTitle(title);
+  };
+
+  const handleSubmit = async () => {
+    if (!targetObjectiveId) {
+      toast({
+        title: 'Error',
+        description: 'Please select a target objective',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { error } = await supabase.from('okr_alignments').insert({
+        source_objective_id: sourceObjectiveId,
+        aligned_objective_id: targetObjectiveId,
+        alignment_type: alignmentType,
+        alignment_notes: notes,
+        created_by: user?.id
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Alignment created successfully',
+      });
+      
+      // Reset form and close dialog
+      setTargetObjectiveId('');
+      setTargetObjectiveTitle('');
+      setAlignmentType('contributes_to');
+      setNotes('');
+      onOpenChange(false);
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) onSuccess();
+    } catch (error: any) {
+      console.error('Error creating alignment:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to create alignment',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="alignedObjectiveId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Align with Objective</FormLabel>
-              <FormControl>
-                <ObjectiveSearchInput
-                  onObjectiveSelected={handleObjectiveSelected}
-                  excludeObjectiveId={objectiveId}
-                  selectedObjectiveId={field.value}
-                  selectedObjectiveTitle={selectedObjectiveTitle}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Create Objective Alignment</DialogTitle>
+          <DialogDescription>
+            Define how this objective aligns with other objectives.
+          </DialogDescription>
+        </DialogHeader>
 
-        <FormField
-          control={form.control}
-          name="alignmentType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Alignment Type</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select alignment type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="parent_child">Parent-Child</SelectItem>
-                  <SelectItem value="peer">Peer</SelectItem>
-                  <SelectItem value="strategic">Strategic</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid gap-4 py-4">
+          <div>
+            <Label className="mb-2 block">Target Objective</Label>
+            <ObjectiveSearchInput 
+              onObjectiveSelected={handleObjectiveSelected}
+              excludeObjectiveId={sourceObjectiveId}
+              selectedObjectiveId={targetObjectiveId}
+              selectedObjectiveTitle={targetObjectiveTitle}
+              placeholder="Search for an objective to align with..."
+            />
+          </div>
 
-        <FormField
-          control={form.control}
-          name="alignmentNotes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notes (Optional)</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Add notes about this alignment..."
-                  className="resize-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <div className="space-y-2">
+            <Label>Alignment Type</Label>
+            <RadioGroup 
+              value={alignmentType} 
+              onValueChange={setAlignmentType}
+              className="flex flex-col space-y-1"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="contributes_to" id="contributes_to" />
+                <Label htmlFor="contributes_to">Contributes to</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="blocks" id="blocks" />
+                <Label htmlFor="blocks">Blocks</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="related_to" id="related_to" />
+                <Label htmlFor="related_to">Related to</Label>
+              </div>
+            </RadioGroup>
+          </div>
 
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onSuccess}>
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Textarea 
+              id="notes" 
+              value={notes} 
+              onChange={(e) => setNotes(e.target.value)} 
+              placeholder="Add notes about this alignment..."
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="submit" disabled={createAlignment.isPending}>
-            {createAlignment.isPending ? (
-              <>
-                <LoadingSpinner size={16} className="mr-2" />
-                Creating...
-              </>
-            ) : (
-              'Create Alignment'
-            )}
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? <LoadingSpinner size={16} className="mr-2" /> : null}
+            Create Alignment
           </Button>
-        </div>
-      </form>
-    </Form>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
-};
+}

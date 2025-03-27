@@ -61,7 +61,7 @@ export const ObjectiveSearchInput: React.FC<ObjectiveSearchInputProps> = ({
             title,
             visibility,
             owner_id,
-            owner:profiles!owner_id(full_name)
+            owner:profiles(name)
           `)
           .ilike('title', `%${debouncedQuery}%`)
           .limit(10);
@@ -79,7 +79,7 @@ export const ObjectiveSearchInput: React.FC<ObjectiveSearchInputProps> = ({
           id: obj.id,
           title: obj.title,
           visibility: obj.visibility,
-          owner_name: obj.owner?.full_name
+          owner_name: obj.owner?.name || 'Unknown'
         }));
 
         setResults(formattedResults);
@@ -187,4 +187,4 @@ export const ObjectiveSearchInput: React.FC<ObjectiveSearchInputProps> = ({
       </Popover>
     </div>
   );
-};
+}

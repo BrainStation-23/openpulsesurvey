@@ -1,260 +1,192 @@
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
-export interface ObjectiveAlignment {
+interface Objective {
+  id: string;
+  title: string;
+  visibility: 'private' | 'team' | 'department' | 'organization';
+  progress: number;
+  status: string;
+}
+
+interface Alignment {
   id: string;
   source_objective_id: string;
   aligned_objective_id: string;
-  alignment_type: 'parent_child' | 'peer' | 'strategic';
+  alignment_type: string;
   created_at: string;
   created_by: string;
-  alignment_strength?: number;
-  alignment_notes?: string;
 }
 
-export interface AlignedObjective {
+interface ProcessedAlignment {
   id: string;
-  title: string;
-  description?: string;
-  visibility: 'private' | 'team' | 'department' | 'organization';
-  owner_id: string;
-  owner_name?: string;
-  owner_avatar_url?: string;
-  progress: number;
-  alignment_id: string;
-  alignment_type: 'parent_child' | 'peer' | 'strategic';
+  source_objective_id: string;
+  aligned_objective_id: string;
+  alignmentType: string;
+  created_at: string;
+  created_by: string;
+  
+  // For alignments FROM this objective
+  alignedObjectiveTitle: string;
+  alignedObjectiveProgress: number;
+  alignedObjectiveStatus: string;
+  alignedObjectiveVisibility: 'private' | 'team' | 'department' | 'organization';
+  
+  // For alignments TO this objective
+  sourceObjectiveTitle: string;
+  sourceObjectiveProgress: number;
+  sourceObjectiveStatus: string;
+  sourceObjectiveVisibility: 'private' | 'team' | 'department' | 'organization';
 }
 
-export const useObjectiveAlignments = (objectiveId?: string) => {
-  const [isCreating, setIsCreating] = useState(false);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  // Fetch alignments where this objective is the source
-  const {
-    data: sourceAlignments = [],
-    isLoading: isLoadingSourceAlignments,
-    error: sourceAlignmentsError,
-  } = useQuery({
-    queryKey: ['objective-source-alignments', objectiveId],
-    queryFn: async () => {
-      if (!objectiveId) return [];
-      
-      const { data, error } = await supabase
-        .from('okr_alignments')
-        .select(`
+export function useObjectiveAlignments(objectiveId: string) {
+  const fetchAlignments = async () => {
+    // Fetch alignments FROM this objective (where this objective is the source)
+    const { data: alignmentsFromData, error: alignmentsFromError } = await supabase
+      .from('okr_alignments')
+      .select(`
+        id,
+        source_objective_id,
+        aligned_objective_id,
+        alignment_type,
+        created_at,
+        created_by,
+        aligned_objective:objectives!aligned_objective_id(
           id,
-          source_objective_id,
-          aligned_objective_id,
-          alignment_type,
-          alignment_strength,
-          alignment_notes,
-          created_at,
-          created_by,
-          aligned_objective:objectives!aligned_objective_id(
-            id,
-            title,
-            description,
-            visibility,
-            progress,
-            owner_id,
-            owner:profiles!owner_id(
-              id,
-              full_name,
-              avatar_url
-            )
-          )
-        `)
-        .eq('source_objective_id', objectiveId);
-
-      if (error) throw error;
-
-      return data.map(item => ({
-        id: item.id,
-        source_objective_id: item.source_objective_id,
-        aligned_objective_id: item.aligned_objective_id,
-        alignment_type: item.alignment_type,
-        alignment_strength: item.alignment_strength,
-        alignment_notes: item.alignment_notes,
-        created_at: item.created_at,
-        created_by: item.created_by,
-        alignedObjective: {
-          id: item.aligned_objective.id,
-          title: item.aligned_objective.title,
-          description: item.aligned_objective.description,
-          visibility: item.aligned_objective.visibility,
-          progress: item.aligned_objective.progress,
-          owner_id: item.aligned_objective.owner_id,
-          owner_name: item.aligned_objective.owner?.full_name,
-          owner_avatar_url: item.aligned_objective.owner?.avatar_url,
-        }
-      }));
-    },
+          title,
+          visibility,
+          progress,
+          status
+        )
+      `)
+      .eq('source_objective_id', objectiveId);
+    
+    if (alignmentsFromError) throw alignmentsFromError;
+    
+    // Fetch alignments TO this objective (where this objective is the target)
+    const { data: alignmentsToData, error: alignmentsToError } = await supabase
+      .from('okr_alignments')
+      .select(`
+        id,
+        source_objective_id,
+        aligned_objective_id,
+        alignment_type,
+        created_at,
+        created_by,
+        source_objective:objectives!source_objective_id(
+          id,
+          title,
+          visibility,
+          progress,
+          status
+        )
+      `)
+      .eq('aligned_objective_id', objectiveId);
+    
+    if (alignmentsToError) throw alignmentsToError;
+    
+    // Process alignments FROM this objective
+    const processedAlignmentsFrom = alignmentsFromData.map(alignment => ({
+      id: alignment.id,
+      source_objective_id: alignment.source_objective_id,
+      aligned_objective_id: alignment.aligned_objective_id,
+      alignmentType: alignment.alignment_type,
+      created_at: alignment.created_at,
+      created_by: alignment.created_by,
+      
+      // Extract aligned objective data
+      alignedObjectiveTitle: alignment.aligned_objective?.title || 'Unknown',
+      alignedObjectiveProgress: alignment.aligned_objective?.progress || 0,
+      alignedObjectiveStatus: alignment.aligned_objective?.status || 'draft',
+      alignedObjectiveVisibility: alignment.aligned_objective?.visibility || 'private',
+    }));
+    
+    // Process alignments TO this objective
+    const processedAlignmentsTo = alignmentsToData.map(alignment => ({
+      id: alignment.id,
+      source_objective_id: alignment.source_objective_id,
+      aligned_objective_id: alignment.aligned_objective_id,
+      alignmentType: alignment.alignment_type,
+      created_at: alignment.created_at,
+      created_by: alignment.created_by,
+      
+      // Extract source objective data
+      sourceObjectiveTitle: alignment.source_objective?.title || 'Unknown',
+      sourceObjectiveProgress: alignment.source_objective?.progress || 0,
+      sourceObjectiveStatus: alignment.source_objective?.status || 'draft',
+      sourceObjectiveVisibility: alignment.source_objective?.visibility || 'private',
+    }));
+    
+    return {
+      alignmentsFrom: processedAlignmentsFrom,
+      alignmentsTo: processedAlignmentsTo
+    };
+  };
+  
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    refetch
+  } = useQuery({
+    queryKey: ['objective-alignments', objectiveId],
+    queryFn: fetchAlignments,
     enabled: !!objectiveId,
   });
-
-  // Fetch alignments where this objective is the target
-  const {
-    data: targetAlignments = [],
-    isLoading: isLoadingTargetAlignments,
-    error: targetAlignmentsError,
-  } = useQuery({
-    queryKey: ['objective-target-alignments', objectiveId],
-    queryFn: async () => {
-      if (!objectiveId) return [];
+  
+  async function createAlignment(alignedObjectiveId: string, alignmentType: string, notes?: string) {
+    try {
+      // Get current user
+      const { data: userData } = await supabase.auth.getUser();
       
       const { data, error } = await supabase
-        .from('okr_alignments')
-        .select(`
-          id,
-          source_objective_id,
-          aligned_objective_id,
-          alignment_type,
-          alignment_strength,
-          alignment_notes,
-          created_at,
-          created_by,
-          source_objective:objectives!source_objective_id(
-            id,
-            title,
-            description,
-            visibility,
-            progress,
-            owner_id,
-            owner:profiles!owner_id(
-              id,
-              full_name,
-              avatar_url
-            )
-          )
-        `)
-        .eq('aligned_objective_id', objectiveId);
-
-      if (error) throw error;
-
-      return data.map(item => ({
-        id: item.id,
-        source_objective_id: item.source_objective_id,
-        aligned_objective_id: item.aligned_objective_id,
-        alignment_type: item.alignment_type,
-        alignment_strength: item.alignment_strength,
-        alignment_notes: item.alignment_notes,
-        created_at: item.created_at,
-        created_by: item.created_by,
-        sourceObjective: {
-          id: item.source_objective.id,
-          title: item.source_objective.title,
-          description: item.source_objective.description,
-          visibility: item.source_objective.visibility,
-          progress: item.source_objective.progress,
-          owner_id: item.source_objective.owner_id,
-          owner_name: item.source_objective.owner?.full_name,
-          owner_avatar_url: item.source_objective.owner?.avatar_url,
-        }
-      }));
-    },
-    enabled: !!objectiveId,
-  });
-
-  // Create new alignment
-  const createAlignment = useMutation({
-    mutationFn: async (data: { 
-      sourceObjectiveId: string; 
-      alignedObjectiveId: string;
-      alignmentType: 'parent_child' | 'peer' | 'strategic';
-      alignmentNotes?: string;
-      alignmentStrength?: number;
-    }) => {
-      setIsCreating(true);
-      
-      const { data: newAlignment, error } = await supabase
         .from('okr_alignments')
         .insert({
-          source_objective_id: data.sourceObjectiveId,
-          aligned_objective_id: data.alignedObjectiveId,
-          alignment_type: data.alignmentType,
-          alignment_notes: data.alignmentNotes,
-          alignment_strength: data.alignmentStrength
+          source_objective_id: objectiveId,
+          aligned_objective_id: alignedObjectiveId,
+          alignment_type: alignmentType,
+          created_by: userData.user?.id
         })
-        .select()
-        .single();
-
+        .select();
+      
       if (error) throw error;
       
-      return newAlignment;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: ['objective-source-alignments', objectiveId] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['objective-target-alignments', objectiveId]
-      });
+      // Refetch alignments
+      refetch();
       
-      toast({
-        title: 'Alignment created',
-        description: 'The objectives have been aligned successfully.',
-      });
-      
-      setIsCreating(false);
-    },
-    onError: (error) => {
+      return data;
+    } catch (error) {
       console.error('Error creating alignment:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error creating alignment',
-        description: 'There was an error aligning the objectives. Please try again.',
-      });
-      
-      setIsCreating(false);
+      throw error;
     }
-  });
-
-  // Delete alignment
-  const deleteAlignment = useMutation({
-    mutationFn: async (alignmentId: string) => {
+  }
+  
+  async function deleteAlignment(alignmentId: string) {
+    try {
       const { error } = await supabase
         .from('okr_alignments')
         .delete()
         .eq('id', alignmentId);
-
+      
       if (error) throw error;
       
-      return alignmentId;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: ['objective-source-alignments', objectiveId] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['objective-target-alignments', objectiveId]
-      });
-      
-      toast({
-        title: 'Alignment removed',
-        description: 'The alignment between objectives has been removed.',
-      });
-    },
-    onError: (error) => {
+      // Refetch alignments
+      refetch();
+    } catch (error) {
       console.error('Error deleting alignment:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error removing alignment',
-        description: 'There was an error removing the alignment. Please try again.',
-      });
+      throw error;
     }
-  });
-
+  }
+  
   return {
-    sourceAlignments,
-    targetAlignments,
-    isLoading: isLoadingSourceAlignments || isLoadingTargetAlignments,
-    error: sourceAlignmentsError || targetAlignmentsError,
+    alignmentsFrom: data?.alignmentsFrom || [],
+    alignmentsTo: data?.alignmentsTo || [],
+    isLoading,
+    error,
+    refetch,
     createAlignment,
-    deleteAlignment,
-    isCreating
+    deleteAlignment
   };
-};
+}

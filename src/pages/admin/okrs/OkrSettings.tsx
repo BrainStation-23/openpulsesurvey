@@ -1,20 +1,20 @@
 
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-// Type for employee role
 interface EmployeeRole {
   id: string;
   name: string;
-  description: string;
+  color_code?: string;
+  status: 'active' | 'inactive';
+  description?: string;
 }
 
-// Type for OKR role settings
 interface OkrRoleSettings {
   id: string;
   can_create_objectives: string[];
@@ -31,14 +31,12 @@ interface OkrRoleSettings {
 export default function OkrSettings() {
   const [employeeRoles, setEmployeeRoles] = useState<EmployeeRole[]>([]);
   const [settings, setSettings] = useState<OkrRoleSettings | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  // Fetch employee roles and settings
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true);
       try {
         // Fetch employee roles
         const { data: rolesData, error: rolesError } = await supabase
@@ -47,7 +45,14 @@ export default function OkrSettings() {
           .order('name');
 
         if (rolesError) throw rolesError;
-        setEmployeeRoles(rolesData || []);
+        
+        // Add description property to match EmployeeRole interface
+        const roles = rolesData.map(role => ({
+          ...role,
+          description: role.name
+        }));
+        
+        setEmployeeRoles(roles);
 
         // Fetch OKR role settings
         const { data: settingsData, error: settingsError } = await supabase
@@ -61,17 +66,37 @@ export default function OkrSettings() {
         }
 
         if (settingsData) {
-          setSettings(settingsData as OkrRoleSettings);
+          setSettings(settingsData as unknown as OkrRoleSettings);
+        } else {
+          // Create default settings if none exist
+          const { data: newSettings, error: createError } = await supabase
+            .from('okr_role_settings')
+            .insert({
+              can_create_objectives: [],
+              can_create_org_objectives: [],
+              can_create_dept_objectives: [],
+              can_create_team_objectives: [],
+              can_create_key_results: [],
+              can_create_alignments: [],
+              can_align_with_org_objectives: [],
+              can_align_with_dept_objectives: [],
+              can_align_with_team_objectives: []
+            })
+            .select()
+            .single();
+
+          if (createError) throw createError;
+          setSettings(newSettings as unknown as OkrRoleSettings);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
-          variant: 'destructive',
           title: 'Error',
-          description: 'Failed to load OKR settings.',
+          description: 'Failed to load settings',
+          variant: 'destructive',
         });
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
@@ -81,161 +106,207 @@ export default function OkrSettings() {
   const handleSaveSettings = async () => {
     if (!settings) return;
     
-    setIsSaving(true);
+    setSaving(true);
     try {
       const { error } = await supabase
         .from('okr_role_settings')
-        .upsert(settings, { onConflict: 'id' });
+        .update({
+          can_create_objectives: settings.can_create_objectives,
+          can_create_org_objectives: settings.can_create_org_objectives,
+          can_create_dept_objectives: settings.can_create_dept_objectives,
+          can_create_team_objectives: settings.can_create_team_objectives,
+          can_create_key_results: settings.can_create_key_results,
+          can_create_alignments: settings.can_create_alignments,
+          can_align_with_org_objectives: settings.can_align_with_org_objectives,
+          can_align_with_dept_objectives: settings.can_align_with_dept_objectives,
+          can_align_with_team_objectives: settings.can_align_with_team_objectives
+        })
+        .eq('id', settings.id);
 
       if (error) throw error;
-
+      
       toast({
         title: 'Success',
-        description: 'OKR settings saved successfully.',
+        description: 'Settings saved successfully',
       });
     } catch (error) {
       console.error('Error saving settings:', error);
       toast({
-        variant: 'destructive',
         title: 'Error',
-        description: 'Failed to save OKR settings.',
+        description: 'Failed to save settings',
+        variant: 'destructive',
       });
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   };
 
-  // Helper function to toggle role ID in a settings array
-  const toggleRoleInSetting = (roleId: string, settingName: keyof OkrRoleSettings) => {
+  const handleRoleToggle = (roleId: string, settingKey: keyof OkrRoleSettings) => {
     if (!settings) return;
     
-    const currentSetting = settings[settingName] as string[];
-    const newSetting = currentSetting.includes(roleId)
+    const currentSetting = settings[settingKey] || [];
+    const updatedSetting = currentSetting.includes(roleId)
       ? currentSetting.filter(id => id !== roleId)
       : [...currentSetting, roleId];
     
     setSettings({
       ...settings,
-      [settingName]: newSetting,
+      [settingKey]: updatedSetting
     });
   };
 
-  if (isLoading) {
+  const isRoleSelected = (roleId: string, settingKey: keyof OkrRoleSettings): boolean => {
+    if (!settings) return false;
+    return (settings[settingKey] || []).includes(roleId);
+  };
+
+  if (loading) {
     return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">OKR Settings</h1>
-        <Button onClick={handleSaveSettings} disabled={isSaving}>
-          {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">OKR Role Settings</h1>
+        <Button 
+          onClick={handleSaveSettings} 
+          disabled={saving}
+        >
+          {saving ? <LoadingSpinner size={16} className="mr-2" /> : null}
           Save Settings
         </Button>
       </div>
 
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Role Permissions</CardTitle>
+          <CardTitle>Objective Creation Permissions</CardTitle>
           <CardDescription>
-            Configure which employee roles can perform different OKR actions.
+            Configure which employee roles can create objectives with different visibility levels.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {settings ? (
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-lg font-medium mb-4">Objective Creation Permissions</h3>
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-4">Role</th>
-                      <th className="text-center py-2 px-4">Create Objectives</th>
-                      <th className="text-center py-2 px-4">Organization Level</th>
-                      <th className="text-center py-2 px-4">Department Level</th>
-                      <th className="text-center py-2 px-4">Team Level</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {employeeRoles.map((role) => (
-                      <tr key={role.id} className="border-b">
-                        <td className="py-2 px-4">{role.name}</td>
-                        <td className="text-center py-2 px-4">
-                          <Checkbox 
-                            checked={(settings.can_create_objectives as string[]).includes(role.id)}
-                            onCheckedChange={() => toggleRoleInSetting(role.id, 'can_create_objectives')}
-                          />
-                        </td>
-                        <td className="text-center py-2 px-4">
-                          <Checkbox 
-                            checked={(settings.can_create_org_objectives as string[]).includes(role.id)}
-                            onCheckedChange={() => toggleRoleInSetting(role.id, 'can_create_org_objectives')}
-                          />
-                        </td>
-                        <td className="text-center py-2 px-4">
-                          <Checkbox 
-                            checked={(settings.can_create_dept_objectives as string[]).includes(role.id)}
-                            onCheckedChange={() => toggleRoleInSetting(role.id, 'can_create_dept_objectives')}
-                          />
-                        </td>
-                        <td className="text-center py-2 px-4">
-                          <Checkbox 
-                            checked={(settings.can_create_team_objectives as string[]).includes(role.id)}
-                            onCheckedChange={() => toggleRoleInSetting(role.id, 'can_create_team_objectives')}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <div className="grid gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+              <div className="font-semibold">Employee Role</div>
+              <div className="font-semibold text-center">Create Objectives</div>
+              <div className="font-semibold text-center">Organization-level</div>
+              <div className="font-semibold text-center">Department-level</div>
+              <div className="font-semibold text-center">Team-level</div>
+            </div>
+            
+            {employeeRoles.map(role => (
+              <div key={role.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+                <div>{role.name}</div>
+                <div className="flex justify-center">
+                  <Checkbox
+                    checked={isRoleSelected(role.id, 'can_create_objectives')}
+                    onCheckedChange={() => handleRoleToggle(role.id, 'can_create_objectives')}
+                  />
+                </div>
+                <div className="flex justify-center">
+                  <Checkbox
+                    checked={isRoleSelected(role.id, 'can_create_org_objectives')}
+                    onCheckedChange={() => handleRoleToggle(role.id, 'can_create_org_objectives')}
+                  />
+                </div>
+                <div className="flex justify-center">
+                  <Checkbox
+                    checked={isRoleSelected(role.id, 'can_create_dept_objectives')}
+                    onCheckedChange={() => handleRoleToggle(role.id, 'can_create_dept_objectives')}
+                  />
+                </div>
+                <div className="flex justify-center">
+                  <Checkbox
+                    checked={isRoleSelected(role.id, 'can_create_team_objectives')}
+                    onCheckedChange={() => handleRoleToggle(role.id, 'can_create_team_objectives')}
+                  />
+                </div>
               </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-              <div>
-                <h3 className="text-lg font-medium mb-4">Key Results & Alignments</h3>
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-4">Role</th>
-                      <th className="text-center py-2 px-4">Create Key Results</th>
-                      <th className="text-center py-2 px-4">Create Alignments</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {employeeRoles.map((role) => (
-                      <tr key={role.id} className="border-b">
-                        <td className="py-2 px-4">{role.name}</td>
-                        <td className="text-center py-2 px-4">
-                          <Checkbox 
-                            checked={(settings.can_create_key_results as string[]).includes(role.id)}
-                            onCheckedChange={() => toggleRoleInSetting(role.id, 'can_create_key_results')}
-                          />
-                        </td>
-                        <td className="text-center py-2 px-4">
-                          <Checkbox 
-                            checked={(settings.can_create_alignments as string[]).includes(role.id)}
-                            onCheckedChange={() => toggleRoleInSetting(role.id, 'can_create_alignments')}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Key Results Permissions</CardTitle>
+          <CardDescription>
+            Configure which employee roles can create key results.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+              <div className="font-semibold">Employee Role</div>
+              <div className="font-semibold text-center">Create Key Results</div>
+            </div>
+            
+            {employeeRoles.map(role => (
+              <div key={role.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                <div>{role.name}</div>
+                <div className="flex justify-center">
+                  <Checkbox
+                    checked={isRoleSelected(role.id, 'can_create_key_results')}
+                    onCheckedChange={() => handleRoleToggle(role.id, 'can_create_key_results')}
+                  />
+                </div>
               </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Alignment Permissions</CardTitle>
+          <CardDescription>
+            Configure which employee roles can create alignments between objectives.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+              <div className="font-semibold">Employee Role</div>
+              <div className="font-semibold text-center">Create Alignments</div>
+              <div className="font-semibold text-center">Align with Org-level</div>
+              <div className="font-semibold text-center">Align with Dept-level</div>
+              <div className="font-semibold text-center">Align with Team-level</div>
             </div>
-          ) : (
-            <div className="text-center py-6">
-              <p className="text-muted-foreground">No settings data found. Save to create initial settings.</p>
-              <Button onClick={handleSaveSettings} className="mt-4">
-                Create Default Settings
-              </Button>
-            </div>
-          )}
+            
+            {employeeRoles.map(role => (
+              <div key={role.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                <div>{role.name}</div>
+                <div className="flex justify-center">
+                  <Checkbox
+                    checked={isRoleSelected(role.id, 'can_create_alignments')}
+                    onCheckedChange={() => handleRoleToggle(role.id, 'can_create_alignments')}
+                  />
+                </div>
+                <div className="flex justify-center">
+                  <Checkbox
+                    checked={isRoleSelected(role.id, 'can_align_with_org_objectives')}
+                    onCheckedChange={() => handleRoleToggle(role.id, 'can_align_with_org_objectives')}
+                  />
+                </div>
+                <div className="flex justify-center">
+                  <Checkbox
+                    checked={isRoleSelected(role.id, 'can_align_with_dept_objectives')}
+                    onCheckedChange={() => handleRoleToggle(role.id, 'can_align_with_dept_objectives')}
+                  />
+                </div>
+                <div className="flex justify-center">
+                  <Checkbox
+                    checked={isRoleSelected(role.id, 'can_align_with_team_objectives')}
+                    onCheckedChange={() => handleRoleToggle(role.id, 'can_align_with_team_objectives')}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

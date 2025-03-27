@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Users, Building, Globe } from 'lucide-react';
+import { Globe, Users, User } from 'lucide-react';
 
 type ObjectiveVisibility = 'private' | 'team' | 'department' | 'organization';
 
@@ -14,47 +14,39 @@ export const ObjectiveVisibilityBadge: React.FC<ObjectiveVisibilityBadgeProps> =
   visibility, 
   className = '' 
 }) => {
-  const getVisibilityConfig = () => {
-    switch (visibility) {
-      case 'private':
-        return { 
-          icon: <Eye className="h-3 w-3 mr-1" />,
-          label: 'Private',
-          variant: 'outline' as const
-        };
-      case 'team':
-        return { 
-          icon: <Users className="h-3 w-3 mr-1" />,
-          label: 'Team',
-          variant: 'secondary' as const
-        };
-      case 'department':
-        return { 
-          icon: <Building className="h-3 w-3 mr-1" />,
-          label: 'Department',
-          variant: 'default' as const
-        };
-      case 'organization':
-        return { 
-          icon: <Globe className="h-3 w-3 mr-1" />,
-          label: 'Organization',
-          variant: 'destructive' as const
-        };
-      default:
-        return { 
-          icon: <Eye className="h-3 w-3 mr-1" />,
-          label: 'Unknown',
-          variant: 'outline' as const
-        };
-    }
+  const visibilityConfig = {
+    private: {
+      icon: User,
+      label: 'Private',
+      variant: 'outline',
+    },
+    team: {
+      icon: Users,
+      label: 'Team',
+      variant: 'secondary',
+    },
+    department: {
+      icon: Users,
+      label: 'Department',
+      variant: 'default',
+    },
+    organization: {
+      icon: Globe,
+      label: 'Organization',
+      variant: 'destructive',
+    },
   };
 
-  const config = getVisibilityConfig();
+  const config = visibilityConfig[visibility] || visibilityConfig.private;
+  const Icon = config.icon;
   
   return (
-    <Badge variant={config.variant} className={`inline-flex items-center ${className}`}>
-      {config.icon}
-      {config.label}
+    <Badge 
+      variant={config.variant as any} 
+      className={`flex items-center gap-1 ${className}`}
+    >
+      <Icon className="h-3 w-3" />
+      <span>{config.label}</span>
     </Badge>
   );
 };

@@ -1,228 +1,202 @@
 
-import { useCallback, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-export type ObjectiveVisibility = 'private' | 'team' | 'department' | 'organization';
+type OkrPermissionType = 
+  | 'create_objectives'
+  | 'create_org_objectives'
+  | 'create_dept_objectives'
+  | 'create_team_objectives'
+  | 'create_key_results'
+  | 'create_alignments'
+  | 'align_with_org_objectives'
+  | 'align_with_dept_objectives'
+  | 'align_with_team_objectives';
 
-// Create a hook for OKR permissions
-export const useOkrPermissions = () => {
-  const [isLoading, setIsLoading] = useState(false);
+export function useOkrPermissions() {
+  const [permissions, setPermissions] = useState<Record<OkrPermissionType, boolean>>({
+    create_objectives: false,
+    create_org_objectives: false,
+    create_dept_objectives: false,
+    create_team_objectives: false,
+    create_key_results: false,
+    create_alignments: false,
+    align_with_org_objectives: false,
+    align_with_dept_objectives: false,
+    align_with_team_objectives: false
+  });
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  // Check if user can create objectives (base permission)
-  const canCreateObjectives = useCallback(async (): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      // Check if user is an admin (admins can always create)
-      const adminCheck = await isAdmin();
-      if (adminCheck) {
-        setIsLoading(false);
-        return true;
-      }
-
-      // Use the RPC to check permission
-      const { data, error } = await supabase.rpc('check_user_has_permission', {
-        permission_name: 'create_objectives'
-      });
-
-      if (error) {
-        console.error('Error checking create objective permission:', error);
-        return false;
-      }
-
-      return !!data;
-    } catch (error) {
-      console.error('Error in canCreateObjectives:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Check if user can create objectives with specific visibility
-  const canCreateObjectiveWithVisibility = useCallback(async (visibility: ObjectiveVisibility): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      // Check if user is an admin (admins can always create all visibilities)
-      const adminCheck = await isAdmin();
-      if (adminCheck) {
-        setIsLoading(false);
-        return true;
-      }
-
-      // Use the RPC to check visibility-specific permission
-      const { data, error } = await supabase.rpc('check_user_has_permission', {
-        permission_name: `create_${visibility}_objectives`
-      });
-
-      if (error) {
-        console.error(`Error checking create ${visibility} objective permission:`, error);
-        return false;
-      }
-
-      return !!data;
-    } catch (error) {
-      console.error(`Error in canCreateObjectiveWithVisibility for ${visibility}:`, error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Check if user can create key results
-  const canCreateKeyResults = useCallback(async (): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      // Check if user is an admin
-      const adminCheck = await isAdmin();
-      if (adminCheck) {
-        setIsLoading(false);
-        return true;
-      }
-
-      // Use the RPC to check permission
-      const { data, error } = await supabase.rpc('check_user_has_permission', {
-        permission_name: 'create_key_results'
-      });
-
-      if (error) {
-        console.error('Error checking create key results permission:', error);
-        return false;
-      }
-
-      return !!data;
-    } catch (error) {
-      console.error('Error in canCreateKeyResults:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Check if user can create alignments
-  const canCreateAlignments = useCallback(async (): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      // Check if user is an admin
-      const adminCheck = await isAdmin();
-      if (adminCheck) {
-        setIsLoading(false);
-        return true;
-      }
-
-      // Use the RPC to check permission
-      const { data, error } = await supabase.rpc('check_user_has_permission', {
-        permission_name: 'create_alignments'
-      });
-
-      if (error) {
-        console.error('Error checking create alignments permission:', error);
-        return false;
-      }
-
-      return !!data;
-    } catch (error) {
-      console.error('Error in canCreateAlignments:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Check if user can align with objectives of a specific visibility
-  const canAlignWithObjectiveVisibility = useCallback(async (visibility: ObjectiveVisibility): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      // Check if user is an admin
-      const adminCheck = await isAdmin();
-      if (adminCheck) {
-        setIsLoading(false);
-        return true;
-      }
-
-      // Use the RPC to check permission
-      const { data, error } = await supabase.rpc('check_user_has_permission', {
-        permission_name: `align_with_${visibility}_objectives`
-      });
-
-      if (error) {
-        console.error(`Error checking align with ${visibility} permission:`, error);
-        return false;
-      }
-
-      return !!data;
-    } catch (error) {
-      console.error(`Error in canAlignWithObjectiveVisibility for ${visibility}:`, error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Check if user is an admin
-  const isAdmin = useCallback(async (): Promise<boolean> => {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) return false;
-
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', session.user.id)
-        .single();
-
-      if (error) {
+  useEffect(() => {
+    async function checkAdminStatus() {
+      try {
+        const { data: user } = await supabase.auth.getUser();
+        if (!user.user) return;
+        
+        const { data } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.user.id)
+          .single();
+        
+        if (data && data.role === 'admin') {
+          setIsAdmin(true);
+          // Admins have all permissions
+          setPermissions({
+            create_objectives: true,
+            create_org_objectives: true,
+            create_dept_objectives: true,
+            create_team_objectives: true,
+            create_key_results: true,
+            create_alignments: true,
+            align_with_org_objectives: true,
+            align_with_dept_objectives: true,
+            align_with_team_objectives: true
+          });
+        } else {
+          // Fetch individual permissions for non-admin users
+          await fetchUserPermissions();
+        }
+        setLoading(false);
+      } catch (error) {
         console.error('Error checking admin status:', error);
-        return false;
+        setLoading(false);
       }
-
-      return data.role === 'admin';
-    } catch (error) {
-      console.error('Error in isAdmin check:', error);
-      return false;
     }
+    
+    checkAdminStatus();
   }, []);
 
-  // Check if user is the owner of a specific objective
-  const isObjectiveOwner = useCallback(async (objectiveId: string): Promise<boolean> => {
+  async function fetchUserPermissions() {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) return false;
-
-      // First check if admin (admins always have owner rights)
-      const adminCheck = await isAdmin();
-      if (adminCheck) return true;
-
-      // Check if user is the owner
-      const { data, error } = await supabase.rpc('check_user_is_owner', {
-        p_objective_id: objectiveId
+      // Check generic permission to create objectives
+      const { data: canCreateObjectives } = await supabase.rpc(
+        'check_okr_create_permission',
+        { 
+          p_permission_type: 'create_objectives',
+          p_visibility: null
+        }
+      );
+      
+      // Check permission to create org-level objectives
+      const { data: canCreateOrgObjectives } = await supabase.rpc(
+        'check_okr_create_permission',
+        { 
+          p_permission_type: 'create_objectives',
+          p_visibility: 'organization'
+        }
+      );
+      
+      // Check permission to create dept-level objectives
+      const { data: canCreateDeptObjectives } = await supabase.rpc(
+        'check_okr_create_permission',
+        { 
+          p_permission_type: 'create_objectives',
+          p_visibility: 'department'
+        }
+      );
+      
+      // Check permission to create team-level objectives
+      const { data: canCreateTeamObjectives } = await supabase.rpc(
+        'check_okr_create_permission',
+        { 
+          p_permission_type: 'create_objectives',
+          p_visibility: 'team'
+        }
+      );
+      
+      // Check permission to create key results
+      const { data: canCreateKeyResults } = await supabase.rpc(
+        'check_okr_create_permission',
+        { 
+          p_permission_type: 'create_key_results',
+          p_visibility: null
+        }
+      );
+      
+      // Check permission to create alignments
+      const { data: canCreateAlignments } = await supabase.rpc(
+        'check_okr_create_permission',
+        { 
+          p_permission_type: 'create_alignments',
+          p_visibility: null
+        }
+      );
+      
+      // Check permission to align with org-level objectives
+      const { data: canAlignWithOrgObjectives } = await supabase.rpc(
+        'check_okr_create_permission',
+        { 
+          p_permission_type: 'create_alignments',
+          p_visibility: 'organization'
+        }
+      );
+      
+      // Check permission to align with dept-level objectives
+      const { data: canAlignWithDeptObjectives } = await supabase.rpc(
+        'check_okr_create_permission',
+        { 
+          p_permission_type: 'create_alignments',
+          p_visibility: 'department'
+        }
+      );
+      
+      // Check permission to align with team-level objectives
+      const { data: canAlignWithTeamObjectives } = await supabase.rpc(
+        'check_okr_create_permission',
+        { 
+          p_permission_type: 'create_alignments',
+          p_visibility: 'team'
+        }
+      );
+      
+      setPermissions({
+        create_objectives: canCreateObjectives || false,
+        create_org_objectives: canCreateOrgObjectives || false,
+        create_dept_objectives: canCreateDeptObjectives || false,
+        create_team_objectives: canCreateTeamObjectives || false,
+        create_key_results: canCreateKeyResults || false,
+        create_alignments: canCreateAlignments || false,
+        align_with_org_objectives: canAlignWithOrgObjectives || false,
+        align_with_dept_objectives: canAlignWithDeptObjectives || false,
+        align_with_team_objectives: canAlignWithTeamObjectives || false
       });
-
-      if (error) {
-        console.error('Error checking objective ownership:', error);
-        return false;
-      }
-
-      return !!data;
     } catch (error) {
-      console.error('Error in isObjectiveOwner:', error);
+      console.error('Error fetching user permissions:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch permissions',
+        variant: 'destructive',
+      });
+    }
+  }
+  
+  // Check if user is the owner of an objective
+  async function checkIsObjectiveOwner(objectiveId: string): Promise<boolean> {
+    try {
+      if (isAdmin) return true;
+      
+      const { data: isOwner } = await supabase.rpc(
+        'check_objective_owner_permission',
+        { 
+          p_objective_id: objectiveId
+        }
+      );
+      
+      return isOwner || false;
+    } catch (error) {
+      console.error('Error checking objective ownership:', error);
       return false;
     }
-  }, []);
+  }
 
   return {
-    isLoading,
-    canCreateObjectives,
-    canCreateObjectiveWithVisibility,
-    canCreateKeyResults,
-    canCreateAlignments,
-    canAlignWithObjectiveVisibility,
+    permissions,
     isAdmin,
-    isObjectiveOwner,
+    loading,
+    checkIsObjectiveOwner
   };
-};
+}
