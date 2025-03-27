@@ -1,95 +1,147 @@
 
-import { LucideIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Sidebar } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import { 
+  LayoutDashboard, 
+  Settings, 
+  Users, 
+  FileText, 
+  Grid,
+  ClipboardList,
+  Mail,
+  MapPin,
+  Layers,
+  Briefcase,
+  Shield,
+  BrainCircuit,
+  UserRound,
+  Trophy,
+  Radio,
+  Kanban,
+  Target,
+  Building2,
+  Database,
+  BarChart,
+  Rocket,
+  UserCircle,
+  LogOut
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { 
+  Sidebar, 
+  SidebarMenu, 
+  SidebarMenuItem, 
+  SidebarMenuButton
+} from "@/components/ui/sidebar";
+import { navigationItems, navigationSections } from "@/config/navigation";
 
-interface SidebarItemProps {
-  icon: LucideIcon;
-  title: string;
-  href: string;
-  isActive?: boolean;
-}
-
-const SidebarItem = ({ icon: Icon, title, href, isActive }: SidebarItemProps) => {
+// Add "My Team" to the navigation items in the function
+export default function AdminSidebar({ onSignOut }) {
+  const location = useLocation();
+  
   return (
-    <Button variant={isActive ? "default" : "ghost"} className="w-full justify-start" asChild>
-      <Link to={href} className="flex items-center">
-        <Icon className="mr-2 h-4 w-4" />
-        <span>{title}</span>
-      </Link>
-    </Button>
-  );
-};
+    <Sidebar>
+      <div className="border-b px-6 py-3">
+        <h2 className="font-semibold">Admin Portal</h2>
+      </div>
 
-export function AdminSidebar() {
-  // Define sidebar items
-  const sidebarItems = [
-    {
-      icon: require('lucide-react').LayoutDashboard,
-      title: 'Dashboard',
-      href: '/admin',
-    },
-    {
-      icon: require('lucide-react').Users,
-      title: 'Users',
-      href: '/admin/users',
-    },
-    {
-      icon: require('lucide-react').Building,
-      title: 'Organizations',
-      href: '/admin/organizations',
-    },
-    {
-      icon: require('lucide-react').ListChecks,
-      title: 'Surveys',
-      href: '/admin/surveys',
-    },
-    {
-      icon: require('lucide-react').CalendarCheck,
-      title: 'Campaigns',
-      href: '/admin/campaigns',
-    },
-    {
-      icon: require('lucide-react').BarChart,
-      title: 'Analytics',
-      href: '/admin/analytics',
-    },
-    {
-      icon: require('lucide-react').Video,
-      title: 'Live Sessions',
-      href: '/admin/live-sessions',
-    },
-    {
-      icon: require('lucide-react').Trophy,
-      title: 'Achievements',
-      href: '/admin/achievements',
-    },
-    {
-      icon: require('lucide-react').Settings,
-      title: 'Config',
-      href: '/admin/config',
-    },
-    {
-      icon: require('lucide-react').Target,
-      title: 'OKRs',
-      href: '/admin/okrs/objectives',
-    }
-  ];
+      <div className="flex flex-1 flex-col gap-2 overflow-auto p-2">
+        {navigationSections.map((section) => (
+          <div key={section.id} className="mb-4">
+            <h3 className="mb-2 px-2 text-xs font-medium text-muted-foreground">{section.label}</h3>
+            <SidebarMenu>
+              {navigationItems
+                .filter((item) => item.section === section.id)
+                .map((item) => {
+                  if (item.children) {
+                    const isActive = location.pathname.startsWith(item.path);
+                    return (
+                      <SidebarMenuItem key={item.path}>
+                        <SidebarMenuButton
+                          isActive={isActive}
+                          asChild
+                        >
+                          <div className="flex items-center">
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </div>
+                        </SidebarMenuButton>
+                        <div className="mt-1 pl-6 space-y-1">
+                          {item.children.map((child) => (
+                            <SidebarMenuButton
+                              key={child.path}
+                              isActive={location.pathname === child.path}
+                              asChild
+                            >
+                              <Link to={child.path} className="flex items-center">
+                                <child.icon className="h-4 w-4" />
+                                <span>{child.title}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          ))}
+                        </div>
+                      </SidebarMenuItem>
+                    );
+                  }
 
-  return (
-    <Sidebar className="hidden border-r bg-background lg:block">
-      <div className="h-full px-3 py-4">
-        <div className="space-y-1">
-          {sidebarItems.map((item, index) => (
-            <SidebarItem
-              key={index}
-              icon={item.icon}
-              title={item.title}
-              href={item.href}
-            />
-          ))}
-        </div>
+                  // Insert My Team after My Profile
+                  if (item.path === "/admin/profile") {
+                    return (
+                      <React.Fragment key={item.path}>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            isActive={location.pathname === item.path}
+                            asChild
+                          >
+                            <Link to={item.path} className="flex items-center">
+                              <item.icon className="h-4 w-4" />
+                              <span>{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            isActive={location.pathname === "/admin/my-team"}
+                            asChild
+                          >
+                            <Link to="/admin/my-team" className="flex items-center">
+                              <Users className="h-4 w-4" />
+                              <span>My Team</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </React.Fragment>
+                    );
+                  }
+
+                  return (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton
+                        isActive={location.pathname === item.path}
+                        asChild
+                      >
+                        <Link to={item.path} className="flex items-center">
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+            </SidebarMenu>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-2">
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={onSignOut}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Logout
+        </Button>
       </div>
     </Sidebar>
   );

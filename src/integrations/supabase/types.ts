@@ -1672,51 +1672,6 @@ export type Database = {
         }
         Relationships: []
       }
-      okr_role_settings: {
-        Row: {
-          can_align_with_dept_objectives: string[] | null
-          can_align_with_org_objectives: string[] | null
-          can_align_with_team_objectives: string[] | null
-          can_create_alignments: string[] | null
-          can_create_dept_objectives: string[] | null
-          can_create_key_results: string[] | null
-          can_create_objectives: string[] | null
-          can_create_org_objectives: string[] | null
-          can_create_team_objectives: string[] | null
-          created_at: string | null
-          id: string
-          updated_at: string | null
-        }
-        Insert: {
-          can_align_with_dept_objectives?: string[] | null
-          can_align_with_org_objectives?: string[] | null
-          can_align_with_team_objectives?: string[] | null
-          can_create_alignments?: string[] | null
-          can_create_dept_objectives?: string[] | null
-          can_create_key_results?: string[] | null
-          can_create_objectives?: string[] | null
-          can_create_org_objectives?: string[] | null
-          can_create_team_objectives?: string[] | null
-          created_at?: string | null
-          id?: string
-          updated_at?: string | null
-        }
-        Update: {
-          can_align_with_dept_objectives?: string[] | null
-          can_align_with_org_objectives?: string[] | null
-          can_align_with_team_objectives?: string[] | null
-          can_create_alignments?: string[] | null
-          can_create_dept_objectives?: string[] | null
-          can_create_key_results?: string[] | null
-          can_create_objectives?: string[] | null
-          can_create_org_objectives?: string[] | null
-          can_create_team_objectives?: string[] | null
-          created_at?: string | null
-          id?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       okr_templates: {
         Row: {
           category: string | null
@@ -2896,21 +2851,6 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
-      }
-      check_objective_owner_permission: {
-        Args: {
-          p_user_id: string
-          p_objective_id: string
-        }
-        Returns: boolean
-      }
-      check_okr_create_permission: {
-        Args: {
-          p_user_id: string
-          p_permission_type: string
-          p_visibility?: string
-        }
-        Returns: boolean
       }
       check_okr_objective_access: {
         Args: {

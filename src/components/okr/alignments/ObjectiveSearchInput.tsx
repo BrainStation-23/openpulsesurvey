@@ -1,167 +1,171 @@
 
 import React, { useState, useEffect } from 'react';
+import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { supabase } from '@/integrations/supabase/client';
-import { Objective } from '@/types/okr';
-import { Check, ChevronDown, Search, User } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { ObjectiveStatusBadge } from '../objectives/ObjectiveStatusBadge';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Objective, ObjectiveAlignment } from '@/types/okr';
+import { useObjectives } from '@/hooks/okr/useObjectives';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useAlignments } from '@/hooks/okr/useAlignments';
 
 interface ObjectiveSearchInputProps {
-  onObjectiveSelect: (objective: Objective) => void;
-  excludeObjectiveId?: string;
+  currentObjectiveId: string;
+  onSelect: (objective: Objective) => void;
   placeholder?: string;
-  buttonClassName?: string;
-  searchFilter?: string;
+  className?: string;
 }
 
-export const ObjectiveSearchInput: React.FC<ObjectiveSearchInputProps> = ({
-  onObjectiveSelect,
-  excludeObjectiveId,
-  placeholder = "Search objectives...",
-  buttonClassName = "",
-  searchFilter
-}) => {
-  const [open, setOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState('');
-  const [searchResults, setSearchResults] = useState<Objective[]>([]);
-  const [selectedObjective, setSelectedObjective] = useState<Objective | null>(null);
+export const ObjectiveSearchInput = ({
+  currentObjectiveId,
+  onSelect,
+  placeholder = 'Search objectives...',
+  className
+}: ObjectiveSearchInputProps) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const { objectives, isLoading } = useObjectives();
+  const { alignments } = useAlignments(currentObjectiveId);
+  const [filteredObjectives, setFilteredObjectives] = useState<Objective[]>([]);
   
+  // Create a set of already aligned objective IDs
+  const getAlreadyAlignedIds = () => {
+    if (!alignments || !alignments.length) return new Set<string>();
+    
+    const alignedIds = new Set<string>();
+    
+    alignments.forEach(alignment => {
+      // For alignments where this objective is the source (parent)
+      if (alignment.sourceObjectiveId === currentObjectiveId && alignment.alignedObjectiveId) {
+        alignedIds.add(alignment.alignedObjectiveId);
+      }
+      
+      // For alignments where this objective is the target (child)
+      if (alignment.alignedObjectiveId === currentObjectiveId && alignment.sourceObjectiveId) {
+        alignedIds.add(alignment.sourceObjectiveId);
+      }
+    });
+    
+    return alignedIds;
+  };
+  
+  // Filter objectives to prevent cyclic relationships, self-selection, and already aligned objectives
   useEffect(() => {
-    if (open && searchValue.length > 0) {
-      searchObjectives(searchValue);
+    if (!objectives || !objectives.length) {
+      setFilteredObjectives([]);
+      return;
     }
-  }, [open, searchValue]);
-  
-  const searchObjectives = async (query: string) => {
-    try {
-      let queryBuilder = supabase
-        .from('objectives')
-        .select(`
-          *,
-          profiles:owner_id (
-            id,
-            first_name,
-            last_name
-          )
-        `)
-        .ilike('title', `%${query}%`)
-        .order('created_at', { ascending: false })
-        .limit(10);
-        
-      if (excludeObjectiveId) {
-        queryBuilder = queryBuilder.neq('id', excludeObjectiveId);
-      }
-      
-      // Add additional filters if needed
-      if (searchFilter === 'organization') {
-        queryBuilder = queryBuilder.eq('visibility', 'organization');
-      } else if (searchFilter === 'department') {
-        queryBuilder = queryBuilder.eq('visibility', 'department');
-      } else if (searchFilter === 'team') {
-        queryBuilder = queryBuilder.eq('visibility', 'team');
-      }
-      
-      const { data, error } = await queryBuilder;
-      
-      if (error) {
-        console.error('Error searching objectives:', error);
-        return;
-      }
-      
-      // Transform data to include owner name
-      const objectives = data.map(obj => {
-        // Make sure we have the owner profile data
-        const ownerProfile = obj.profiles || {};
-        const ownerName = ownerProfile.first_name && ownerProfile.last_name 
-          ? `${ownerProfile.first_name} ${ownerProfile.last_name}`
-          : 'Unknown';
-          
-        // Return objective with additional info
-        return {
-          ...obj,
-          ownerName
-        };
+    
+    // Get already aligned objective IDs
+    const alignedIds = getAlreadyAlignedIds();
+    
+    // Get all objectives except:
+    // 1. The current objective itself
+    // 2. Objectives that already have this objective as parent
+    // 3. Child objectives of the current objective (to prevent cycles)
+    // 4. Objectives that are already aligned with this objective
+    const childIdsToExclude = new Set<string>();
+    
+    // Helper function to recursively collect all child IDs
+    const collectChildIds = (parentId: string) => {
+      const children = objectives.filter(obj => obj.parentObjectiveId === parentId);
+      children.forEach(child => {
+        childIdsToExclude.add(child.id);
+        collectChildIds(child.id);
       });
+    };
+    
+    // Start collecting child IDs from the current objective
+    collectChildIds(currentObjectiveId);
+    
+    // Filter objectives
+    const filtered = objectives.filter(obj => {
+      // Exclude self
+      if (obj.id === currentObjectiveId) return false;
       
-      setSearchResults(objectives);
-    } catch (error) {
-      console.error('Error searching objectives:', error);
-    }
-  };
-
-  const handleObjectiveSelect = (objective: Objective) => {
-    setSelectedObjective(objective);
-    onObjectiveSelect(objective);
-    setOpen(false);
-  };
+      // Exclude already child objectives (to prevent cycles)
+      if (childIdsToExclude.has(obj.id)) return false;
+      
+      // Exclude already aligned objectives
+      if (alignedIds.has(obj.id)) return false;
+      
+      // Apply search query
+      if (searchQuery) {
+        return obj.title.toLowerCase().includes(searchQuery.toLowerCase());
+      }
+      
+      return true;
+    });
+    
+    setFilteredObjectives(filtered);
+  }, [objectives, currentObjectiveId, searchQuery, alignments]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn("w-full justify-between", buttonClassName)}
-        >
-          {selectedObjective ? selectedObjective.title : placeholder}
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="p-0 w-[400px]">
-        <Command>
-          <CommandInput 
-            placeholder="Search objectives..." 
-            value={searchValue}
-            onValueChange={setSearchValue}
-            className="h-9"
-          />
-          <CommandList>
-            <CommandEmpty>No objectives found.</CommandEmpty>
-            <CommandGroup>
-              {searchResults.map((objective) => (
-                <CommandItem
-                  key={objective.id}
-                  value={objective.id}
-                  onSelect={() => handleObjectiveSelect(objective)}
-                  className="cursor-pointer"
-                >
-                  <div className="flex flex-col w-full">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">{objective.title}</span>
-                      {selectedObjective?.id === objective.id && (
-                        <Check className="h-4 w-4 text-primary" />
-                      )}
-                    </div>
-                    <div className="flex items-center mt-1 text-sm text-muted-foreground gap-2">
-                      <ObjectiveStatusBadge status={objective.status} className="text-xs h-5" />
-                      <div className="flex items-center">
-                        <User className="h-3 w-3 mr-1" />
-                        <span>{objective.ownerName || 'Unknown'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </CommandItem>
+    <div className={cn("space-y-4", className)}>
+      <div className="relative">
+        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder={placeholder}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-8"
+        />
+      </div>
+      
+      <div className="border rounded-md">
+        {isLoading ? (
+          <div className="py-8 text-center">
+            <LoadingSpinner className="mx-auto" />
+            <p className="text-sm text-muted-foreground mt-2">Loading objectives...</p>
+          </div>
+        ) : filteredObjectives.length > 0 ? (
+          <ScrollArea className="h-72">
+            <div className="p-2 grid gap-2">
+              {filteredObjectives.map((objective) => (
+                <ObjectiveCard 
+                  key={objective.id} 
+                  objective={objective} 
+                  onSelect={onSelect}
+                />
               ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+            </div>
+          </ScrollArea>
+        ) : (
+          <div className="py-8 text-center">
+            <p className="text-sm text-muted-foreground">No matching objectives found.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Extracted this as a separate component for clarity
+const ObjectiveCard = ({ objective, onSelect }: { objective: Objective, onSelect: (objective: Objective) => void }) => {
+  return (
+    <Card className="hover:bg-accent cursor-pointer transition-colors">
+      <CardContent className="p-3">
+        <div className="flex justify-between items-start">
+          <div className="space-y-1">
+            <h4 className="font-medium text-sm">{objective.title}</h4>
+            {objective.description && (
+              <p className="text-xs text-muted-foreground truncate max-w-[300px]">
+                {objective.description}
+              </p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Badge variant="outline" className="text-xs">
+              {objective.status.replace('_', ' ')}
+            </Badge>
+            <Button size="sm" variant="secondary" onClick={() => onSelect(objective)}>
+              Select
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
