@@ -88,11 +88,6 @@ export const ProfileTabs = ({
     handlePrimarySupervisorChange
   } = handlers;
 
-  // Helper function to convert boolean to add/remove action
-  const handleSupervisorChangeWrapper = (supervisorId: string, isChecked: boolean) => {
-    handleSupervisorChange(supervisorId, isChecked ? "add" : "remove");
-  };
-
   return (
     <Tabs defaultValue="basic" className="w-full">
       <TabsList>
@@ -157,7 +152,7 @@ export const ProfileTabs = ({
             <ManagementTab
               user={profileUser}
               supervisors={supervisors}
-              onSupervisorChange={handleSupervisorChangeWrapper}
+              onSupervisorChange={handleSupervisorChange}
               onPrimarySupervisorChange={handlePrimarySupervisorChange}
             />
           )
