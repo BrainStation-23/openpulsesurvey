@@ -11,6 +11,7 @@ import {
   ReadOnlySBUAssignments, 
   ReadOnlyManagement 
 } from "./ReadOnlyTabs";
+import { GenderType } from "@/pages/admin/users/types";
 
 interface ProfileTabsProps {
   profileUser: User;
@@ -25,8 +26,8 @@ interface ProfileTabsProps {
     setProfileImageUrl: (value: string) => void;
     orgId: string;
     setOrgId: (value: string) => void;
-    gender: string;
-    setGender: (value: string) => void;
+    gender: GenderType;
+    setGender: (value: GenderType) => void;
     dateOfBirth: Date | undefined;
     setDateOfBirth: (value: Date | undefined) => void;
     designation: string;
@@ -43,7 +44,7 @@ interface ProfileTabsProps {
     setSelectedEmployeeType: (value: string) => void;
   };
   handlers: {
-    handleSupervisorChange: (supervisorId: string, isChecked: boolean) => void;
+    handleSupervisorChange: (supervisorId: string, action: "add" | "remove") => void;
     handlePrimarySupervisorChange: (supervisorId: string) => void;
   };
 }
@@ -86,6 +87,11 @@ export const ProfileTabs = ({
     handleSupervisorChange,
     handlePrimarySupervisorChange
   } = handlers;
+
+  // Helper function to convert boolean to add/remove action
+  const handleSupervisorChangeWrapper = (supervisorId: string, isChecked: boolean) => {
+    handleSupervisorChange(supervisorId, isChecked ? "add" : "remove");
+  };
 
   return (
     <Tabs defaultValue="basic" className="w-full">
@@ -151,7 +157,7 @@ export const ProfileTabs = ({
             <ManagementTab
               user={profileUser}
               supervisors={supervisors}
-              onSupervisorChange={handleSupervisorChange}
+              onSupervisorChange={handleSupervisorChangeWrapper}
               onPrimarySupervisorChange={handlePrimarySupervisorChange}
             />
           )

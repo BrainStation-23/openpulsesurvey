@@ -10,6 +10,7 @@ import { ProfileHeader } from "./profile/ProfileHeader";
 import { ProfileTabs } from "./profile/ProfileTabs";
 import { ProfileNotFound } from "./profile/ProfileNotFound";
 import { useProfileData } from "./profile/useProfileData";
+import { GenderType } from "@/pages/admin/users/types";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -80,31 +81,32 @@ export default function ProfilePage() {
     }
   };
 
+  // Create properly typed wrappers for form controls
   const formControls = {
     firstName,
-    setFirstName,
+    setFirstName: (value: string) => setFirstName(value),
     lastName,
-    setLastName,
+    setLastName: (value: string) => setLastName(value),
     profileImageUrl,
-    setProfileImageUrl,
+    setProfileImageUrl: (value: string) => setProfileImageUrl(value),
     orgId,
-    setOrgId,
+    setOrgId: (value: string) => setOrgId(value),
     gender,
-    setGender,
+    setGender: (value: GenderType) => setGender(value),
     dateOfBirth,
-    setDateOfBirth,
+    setDateOfBirth: (value: Date | undefined) => setDateOfBirth(value),
     designation,
-    setDesignation,
+    setDesignation: (value: string) => setDesignation(value),
     selectedLocation,
-    setSelectedLocation,
+    setSelectedLocation: (value: string) => setSelectedLocation(value),
     selectedEmploymentType,
-    setSelectedEmploymentType,
+    setSelectedEmploymentType: (value: string) => setSelectedEmploymentType(value),
     selectedLevel,
-    setSelectedLevel,
+    setSelectedLevel: (value: string) => setSelectedLevel(value),
     selectedEmployeeRole,
-    setSelectedEmployeeRole,
+    setSelectedEmployeeRole: (value: string) => setSelectedEmployeeRole(value),
     selectedEmployeeType,
-    setSelectedEmployeeType,
+    setSelectedEmployeeType: (value: string) => setSelectedEmployeeType(value),
   };
 
   const handlers = {
