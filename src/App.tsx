@@ -1,197 +1,326 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { TourProvider } from "./components/onboarding/TourContext";
-import { Tour } from "./components/onboarding/Tour";
-import MainLayout from "./components/layouts/MainLayout";
-import Index from "./pages/Index";
-import Features from "./pages/Features";
-import TechStack from "./pages/TechStack";
-import WhyUs from "./pages/WhyUs";
-import Login from "./pages/Login";
-import AuthCallback from "./pages/auth/AuthCallback";
-import ResetPassword from "./pages/auth/ResetPassword";
-import AdminLayout from "./components/layouts/AdminLayout";
-import UserLayout from "./components/layouts/UserLayout";
-import Dashboard from "./pages/Dashboard";
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { Toaster } from './components/ui/toaster';
+import { ThemeProvider } from './components/theme/theme-provider';
 
-import PublicSurveyPage from "./pages/public/Survey";
-import ThankYouPage from "./pages/public/ThankYou";
-import LiveEntryPage from "./pages/live/LiveEntryPage";
-import PublicLiveSession from "./pages/live/PublicLiveSession";
-import JoinLiveSession from "./pages/live/JoinLiveSession";
+// Import pages
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import NotFound from './pages/NotFound';
+import Admin from './pages/Admin';
+import AdminUsers from './pages/admin/Users';
+import AdminOrganizations from './pages/admin/Organizations';
+import UserProfile from './pages/user/Profile';
+import UserSettings from './pages/user/Settings';
+import UserSurveys from './pages/user/Surveys';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import Unauthorized from './pages/Unauthorized';
+import Contact from './pages/Contact';
+import AdminSurveys from './pages/admin/surveys/Surveys';
+import AdminSurveyForm from './pages/admin/surveys/SurveyForm';
+import AdminSurveyEdit from './pages/admin/surveys/SurveyEdit';
+import AdminCampaigns from './pages/admin/campaigns/Campaigns';
+import AdminCampaignForm from './pages/admin/campaigns/CampaignForm';
+import AdminCampaignDetails from './pages/admin/campaigns/CampaignDetails';
+import AdminAnalytics from './pages/admin/Analytics';
+import AdminConfig from './pages/admin/config';
+import SurveyResponse from './pages/user/SurveyResponse';
+import PublicSurvey from './pages/public/PublicSurvey';
+import TeamView from './pages/user/TeamView';
+import AdminEmployeeRoleConfig from './pages/admin/config/employee-role';
+import AdminEmployeeTypeConfig from './pages/admin/config/employee-type';
+import AdminEmploymentTypeConfig from './pages/admin/config/employment-type';
+import AdminLocationConfig from './pages/admin/config/location';
+import AdminLevelConfig from './pages/admin/config/level';
+import AdminUserDetails from './pages/admin/UserDetails';
+import AdminLiveSessions from './pages/admin/live-sessions/LiveSessions';
+import AdminLiveSessionManage from './pages/admin/live-sessions/ManageSession';
+import LiveSessionJoin from './pages/live-sessions/JoinSession';
+import LiveSessionPresent from './pages/live-sessions/PresentSession';
+import AdminCampaignAnalyze from './pages/admin/campaigns/CampaignAnalyze';
+import AdminAchievements from './pages/admin/achievements/Achievements';
+import AdminAchievementForm from './pages/admin/achievements/AchievementForm';
+import AdminAchievementEdit from './pages/admin/achievements/AchievementEdit';
+import UserAchievements from './pages/user/Achievements';
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminConfigAnalysisPrompts from './pages/admin/config/analysis-prompts';
+import AdminConfigEmailSettings from './pages/admin/config/email-settings';
+import AdminCyclesPage from './pages/admin/okrs/Cycles';
+import AdminAllObjectives from './pages/admin/okrs/Objectives';
+import AdminOkrSettings from './pages/admin/okrs/OkrSettings';
+import AdminOkrTemplates from './pages/admin/okrs/Templates';
+import UserObjectives from './pages/user/okrs/Objectives';
+import UserOkrCycles from './pages/user/okrs/Cycles';
+import ObjectiveDetailsPage from './pages/user/okrs/ObjectiveDetails';
+import AdminObjectiveDetailsPage from './pages/admin/okrs/ObjectiveDetails';
+import CreateObjectivePage from './pages/user/okrs/CreateObjective';
+import AdminCreateObjectivePage from './pages/admin/okrs/CreateObjective';
+import AdminCreateTemplatePage from './pages/admin/okrs/CreateTemplate';
+import AdminTemplateDetailsPage from './pages/admin/okrs/TemplateDetails';
 
-// Common pages
-import ProfilePage from "./pages/common/Profile";
-import MyTeamPage from "./pages/common/MyTeam";
+// Import layouts
+import RootLayout from './components/layouts/RootLayout';
+import UserLayout from './components/layouts/UserLayout';
+import AdminLayout from './components/layouts/AdminLayout';
 
-// User pages
-import UserDashboard from "./pages/user/Dashboard";
-import UserSettings from "./pages/user/Settings";
-import UserMySurveys from "./pages/user/my-surveys";
-import UserSurveyResponse from "./pages/user/my-surveys/[id]";
-import UserAchievementsPage from "./pages/user/achievements";
-import UserIssueBoards from "./pages/user/issue-boards";
-import UserIssueBoardView from "./pages/user/issue-boards/[id]";
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <RootLayout />,
+    errorElement: <NotFound />,
+    children: [
+      {
+        index: true,
+        element: <Login />
+      },
+      {
+        path: 'login',
+        element: <Login />
+      },
+      {
+        path: 'register',
+        element: <Register />
+      },
+      {
+        path: 'forgot-password',
+        element: <ForgotPassword />
+      },
+      {
+        path: 'reset-password',
+        element: <ResetPassword />
+      },
+      {
+        path: 'unauthorized',
+        element: <Unauthorized />
+      },
+      {
+        path: 'contact',
+        element: <Contact />
+      },
+      {
+        path: 'survey/:token',
+        element: <PublicSurvey />
+      },
+      {
+        path: 'live-session/:code',
+        element: <LiveSessionJoin />
+      },
+      {
+        path: 'present/:id',
+        element: <LiveSessionPresent />
+      }
+    ]
+  },
+  {
+    path: '/dashboard',
+    element: <UserLayout />,
+    errorElement: <NotFound />,
+    children: [
+      {
+        index: true,
+        element: <Dashboard />
+      },
+      {
+        path: 'profile',
+        element: <UserProfile />
+      },
+      {
+        path: 'settings',
+        element: <UserSettings />
+      },
+      {
+        path: 'surveys',
+        element: <UserSurveys />
+      },
+      {
+        path: 'surveys/:id',
+        element: <SurveyResponse />
+      },
+      {
+        path: 'team',
+        element: <TeamView />
+      },
+      {
+        path: 'achievements',
+        element: <UserAchievements />
+      },
+      {
+        path: 'okrs',
+        children: [
+          {
+            index: true,
+            element: <UserObjectives />
+          },
+          {
+            path: 'objectives',
+            element: <UserObjectives />
+          },
+          {
+            path: 'objectives/create',
+            element: <CreateObjectivePage />
+          },
+          {
+            path: 'objectives/:id',
+            element: <ObjectiveDetailsPage />
+          },
+          {
+            path: 'cycles',
+            element: <UserOkrCycles />
+          }
+        ]
+      }
+    ]
+  },
+  {
+    path: '/admin',
+    element: <AdminLayout />,
+    errorElement: <NotFound />,
+    children: [
+      {
+        index: true,
+        element: <AdminDashboard />
+      },
+      {
+        path: 'users',
+        element: <AdminUsers />
+      },
+      {
+        path: 'users/:id',
+        element: <AdminUserDetails />
+      },
+      {
+        path: 'organizations',
+        element: <AdminOrganizations />
+      },
+      {
+        path: 'surveys',
+        element: <AdminSurveys />
+      },
+      {
+        path: 'surveys/create',
+        element: <AdminSurveyForm />
+      },
+      {
+        path: 'surveys/:id',
+        element: <AdminSurveyEdit />
+      },
+      {
+        path: 'campaigns',
+        element: <AdminCampaigns />
+      },
+      {
+        path: 'campaigns/create',
+        element: <AdminCampaignForm />
+      },
+      {
+        path: 'campaigns/:id',
+        element: <AdminCampaignDetails />
+      },
+      {
+        path: 'campaigns/:id/analyze',
+        element: <AdminCampaignAnalyze />
+      },
+      {
+        path: 'analytics',
+        element: <AdminAnalytics />
+      },
+      {
+        path: 'live-sessions',
+        element: <AdminLiveSessions />
+      },
+      {
+        path: 'live-sessions/:id',
+        element: <AdminLiveSessionManage />
+      },
+      {
+        path: 'achievements',
+        element: <AdminAchievements />
+      },
+      {
+        path: 'achievements/create',
+        element: <AdminAchievementForm />
+      },
+      {
+        path: 'achievements/:id',
+        element: <AdminAchievementEdit />
+      },
+      {
+        path: 'config',
+        element: <AdminConfig />
+      },
+      {
+        path: 'config/employee-role',
+        element: <AdminEmployeeRoleConfig />
+      },
+      {
+        path: 'config/employee-type',
+        element: <AdminEmployeeTypeConfig />
+      },
+      {
+        path: 'config/employment-type',
+        element: <AdminEmploymentTypeConfig />
+      },
+      {
+        path: 'config/location',
+        element: <AdminLocationConfig />
+      },
+      {
+        path: 'config/level',
+        element: <AdminLevelConfig />
+      },
+      {
+        path: 'config/analysis-prompts',
+        element: <AdminConfigAnalysisPrompts />
+      },
+      {
+        path: 'config/email-settings',
+        element: <AdminConfigEmailSettings />
+      },
+      {
+        path: 'okrs/objectives',
+        element: <AdminAllObjectives />
+      },
+      {
+        path: 'okrs/objectives/create',
+        element: <AdminCreateObjectivePage />
+      },
+      {
+        path: 'okrs/objectives/:id',
+        element: <AdminObjectiveDetailsPage />
+      },
+      {
+        path: 'okrs/cycles',
+        element: <AdminCyclesPage />
+      },
+      {
+        path: 'okrs/templates',
+        element: <AdminOkrTemplates />
+      },
+      {
+        path: 'okrs/templates/create',
+        element: <AdminCreateTemplatePage />
+      },
+      {
+        path: 'okrs/templates/:id',
+        element: <AdminTemplateDetailsPage />
+      },
+      {
+        path: 'okrs/settings',
+        element: <AdminOkrSettings />
+      }
+    ]
+  }
+]);
 
-// OKR User pages
-import UserOKRDashboard from "./pages/user/okrs/Dashboard";
-import UserObjectives from "./pages/user/okrs/Objectives";
-import UserObjectiveDetails from "./pages/user/okrs/ObjectiveDetails";
-
-// Admin pages
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminConfig from "./pages/admin/Config";
-import AdminSettings from "./pages/admin/Settings";
-import Users from "./pages/admin/users";
-import EditUserPage from "./pages/admin/users/[id]/edit";
-import MySurveysPage from "./pages/admin/my-surveys";
-import SurveyResponsePage from "./pages/admin/my-surveys/[id]";
-import SurveysPage from "./pages/admin/surveys";
-import SurveyFormPage from "./pages/admin/surveys/SurveyFormPage";
-import PreviewSurveyPage from "./pages/admin/surveys/[id]/preview";
-import CampaignsPage from "./pages/admin/surveys/campaigns";
-import CampaignFormPage from "./pages/admin/surveys/campaigns/CampaignFormPage";
-import CampaignDetailsPage from "./pages/admin/surveys/campaigns/[id]";
-import LiveSurveyPage from "./pages/admin/surveys/live";
-import LiveSessionControlPage from "./pages/admin/surveys/live/[sessionId]";
-import AdminIssueBoards from "./pages/admin/surveys/issue-boards";
-import AdminIssueBoardView from "./pages/admin/surveys/issue-boards/[id]";
-import PresentationView from "./pages/admin/surveys/campaigns/[id]/components/PresentationView/index";
-import PlatformConfigLayout from "./components/layouts/PlatformConfigLayout";
-import SBUsConfig from "./pages/admin/config/sbus";
-import SBUDetails from "./pages/admin/config/sbus/[id]";
-import EmailConfig from "./pages/admin/config/email";
-import LevelConfig from "./pages/admin/config/level";
-import LocationConfig from "./pages/admin/config/location";
-import EmploymentTypeConfig from "./pages/admin/config/employment-type";
-import EmployeeTypeConfig from "./pages/admin/config/employee-type";
-import EmployeeRoleConfig from "./pages/admin/config/employee-role";
-import AIPromptsConfig from "./pages/admin/config/ai-prompts";
-import AchievementsPage from "./pages/admin/achievements";
-import AchievementFormPage from "./pages/admin/achievements/AchievementFormPage";
-import CreateIssueBoard from "./pages/admin/surveys/issue-boards/CreateIssueBoard";
-import EditIssueBoard from "./pages/admin/surveys/issue-boards/EditIssueBoard";
-
-// OKR Admin pages
-import AdminOKRDashboard from "./pages/admin/okrs/Dashboard";
-import AdminOKRCycles from "./pages/admin/okrs/Cycles";
-import AdminCreateOKRCycle from "./pages/admin/okrs/CreateCycle";
-import AdminOKRCycleDetails from "./pages/admin/okrs/CycleDetails";
-import AdminOKRTemplates from "./pages/admin/okrs/Templates";
-import AdminCreateOKRTemplate from "./pages/admin/okrs/CreateTemplate";
-import AdminOKRTemplateDetails from "./pages/admin/okrs/TemplateDetails";
-import AdminAllObjectives from "./pages/admin/okrs/Objectives";
-import AdminObjectiveDetails from "./pages/admin/okrs/ObjectiveDetails";
-
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <TooltipProvider>
-        <TourProvider>
-          <Tour />
-          <Toaster />
-          <Sonner />
-          <Routes>
-            <Route element={<MainLayout />}>
-              <Route path="/" element={<Index />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/tech-stack" element={<TechStack />} />
-              <Route path="/why-us" element={<WhyUs />} />
-            </Route>
-            <Route path="/login" element={<Login />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/auth/reset-password" element={<ResetPassword />} />
-            
-            <Route path="/live" element={<LiveEntryPage />} />
-            <Route path="/live/:joinCode" element={<PublicLiveSession />} />
-            <Route path="/live/:joinCode/join" element={<JoinLiveSession />} />
-            
-            <Route path="/public/survey/:token" element={<PublicSurveyPage />} />
-            <Route path="/public/survey/:token/thank-you" element={<ThankYouPage />} />
-            
-            <Route path="/user" element={<UserLayout />}>
-              <Route index element={<Navigate to="/user/dashboard" replace />} />
-              <Route path="dashboard" element={<UserDashboard />} />
-              <Route path="my-surveys" element={<UserMySurveys />} />
-              <Route path="my-surveys/:assignmentId/:instanceId" element={<UserSurveyResponse />} />
-              <Route path="settings" element={<UserSettings />} />
-              <Route path="profile" element={<ProfilePage />} />
-              <Route path="my-team" element={<MyTeamPage />} />
-              <Route path="achievements" element={<UserAchievementsPage />} />
-              <Route path="issue-boards" element={<UserIssueBoards />} />
-              <Route path="issue-boards/:id" element={<UserIssueBoardView />} />
-              {/* User OKR Routes */}
-              <Route path="okrs" element={<Navigate to="/user/okrs/dashboard" replace />} />
-              <Route path="okrs/dashboard" element={<UserOKRDashboard />} />
-              <Route path="okrs/objectives" element={<UserObjectives />} />
-              <Route path="okrs/objectives/:id" element={<UserObjectiveDetails />} />
-            </Route>
-            
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Navigate to="/admin/dashboard" replace />} />
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="profile" element={<ProfilePage />} />
-              <Route path="my-team" element={<MyTeamPage />} />
-              <Route path="users" element={<Users />} />
-              <Route path="users/:id/edit" element={<EditUserPage />} />
-              <Route path="my-surveys" element={<MySurveysPage />} />
-              <Route path="my-surveys/:assignmentId/:instanceId" element={<SurveyResponsePage />} />
-              <Route path="surveys" element={<SurveysPage />} />
-              <Route path="surveys/create" element={<SurveyFormPage />} />
-              <Route path="surveys/:id/edit" element={<SurveyFormPage />} />
-              <Route path="surveys/:id/preview" element={<PreviewSurveyPage />} />
-              <Route path="surveys/campaigns" element={<CampaignsPage />} />
-              <Route path="surveys/campaigns/create" element={<CampaignFormPage />} />
-              <Route path="surveys/campaigns/:id" element={<CampaignDetailsPage />} />
-              <Route path="surveys/campaigns/:id/present" element={<PresentationView />} />
-              <Route path="surveys/live" element={<LiveSurveyPage />} />
-              <Route path="surveys/live/:sessionId" element={<LiveSessionControlPage />} />
-              
-              <Route path="surveys/issue-boards" element={<AdminIssueBoards />} />
-              <Route path="surveys/issue-boards/create" element={<CreateIssueBoard />} />
-              <Route path="surveys/issue-boards/:id" element={<EditIssueBoard />} />
-              <Route path="surveys/issue-boards/:id/view" element={<AdminIssueBoardView />} />
-              
-              {/* Admin OKR Routes */}
-              <Route path="okrs" element={<Navigate to="/admin/okrs/dashboard" replace />} />
-              <Route path="okrs/dashboard" element={<AdminOKRDashboard />} />
-              <Route path="okrs/cycles" element={<AdminOKRCycles />} />
-              <Route path="okrs/cycles/create" element={<AdminCreateOKRCycle />} />
-              <Route path="okrs/cycles/:id" element={<AdminOKRCycleDetails />} />
-              <Route path="okrs/templates" element={<AdminOKRTemplates />} />
-              <Route path="okrs/templates/create" element={<AdminCreateOKRTemplate />} />
-              <Route path="okrs/templates/:id" element={<AdminOKRTemplateDetails />} />
-              <Route path="okrs/objectives" element={<AdminAllObjectives />} />
-              <Route path="okrs/objectives/:id" element={<AdminObjectiveDetails />} />
-              
-              <Route path="config" element={<PlatformConfigLayout />}>
-                <Route index element={<AdminConfig />} />
-                <Route path="sbus" element={<SBUsConfig />} />
-                <Route path="sbus/:id" element={<SBUDetails />} />
-                <Route path="email" element={<EmailConfig />} />
-                <Route path="level" element={<LevelConfig />} />
-                <Route path="location" element={<LocationConfig />} />
-                <Route path="employment-type" element={<EmploymentTypeConfig />} />
-                <Route path="employee-type" element={<EmployeeTypeConfig />} />
-                <Route path="employee-role" element={<EmployeeRoleConfig />} />
-                <Route path="ai-prompts" element={<AIPromptsConfig />} />
-              </Route>
-              <Route path="achievements" element={<AchievementsPage />} />
-              <Route path="achievements/create" element={<AchievementFormPage />} />
-              <Route path="achievements/:id/edit" element={<AchievementFormPage />} />
-              <Route path="settings" element={<AdminSettings />} />
-            </Route>
-          </Routes>
-        </TourProvider>
-      </TooltipProvider>
-    </BrowserRouter>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <ThemeProvider defaultTheme="light" storageKey="ui-theme">
+      <RouterProvider router={router} />
+      <Toaster />
+    </ThemeProvider>
+  );
+}
 
 export default App;
