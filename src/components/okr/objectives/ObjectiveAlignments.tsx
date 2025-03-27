@@ -1,209 +1,182 @@
 
-import React, { useState } from 'react';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, ArrowRight, ArrowDown } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useOkrPermissions } from '@/hooks/okr/useOkrPermissions';
-import { ObjectiveVisibility } from '@/types/okr';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { PlusCircle } from 'lucide-react';
 import { useObjectiveAlignments } from '@/hooks/okr/useObjectiveAlignments';
-import { useObjective } from '@/hooks/okr/useObjective';
-import { Card, CardContent } from '@/components/ui/card';
+import { ObjectiveVisibilityBadge } from './ObjectiveVisibilityBadge';
+import { ObjectiveProgress } from './ObjectiveProgress';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getInitials } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CreateAlignmentDialog } from '@/components/okr/alignments/CreateAlignmentDialog';
+import { useOkrPermissions } from '@/hooks/okr/useOkrPermissions';
 
 interface ObjectiveAlignmentsProps {
   objectiveId: string;
 }
 
 export const ObjectiveAlignments: React.FC<ObjectiveAlignmentsProps> = ({ objectiveId }) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { objective } = useObjective(objectiveId);
-  const { 
-    canCreateAlignments, 
-    canAlignWithVisibility, 
-    isObjectiveOwner, 
-    isLoading: permissionsLoading 
-  } = useOkrPermissions();
-  
-  const { 
-    alignedObjectives, 
-    parentObjectives, 
-    isLoading,
-    error 
-  } = useObjectiveAlignments(objectiveId);
-  
-  const [isOwner, setIsOwner] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
+  const { sourceAlignments, targetAlignments, isLoading, deleteAlignment } = useObjectiveAlignments(objectiveId);
+  const { isAdmin, canCreateAlignments, isLoading: isPermissionLoading } = useOkrPermissions();
+  const [canCreateAlignment, setCanCreateAlignment] = React.useState(false);
 
-  // Check if current user is the owner of this objective
   React.useEffect(() => {
-    const checkOwnership = async () => {
-      if (objectiveId) {
-        const result = await isObjectiveOwner(objectiveId);
-        setIsOwner(result);
-      }
+    const checkPermission = async () => {
+      const isAdminResult = await isAdmin();
+      const canCreateAlignmentsResult = await canCreateAlignments();
+      setCanCreateAlignment(isAdminResult || canCreateAlignmentsResult);
     };
     
-    checkOwnership();
-  }, [objectiveId, isObjectiveOwner]);
+    checkPermission();
+  }, [isAdmin, canCreateAlignments]);
 
-  // Determine if the user can create alignments
-  const canCreate = canCreateAlignments || isOwner;
-  
-  if (isLoading || permissionsLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-      </div>
-    );
-  }
+  const getAlignmentTypeLabel = (type: string) => {
+    switch (type) {
+      case 'parent_child': return { label: 'Parent-Child', variant: 'default' as const };
+      case 'peer': return { label: 'Peer', variant: 'secondary' as const };
+      case 'strategic': return { label: 'Strategic', variant: 'outline' as const };
+      default: return { label: 'Unknown', variant: 'outline' as const };
+    }
+  };
 
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          Failed to load alignments. Please try again later.
-        </AlertDescription>
-      </Alert>
-    );
+  if (isLoading || isPermissionLoading) {
+    return <div className="p-4 text-center">Loading alignments...</div>;
   }
 
   return (
-    <div className="space-y-4">
-      {objective && canCreate && (
-        <div className="flex justify-end">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Objective Alignments</h3>
+        {canCreateAlignment && (
           <Button 
-            size="sm" 
             variant="outline" 
-            onClick={() => setIsDialogOpen(true)}
+            size="sm"
+            onClick={() => setIsCreateDialogOpen(true)}
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-4 w-4 mr-2" />
             Add Alignment
           </Button>
-        </div>
+        )}
+      </div>
+
+      {sourceAlignments.length === 0 && targetAlignments.length === 0 ? (
+        <Card>
+          <CardContent className="p-6 text-center text-muted-foreground">
+            No alignments found for this objective.
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {sourceAlignments.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">
+                  This objective supports:
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-4">
+                  {sourceAlignments.map((alignment) => (
+                    <li key={alignment.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={alignment.alignedObjective?.owner_avatar_url} />
+                            <AvatarFallback>{getInitials(alignment.alignedObjective?.owner_name || 'Unknown')}</AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm text-muted-foreground">
+                            {alignment.alignedObjective?.owner_name || 'Unknown'}
+                          </span>
+                          <Badge variant={getAlignmentTypeLabel(alignment.alignment_type).variant}>
+                            {getAlignmentTypeLabel(alignment.alignment_type).label}
+                          </Badge>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => deleteAlignment.mutate(alignment.id)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                      <h4 className="font-medium mb-2">{alignment.alignedObjective?.title}</h4>
+                      {alignment.alignedObjective?.description && (
+                        <p className="text-sm text-muted-foreground mb-2">{alignment.alignedObjective.description}</p>
+                      )}
+                      <div className="flex justify-between items-center">
+                        <ObjectiveVisibilityBadge visibility={alignment.alignedObjective?.visibility} />
+                        <ObjectiveProgress progress={alignment.alignedObjective?.progress || 0} className="w-1/3" />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {targetAlignments.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">
+                  This objective is supported by:
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-4">
+                  {targetAlignments.map((alignment) => (
+                    <li key={alignment.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={alignment.sourceObjective?.owner_avatar_url} />
+                            <AvatarFallback>{getInitials(alignment.sourceObjective?.owner_name || 'Unknown')}</AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm text-muted-foreground">
+                            {alignment.sourceObjective?.owner_name || 'Unknown'}
+                          </span>
+                          <Badge variant={getAlignmentTypeLabel(alignment.alignment_type).variant}>
+                            {getAlignmentTypeLabel(alignment.alignment_type).label}
+                          </Badge>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => deleteAlignment.mutate(alignment.id)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                      <h4 className="font-medium mb-2">{alignment.sourceObjective?.title}</h4>
+                      {alignment.sourceObjective?.description && (
+                        <p className="text-sm text-muted-foreground mb-2">{alignment.sourceObjective.description}</p>
+                      )}
+                      <div className="flex justify-between items-center">
+                        <ObjectiveVisibilityBadge visibility={alignment.sourceObjective?.visibility} />
+                        <ObjectiveProgress progress={alignment.sourceObjective?.progress || 0} className="w-1/3" />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
-      {/* Parent objectives section */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium">Aligned With</h3>
-        {parentObjectives && parentObjectives.length > 0 ? (
-          <div className="space-y-2">
-            {parentObjectives.map(parent => (
-              <Card key={parent.id} className="overflow-hidden">
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-2">
-                    <ArrowUp className="h-4 w-4 text-muted-foreground" />
-                    <div className="flex-1">
-                      <div className="font-medium">{parent.title}</div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Badge variant="outline" className="text-xs">
-                          {parent.visibility}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground italic">
-            Not aligned with any parent objectives
-          </div>
-        )}
-      </div>
-
-      {/* Child objectives section */}
-      <div className="space-y-3 mt-6">
-        <h3 className="text-sm font-medium">Child Objectives</h3>
-        {alignedObjectives && alignedObjectives.length > 0 ? (
-          <div className="space-y-2">
-            {alignedObjectives.map(child => (
-              <Card key={child.id} className="overflow-hidden">
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-2">
-                    <ArrowDown className="h-4 w-4 text-muted-foreground" />
-                    <div className="flex-1">
-                      <div className="font-medium">{child.title}</div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Badge variant="outline" className="text-xs">
-                          {child.visibility}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground italic">
-            No child objectives aligned with this one
-          </div>
-        )}
-      </div>
-
-      {/* Add alignment dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Add Alignment</DialogTitle>
+            <DialogTitle>Create Objective Alignment</DialogTitle>
           </DialogHeader>
-          
-          <div className="space-y-4">
-            <Alert>
-              <AlertTitle>Alignment Permissions</AlertTitle>
-              <AlertDescription>
-                <ul className="list-disc list-inside text-sm">
-                  <li className={canAlignWithVisibility('organization') ? 'text-green-600' : 'text-red-600'}>
-                    {canAlignWithVisibility('organization') 
-                      ? 'You can align with Organization-level objectives' 
-                      : 'You cannot align with Organization-level objectives'}
-                  </li>
-                  <li className={canAlignWithVisibility('department') ? 'text-green-600' : 'text-red-600'}>
-                    {canAlignWithVisibility('department') 
-                      ? 'You can align with Department-level objectives' 
-                      : 'You cannot align with Department-level objectives'}
-                  </li>
-                  <li className={canAlignWithVisibility('team') ? 'text-green-600' : 'text-red-600'}>
-                    {canAlignWithVisibility('team') 
-                      ? 'You can align with Team-level objectives' 
-                      : 'You cannot align with Team-level objectives'}
-                  </li>
-                </ul>
-              </AlertDescription>
-            </Alert>
-            
-            {/* TODO: Implement the alignment selector */}
-            <div className="text-center text-muted-foreground">
-              Alignment selector would go here.
-              <br />
-              <small className="text-xs">This component is not fully implemented yet.</small>
-            </div>
-          </div>
+          <CreateAlignmentDialog 
+            objectiveId={objectiveId}
+            onSuccess={() => setIsCreateDialogOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>
   );
 };
-
-// Helper component for the arrow icon
-const ArrowUp = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width="24" 
-    height="24" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round"
-    {...props}
-  >
-    <path d="m18 15-6-6-6 6"/>
-  </svg>
-);
