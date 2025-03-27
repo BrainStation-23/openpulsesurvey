@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Supervisor, TeamMember } from "@/hooks/useTeamData";
@@ -13,7 +12,7 @@ import {
   Node,
   Edge,
   Panel,
-  ConnectionMode, // Import ConnectionMode enum
+  ConnectionMode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { InfoIcon, AlertTriangle } from 'lucide-react';
@@ -34,7 +33,6 @@ interface TeamGraphViewProps {
   error?: Error | null;
 }
 
-// Custom node component for team members
 const TeamMemberNode: React.FC<{ data: TeamNodeData }> = ({ data }) => {
   return (
     <div className={`p-2 rounded-lg shadow-md min-w-48 border-2 ${
@@ -76,12 +74,10 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Register the custom node type
   const nodeTypes = React.useMemo(() => ({
     teamMember: TeamMemberNode
   }), []);
 
-  // Build the graph when data changes
   useEffect(() => {
     if (isLoading || error || (!supervisor && teamMembers.length === 0)) {
       return;
@@ -90,7 +86,6 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];
     
-    // Add supervisor node if it exists
     if (supervisor) {
       newNodes.push({
         id: `supervisor-${supervisor.id}`,
@@ -105,13 +100,11 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
       });
     }
     
-    // Calculate positions for team members in a semi-circle below the supervisor
     const radius = Math.max(teamMembers.length * 25, 150);
     const centerX = 250;
     const startY = supervisor ? 200 : 100;
     
     teamMembers.forEach((member, index) => {
-      // Calculate position in a semi-circle formation
       const angle = (Math.PI * (index + 1)) / (teamMembers.length + 1);
       const x = centerX + radius * Math.cos(angle) - 100;
       const y = startY + radius * Math.sin(angle);
@@ -130,7 +123,6 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
         }
       });
       
-      // Add edge from supervisor to team member
       if (supervisor) {
         newEdges.push({
           id: `edge-${supervisor.id}-${member.id}`,
@@ -140,9 +132,7 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
           style: { 
             stroke: '#64748b', 
             strokeWidth: 2 
-          },
-          // Remove animated property - it can cause issues with handles
-          // animated: false
+          }
         });
       }
     });
@@ -157,7 +147,6 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
     maxZoom: 1.5,
     proOptions: { hideAttribution: true },
     fitViewOptions: { padding: 0.2 },
-    // Add these options to improve dragging and connection behavior
     defaultEdgeOptions: {
       type: 'smoothstep',
       style: { 
@@ -165,10 +154,9 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
         strokeWidth: 2 
       }
     },
-    connectionMode: ConnectionMode.LOOSE // Use the enum value instead of string
+    connectionMode: ConnectionMode.Loose
   }), []);
 
-  // Show loading state
   if (isLoading) {
     return (
       <Card className="shadow-sm">
@@ -184,7 +172,6 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
     );
   }
 
-  // Show error state
   if (error) {
     return (
       <Card className="shadow-sm">
@@ -200,7 +187,6 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
     );
   }
 
-  // Show empty state
   if (!supervisor && teamMembers.length === 0) {
     return (
       <Card className="shadow-sm">
@@ -219,7 +205,6 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
     );
   }
 
-  // Show the team graph
   return (
     <Card className="shadow-sm">
       <CardContent className="p-4">
@@ -232,8 +217,7 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
             onEdgesChange={onEdgesChange}
             nodeTypes={nodeTypes}
             {...reactFlowOptions}
-            // Add these props to improve interaction
-            deleteKeyCode={null} // Disable default delete behavior
+            deleteKeyCode={null}
             snapToGrid={true}
             snapGrid={[10, 10]}
           >
