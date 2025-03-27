@@ -140,7 +140,8 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
             stroke: '#64748b', 
             strokeWidth: 2 
           },
-          animated: false
+          // Remove animated property - it can cause issues with handles
+          // animated: false
         });
       }
     });
@@ -154,7 +155,16 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
     minZoom: 0.5,
     maxZoom: 1.5,
     proOptions: { hideAttribution: true },
-    fitViewOptions: { padding: 0.2 }
+    fitViewOptions: { padding: 0.2 },
+    // Add these options to improve dragging and connection behavior
+    defaultEdgeOptions: {
+      type: 'smoothstep',
+      style: { 
+        stroke: '#64748b', 
+        strokeWidth: 2 
+      }
+    },
+    connectionMode: 'loose'
   }), []);
 
   // Show loading state
@@ -221,6 +231,10 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
             onEdgesChange={onEdgesChange}
             nodeTypes={nodeTypes}
             {...reactFlowOptions}
+            // Add these props to improve interaction
+            deleteKeyCode={null} // Disable default delete behavior
+            snapToGrid={true}
+            snapGrid={[10, 10]}
           >
             <Controls />
             <MiniMap 
