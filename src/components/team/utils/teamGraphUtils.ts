@@ -54,9 +54,9 @@ export const processTeamData = (
         id: `edge-supervisor-${member.id}`,
         source: `supervisor-${supervisor.id}`,
         target: nodeId,
+        sourceHandle: 'supervisor-output',
+        targetHandle: 'member-input',
         type: 'smoothstep',
-        sourceHandle: null,
-        targetHandle: null,
         style: { 
           stroke: '#64748b', 
           strokeWidth: 2 

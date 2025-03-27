@@ -1,7 +1,6 @@
 
 import React from 'react';
-import { Position } from '@xyflow/react';
-import { NodeHandle } from './NodeHandle';
+import { Handle, Position } from '@xyflow/react';
 
 export interface TeamNodeData {
   label: string;
@@ -44,15 +43,23 @@ export const TeamMemberNode: React.FC<TeamMemberNodeProps> = ({ data }) => {
         </div>
       </div>
       
-      {/* Add handles for connections */}
+      {/* Replace custom handles with built-in handles */}
       {data.isSupervisor ? (
-        <div className="handle-bottom" style={{ visibility: 'hidden', position: 'absolute', bottom: 0, left: '50%' }}>
-          <NodeHandle type="source" position={Position.Bottom} />
-        </div>
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id="supervisor-output"
+          style={{ bottom: -5, background: '#9ca3af', width: 10, height: 10, border: 'none' }}
+          isConnectable={true}
+        />
       ) : (
-        <div className="handle-top" style={{ visibility: 'hidden', position: 'absolute', top: 0, left: '50%' }}>
-          <NodeHandle type="target" position={Position.Top} />
-        </div>
+        <Handle
+          type="target"
+          position={Position.Top}
+          id="member-input"
+          style={{ top: -5, background: '#9ca3af', width: 10, height: 10, border: 'none' }}
+          isConnectable={true}
+        />
       )}
     </div>
   );

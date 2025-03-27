@@ -7,7 +7,10 @@ interface NodeHandleProps {
   position: Position;
 }
 
+// This component is deprecated in favor of using the built-in Handle component from @xyflow/react
 export const NodeHandle: React.FC<NodeHandleProps> = ({ type, position }) => {
+  console.warn('NodeHandle is deprecated. Use Handle from @xyflow/react instead.');
+  
   return (
     <div
       style={{
