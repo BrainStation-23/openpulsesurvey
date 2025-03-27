@@ -13,6 +13,7 @@ import {
   Node,
   Edge,
   Panel,
+  ConnectionMode, // Import ConnectionMode enum
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { InfoIcon, AlertTriangle } from 'lucide-react';
@@ -164,7 +165,7 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
         strokeWidth: 2 
       }
     },
-    connectionMode: 'loose'
+    connectionMode: ConnectionMode.LOOSE // Use the enum value instead of string
   }), []);
 
   // Show loading state
