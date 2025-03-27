@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Supervisor, TeamMember } from "@/hooks/useTeamData";
@@ -13,6 +14,7 @@ import {
   Edge,
   Panel,
   ConnectionMode,
+  Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { InfoIcon, AlertTriangle } from 'lucide-react';
@@ -61,7 +63,37 @@ const TeamMemberNode: React.FC<{ data: TeamNodeData }> = ({ data }) => {
           )}
         </div>
       </div>
+      
+      {/* Add handles for connections */}
+      {data.isSupervisor ? (
+        <div className="handle-bottom" style={{ visibility: 'hidden', position: 'absolute', bottom: 0, left: '50%' }}>
+          <Handle type="source" position={Position.Bottom} />
+        </div>
+      ) : (
+        <div className="handle-top" style={{ visibility: 'hidden', position: 'absolute', top: 0, left: '50%' }}>
+          <Handle type="target" position={Position.Top} />
+        </div>
+      )}
     </div>
+  );
+};
+
+// Handle component for node connections
+const Handle = ({ type, position }) => {
+  return (
+    <div
+      style={{
+        width: 10,
+        height: 10,
+        backgroundColor: '#9ca3af',
+        borderRadius: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 1
+      }}
+      className="nodrag"
+      data-handletype={type}
+      data-handlepos={position}
+    />
   );
 };
 
@@ -96,7 +128,8 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
           sublabel: supervisor.designation || 'Supervisor',
           imageUrl: supervisor.profileImageUrl,
           isSupervisor: true
-        }
+        },
+        sourcePosition: Position.Bottom
       });
     }
     
@@ -120,15 +153,18 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
           sublabel: member.designation || member.email,
           imageUrl: member.profileImageUrl,
           isLoggedInUser: member.isLoggedInUser
-        }
+        },
+        targetPosition: Position.Top
       });
       
       if (supervisor) {
         newEdges.push({
-          id: `edge-${supervisor.id}-${member.id}`,
+          id: `edge-supervisor-${member.id}`,
           source: `supervisor-${supervisor.id}`,
           target: nodeId,
           type: 'smoothstep',
+          sourceHandle: null,
+          targetHandle: null,
           style: { 
             stroke: '#64748b', 
             strokeWidth: 2 
