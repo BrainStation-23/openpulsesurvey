@@ -1,4 +1,5 @@
 
+import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -30,10 +31,7 @@ import {
   Sidebar, 
   SidebarMenu, 
   SidebarMenuItem, 
-  SidebarMenuTrigger, 
-  SidebarMenuContent,
-  SidebarMenuButton,
-  SidebarSection
+  SidebarMenuButton
 } from "@/components/ui/sidebar";
 import { navigationItems, navigationSections } from "@/config/navigation";
 
@@ -49,7 +47,8 @@ export default function AdminSidebar({ onSignOut }) {
 
       <div className="flex flex-1 flex-col gap-2 overflow-auto p-2">
         {navigationSections.map((section) => (
-          <SidebarSection key={section.id} title={section.label}>
+          <div key={section.id} className="mb-4">
+            <h3 className="mb-2 px-2 text-xs font-medium text-muted-foreground">{section.label}</h3>
             <SidebarMenu>
               {navigationItems
                 .filter((item) => item.section === section.id)
@@ -58,17 +57,20 @@ export default function AdminSidebar({ onSignOut }) {
                     const isActive = location.pathname.startsWith(item.path);
                     return (
                       <SidebarMenuItem key={item.path}>
-                        <SidebarMenuTrigger
-                          active={isActive}
-                          icon={<item.icon className="h-4 w-4" />}
+                        <SidebarMenuButton
+                          isActive={isActive}
+                          asChild
                         >
-                          {item.title}
-                        </SidebarMenuTrigger>
-                        <SidebarMenuContent>
+                          <div className="flex items-center">
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </div>
+                        </SidebarMenuButton>
+                        <div className="mt-1 pl-6 space-y-1">
                           {item.children.map((child) => (
                             <SidebarMenuButton
                               key={child.path}
-                              active={location.pathname === child.path}
+                              isActive={location.pathname === child.path}
                               asChild
                             >
                               <Link to={child.path} className="flex items-center">
@@ -77,7 +79,7 @@ export default function AdminSidebar({ onSignOut }) {
                               </Link>
                             </SidebarMenuButton>
                           ))}
-                        </SidebarMenuContent>
+                        </div>
                       </SidebarMenuItem>
                     );
                   }
@@ -88,7 +90,7 @@ export default function AdminSidebar({ onSignOut }) {
                       <React.Fragment key={item.path}>
                         <SidebarMenuItem>
                           <SidebarMenuButton
-                            active={location.pathname === item.path}
+                            isActive={location.pathname === item.path}
                             asChild
                           >
                             <Link to={item.path} className="flex items-center">
@@ -99,7 +101,7 @@ export default function AdminSidebar({ onSignOut }) {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                           <SidebarMenuButton
-                            active={location.pathname === "/admin/my-team"}
+                            isActive={location.pathname === "/admin/my-team"}
                             asChild
                           >
                             <Link to="/admin/my-team" className="flex items-center">
@@ -115,7 +117,7 @@ export default function AdminSidebar({ onSignOut }) {
                   return (
                     <SidebarMenuItem key={item.path}>
                       <SidebarMenuButton
-                        active={location.pathname === item.path}
+                        isActive={location.pathname === item.path}
                         asChild
                       >
                         <Link to={item.path} className="flex items-center">
@@ -127,7 +129,7 @@ export default function AdminSidebar({ onSignOut }) {
                   );
                 })}
             </SidebarMenu>
-          </SidebarSection>
+          </div>
         ))}
       </div>
 
