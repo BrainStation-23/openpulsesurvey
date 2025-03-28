@@ -6,25 +6,29 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, UserPlus, Users } from 'lucide-react';
-import { UserNode } from '../types';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { UserNodeData } from '../types';
 
 interface CustomNodeProps {
-  data: UserNode;
+  data: UserNodeData;
   toggleNodeExpansion: (userId: string) => void;
 }
 
 export const CustomNode = ({ data, toggleNodeExpansion }: CustomNodeProps) => {
-  const { user, isExpanded, hasChildren, isSupervisor } = data;
+  const { label, subtitle, email, userId, isExpanded, hasChildren, employmentType } = data;
+  // Determine if this is the current user (for highlighting)
+  const isCurrentUser = data.isCurrentUser || false;
+  // Determine if this node is a supervisor (typically the SBU head)
+  const isSupervisor = data.isSupervisor || false;
   
   return (
     <div
       className={`p-3 bg-white rounded-md shadow-sm border ${
-        user.isCurrentUser ? 'border-blue-500' : 'border-slate-200'
+        isCurrentUser ? 'border-blue-500' : 'border-slate-200'
       } min-w-[250px]`}
     >
       {/* Input handle for connecting from supervisor */}
-      {isSupervisor === false && (
+      {!isSupervisor && (
         <Handle
           type="target"
           position={Position.Left}
@@ -45,20 +49,20 @@ export const CustomNode = ({ data, toggleNodeExpansion }: CustomNodeProps) => {
       
       <div className="flex items-center space-x-3">
         <Avatar className="h-8 w-8">
-          <AvatarImage src={user.avatarUrl} alt={user.name} />
-          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+          <AvatarImage src={data.avatarUrl} alt={label} />
+          <AvatarFallback>{label.charAt(0)}</AvatarFallback>
         </Avatar>
         <div className="flex-1 overflow-hidden">
           <div className="font-medium text-sm truncate flex items-center">
-            {user.name}
-            {user.isCurrentUser && (
+            {label}
+            {isCurrentUser && (
               <Badge className="ml-2 text-xs" variant="outline">
                 You
               </Badge>
             )}
           </div>
           <div className="text-xs text-muted-foreground truncate">
-            {user.designation}
+            {subtitle || email}
           </div>
         </div>
         
@@ -67,7 +71,7 @@ export const CustomNode = ({ data, toggleNodeExpansion }: CustomNodeProps) => {
             variant="ghost"
             size="sm"
             className="p-1 h-8 w-8"
-            onClick={() => toggleNodeExpansion(user.id)}
+            onClick={() => toggleNodeExpansion(userId)}
           >
             {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </Button>
@@ -76,8 +80,15 @@ export const CustomNode = ({ data, toggleNodeExpansion }: CustomNodeProps) => {
       
       {isSupervisor && (
         <div className="mt-2 pt-2 border-t flex items-center text-xs text-muted-foreground">
-          <Users size={12} className="mr-1" />
           <span>Supervisor</span>
+          {employmentType && (
+            <Badge 
+              className="ml-2" 
+              style={{ backgroundColor: employmentType.color_code }}
+            >
+              {employmentType.name}
+            </Badge>
+          )}
         </div>
       )}
     </div>

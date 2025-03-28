@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Edge } from '@xyflow/react';
-import { HierarchyData, UserNode, nodeDefaults } from '../types';
+import { HierarchyData, UserNode, UserNodeData, nodeDefaults } from '../types';
 
 const VERTICAL_SPACING = 180; // Increased from 120 to account for node height
 const HORIZONTAL_SPACING = 400;
@@ -100,22 +100,27 @@ export const useOrgChart = (sbuId: string | undefined) => {
       const employees = data.employees.map((e) => e.user).filter(Boolean);
       employees.forEach((emp) => {
         const primarySupervisor = emp.supervisors?.find((s) => s.is_primary)?.supervisor;
+        
+        const nodeData: UserNodeData = {
+          label: `${emp.first_name} ${emp.last_name}`,
+          subtitle: emp.designation || 'Team Member',
+          email: emp.email,
+          userId: emp.id,
+          isExpanded: expandedNodes.has(emp.id),
+          hasChildren: false,
+          employmentType: emp.employment_type,
+          employeeType: emp.employee_type,
+          employeeRole: emp.employee_role,
+          level: emp.level,
+          // Optional: Add avatar URL if available
+          avatarUrl: undefined,
+        };
+        
         const node: UserNode = {
           id: emp.id,
           type: 'userNode',
           position: { x: 0, y: 0 },
-          data: {
-            label: `${emp.first_name} ${emp.last_name}`,
-            subtitle: emp.designation || 'Team Member',
-            email: emp.email,
-            userId: emp.id,
-            isExpanded: expandedNodes.has(emp.id),
-            hasChildren: false,
-            employmentType: emp.employment_type,
-            employeeType: emp.employee_type,
-            employeeRole: emp.employee_role,
-            level: emp.level,
-          },
+          data: nodeData,
           ...nodeDefaults,
         };
 
@@ -129,24 +134,29 @@ export const useOrgChart = (sbuId: string | undefined) => {
         }
       });
 
+      // Create the head node (supervisor)
+      const headNodeData: UserNodeData = {
+        label: `${data.sbu.head.first_name} ${data.sbu.head.last_name}`,
+        subtitle: data.sbu.head.designation || 'SBU Head',
+        email: data.sbu.head.email,
+        userId: data.sbu.head.id,
+        isExpanded: expandedNodes.has(data.sbu.head.id),
+        hasChildren: nodesByManager[data.sbu.head.id]?.length > 0,
+        isSupervisor: true,
+        employmentType: data.sbu.head.employment_type,
+        employeeType: data.sbu.head.employee_type,
+        employeeRole: data.sbu.head.employee_role,
+        level: data.sbu.head.level,
+      };
+      
       const headNode: UserNode = {
         id: data.sbu.head.id,
         type: 'userNode',
         position: { x: 400, y: 50 },
-        data: {
-          label: `${data.sbu.head.first_name} ${data.sbu.head.last_name}`,
-          subtitle: data.sbu.head.designation || 'SBU Head',
-          email: data.sbu.head.email,
-          userId: data.sbu.head.id,
-          isExpanded: expandedNodes.has(data.sbu.head.id),
-          hasChildren: nodesByManager[data.sbu.head.id]?.length > 0,
-          employmentType: data.sbu.head.employment_type,
-          employeeType: data.sbu.head.employee_type,
-          employeeRole: data.sbu.head.employee_role,
-          level: data.sbu.head.level,
-        },
+        data: headNodeData,
         ...nodeDefaults,
       };
+      
       newNodes.push(headNode);
       processedNodes.add(data.sbu.head.id);
 

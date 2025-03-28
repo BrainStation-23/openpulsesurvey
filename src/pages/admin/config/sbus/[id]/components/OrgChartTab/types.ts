@@ -6,20 +6,23 @@ export interface CategoryWithColor {
   color_code: string;
 }
 
-export interface UserNodeData extends Record<string, unknown> {
+export interface UserNodeData {
   label: string;
   subtitle: string;
   email: string;
   userId: string;
+  avatarUrl?: string;
   isExpanded?: boolean;
   hasChildren?: boolean;
+  isCurrentUser?: boolean;
+  isSupervisor?: boolean;
   employmentType?: CategoryWithColor;
   employeeType?: CategoryWithColor;
   employeeRole?: CategoryWithColor;
   level?: CategoryWithColor;
 }
 
-export interface UserNode extends Node<UserNodeData> {
+export interface UserNode extends Node {
   data: UserNodeData;
 }
 
