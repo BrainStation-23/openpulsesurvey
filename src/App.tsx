@@ -86,6 +86,7 @@ import AdminCreateOKRTemplate from "./pages/admin/okrs/CreateTemplate";
 import AdminOKRTemplateDetails from "./pages/admin/okrs/TemplateDetails";
 import AdminAllObjectives from "./pages/admin/okrs/Objectives";
 import AdminObjectiveDetails from "./pages/admin/okrs/ObjectiveDetails";
+import OkrSettingsPage from "./pages/admin/okrs/OkrSettings";
 
 const queryClient = new QueryClient();
 
@@ -169,6 +170,7 @@ const App = () => (
               <Route path="okrs/templates/:id" element={<AdminOKRTemplateDetails />} />
               <Route path="okrs/objectives" element={<AdminAllObjectives />} />
               <Route path="okrs/objectives/:id" element={<AdminObjectiveDetails />} />
+              <Route path="okrs/settings" element={<OkrSettingsPage />} />
               
               <Route path="config" element={<PlatformConfigLayout />}>
                 <Route index element={<AdminConfig />} />

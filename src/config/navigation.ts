@@ -22,7 +22,8 @@ import {
   BarChart,
   ChevronDown,
   Rocket,
-  UserCircle
+  UserCircle,
+  Sliders
 } from "lucide-react";
 
 // Navigation item with optional children for nested navigation
@@ -108,6 +109,11 @@ export const navigationItems: NavigationItem[] = [
         title: "Objectives",
         icon: Rocket,
         path: "/admin/okrs/objectives",
+      },
+      {
+        title: "Settings",
+        icon: Sliders,
+        path: "/admin/okrs/settings",
       }
     ],
   },

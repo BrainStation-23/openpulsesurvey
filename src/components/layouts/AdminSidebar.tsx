@@ -1,31 +1,7 @@
 
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Settings, 
-  Users, 
-  FileText, 
-  Grid,
-  ClipboardList,
-  Mail,
-  MapPin,
-  Layers,
-  Briefcase,
-  Shield,
-  BrainCircuit,
-  UserRound,
-  Trophy,
-  Radio,
-  Kanban,
-  Target,
-  Building2,
-  Database,
-  BarChart,
-  Rocket,
-  UserCircle,
-  LogOut
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   Sidebar, 
@@ -35,12 +11,15 @@ import {
 } from "@/components/ui/sidebar";
 import { navigationItems, navigationSections } from "@/config/navigation";
 
-// Add "My Team" to the navigation items in the function
-export default function AdminSidebar({ onSignOut }) {
+interface AdminSidebarProps {
+  onSignOut: () => void;
+}
+
+export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
   const location = useLocation();
   
   return (
-    <Sidebar>
+    <Sidebar defaultOpen={true}>
       <div className="border-b px-6 py-3">
         <h2 className="font-semibold">Admin Portal</h2>
       </div>
@@ -146,3 +125,6 @@ export default function AdminSidebar({ onSignOut }) {
     </Sidebar>
   );
 }
+
+// Import Users icon to fix the missing import error 
+import { Users } from "lucide-react";
