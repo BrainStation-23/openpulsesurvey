@@ -66,7 +66,7 @@ async function* updateBatchProcessor(
             employee_type: user.employeeType,
             sbus: user.sbus,
             supervisor_email: user.supervisorEmail,
-            status: user.status // Add status field here
+            status: user.status
           }))
         }
       });

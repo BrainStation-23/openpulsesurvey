@@ -1,13 +1,14 @@
+
 import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { processCSVFile, type ProcessingResult } from "../../utils/csvProcessor";
 import { ImportError, ImportResult, downloadErrorReport, convertValidationErrorsToImportErrors } from "../../utils/errorReporting";
 import { updateBatchProcessor, type BatchProgress } from "../../utils/updateBatchProcessor";
 import { UploadArea } from "./UploadArea";
 import { ImportGuidelines } from "./ImportGuidelines";
-import { ImportProgress } from "./ImportProgress";
-import { ProcessingResultView } from "./ProcessingResult";
+import { ImportProgress } from "../ImportDialog/ImportProgress";
+import { ProcessingResultView } from "../ImportDialog/ProcessingResult";
 
 interface BulkUpdateDialogProps {
   open: boolean;
@@ -30,9 +31,16 @@ export function BulkUpdateDialog({ open, onOpenChange, onUpdateComplete }: BulkU
     setIsProcessing(false);
 
     if (result.errors.length > 0) {
-      toast.error(`Found ${result.errors.length} errors in the CSV file. Please check the error report.`);
+      toast({
+        variant: "destructive",
+        title: "Validation Errors",
+        description: `Found ${result.errors.length} errors in the CSV file. Please check the error details.`,
+      });
     } else {
-      toast.success(`Found ${result.existingUsers.length} users to update.`);
+      toast({
+        title: "File Processed Successfully",
+        description: `Found ${result.existingUsers.length} users to update.`,
+      });
     }
   };
 
@@ -79,19 +87,33 @@ export function BulkUpdateDialog({ open, onOpenChange, onUpdateComplete }: BulkU
       setUpdateResult(result);
       
       if (result.successful > 0) {
-        toast.success(`Successfully updated ${result.successful} users. ${result.failed} failures.`);
+        toast({
+          title: "Update completed",
+          description: `Successfully updated ${result.successful} users. ${result.failed} failures.`,
+        });
         onUpdateComplete();
       }
 
       if (result.failed > 0) {
-        toast.error(`${result.failed} records failed to update. Download the error report for details.`);
+        toast({
+          variant: "destructive",
+          title: "Update completed with errors",
+          description: `${result.failed} records failed to update. View the error details for more information.`,
+        });
       }
     } catch (error) {
       if (error instanceof Error && error.message === 'Operation cancelled') {
-        toast.info("Update operation was cancelled.");
+        toast({
+          title: "Update cancelled",
+          description: "The update operation was cancelled.",
+        });
       } else {
         console.error("Update error:", error);
-        toast.error(error instanceof Error ? error.message : "Unknown error occurred");
+        toast({
+          variant: "destructive",
+          title: "Update failed",
+          description: error instanceof Error ? error.message : "Unknown error occurred",
+        });
       }
     } finally {
       setUpdating(false);
@@ -106,7 +128,11 @@ export function BulkUpdateDialog({ open, onOpenChange, onUpdateComplete }: BulkU
 
   const handleDownloadErrors = () => {
     if (!processingResult?.errors && !updateResult?.errors) {
-      toast.error("No errors to download");
+      toast({
+        variant: "destructive",
+        title: "No errors to download",
+        description: "There are no validation errors to report.",
+      });
       return;
     }
 
@@ -116,10 +142,18 @@ export function BulkUpdateDialog({ open, onOpenChange, onUpdateComplete }: BulkU
         : updateResult?.errors || [];
       
       downloadErrorReport(errors);
-      toast.success("Error report downloaded successfully");
+      
+      toast({
+        title: "Error report downloaded",
+        description: "The error report has been downloaded successfully.",
+      });
     } catch (error) {
       console.error("Error downloading report:", error);
-      toast.error("Failed to download the error report. Please try again.");
+      toast({
+        variant: "destructive",
+        title: "Download failed",
+        description: "Failed to download the error report. Please try again.",
+      });
     }
   };
 
@@ -147,14 +181,18 @@ export function BulkUpdateDialog({ open, onOpenChange, onUpdateComplete }: BulkU
                   } catch (error) {
                     setIsProcessing(false);
                     console.error("Processing error:", error);
-                    toast.error(error instanceof Error ? error.message : "Unknown error occurred");
+                    toast({
+                      variant: "destructive",
+                      title: "Error processing file",
+                      description: error instanceof Error ? error.message : "Unknown error occurred",
+                    });
                   }
                 }}
               />
             </>
           )}
 
-          {updating && (
+          {updating && progress && (
             <ImportProgress
               progress={progress}
               paused={paused}
@@ -168,7 +206,6 @@ export function BulkUpdateDialog({ open, onOpenChange, onUpdateComplete }: BulkU
             importResult={updateResult}
             onDownloadErrors={handleDownloadErrors}
             onStartImport={handleUpdate}
-            actionLabel="Update Users"
           />
         </div>
       </DialogContent>

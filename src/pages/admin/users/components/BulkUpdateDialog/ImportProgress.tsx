@@ -1,3 +1,4 @@
+
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Pause, Play, X } from "lucide-react";
@@ -31,6 +32,11 @@ export function ImportProgress({ progress, paused, onPauseToggle, onCancel }: Im
             <p className="text-center text-gray-500">
               Estimated time remaining: {formatEstimatedTime(progress.estimatedTimeRemaining)}
             </p>
+            {progress.errors.length > 0 && (
+              <p className="text-center text-red-500">
+                {progress.errors.length} errors encountered so far
+              </p>
+            )}
           </>
         ) : (
           <p className="text-center text-gray-500">
