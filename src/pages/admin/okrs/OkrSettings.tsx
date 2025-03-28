@@ -1,61 +1,20 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Helmet } from "react-helmet-async";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { supabase } from "@/integrations/supabase/client";
-import { OkrRoleSettings } from "@/types/okr-settings";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Settings } from "lucide-react";
 import { RolePermissionsList } from "@/components/okr/settings/RolePermissionsList";
+import { useOkrRoles } from "@/hooks/okr/useOkrRoles";
+import { DefaultSettingsForm } from "@/components/okr/settings/DefaultSettingsForm";
 
 export default function OkrSettingsPage() {
-  const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState<OkrRoleSettings | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { settings, loading, error } = useOkrRoles();
   const { toast } = useToast();
   
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        setLoading(true);
-        
-        // In a real implementation, we would fetch from okr_role_settings table
-        // For now, let's set placeholder data
-        setTimeout(() => {
-          setSettings({
-            id: "1",
-            can_create_objectives: [],
-            can_create_org_objectives: [],
-            can_create_dept_objectives: [],
-            can_create_team_objectives: [], 
-            can_create_key_results: [],
-            can_create_alignments: [],
-            can_align_with_org_objectives: [],
-            can_align_with_dept_objectives: [],
-            can_align_with_team_objectives: [],
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-          setLoading(false);
-        }, 1000);
-      } catch (error: any) {
-        console.error("Error fetching OKR settings:", error);
-        setError(error.message);
-        setLoading(false);
-        toast({
-          variant: "destructive",
-          title: "Failed to load settings",
-          description: "There was a problem loading the OKR role settings.",
-        });
-      }
-    };
-
-    fetchSettings();
-  }, [toast]);
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -69,7 +28,7 @@ export default function OkrSettingsPage() {
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
+        <AlertDescription>{error.message}</AlertDescription>
       </Alert>
     );
   }
@@ -117,11 +76,7 @@ export default function OkrSettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  This is a placeholder for default OKR settings.
-                  The actual implementation will include options for default visibility,
-                  approval requirements, and other system-wide settings.
-                </p>
+                <DefaultSettingsForm />
               </CardContent>
             </Card>
           </TabsContent>

@@ -18,27 +18,44 @@ export function useOkrRoles() {
     try {
       setLoading(true);
       
-      // This is a placeholder - in the real implementation, we would fetch from the database
-      // For now, let's return mock data
-      
-      // Simulate API delay
-      setTimeout(() => {
-        const mockSettings: OkrRoleSettings = {
-          id: '1',
-          can_create_objectives: [],
-          can_create_org_objectives: [],
-          can_create_dept_objectives: [],
-          can_create_team_objectives: [],
-          can_create_key_results: [],
-          can_create_alignments: [],
-          can_align_with_org_objectives: [],
-          can_align_with_dept_objectives: [],
-          can_align_with_team_objectives: [],
-        };
+      const { data, error } = await supabase
+        .from('okr_role_settings')
+        .select('*')
+        .limit(1)
+        .single();
         
-        setSettings(mockSettings);
-        setLoading(false);
-      }, 500);
+      if (error) {
+        // If no settings found, create default settings
+        if (error.code === 'PGRST116') {
+          const newSettings: Partial<OkrRoleSettings> = {
+            can_create_objectives: [],
+            can_create_org_objectives: [],
+            can_create_dept_objectives: [],
+            can_create_team_objectives: [],
+            can_create_key_results: [],
+            can_create_alignments: [],
+            can_align_with_org_objectives: [],
+            can_align_with_dept_objectives: [],
+            can_align_with_team_objectives: [],
+          };
+          
+          const { data: createdData, error: createError } = await supabase
+            .from('okr_role_settings')
+            .insert(newSettings)
+            .select('*')
+            .single();
+            
+          if (createError) {
+            throw createError;
+          }
+          
+          setSettings(createdData);
+        } else {
+          throw error;
+        }
+      } else {
+        setSettings(data);
+      }
     } catch (err: any) {
       setError(err);
       setLoading(false);
@@ -47,6 +64,8 @@ export function useOkrRoles() {
         title: "Error",
         description: `Failed to fetch OKR role settings: ${err.message}`
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -54,8 +73,13 @@ export function useOkrRoles() {
     try {
       setLoading(true);
       
-      // This is a placeholder - in the real implementation, we would update the database
-      // For now, just update the local state
+      const { error } = await supabase
+        .from('okr_role_settings')
+        .update(updatedSettings)
+        .eq('id', settings?.id);
+      
+      if (error) throw error;
+      
       setSettings(prev => prev ? { ...prev, ...updatedSettings } : null);
       
       toast({
