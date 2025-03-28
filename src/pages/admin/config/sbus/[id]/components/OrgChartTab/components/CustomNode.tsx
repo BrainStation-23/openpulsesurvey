@@ -1,84 +1,85 @@
 
-import React from 'react';
-import { Card } from '@/components/ui/card';
+import {
+  Handle,
+  Position,
+} from '@xyflow/react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight, UserCircle2, Briefcase, Users, Shield, Layers } from 'lucide-react';
-import { UserNodeData } from '../types';
+import { ChevronDown, ChevronUp, UserPlus, Users } from 'lucide-react';
+import { UserNode } from '../types';
 
 interface CustomNodeProps {
-  data: UserNodeData;
+  data: UserNode;
   toggleNodeExpansion: (userId: string) => void;
 }
 
 export const CustomNode = ({ data, toggleNodeExpansion }: CustomNodeProps) => {
+  const { user, isExpanded, hasChildren, isSupervisor } = data;
+  
   return (
-    <Card className="w-full">
-      <div className="p-4 space-y-3">
-        <div className="flex items-start gap-3">
-          {data.hasChildren && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => toggleNodeExpansion(data.userId)}
-            >
-              {data.isExpanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </Button>
-          )}
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <UserCircle2 className="h-5 w-5 text-muted-foreground" />
-              <div className="font-medium text-base">{data.label}</div>
-            </div>
-            <div className="text-sm text-muted-foreground">{data.subtitle}</div>
-            <div className="text-xs text-muted-foreground mt-1">{data.email}</div>
+    <div
+      className={`p-3 bg-white rounded-md shadow-sm border ${
+        user.isCurrentUser ? 'border-blue-500' : 'border-slate-200'
+      } min-w-[250px]`}
+    >
+      {/* Input handle for connecting from supervisor */}
+      {isSupervisor === false && (
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="supervisor-input"
+          className="w-2 h-6 rounded-sm bg-slate-400"
+        />
+      )}
+      
+      {/* Output handle for connecting to team members */}
+      {hasChildren && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="team-output"
+          className="w-2 h-6 rounded-sm bg-slate-400"
+        />
+      )}
+      
+      <div className="flex items-center space-x-3">
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={user.avatarUrl} alt={user.name} />
+          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 overflow-hidden">
+          <div className="font-medium text-sm truncate flex items-center">
+            {user.name}
+            {user.isCurrentUser && (
+              <Badge className="ml-2 text-xs" variant="outline">
+                You
+              </Badge>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground truncate">
+            {user.designation}
           </div>
         </div>
         
-        <div className="flex flex-wrap gap-2">
-          {data.employmentType && (
-            <Badge 
-              style={{ backgroundColor: data.employmentType.color_code }}
-              className="flex items-center gap-1"
-            >
-              <Briefcase className="h-3 w-3" />
-              {data.employmentType.name}
-            </Badge>
-          )}
-          {data.employeeType && (
-            <Badge 
-              style={{ backgroundColor: data.employeeType.color_code }}
-              className="flex items-center gap-1"
-            >
-              <Users className="h-3 w-3" />
-              {data.employeeType.name}
-            </Badge>
-          )}
-          {data.employeeRole && (
-            <Badge 
-              style={{ backgroundColor: data.employeeRole.color_code }}
-              className="flex items-center gap-1"
-            >
-              <Shield className="h-3 w-3" />
-              {data.employeeRole.name}
-            </Badge>
-          )}
-          {data.level && (
-            <Badge 
-              style={{ backgroundColor: data.level.color_code }}
-              className="flex items-center gap-1"
-            >
-              <Layers className="h-3 w-3" />
-              {data.level.name}
-            </Badge>
-          )}
-        </div>
+        {hasChildren && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="p-1 h-8 w-8"
+            onClick={() => toggleNodeExpansion(user.id)}
+          >
+            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </Button>
+        )}
       </div>
-    </Card>
+      
+      {isSupervisor && (
+        <div className="mt-2 pt-2 border-t flex items-center text-xs text-muted-foreground">
+          <Users size={12} className="mr-1" />
+          <span>Supervisor</span>
+        </div>
+      )}
+    </div>
   );
 };
