@@ -40,6 +40,13 @@ export function RolePermissionDialog({
   const { updateSettings } = useOkrRoles();
   const { toast } = useToast();
 
+  // Reset selected roles when the dialog opens with new currentRoleIds
+  React.useEffect(() => {
+    if (open) {
+      setSelectedRoleIds(currentRoleIds || []);
+    }
+  }, [open, currentRoleIds]);
+
   const handleSave = async () => {
     try {
       setSubmitting(true);

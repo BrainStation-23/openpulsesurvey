@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { OkrRoleSettings } from "@/types/okr-settings";
@@ -35,7 +34,6 @@ export function RolePermissionsList({ settings, loading }: RolePermissionsListPr
   const { employeeRoles, loading: rolesLoading } = useEmployeeRoles();
   
   const permissionSections: PermissionSection[] = [
-    // Creation permissions category with blue color theme
     {
       id: "create_objectives",
       title: "Create Objectives",
@@ -82,7 +80,6 @@ export function RolePermissionsList({ settings, loading }: RolePermissionsListPr
       color: "bg-blue-100 border-blue-300"
     },
     
-    // Alignment permissions category with purple color theme
     {
       id: "create_alignments",
       title: "Create Alignments",
