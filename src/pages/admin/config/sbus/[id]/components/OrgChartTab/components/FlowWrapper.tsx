@@ -40,7 +40,7 @@ export const FlowWrapper = ({
 
   // Define node types mapping with correct typing
   const nodeTypes: NodeTypes = {
-    userNode: (props: any) => <CustomNode {...props} toggleNodeExpansion={toggleNodeExpansion} />,
+    userNode: CustomNode,
   };
 
   return (
