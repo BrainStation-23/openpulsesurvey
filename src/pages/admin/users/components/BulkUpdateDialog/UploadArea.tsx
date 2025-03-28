@@ -3,8 +3,8 @@ import { Upload, FileCheck } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
 import { useState } from "react";
-import { CSVValidationError } from "../../utils/csvValidator";
 import { Progress } from "@/components/ui/progress";
+import { processCSVFile, type ProcessingResult } from "../../utils/csvProcessor";
 
 interface UploadAreaProps {
   isProcessing: boolean;
@@ -17,7 +17,7 @@ export function UploadArea({ isProcessing, onProcessingComplete }: UploadAreaPro
     progress: 0,
     rowsProcessed: 0,
     totalRows: 0,
-    errors: [] as CSVValidationError[]
+    errors: [] as { row: number; errors: string[] }[]
   });
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,46 +33,36 @@ export function UploadArea({ isProcessing, onProcessingComplete }: UploadAreaPro
           errors: []
         });
 
-        // Simulate file reading delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Process the CSV file using the actual processor
+        const result = await processCSVFile(selectedFile);
 
-        // Update UI to show validation in progress
-        setValidationProgress(prev => ({
-          ...prev,
+        // Update progress based on actual validation results
+        setValidationProgress({
           stage: "validating",
-          progress: 25
-        }));
+          progress: result.errors.length > 0 ? 75 : 100,
+          rowsProcessed: result.newUsers.length + result.existingUsers.length,
+          totalRows: result.newUsers.length + result.existingUsers.length,
+          errors: result.errors
+        });
 
-        // Progress updates (in a real implementation, these would come from the actual validation process)
-        const updateProgress = (processed: number, total: number, errors: CSVValidationError[] = []) => {
-          const progressPercent = Math.min(25 + Math.floor((processed / total) * 70), 95);
-          setValidationProgress({
-            stage: "validating",
-            progress: progressPercent,
-            rowsProcessed: processed,
-            totalRows: total,
-            errors
-          });
-        };
-
-        // Simulate validation progress (this would be replaced with actual validation logic)
-        const totalRows = Math.floor(selectedFile.size / 100); // Estimate row count
-        for (let i = 1; i <= 10; i++) {
-          const processed = Math.floor((i / 10) * totalRows);
-          updateProgress(processed, totalRows);
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
-
-        // Complete progress and pass file to parent
+        // Complete processing
         setValidationProgress({
           stage: "complete",
           progress: 100,
-          rowsProcessed: totalRows,
-          totalRows,
-          errors: []
+          rowsProcessed: result.newUsers.length + result.existingUsers.length,
+          totalRows: result.newUsers.length + result.existingUsers.length,
+          errors: result.errors
         });
 
+        // Call the processing complete callback
         onProcessingComplete(selectedFile);
+
+        // Show toast for validation results
+        if (result.errors.length > 0) {
+          toast.error(`Found ${result.errors.length} validation errors in the CSV file`);
+        } else {
+          toast.success(`Successfully processed ${result.newUsers.length + result.existingUsers.length} users`);
+        }
       } catch (error) {
         console.error("Error processing file:", error);
         toast.error("Failed to process file. Please try again.");
@@ -93,9 +83,11 @@ export function UploadArea({ isProcessing, onProcessingComplete }: UploadAreaPro
       case "reading":
         return "Reading file contents...";
       case "validating":
-        return `Validating rows: ${validationProgress.rowsProcessed} of ~${validationProgress.totalRows} rows`;
+        return `Validating rows: ${validationProgress.rowsProcessed} of ${validationProgress.totalRows} rows`;
       case "complete":
-        return "Validation complete!";
+        return validationProgress.errors.length > 0 
+          ? `Validation complete with ${validationProgress.errors.length} errors` 
+          : "Validation complete!";
       default:
         return "Processing file...";
     }
@@ -142,9 +134,18 @@ export function UploadArea({ isProcessing, onProcessingComplete }: UploadAreaPro
           />
           
           {validationProgress.stage === "complete" && (
-            <div className="flex items-center justify-center text-sm text-green-600 gap-1.5">
-              <FileCheck className="h-4 w-4" />
-              <span>File validated successfully</span>
+            <div className="flex items-center justify-center text-sm gap-1.5">
+              {validationProgress.errors.length > 0 ? (
+                <div className="text-red-600 flex items-center gap-1.5">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{validationProgress.errors.length} validation errors</span>
+                </div>
+              ) : (
+                <div className="text-green-600 flex items-center gap-1.5">
+                  <FileCheck className="h-4 w-4" />
+                  <span>File validated successfully</span>
+                </div>
+              )}
             </div>
           )}
         </div>
