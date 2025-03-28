@@ -1,66 +1,72 @@
 
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { NodeHandle } from './NodeHandle';
 
 export interface TeamNodeData {
   label: string;
   sublabel?: string;
   imageUrl?: string;
-  isLoggedInUser?: boolean;
   isSupervisor?: boolean;
+  isLoggedInUser?: boolean;
 }
 
-interface TeamMemberNodeProps {
-  data: TeamNodeData;
-}
+export const TeamMemberNode: React.FC<{ data: TeamNodeData }> = ({ data }) => {
+  const { label, sublabel, imageUrl, isSupervisor, isLoggedInUser } = data;
+  
+  // Determine border color based on role
+  const getBorderColor = () => {
+    if (isSupervisor) return 'border-purple-500';
+    if (isLoggedInUser) return 'border-blue-500';
+    return 'border-slate-200';
+  };
 
-export const TeamMemberNode: React.FC<TeamMemberNodeProps> = ({ data }) => {
   return (
-    <div className={`p-2 rounded-lg shadow-md min-w-48 border-2 ${
-      data.isLoggedInUser 
-        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
-        : data.isSupervisor 
-          ? 'border-purple-500 bg-purple-50 dark:bg-purple-950' 
-          : 'border-gray-200 bg-white dark:bg-gray-800'
-    }`}>
+    <div 
+      className={`bg-white rounded-lg shadow-sm p-3 w-60 ${getBorderColor()} border-2`}
+    >
+      {/* Left side handle for target connections */}
+      {!isSupervisor && (
+        <NodeHandle 
+          type="target" 
+          position={Position.Left} 
+          id="member-input" 
+        />
+      )}
+      
+      {/* Right side handle for source connections */}
+      {isSupervisor && (
+        <NodeHandle 
+          type="source" 
+          position={Position.Right} 
+          id="supervisor-output" 
+        />
+      )}
+      
       <div className="flex items-center gap-3">
-        {data.imageUrl ? (
+        {imageUrl ? (
           <img 
-            src={data.imageUrl} 
-            alt={data.label} 
-            className="w-10 h-10 rounded-full object-cover border border-gray-200"
+            src={imageUrl} 
+            alt={label} 
+            className="h-10 w-10 rounded-full object-cover flex-shrink-0"
           />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300">
-            {data.label.charAt(0)}
+          <div className={`h-10 w-10 rounded-full flex items-center justify-center text-white flex-shrink-0 ${isSupervisor ? 'bg-purple-500' : 'bg-slate-500'}`}>
+            {label.charAt(0)}
           </div>
         )}
-        <div className="flex flex-col">
-          <div className="font-medium text-sm">{data.label}</div>
-          {data.sublabel && (
-            <div className="text-xs text-gray-500 dark:text-gray-400">{data.sublabel}</div>
+        <div className="overflow-hidden">
+          <div className="font-medium text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+            {label}
+            {isLoggedInUser && <span className="ml-1 text-xs text-blue-500">(You)</span>}
+          </div>
+          {sublabel && (
+            <div className="text-xs text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">
+              {sublabel}
+            </div>
           )}
         </div>
       </div>
-      
-      {/* Replace custom handles with built-in handles */}
-      {data.isSupervisor ? (
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          id="supervisor-output"
-          style={{ bottom: -5, background: '#9ca3af', width: 10, height: 10, border: 'none' }}
-          isConnectable={true}
-        />
-      ) : (
-        <Handle
-          type="target"
-          position={Position.Top}
-          id="member-input"
-          style={{ top: -5, background: '#9ca3af', width: 10, height: 10, border: 'none' }}
-          isConnectable={true}
-        />
-      )}
     </div>
   );
 };

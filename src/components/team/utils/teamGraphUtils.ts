@@ -10,43 +10,45 @@ export const processTeamData = (
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   
+  // Horizontal layout configuration
+  const startX = 100;
+  const supervisorX = startX;
+  const teamMembersX = startX + 350; // Put team members to the right with good spacing
+  const verticalSpacing = 120; // Space between team members vertically
+  
   if (supervisor) {
     nodes.push({
       id: `supervisor-${supervisor.id}`,
       type: 'teamMember',
-      position: { x: 250, y: 50 },
+      position: { x: supervisorX, y: 200 }, // Center supervisor vertically
       data: {
         label: `${supervisor.firstName} ${supervisor.lastName}`,
         sublabel: supervisor.designation || 'Supervisor',
         imageUrl: supervisor.profileImageUrl,
         isSupervisor: true
       },
-      sourcePosition: Position.Bottom
+      sourcePosition: Position.Right // Connections come from right side
     });
   }
   
-  const radius = Math.max(teamMembers.length * 25, 150);
-  const centerX = 250;
-  const startY = supervisor ? 200 : 100;
-  
+  // Position team members vertically on the right side
   teamMembers.forEach((member, index) => {
-    const angle = (Math.PI * (index + 1)) / (teamMembers.length + 1);
-    const x = centerX + radius * Math.cos(angle) - 100;
-    const y = startY + radius * Math.sin(angle);
+    const startY = Math.max(50, 200 - (verticalSpacing * (teamMembers.length - 1) / 2)); // Center the column vertically
+    const y = startY + (index * verticalSpacing);
     
     const nodeId = `member-${member.id}`;
     
     nodes.push({
       id: nodeId,
       type: 'teamMember',
-      position: { x, y },
+      position: { x: teamMembersX, y },
       data: {
         label: `${member.firstName} ${member.lastName}`,
         sublabel: member.designation || member.email,
         imageUrl: member.profileImageUrl,
         isLoggedInUser: member.isLoggedInUser
       },
-      targetPosition: Position.Top
+      targetPosition: Position.Left // Connections come into left side
     });
     
     if (supervisor) {
