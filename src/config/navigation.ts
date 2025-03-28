@@ -63,6 +63,11 @@ export const navigationItems: NavigationItem[] = [
         icon: ClipboardList,
         path: "/admin/my-surveys",
       },
+      {
+        title: "Settings",
+        icon: Settings,
+        path: "/admin/settings",
+      },
     ]
   },
   {
@@ -187,12 +192,7 @@ export const navigationItems: NavigationItem[] = [
         title: "Achievements",
         icon: Trophy,
         path: "/admin/achievements",
-      },
-      {
-        title: "Settings",
-        icon: Settings,
-        path: "/admin/settings",
-      },
+      }
     ],
   },
 ];
