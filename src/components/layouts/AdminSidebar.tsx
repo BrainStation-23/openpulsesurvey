@@ -26,7 +26,12 @@ export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
   }, [setOpen]);
   
   const isActiveRoute = (path: string) => {
-    // Handle root paths
+    // Special case for dashboard which is now under surveys
+    if (path === "/admin/dashboard" && location.pathname === "/admin/dashboard") {
+      return true;
+    }
+    
+    // Special case for survey builder
     if (path === "/admin/surveys" && location.pathname === "/admin/surveys") {
       return true;
     }

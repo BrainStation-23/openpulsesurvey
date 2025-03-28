@@ -43,12 +43,6 @@ export type NavigationItem = {
 // Organized navigation items grouped by logical sections
 export const navigationItems: NavigationItem[] = [
   {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    path: "/admin/dashboard",
-    section: "core"
-  },
-  {
     title: "User Center",
     icon: UserCircle,
     path: "/admin/profile",
@@ -72,17 +66,16 @@ export const navigationItems: NavigationItem[] = [
     ]
   },
   {
-    title: "Users",
-    icon: Users,
-    path: "/admin/users",
-    section: "core"
-  },
-  {
     title: "Surveys",
     icon: FileText,
     path: "/admin/surveys",
     section: "surveys",
     children: [
+      {
+        title: "Dashboard",
+        icon: LayoutDashboard,
+        path: "/admin/dashboard",
+      },
       {
         title: "Survey Builder",
         icon: FormInput,
@@ -97,16 +90,6 @@ export const navigationItems: NavigationItem[] = [
         title: "Live Survey",
         icon: Radio,
         path: "/admin/surveys/live",
-      },
-      {
-        title: "Analytics",
-        icon: BarChart3,
-        path: "/admin/surveys/analytics",
-      },
-      {
-        title: "Settings",
-        icon: Sliders,
-        path: "/admin/surveys/settings",
       },
     ],
   },
@@ -156,6 +139,11 @@ export const navigationItems: NavigationItem[] = [
     section: "config",
     children: [
       {
+        title: "Users",
+        icon: Users,
+        path: "/admin/users",
+      },
+      {
         title: "SBUs",
         icon: Building2,
         path: "/admin/config/sbus",
@@ -200,19 +188,18 @@ export const navigationItems: NavigationItem[] = [
         icon: Trophy,
         path: "/admin/achievements",
       },
+      {
+        title: "Settings",
+        icon: Settings,
+        path: "/admin/settings",
+      },
     ],
-  },
-  {
-    title: "Settings",
-    icon: Settings,
-    path: "/admin/settings",
-    section: "config"
   },
 ];
 
 // Grouping data for the sidebar sections
 export const navigationSections = [
-  { id: "core", label: "Main Navigation" },
+  { id: "core", label: "User Account" },
   { id: "surveys", label: "Survey Management" },
   { id: "issue_boards", label: "Issue Management" },
   { id: "okrs", label: "OKR System" },
