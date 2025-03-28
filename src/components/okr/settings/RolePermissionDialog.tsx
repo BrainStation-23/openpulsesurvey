@@ -9,11 +9,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, Info } from 'lucide-react';
 import { useOkrRoles } from '@/hooks/okr/useOkrRoles';
 import { useToast } from '@/hooks/use-toast';
 import { OkrRoleSettings } from '@/types/okr-settings';
 import { MultiRoleSelector } from './MultiRoleSelector';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface RolePermissionDialogProps {
   open: boolean;
@@ -67,15 +68,25 @@ export function RolePermissionDialog({
     }
   };
 
+  const hasChanges = JSON.stringify(selectedRoleIds.sort()) !== JSON.stringify(currentRoleIds.sort());
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-xl">{title}</DialogTitle>
+          <DialogDescription className="text-sm">
             {description}
           </DialogDescription>
         </DialogHeader>
+
+        <Alert className="bg-blue-50 border border-blue-200">
+          <Info className="h-4 w-4 text-blue-500" />
+          <AlertDescription className="text-sm text-blue-700">
+            Select which employee roles should have this permission. Users with multiple roles will 
+            have the combined permissions of all their assigned roles.
+          </AlertDescription>
+        </Alert>
 
         <div className="py-4">
           <div className="space-y-4">
@@ -90,7 +101,11 @@ export function RolePermissionDialog({
           <Button variant="outline" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={submitting}>
+          <Button 
+            onClick={handleSave} 
+            disabled={submitting || !hasChanges}
+            className={hasChanges ? "" : "opacity-70"}
+          >
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
