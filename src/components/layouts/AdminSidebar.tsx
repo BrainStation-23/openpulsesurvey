@@ -7,7 +7,8 @@ import {
   Sidebar, 
   SidebarMenu, 
   SidebarMenuItem, 
-  SidebarMenuButton
+  SidebarMenuButton,
+  useSidebar
 } from "@/components/ui/sidebar";
 import { navigationItems, navigationSections } from "@/config/navigation";
 
@@ -17,9 +18,15 @@ interface AdminSidebarProps {
 
 export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
   const location = useLocation();
+  const { setOpen } = useSidebar();
+  
+  // Set sidebar open on component mount
+  React.useEffect(() => {
+    setOpen(true);
+  }, [setOpen]);
   
   return (
-    <Sidebar defaultOpen={true}>
+    <Sidebar>
       <div className="border-b px-6 py-3">
         <h2 className="font-semibold">Admin Portal</h2>
       </div>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Helmet } from "react-helmet";
+import { Helmet } from "react-helmet-async";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { OkrRoleSettings } from "@/types/okr-settings";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { RolePermissionsList } from "@/components/okr/settings/RolePermissionsList";
 
 export default function OkrSettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -102,11 +103,7 @@ export default function OkrSettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-6">
-                  This is a placeholder for OKR role permission settings. 
-                  The actual implementation will allow configuring which roles can create objectives,
-                  key results, and create alignments between objectives.
-                </p>
+                <RolePermissionsList settings={settings} loading={loading} />
               </CardContent>
             </Card>
           </TabsContent>
