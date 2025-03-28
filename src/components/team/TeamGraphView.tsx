@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Supervisor, TeamMember } from "@/hooks/useTeamData";
 import {
@@ -19,6 +19,7 @@ import { LoadingState } from './states/LoadingState';
 import { ErrorState } from './states/ErrorState';
 import { EmptyState } from './states/EmptyState';
 import { TeamLegendPanel } from './graph/TeamLegendPanel';
+import { FullScreenToggle } from './graph/FullScreenToggle';
 import { processTeamData, getReactFlowOptions } from './utils/teamGraphUtils';
 
 interface TeamGraphViewProps {
@@ -36,6 +37,8 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
 }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const graphRef = useRef<HTMLDivElement>(null);
 
   const nodeTypes = React.useMemo(() => ({
     teamMember: TeamMemberNode
@@ -51,6 +54,31 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
     setNodes(newNodes);
     setEdges(newEdges);
   }, [supervisor, teamMembers, isLoading, error, setNodes, setEdges]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullScreen = () => {
+    if (!graphRef.current) return;
+    
+    if (!isFullScreen) {
+      if (graphRef.current.requestFullscreen) {
+        graphRef.current.requestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
 
   const reactFlowOptions = React.useMemo(() => getReactFlowOptions(), []);
 
@@ -70,7 +98,14 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
     <Card className="shadow-sm">
       <CardContent className="p-4">
         <div className="text-sm font-medium text-muted-foreground mb-3">Team Hierarchy</div>
-        <div className="h-[400px] border rounded-md overflow-hidden">
+        <div 
+          ref={graphRef}
+          className={`${isFullScreen ? 'h-screen w-full fixed inset-0 z-50 bg-background' : 'h-[400px]'} border rounded-md overflow-hidden relative`}
+        >
+          <FullScreenToggle 
+            isFullScreen={isFullScreen} 
+            onToggle={toggleFullScreen} 
+          />
           <ReactFlow
             nodes={nodes}
             edges={edges}
