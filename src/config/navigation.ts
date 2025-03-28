@@ -23,7 +23,12 @@ import {
   ChevronDown,
   Rocket,
   UserCircle,
-  Sliders
+  Sliders,
+  BarChart3,
+  PieChart,
+  LineChart,
+  FormInput,
+  PanelTop
 } from "lucide-react";
 
 // Navigation item with optional children for nested navigation
@@ -44,16 +49,27 @@ export const navigationItems: NavigationItem[] = [
     section: "core"
   },
   {
-    title: "My Profile",
+    title: "User Center",
     icon: UserCircle,
     path: "/admin/profile",
-    section: "core"
-  },
-  {
-    title: "My Surveys",
-    icon: ClipboardList,
-    path: "/admin/my-surveys",
-    section: "core"
+    section: "core",
+    children: [
+      {
+        title: "My Profile",
+        icon: UserCircle,
+        path: "/admin/profile",
+      },
+      {
+        title: "My Team",
+        icon: Users,
+        path: "/admin/my-team",
+      },
+      {
+        title: "My Surveys",
+        icon: ClipboardList,
+        path: "/admin/my-surveys",
+      },
+    ]
   },
   {
     title: "Users",
@@ -68,6 +84,11 @@ export const navigationItems: NavigationItem[] = [
     section: "surveys",
     children: [
       {
+        title: "Survey Builder",
+        icon: FormInput,
+        path: "/admin/surveys",
+      },
+      {
         title: "Campaigns",
         icon: Grid,
         path: "/admin/surveys/campaigns",
@@ -78,11 +99,22 @@ export const navigationItems: NavigationItem[] = [
         path: "/admin/surveys/live",
       },
       {
-        title: "Issue Boards",
-        icon: Kanban,
-        path: "/admin/surveys/issue-boards",
+        title: "Analytics",
+        icon: BarChart3,
+        path: "/admin/surveys/analytics",
+      },
+      {
+        title: "Settings",
+        icon: Sliders,
+        path: "/admin/surveys/settings",
       },
     ],
+  },
+  {
+    title: "Issue Boards",
+    icon: Kanban,
+    path: "/admin/surveys/issue-boards",
+    section: "issue_boards"
   },
   {
     title: "OKRs",
@@ -116,12 +148,6 @@ export const navigationItems: NavigationItem[] = [
         path: "/admin/okrs/settings",
       }
     ],
-  },
-  {
-    title: "Achievements",
-    icon: Trophy,
-    path: "/admin/achievements",
-    section: "core"
   },
   {
     title: "Platform Config",
@@ -169,6 +195,11 @@ export const navigationItems: NavigationItem[] = [
         icon: BrainCircuit,
         path: "/admin/config/ai-prompts",
       },
+      {
+        title: "Achievements",
+        icon: Trophy,
+        path: "/admin/achievements",
+      },
     ],
   },
   {
@@ -183,6 +214,7 @@ export const navigationItems: NavigationItem[] = [
 export const navigationSections = [
   { id: "core", label: "Main Navigation" },
   { id: "surveys", label: "Survey Management" },
+  { id: "issue_boards", label: "Issue Management" },
   { id: "okrs", label: "OKR System" },
   { id: "config", label: "Configuration" },
 ];

@@ -25,6 +25,20 @@ export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
     setOpen(true);
   }, [setOpen]);
   
+  const isActiveRoute = (path: string) => {
+    // Handle root paths
+    if (path === "/admin/surveys" && location.pathname === "/admin/surveys") {
+      return true;
+    }
+    
+    // Check if current location starts with the path
+    return location.pathname.startsWith(path);
+  };
+  
+  const isExactActiveRoute = (path: string) => {
+    return location.pathname === path;
+  };
+  
   return (
     <Sidebar>
       <div className="border-b px-6 py-3">
@@ -40,7 +54,7 @@ export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
                 .filter((item) => item.section === section.id)
                 .map((item) => {
                   if (item.children) {
-                    const isActive = location.pathname.startsWith(item.path);
+                    const isActive = isActiveRoute(item.path);
                     return (
                       <SidebarMenuItem key={item.path}>
                         <SidebarMenuButton
@@ -56,7 +70,7 @@ export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
                           {item.children.map((child) => (
                             <SidebarMenuButton
                               key={child.path}
-                              isActive={location.pathname === child.path}
+                              isActive={isExactActiveRoute(child.path)}
                               asChild
                             >
                               <Link to={child.path} className="flex items-center">
@@ -70,40 +84,10 @@ export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
                     );
                   }
 
-                  // Insert My Team after My Profile
-                  if (item.path === "/admin/profile") {
-                    return (
-                      <React.Fragment key={item.path}>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton
-                            isActive={location.pathname === item.path}
-                            asChild
-                          >
-                            <Link to={item.path} className="flex items-center">
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton
-                            isActive={location.pathname === "/admin/my-team"}
-                            asChild
-                          >
-                            <Link to="/admin/my-team" className="flex items-center">
-                              <Users className="h-4 w-4" />
-                              <span>My Team</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      </React.Fragment>
-                    );
-                  }
-
                   return (
                     <SidebarMenuItem key={item.path}>
                       <SidebarMenuButton
-                        isActive={location.pathname === item.path}
+                        isActive={isExactActiveRoute(item.path)}
                         asChild
                       >
                         <Link to={item.path} className="flex items-center">
@@ -132,6 +116,3 @@ export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
     </Sidebar>
   );
 }
-
-// Import Users icon to fix the missing import error 
-import { Users } from "lucide-react";
