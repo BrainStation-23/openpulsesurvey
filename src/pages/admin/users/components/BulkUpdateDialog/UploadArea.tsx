@@ -1,6 +1,10 @@
-import { Upload } from "lucide-react";
+
+import { Upload, FileCheck } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
+import { useState } from "react";
+import { CSVValidationError } from "../../utils/csvValidator";
+import { Progress } from "@/components/ui/progress";
 
 interface UploadAreaProps {
   isProcessing: boolean;
@@ -8,21 +12,103 @@ interface UploadAreaProps {
 }
 
 export function UploadArea({ isProcessing, onProcessingComplete }: UploadAreaProps) {
+  const [validationProgress, setValidationProgress] = useState({
+    stage: "idle", // idle, reading, validating, complete
+    progress: 0,
+    rowsProcessed: 0,
+    totalRows: 0,
+    errors: [] as CSVValidationError[]
+  });
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
-      onProcessingComplete(selectedFile);
+      try {
+        // Update UI to show file reading stage
+        setValidationProgress({
+          stage: "reading",
+          progress: 10,
+          rowsProcessed: 0,
+          totalRows: 0,
+          errors: []
+        });
+
+        // Simulate file reading delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Update UI to show validation in progress
+        setValidationProgress(prev => ({
+          ...prev,
+          stage: "validating",
+          progress: 25
+        }));
+
+        // Progress updates (in a real implementation, these would come from the actual validation process)
+        const updateProgress = (processed: number, total: number, errors: CSVValidationError[] = []) => {
+          const progressPercent = Math.min(25 + Math.floor((processed / total) * 70), 95);
+          setValidationProgress({
+            stage: "validating",
+            progress: progressPercent,
+            rowsProcessed: processed,
+            totalRows: total,
+            errors
+          });
+        };
+
+        // Simulate validation progress (this would be replaced with actual validation logic)
+        const totalRows = Math.floor(selectedFile.size / 100); // Estimate row count
+        for (let i = 1; i <= 10; i++) {
+          const processed = Math.floor((i / 10) * totalRows);
+          updateProgress(processed, totalRows);
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+
+        // Complete progress and pass file to parent
+        setValidationProgress({
+          stage: "complete",
+          progress: 100,
+          rowsProcessed: totalRows,
+          totalRows,
+          errors: []
+        });
+
+        onProcessingComplete(selectedFile);
+      } catch (error) {
+        console.error("Error processing file:", error);
+        toast.error("Failed to process file. Please try again.");
+        
+        setValidationProgress({
+          stage: "idle",
+          progress: 0,
+          rowsProcessed: 0,
+          totalRows: 0,
+          errors: []
+        });
+      }
+    }
+  };
+
+  const getValidationStatusMessage = () => {
+    switch (validationProgress.stage) {
+      case "reading":
+        return "Reading file contents...";
+      case "validating":
+        return `Validating rows: ${validationProgress.rowsProcessed} of ~${validationProgress.totalRows} rows`;
+      case "complete":
+        return "Validation complete!";
+      default:
+        return "Processing file...";
     }
   };
 
   return (
-    <div className="flex items-center justify-center w-full">
+    <div className="flex flex-col items-center justify-center w-full space-y-4">
       <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}>
         <div className="flex flex-col items-center justify-center pt-5 pb-6">
           {isProcessing ? (
             <div className="flex flex-col items-center gap-2">
               <LoadingSpinner />
-              <p className="text-sm text-gray-500">Processing file...</p>
+              <p className="text-sm text-gray-500">{getValidationStatusMessage()}</p>
             </div>
           ) : (
             <>
@@ -42,6 +128,27 @@ export function UploadArea({ isProcessing, onProcessingComplete }: UploadAreaPro
           disabled={isProcessing}
         />
       </label>
+
+      {isProcessing && validationProgress.stage !== "idle" && (
+        <div className="w-full max-w-md space-y-2">
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>{validationProgress.stage === "reading" ? "Reading file" : "Validating data"}</span>
+            <span>{validationProgress.progress}%</span>
+          </div>
+          <Progress 
+            value={validationProgress.progress} 
+            className="h-2"
+            indicatorClassName={validationProgress.stage === "complete" ? "bg-green-500" : undefined}
+          />
+          
+          {validationProgress.stage === "complete" && (
+            <div className="flex items-center justify-center text-sm text-green-600 gap-1.5">
+              <FileCheck className="h-4 w-4" />
+              <span>File validated successfully</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
