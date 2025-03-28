@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { NodeHandle } from './NodeHandle';
 
 export interface TeamNodeData {
   label: string;
@@ -27,19 +26,21 @@ export const TeamMemberNode: React.FC<{ data: TeamNodeData }> = ({ data }) => {
     >
       {/* Left side handle for target connections */}
       {!isSupervisor && (
-        <NodeHandle 
+        <Handle 
           type="target" 
           position={Position.Left} 
           id="member-input" 
+          className="w-3 h-3 bg-slate-400"
         />
       )}
       
       {/* Right side handle for source connections */}
       {isSupervisor && (
-        <NodeHandle 
+        <Handle 
           type="source" 
           position={Position.Right} 
           id="supervisor-output" 
+          className="w-3 h-3 bg-slate-400"
         />
       )}
       
