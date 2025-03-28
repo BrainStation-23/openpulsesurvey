@@ -121,11 +121,6 @@ export const navigationItems: NavigationItem[] = [
         path: "/admin/okrs/cycles",
       },
       {
-        title: "Templates",
-        icon: FileText,
-        path: "/admin/okrs/templates",
-      },
-      {
         title: "Objectives",
         icon: Rocket,
         path: "/admin/okrs/objectives",
