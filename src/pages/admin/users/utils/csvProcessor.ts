@@ -172,7 +172,8 @@ export async function processCSVFile(
       
       // Report parsing progress
       step: (results, parser) => {
-        const rowIndex = parser.lineNum;
+        // Fix: Use results.meta.cursor instead of parser.lineNum
+        const rowIndex = results.meta.cursor || 0;
         const totalRows = file.size / (results.data.toString().length || 1); // Estimate
         onProgress?.({
           stage: 'parsing',
