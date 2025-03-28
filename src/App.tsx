@@ -81,9 +81,6 @@ import AdminOKRDashboard from "./pages/admin/okrs/Dashboard";
 import AdminOKRCycles from "./pages/admin/okrs/Cycles";
 import AdminCreateOKRCycle from "./pages/admin/okrs/CreateCycle";
 import AdminOKRCycleDetails from "./pages/admin/okrs/CycleDetails";
-import AdminOKRTemplates from "./pages/admin/okrs/Templates";
-import AdminCreateOKRTemplate from "./pages/admin/okrs/CreateTemplate";
-import AdminOKRTemplateDetails from "./pages/admin/okrs/TemplateDetails";
 import AdminAllObjectives from "./pages/admin/okrs/Objectives";
 import AdminObjectiveDetails from "./pages/admin/okrs/ObjectiveDetails";
 import OkrSettingsPage from "./pages/admin/okrs/OkrSettings";
@@ -165,9 +162,6 @@ const App = () => (
               <Route path="okrs/cycles" element={<AdminOKRCycles />} />
               <Route path="okrs/cycles/create" element={<AdminCreateOKRCycle />} />
               <Route path="okrs/cycles/:id" element={<AdminOKRCycleDetails />} />
-              <Route path="okrs/templates" element={<AdminOKRTemplates />} />
-              <Route path="okrs/templates/create" element={<AdminCreateOKRTemplate />} />
-              <Route path="okrs/templates/:id" element={<AdminOKRTemplateDetails />} />
               <Route path="okrs/objectives" element={<AdminAllObjectives />} />
               <Route path="okrs/objectives/:id" element={<AdminObjectiveDetails />} />
               <Route path="okrs/settings" element={<OkrSettingsPage />} />
