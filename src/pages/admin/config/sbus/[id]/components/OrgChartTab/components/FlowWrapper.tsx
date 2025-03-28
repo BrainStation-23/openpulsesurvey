@@ -1,27 +1,24 @@
 
-import { useState } from 'react';
 import {
   ReactFlow,
+  MiniMap,
   Controls,
   Background,
   BackgroundVariant,
-  NodeChange,
-  EdgeChange,
-  Edge,
-  ConnectionLineType,
-  Panel,
-  NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { Maximize2, Minimize2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useState, useEffect, useCallback } from 'react';
 import { CustomNode } from './CustomNode';
-import { FullScreenToggle } from '@/components/team/graph/FullScreenToggle';
-import { UserNode, UserNodeData } from '../types';
+import { UserNode } from '../types';
+import { Edge } from '@xyflow/react';
 
 interface FlowWrapperProps {
   nodes: UserNode[];
   edges: Edge[];
-  onNodesChange: (changes: NodeChange[]) => void;
-  onEdgesChange: (changes: EdgeChange[]) => void;
+  onNodesChange: any;
+  onEdgesChange: any;
   toggleNodeExpansion: (userId: string) => void;
 }
 
@@ -34,39 +31,88 @@ export const FlowWrapper = ({
 }: FlowWrapperProps) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
-  const toggleFullScreen = () => {
-    setIsFullScreen(!isFullScreen);
-  };
+  const toggleFullScreen = useCallback(() => {
+    if (!isFullScreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    setIsFullScreen(prev => !prev);
+  }, [isFullScreen]);
 
-  // Define node types mapping with correct typing
-  const nodeTypes: NodeTypes = {
-    userNode: CustomNode,
-  };
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isFullScreen) {
+        document.body.style.overflow = '';
+        setIsFullScreen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+      document.body.style.overflow = '';
+    };
+  }, [isFullScreen]);
+
+  if (isFullScreen) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-background">
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute top-4 right-4 z-10"
+          onClick={toggleFullScreen}
+        >
+          <Minimize2 className="h-4 w-4" />
+        </Button>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          nodeTypes={{
+            userNode: (props) => <CustomNode {...props} toggleNodeExpansion={toggleNodeExpansion} />,
+          }}
+          fitView
+          minZoom={0.1}
+          maxZoom={2}
+          proOptions={{ hideAttribution: true }}
+        >
+          <Controls />
+          <MiniMap zoomable pannable />
+          <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+        </ReactFlow>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={`bg-white border rounded-md ${
-        isFullScreen ? 'fixed inset-0 z-50' : 'h-[500px]'
-      }`}
-    >
+    <div className="h-[600px] border rounded-lg relative">
+      <Button
+        variant="outline"
+        size="icon"
+        className="absolute top-4 right-4 z-10"
+        onClick={toggleFullScreen}
+      >
+        <Maximize2 className="h-4 w-4" />
+      </Button>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        nodeTypes={nodeTypes}
-        connectionLineType={ConnectionLineType.SmoothStep}
+        nodeTypes={{
+          userNode: (props) => <CustomNode {...props} toggleNodeExpansion={toggleNodeExpansion} />,
+        }}
         fitView
-        fitViewOptions={{ padding: 0.2 }}
-        minZoom={0.5}
-        maxZoom={1.5}
+        minZoom={0.1}
+        maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
         <Controls />
+        <MiniMap zoomable pannable />
         <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-        <Panel position="top-right">
-          <FullScreenToggle isFullScreen={isFullScreen} onToggle={toggleFullScreen} />
-        </Panel>
       </ReactFlow>
     </div>
   );
