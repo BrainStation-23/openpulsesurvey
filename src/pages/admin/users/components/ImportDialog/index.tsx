@@ -1,12 +1,11 @@
-
 import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { processCSVFile, type ProcessingResult, type ProcessingProgressEvent } from "../../utils/csvProcessor";
+import { processCSVFile, type ProcessingResult } from "../../utils/csvProcessor";
 import { ImportError, ImportResult, downloadErrorReport, convertValidationErrorsToImportErrors } from "../../utils/errorReporting";
 import { batchProcessor, type BatchProgress } from "../../utils/batchProcessor";
 import { UploadArea } from "./UploadArea";
-import { ImportGuidelines } from "../BulkUpdateDialog/ImportGuidelines";
+import { ImportGuidelines } from "./ImportGuidelines";
 import { ImportProgress } from "./ImportProgress";
 import { ProcessingResultView } from "./ProcessingResult";
 
@@ -23,14 +22,12 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
   const [progress, setProgress] = useState<BatchProgress | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState<ProcessingProgressEvent | null>(null);
   const abortController = useRef<AbortController | null>(null);
 
   const handleProcessingComplete = (result: ProcessingResult) => {
     setProcessingResult(result);
     setImportResult(null);
     setIsProcessing(false);
-    setProcessingProgress(null);
 
     if (result.errors.length > 0) {
       toast({
@@ -139,7 +136,7 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
     }
 
     try {
-      const errors: ImportError[] = processingResult?.errors 
+      const errors = processingResult?.errors 
         ? convertValidationErrorsToImportErrors(processingResult.errors)
         : importResult?.errors || [];
       
@@ -175,10 +172,7 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
               <ImportGuidelines />
               <UploadArea
                 isProcessing={isProcessing}
-                processingProgress={processingProgress}
-                onProcessingComplete={(result) => {
-                  handleProcessingComplete(result);
-                }}
+                onProcessingComplete={handleProcessingComplete}
               />
             </>
           )}

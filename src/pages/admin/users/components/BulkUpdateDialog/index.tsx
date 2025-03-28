@@ -2,7 +2,7 @@
 import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { processCSVFile, type ProcessingResult, type ProcessingProgressEvent } from "../../utils/csvProcessor";
+import { processCSVFile, type ProcessingResult } from "../../utils/csvProcessor";
 import { ImportError, ImportResult, downloadErrorReport, convertValidationErrorsToImportErrors } from "../../utils/errorReporting";
 import { updateBatchProcessor, type BatchProgress } from "../../utils/updateBatchProcessor";
 import { UploadArea } from "./UploadArea";
@@ -23,14 +23,12 @@ export function BulkUpdateDialog({ open, onOpenChange, onUpdateComplete }: BulkU
   const [progress, setProgress] = useState<BatchProgress | null>(null);
   const [updateResult, setUpdateResult] = useState<ImportResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState<ProcessingProgressEvent | null>(null);
   const abortController = useRef<AbortController | null>(null);
 
   const handleProcessingComplete = (result: ProcessingResult) => {
     setProcessingResult(result);
     setUpdateResult(null);
     setIsProcessing(false);
-    setProcessingProgress(null);
 
     if (result.errors.length > 0) {
       toast({
@@ -175,20 +173,13 @@ export function BulkUpdateDialog({ open, onOpenChange, onUpdateComplete }: BulkU
               <ImportGuidelines />
               <UploadArea
                 isProcessing={isProcessing}
-                processingProgress={processingProgress}
                 onProcessingComplete={async (file) => {
                   try {
                     setIsProcessing(true);
-                    setProcessingProgress(null);
-                    
-                    const result = await processCSVFile(file, (progress) => {
-                      setProcessingProgress(progress);
-                    });
-                    
+                    const result = await processCSVFile(file);
                     handleProcessingComplete(result);
                   } catch (error) {
                     setIsProcessing(false);
-                    setProcessingProgress(null);
                     console.error("Processing error:", error);
                     toast({
                       variant: "destructive",

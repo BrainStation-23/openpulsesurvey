@@ -33,14 +33,6 @@ export type ProcessingResult = {
   errors: { row: number; errors: string[] }[];
 };
 
-export type ProcessingProgressEvent = {
-  stage: 'init' | 'parsing' | 'validating' | 'verifying' | 'checking_entities' | 'complete';
-  currentRow: number;
-  totalRows: number;
-  message: string;
-  percentage: number;
-};
-
 import cryptoRandomString from 'crypto-random-string';
 
 function generateTempPassword(): string {
@@ -146,10 +138,7 @@ async function verifyExistingUser(id: string, email: string): Promise<boolean> {
   return data?.email === email;
 }
 
-export async function processCSVFile(
-  file: File, 
-  onProgress?: (progress: ProcessingProgressEvent) => void
-): Promise<ProcessingResult> {
+export async function processCSVFile(file: File): Promise<ProcessingResult> {
   return new Promise((resolve, reject) => {
     const result: ProcessingResult = {
       newUsers: [],
@@ -157,54 +146,13 @@ export async function processCSVFile(
       errors: [],
     };
 
-    // Notify initial state
-    onProgress?.({
-      stage: 'init',
-      currentRow: 0,
-      totalRows: 0,
-      message: 'Initializing file processing...',
-      percentage: 0
-    });
-
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      
-      // Report parsing progress
-      step: (results, parser) => {
-        // Fix: Use results.meta.cursor instead of parser.lineNum
-        const rowIndex = results.meta.cursor || 0;
-        const totalRows = file.size / (results.data.toString().length || 1); // Estimate
-        onProgress?.({
-          stage: 'parsing',
-          currentRow: rowIndex,
-          totalRows: Math.ceil(totalRows),
-          message: `Parsing row ${rowIndex}...`,
-          percentage: Math.min(Math.floor((rowIndex / totalRows) * 100), 99)
-        });
-      },
-      
       complete: async (results) => {
         try {
-          onProgress?.({
-            stage: 'validating',
-            currentRow: 0,
-            totalRows: results.data.length,
-            message: 'Starting data validation...',
-            percentage: 0
-          });
-
           for (let i = 0; i < results.data.length; i++) {
             const row = results.data[i] as Record<string, string>;
-            
-            onProgress?.({
-              stage: 'validating',
-              currentRow: i + 1,
-              totalRows: results.data.length,
-              message: `Validating row ${i + 1} of ${results.data.length}...`,
-              percentage: Math.floor(((i + 1) / results.data.length) * 40) // First 40% for validation
-            });
-            
             const rowData = {
               id: row['ID']?.trim(),
               email: row['Email']?.trim(),
@@ -229,18 +177,10 @@ export async function processCSVFile(
               const validatedRow = csvRowSchema.parse(rowData);
               
               if (validatedRow.id) {
-                onProgress?.({
-                  stage: 'verifying',
-                  currentRow: i + 1,
-                  totalRows: results.data.length,
-                  message: `Verifying existing user: ${validatedRow.email}...`,
-                  percentage: 40 + Math.floor(((i + 1) / results.data.length) * 30) // Next 30% for verification
-                });
-                
                 const isValid = await verifyExistingUser(validatedRow.id, validatedRow.email);
                 if (!isValid) {
                   result.errors.push({
-                    row: i + 2, // +2 because of header row and 0-indexing
+                    row: i + 2,
                     errors: ["ID and email do not match or ID not found"],
                   });
                   continue;
@@ -252,76 +192,12 @@ export async function processCSVFile(
             } catch (error) {
               if (error instanceof z.ZodError) {
                 result.errors.push({
-                  row: i + 2, // +2 because of header row and 0-indexing
+                  row: i + 2,
                   errors: error.errors.map(e => `${e.path.join(".")}: ${e.message}`),
                 });
               }
             }
           }
-
-          // Final stage - validating entities (levels, locations, etc.)
-          onProgress?.({
-            stage: 'checking_entities',
-            currentRow: results.data.length,
-            totalRows: results.data.length,
-            message: 'Validating entity references...',
-            percentage: 80
-          });
-
-          // Sample entity checks
-          if (result.existingUsers.length > 0 || result.newUsers.length > 0) {
-            // Get all unique entity values for batch checking
-            const allLevels = new Set<string>();
-            const allLocations = new Set<string>();
-            const allEmploymentTypes = new Set<string>();
-            
-            [...result.existingUsers, ...result.newUsers].forEach(user => {
-              if (user.level) allLevels.add(user.level);
-              if (user.location) allLocations.add(user.location);
-              if (user.employmentType) allEmploymentTypes.add(user.employmentType);
-            });
-            
-            // Check if these entities exist (could add detailed validation here)
-            if (allLevels.size > 0) {
-              onProgress?.({
-                stage: 'checking_entities',
-                currentRow: results.data.length,
-                totalRows: results.data.length,
-                message: 'Validating levels...',
-                percentage: 85
-              });
-            }
-            
-            if (allLocations.size > 0) {
-              onProgress?.({
-                stage: 'checking_entities',
-                currentRow: results.data.length,
-                totalRows: results.data.length,
-                message: 'Validating locations...',
-                percentage: 90
-              });
-            }
-            
-            if (allEmploymentTypes.size > 0) {
-              onProgress?.({
-                stage: 'checking_entities',
-                currentRow: results.data.length,
-                totalRows: results.data.length,
-                message: 'Validating employment types...',
-                percentage: 95
-              });
-            }
-          }
-          
-          // Processing complete
-          onProgress?.({
-            stage: 'complete',
-            currentRow: results.data.length,
-            totalRows: results.data.length,
-            message: 'Processing complete!',
-            percentage: 100
-          });
-          
           resolve(result);
         } catch (error) {
           reject(error);
