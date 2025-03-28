@@ -2,6 +2,7 @@
 import {
   Handle,
   Position,
+  NodeProps,
 } from '@xyflow/react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -9,8 +10,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { UserNodeData } from '../types';
 
-interface CustomNodeProps {
-  data: UserNodeData;
+interface CustomNodeProps extends NodeProps<UserNodeData> {
   toggleNodeExpansion: (userId: string) => void;
 }
 

@@ -6,7 +6,8 @@ export interface CategoryWithColor {
   color_code: string;
 }
 
-export interface UserNodeData {
+// Make UserNodeData extend Record<string, unknown> to satisfy the ReactFlow node data constraint
+export interface UserNodeData extends Record<string, unknown> {
   label: string;
   subtitle: string;
   email: string;
@@ -22,8 +23,9 @@ export interface UserNodeData {
   level?: CategoryWithColor;
 }
 
-export interface UserNode extends Node {
-  data: UserNodeData;
+// Use a generic parameter for the Node type
+export interface UserNode extends Node<UserNodeData> {
+  // No need for data property, it's included in Node<UserNodeData>
 }
 
 export const nodeDefaults = {

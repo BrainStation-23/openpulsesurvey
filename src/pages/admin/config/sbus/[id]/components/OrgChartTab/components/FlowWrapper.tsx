@@ -7,18 +7,18 @@ import {
   BackgroundVariant,
   NodeChange,
   EdgeChange,
-  Node,
   Edge,
   ConnectionLineType,
   Panel,
+  NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { CustomNode } from './CustomNode';
 import { FullScreenToggle } from '@/components/team/graph/FullScreenToggle';
-import { UserNodeData } from '../types';
+import { UserNode, UserNodeData } from '../types';
 
 interface FlowWrapperProps {
-  nodes: Node<UserNodeData>[];
+  nodes: UserNode[];
   edges: Edge[];
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
@@ -38,8 +38,8 @@ export const FlowWrapper = ({
     setIsFullScreen(!isFullScreen);
   };
 
-  // Define node types mapping
-  const nodeTypes = {
+  // Define node types mapping with correct typing
+  const nodeTypes: NodeTypes = {
     userNode: (props: any) => <CustomNode {...props} toggleNodeExpansion={toggleNodeExpansion} />,
   };
 
