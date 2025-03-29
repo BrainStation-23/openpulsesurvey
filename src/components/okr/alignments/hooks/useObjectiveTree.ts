@@ -1,8 +1,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
-import { ObjectiveWithRelations } from '@/types/okr';
+import { ObjectiveWithRelations, Objective, AlignmentType } from '@/types/okr';
 import { useAlignments } from '@/hooks/okr/useAlignments';
-import { useObjectiveWithRelations } from '@/hooks/okr/useObjectiveWithRelations';
 import { useHierarchyProcessor } from './useHierarchyProcessor';
 import { useObjectivePath } from './useObjectivePath';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,7 +23,7 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin = fa
   }, [objective.alignedObjectives]);
   
   // Create a standalone function to fetch objective with relations
-  const fetchObjectiveWithRelations = useCallback(async (objectiveId: string) => {
+  const fetchObjectiveWithRelations = useCallback(async (objectiveId: string): Promise<ObjectiveWithRelations | null> => {
     try {
       // Use the hook with the specific ID to get the objective data
       const { data, error } = await supabase
@@ -58,7 +57,7 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin = fa
         .eq('source_objective_id', objectiveId);
       
       // Transform to our internal format
-      const objectiveWithRelations = {
+      const objectiveWithRelations: ObjectiveWithRelations = {
         id: data.id,
         title: data.title,
         description: data.description,
@@ -91,7 +90,7 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin = fa
           id: align.id,
           sourceObjectiveId: align.source_objective_id,
           alignedObjectiveId: align.aligned_objective_id,
-          alignmentType: align.alignment_type,
+          alignmentType: align.alignment_type as AlignmentType, // Explicitly cast to AlignmentType
           weight: align.weight,
           createdBy: align.created_by,
           createdAt: new Date(align.created_at),
