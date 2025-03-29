@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, Target, List } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, Target, List, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -129,13 +130,19 @@ const AdminObjectiveDetails = () => {
 
   const completedKeyResults = keyResults.filter(kr => kr.status === 'completed').length;
   
+  // Get child objectives count and stats
   const childObjectivesCount = objectiveWithRelations?.childObjectives?.length || 0;
+  const completedChildObjectives = objectiveWithRelations?.childObjectives?.filter(child => child.status === 'completed').length || 0;
+  
+  // Calculate total weight (key results + child objectives)
   const childObjectivesTotalWeight = objectiveWithRelations?.alignedObjectives
     ?.filter(a => a.sourceObjectiveId === id)
     ?.reduce((sum, alignment) => sum + alignment.weight, 0) || 0;
-  const childObjectivesAvgProgress = objectiveWithRelations?.childObjectives?.length 
-    ? Math.round(objectiveWithRelations.childObjectives.reduce((sum, obj) => sum + obj.progress, 0) / objectiveWithRelations.childObjectives.length) 
-    : 0;
+    
+  const keyResultsTotalWeight = keyResults.reduce((sum, kr) => sum + (kr.weight || 0), 0);
+  const totalWeight = (childObjectivesTotalWeight + keyResultsTotalWeight).toFixed(2);
+  const isOverweighted = parseFloat(totalWeight) > 1;
+  const isUnderweighted = parseFloat(totalWeight) < 1;
   
   if (isLoading) {
     return (
@@ -282,10 +289,10 @@ const AdminObjectiveDetails = () => {
                           <div className="w-32 bg-muted rounded-full h-2 mr-2">
                             <div 
                               className="bg-primary rounded-full h-2" 
-                              style={{ width: `${objective.progress || 0}%` }}
+                              style={{ width: `${Math.round(objective.progress * 100) || 0}%` }}
                             />
                           </div>
-                          <span>{objective.progress?.toFixed(0) || 0}%</span>
+                          <span>{Math.round(objective.progress * 100) || 0}%</span>
                         </div>
                       </dd>
                     </div>
@@ -317,34 +324,27 @@ const AdminObjectiveDetails = () => {
                       <dt className="font-medium">Child Objectives</dt>
                       <dd className="text-right">
                         <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                          {childObjectivesCount}
+                          {completedChildObjectives} / {childObjectivesCount} completed
                         </Badge>
                       </dd>
                     </div>
-                    {childObjectivesCount > 0 && (
-                      <div className="flex justify-between py-1 border-b">
-                        <dt className="font-medium">Children Total Weight</dt>
-                        <dd className="text-right">
-                          <span className="font-mono">{childObjectivesTotalWeight.toFixed(1)}</span>
-                        </dd>
-                      </div>
-                    )}
-                    {childObjectivesCount > 0 && (
-                      <div className="flex justify-between py-1 border-b">
-                        <dt className="font-medium">Children Avg Progress</dt>
-                        <dd className="text-right">
-                          <div className="flex items-center">
-                            <div className="w-16 bg-muted rounded-full h-2 mr-2">
-                              <div 
-                                className="bg-purple-500 rounded-full h-2" 
-                                style={{ width: `${childObjectivesAvgProgress}%` }}
-                              />
-                            </div>
-                            <span>{childObjectivesAvgProgress}%</span>
+                    <div className="flex justify-between py-1 border-b">
+                      <dt className="font-medium">Total Weight</dt>
+                      <dd className="flex items-center space-x-2">
+                        <span className={`font-mono ${isOverweighted ? 'text-red-600' : isUnderweighted ? 'text-yellow-600' : 'text-green-600'}`}>
+                          {totalWeight}
+                        </span>
+                        {isOverweighted && (
+                          <div className="flex items-center text-red-600">
+                            <AlertTriangle className="h-4 w-4 mr-1" />
+                            <span className="text-xs">Overweighted</span>
                           </div>
-                        </dd>
-                      </div>
-                    )}
+                        )}
+                        {isUnderweighted && !isOverweighted && (
+                          <span className="text-xs text-yellow-600">Underweighted</span>
+                        )}
+                      </dd>
+                    </div>
                   </dl>
                 </div>
                 
@@ -401,7 +401,7 @@ const AdminObjectiveDetails = () => {
                           </div>
                           <div className="flex items-center space-x-3">
                             <div className="text-sm font-mono">
-                              Weight: {(weight * 100).toFixed(2)}%
+                              Weight: {(weight * 100).toFixed(1)}%
                             </div>
                             <div className="flex items-center">
                               <div className="w-24 bg-muted rounded-full h-2 mr-2">
@@ -413,10 +413,10 @@ const AdminObjectiveDetails = () => {
                                       ? 'bg-red-500' 
                                       : 'bg-blue-500'
                                   }`}
-                                  style={{ width: `${child.progress || 0}%` }}
+                                  style={{ width: `${Math.round(child.progress * 100) || 0}%` }}
                                 />
                               </div>
-                              <span>{child.progress?.toFixed(0) || 0}%</span>
+                              <span>{Math.round(child.progress * 100) || 0}%</span>
                             </div>
                             <ObjectiveStatusBadge status={child.status} />
                             <Button 
@@ -445,6 +445,9 @@ const AdminObjectiveDetails = () => {
                           <span>{kr.title}</span>
                         </div>
                         <div className="flex items-center space-x-3">
+                          <div className="text-sm font-mono">
+                            Weight: {(kr.weight * 100).toFixed(1)}%
+                          </div>
                           <div className="flex items-center">
                             <div className="w-24 bg-muted rounded-full h-2 mr-2">
                               <div 
@@ -455,10 +458,10 @@ const AdminObjectiveDetails = () => {
                                     ? 'bg-red-500' 
                                     : 'bg-blue-500'
                                 }`}
-                                style={{ width: `${kr.progress || 0}%` }}
+                                style={{ width: `${Math.round(kr.progress * 100) || 0}%` }}
                               />
                             </div>
-                            <span>{kr.progress?.toFixed(0) || 0}%</span>
+                            <span>{Math.round(kr.progress * 100) || 0}%</span>
                           </div>
                           <Badge 
                             variant="outline" 
