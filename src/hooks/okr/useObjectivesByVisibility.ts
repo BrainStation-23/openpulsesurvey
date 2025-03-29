@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Objective } from '@/types/okr';
@@ -7,6 +8,8 @@ import { ObjectiveWithOwner } from '@/types/okr-extended';
 export type ObjectiveVisibilityCategory = 'all' | 'organization' | 'department' | 'team' | 'private';
 
 export const useObjectivesByVisibility = (cycleId?: string) => {
+  const [selectedCategory, setSelectedCategory] = useState<ObjectiveVisibilityCategory>('all');
+  
   const {
     data: objectives,
     isLoading,
@@ -49,7 +52,10 @@ export const useObjectivesByVisibility = (cycleId?: string) => {
         keyResultsCount: obj.key_results_count,
         completedKeyResults: obj.completed_key_results,
         cycleName: obj.cycle_name,
-        alignmentsCount: obj.alignments_count
+        alignmentsCount: obj.alignments_count,
+        // Add missing fields required by the Objective type
+        createdAt: new Date(),
+        updatedAt: new Date()
       })) as ObjectiveWithOwner[];
     },
     enabled: true
@@ -67,6 +73,8 @@ export const useObjectivesByVisibility = (cycleId?: string) => {
     departmentalObjectives,
     teamObjectives,
     privateObjectives,
+    selectedCategory,
+    setSelectedCategory,
     isLoading,
     error,
     refetch
