@@ -46,7 +46,6 @@ export const KeyResultHeader: React.FC<KeyResultHeaderProps> = ({
             {keyResult.krType.charAt(0).toUpperCase() + keyResult.krType.slice(1)}
           </Badge>
           
-          {/* Due date display - now always rendered if there's a date */}
           {keyResult.dueDate && (
             <DueDateDisplay 
               dueDate={keyResult.dueDate} 

@@ -22,8 +22,6 @@ interface KeyResultStatusFieldsProps {
 }
 
 export const KeyResultStatusFields: React.FC<KeyResultStatusFieldsProps> = ({ form }) => {
-  const dueDate = form.getValues('dueDate');
-  
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
