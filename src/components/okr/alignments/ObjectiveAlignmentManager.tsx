@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { ObjectiveGraphView } from './ObjectiveGraphView';
 import { CreateAlignmentDialog } from './CreateAlignmentDialog';
@@ -19,6 +19,17 @@ export const ObjectiveAlignmentManager: React.FC<ObjectiveAlignmentManagerProps>
   canEdit = false
 }) => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [refreshCounter, setRefreshCounter] = useState(0);
+
+  const handleAlignmentChange = useCallback(() => {
+    // Increment the counter to force a refresh
+    setRefreshCounter(prev => prev + 1);
+  }, []);
+
+  const handleCreateSuccess = useCallback(() => {
+    setIsCreateDialogOpen(false);
+    handleAlignmentChange();
+  }, [handleAlignmentChange]);
 
   return (
     <div className="space-y-4">
@@ -39,12 +50,15 @@ export const ObjectiveAlignmentManager: React.FC<ObjectiveAlignmentManagerProps>
         objective={objective} 
         isAdmin={isAdmin} 
         canEdit={canEdit}
+        onAlignmentChange={handleAlignmentChange}
+        key={`objective-graph-${refreshCounter}`} // Add key for forced refresh
       />
       
       <CreateAlignmentDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         sourceObjectiveId={objective.id}
+        onSuccess={handleCreateSuccess}
       />
     </div>
   );

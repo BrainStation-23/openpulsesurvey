@@ -1,4 +1,3 @@
-
 import { useCallback, useRef } from 'react';
 import { Objective, ObjectiveWithRelations } from '@/types/okr';
 import { Node, Edge } from '@xyflow/react';
@@ -231,6 +230,12 @@ export const useHierarchyProcessor = ({
     return result;
   }, [objective, isAdmin, canEdit, handleDeleteAlignment, handleEditAlignment, fetchObjectiveWithRelations]);
 
+  // Method to clear the cache
+  const clearCache = useCallback(() => {
+    console.log('Clearing hierarchy data cache');
+    lastProcessedResult.current = null;
+  }, []);
+
   return { 
     processHierarchyData,
     // Return a method to check if we already have processed data
@@ -238,6 +243,7 @@ export const useHierarchyProcessor = ({
       const pathHash = path.join('-');
       return lastProcessedResult.current?.rootId === rootId && 
              lastProcessedResult.current?.pathHash === pathHash;
-    }
+    },
+    clearCache // Expose clear cache function
   };
 };

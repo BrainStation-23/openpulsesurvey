@@ -7,15 +7,18 @@ import { useObjectivePath } from './useObjectivePath';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin = false, canEdit = false) => {
-  const { deleteAlignment } = useAlignments(objective.id);
+  const { deleteAlignment, createAlignment } = useAlignments(objective.id);
   // We need to fetch individual objectives, so create a function for that
   const [rootObjective, setRootObjective] = useState<ObjectiveWithRelations | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // Add a refresh trigger state
   
   // Calculate objective path for highlighting
   const { currentObjectivePath } = useObjectivePath(objective);
   
   const handleDeleteAlignment = useCallback(async (alignmentId: string) => {
     await deleteAlignment.mutateAsync(alignmentId);
+    // After successful deletion, trigger a refresh
+    setRefreshTrigger(prev => prev + 1);
   }, [deleteAlignment]);
   
   const getAlignmentById = useCallback((alignmentId: string) => {
@@ -120,7 +123,7 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin = fa
   }, []);
   
   // Use our hierarchy processor
-  const { processHierarchyData, hasProcessedData } = useHierarchyProcessor({
+  const { processHierarchyData, hasProcessedData, clearCache } = useHierarchyProcessor({
     isAdmin,
     canEdit,
     objective,
@@ -156,11 +159,32 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin = fa
     findRootObjective();
   }, [objective, objective.parentObjectiveId, fetchObjectiveWithRelations]);
   
+  // Add an effect to refresh data when alignment changes
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      // Clear the hierarchy processor cache to force re-fetching
+      clearCache();
+      
+      // Re-fetch the root objective to get updated alignments
+      const refreshRootObjective = async () => {
+        if (rootObjective) {
+          const refreshedObjective = await fetchObjectiveWithRelations(rootObjective.id);
+          if (refreshedObjective) {
+            setRootObjective(refreshedObjective);
+          }
+        }
+      };
+      
+      refreshRootObjective();
+    }
+  }, [refreshTrigger, rootObjective, fetchObjectiveWithRelations, clearCache]);
+  
   return {
     rootObjective,
     currentObjectivePath,
     processHierarchyData,
     hasProcessedData,
-    getAlignmentById
+    getAlignmentById,
+    refreshTree: () => setRefreshTrigger(prev => prev + 1) // Export function to trigger refresh
   };
 };

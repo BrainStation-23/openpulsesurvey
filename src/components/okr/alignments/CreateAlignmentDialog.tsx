@@ -1,25 +1,22 @@
 
-import React, { useState } from 'react';
-import { 
+import React from 'react';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Objective, AlignmentType, CreateAlignmentInput } from '@/types/okr';
+import { AlignmentForm } from './create-alignment/AlignmentForm';
+import { useObjectiveData } from './hooks/useObjectiveData';
 import { useAlignments } from '@/hooks/okr/useAlignments';
-import { ObjectiveSelection } from './create-alignment/ObjectiveSelection';
-import { AlignmentForm, AlignmentFormValues, alignmentFormSchema } from './create-alignment/AlignmentForm';
-import * as z from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from '@/hooks/use-toast';
 
 interface CreateAlignmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sourceObjectiveId: string;
-  onSuccess?: () => void;
+  onSuccess?: () => void; // Add success callback
 }
 
 export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
@@ -28,92 +25,62 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
   sourceObjectiveId,
   onSuccess
 }) => {
+  const { toast } = useToast();
   const { createAlignment } = useAlignments(sourceObjectiveId);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedObjective, setSelectedObjective] = useState<Objective | null>(null);
-  const [relationDirection, setRelationDirection] = useState<'parent' | 'child'>('parent');
-  
-  const form = useForm<AlignmentFormValues>({
-    resolver: zodResolver(alignmentFormSchema),
-    defaultValues: {
-      alignmentType: 'parent_child',
-      weight: 1,
-    },
-  });
-  
-  const toggleRelationDirection = () => {
-    setRelationDirection(prev => prev === 'parent' ? 'child' : 'parent');
-  };
 
-  const onSubmit = async (values: z.infer<typeof alignmentFormSchema>) => {
-    if (!sourceObjectiveId || !selectedObjective) return;
-    
-    setIsSubmitting(true);
-    
+  const {
+    sourceObjective,
+    isLoading,
+    error
+  } = useObjectiveData(sourceObjectiveId);
+
+  const handleCreateAlignment = async (alignmentData: {
+    alignedObjectiveId: string;
+    weight: number;
+  }) => {
     try {
-      let alignmentData: CreateAlignmentInput;
-      
-      if (relationDirection === 'parent') {
-        // Current objective will be the child, selected objective will be the parent
-        alignmentData = {
-          sourceObjectiveId: selectedObjective.id,
-          alignedObjectiveId: sourceObjectiveId,
-          alignmentType: 'parent_child',
-          weight: values.weight,
-        };
-      } else {
-        // Current objective will be the parent, selected objective will be the child
-        alignmentData = {
-          sourceObjectiveId: sourceObjectiveId,
-          alignedObjectiveId: selectedObjective.id,
-          alignmentType: 'parent_child',
-          weight: values.weight,
-        };
-      }
-      
-      await createAlignment.mutateAsync(alignmentData);
-      
-      setSelectedObjective(null);
-      form.reset();
-      onOpenChange(false);
-      if (onSuccess) onSuccess();
-    } catch (error) {
-      console.error('Error creating alignment:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      await createAlignment.mutateAsync({
+        sourceObjectiveId,
+        alignedObjectiveId: alignmentData.alignedObjectiveId,
+        alignmentType: 'parent_child',
+        weight: alignmentData.weight
+      });
 
-  const handleCancel = () => {
-    form.reset();
-    setSelectedObjective(null);
-    onOpenChange(false);
+      toast({
+        title: 'Alignment created',
+        description: 'The objective alignment has been created successfully.',
+      });
+
+      // Close dialog and call success callback
+      onOpenChange(false);
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error creating alignment',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+      });
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Create Alignment</DialogTitle>
+          <DialogTitle>Create Objective Alignment</DialogTitle>
           <DialogDescription>
-            Connect this objective with another to establish a parent-child relationship.
+            Link this objective to another one to show their relationships and dependencies.
           </DialogDescription>
         </DialogHeader>
-        
-        <ObjectiveSelection
-          relationDirection={relationDirection}
-          toggleRelationDirection={toggleRelationDirection}
-          selectedObjective={selectedObjective}
-          setSelectedObjective={setSelectedObjective}
-          sourceObjectiveId={sourceObjectiveId}
-        />
-        
+
         <AlignmentForm
-          form={form}
-          onSubmit={form.handleSubmit(onSubmit)}
-          isSubmitting={isSubmitting}
-          onCancel={handleCancel}
-          selectedObjective={selectedObjective}
+          sourceObjectiveId={sourceObjectiveId}
+          onSubmit={handleCreateAlignment}
+          isSubmitting={createAlignment.isPending}
+          onCancel={() => onOpenChange(false)}
+          sourceObjective={sourceObjective}
         />
       </DialogContent>
     </Dialog>
