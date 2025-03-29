@@ -11,7 +11,7 @@ import { Objective } from '@/types/okr';
 // Schema for alignment form validation
 export const alignmentFormSchema = z.object({
   alignmentType: z.enum(['parent_child']),
-  weight: z.number().min(0, { message: "Weight must be a non-negative number" }).default(1),
+  weight: z.number().min(0.000001, { message: "Weight must be greater than 0" }).default(1),
 });
 
 export type AlignmentFormValues = z.infer<typeof alignmentFormSchema>;
@@ -44,7 +44,7 @@ export const AlignmentForm = ({
                 <Input 
                   type="number"
                   step="any"
-                  min="0"
+                  min="0.000001"
                   disabled={isSubmitting}
                   placeholder="Enter weight value"
                   {...field}
@@ -55,7 +55,7 @@ export const AlignmentForm = ({
                 />
               </FormControl>
               <FormDescription>
-                Enter a non-negative value to represent the alignment weight
+                Enter a positive value to represent the alignment weight
               </FormDescription>
               <FormMessage />
             </FormItem>
