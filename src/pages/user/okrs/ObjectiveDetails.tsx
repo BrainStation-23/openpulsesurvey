@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, Target, List, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, Target, List, AlertTriangle, CalendarClock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -47,6 +47,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PermissionsList } from '@/components/okr/permissions/PermissionsList';
 import { useObjectiveStatusUpdates } from '@/hooks/okr/useObjectiveStatusUpdates';
+import { getDueDateColorClass, formatDueDate } from '@/components/okr/key-results/utils/dueDateUtils';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -468,6 +469,15 @@ const UserObjectiveDetails = () => {
                           >
                             {kr.krType.charAt(0).toUpperCase() + kr.krType.slice(1)}
                           </Badge>
+                          {kr.dueDate && kr.status !== 'completed' && (
+                            <Badge 
+                              variant="outline"
+                              className={`flex items-center gap-1 ${getDueDateColorClass(kr.dueDate)}`}
+                            >
+                              <CalendarClock className="h-3 w-3" />
+                              <span>{formatDueDate(kr.dueDate)}</span>
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     ))}

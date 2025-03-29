@@ -6,6 +6,7 @@ import { CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useOwnerInfo } from '../hooks/useOwnerInfo';
+import { DueDateDisplay } from './DueDateDisplay';
 
 interface KeyResultHeaderProps {
   keyResult: KeyResult;
@@ -44,6 +45,13 @@ export const KeyResultHeader: React.FC<KeyResultHeaderProps> = ({
           >
             {keyResult.krType.charAt(0).toUpperCase() + keyResult.krType.slice(1)}
           </Badge>
+          
+          {/* Due date display */}
+          <DueDateDisplay 
+            dueDate={keyResult.dueDate} 
+            isCompleted={keyResult.status === 'completed'} 
+            className="ml-2"
+          />
         </CardTitle>
         <p className="text-sm text-muted-foreground">Owned by: {ownerName}</p>
       </div>

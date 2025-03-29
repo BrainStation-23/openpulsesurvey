@@ -738,6 +738,7 @@ export type Database = {
           created_at: string
           current_value: number | null
           description: string | null
+          due_date: string | null
           id: string
           kr_type: string
           measurement_type: string | null
@@ -757,6 +758,7 @@ export type Database = {
           created_at?: string
           current_value?: number | null
           description?: string | null
+          due_date?: string | null
           id?: string
           kr_type: string
           measurement_type?: string | null
@@ -776,6 +778,7 @@ export type Database = {
           created_at?: string
           current_value?: number | null
           description?: string | null
+          due_date?: string | null
           id?: string
           kr_type?: string
           measurement_type?: string | null
