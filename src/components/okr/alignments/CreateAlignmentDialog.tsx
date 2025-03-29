@@ -37,7 +37,7 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
     resolver: zodResolver(alignmentFormSchema),
     defaultValues: {
       alignmentType: 'parent_child',
-      weight: 1,
+      weight: 1, // Default to 100%
     },
   });
   

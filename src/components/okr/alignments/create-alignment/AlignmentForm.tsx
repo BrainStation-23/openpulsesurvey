@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
 import * as z from "zod";
 import { Objective } from '@/types/okr';
+import { Slider } from "@/components/ui/slider";
 
 // Schema for alignment form validation
 export const alignmentFormSchema = z.object({
@@ -31,6 +32,9 @@ export const AlignmentForm = ({
   onCancel, 
   selectedObjective 
 }: AlignmentFormProps) => {
+  // Convert the weight value for display purposes
+  const displayPercentage = (value: number) => `${(value * 100).toFixed(2)}%`;
+  
   return (
     <Form {...form}>
       <form onSubmit={onSubmit} className="space-y-4">
@@ -38,25 +42,47 @@ export const AlignmentForm = ({
           control={form.control}
           name="weight"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Weight</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number"
-                  step="any"
-                  min="0.000001"
-                  disabled={isSubmitting}
-                  placeholder="Enter weight value"
-                  {...field}
-                  onChange={(e) => {
-                    const value = parseFloat(e.target.value);
-                    field.onChange(isNaN(value) ? 1 : value);
-                  }}
-                />
-              </FormControl>
+            <FormItem className="space-y-6">
+              <FormLabel>Weight ({displayPercentage(field.value)})</FormLabel>
+              <div className="flex flex-col space-y-4">
+                <FormControl>
+                  <div className="flex items-center space-x-4">
+                    <Slider 
+                      defaultValue={[field.value * 100]} 
+                      min={0.01} 
+                      max={100} 
+                      step={0.01}
+                      disabled={isSubmitting}
+                      onValueChange={(values) => {
+                        // Convert percentage back to decimal for the form
+                        field.onChange(values[0] / 100);
+                      }}
+                      className="flex-grow"
+                    />
+                  </div>
+                </FormControl>
+
+                <FormControl>
+                  <Input 
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max="100"
+                    disabled={isSubmitting}
+                    placeholder="Enter weight percentage"
+                    value={(field.value * 100).toFixed(2)}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      // Convert percentage to decimal for the form
+                      field.onChange(isNaN(value) ? 1 : value / 100);
+                    }}
+                    className="w-full"
+                  />
+                </FormControl>
+              </div>
               <FormDescription>
-                Enter a value between 0 and 1 to represent the contribution percentage to parent progress.
-                For example, 0.05 means this objective contributes 5% to the parent's overall progress.
+                Enter a value between 0.01% and 100% to represent the contribution percentage to parent progress.
+                For example, 5% means this objective contributes 5% to the parent's overall progress.
               </FormDescription>
               <FormMessage />
             </FormItem>
