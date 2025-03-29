@@ -1,4 +1,3 @@
-
 import { 
   LayoutDashboard, 
   Settings, 
@@ -28,7 +27,8 @@ import {
   PieChart,
   LineChart,
   FormInput,
-  PanelTop
+  PanelTop,
+  History
 } from "lucide-react";
 
 // Navigation item with optional children for nested navigation
@@ -124,6 +124,11 @@ export const navigationItems: NavigationItem[] = [
         title: "Objectives",
         icon: Rocket,
         path: "/admin/okrs/objectives",
+      },
+      {
+        title: "History",
+        icon: History,
+        path: "/admin/okrs/history",
       },
       {
         title: "Settings",
