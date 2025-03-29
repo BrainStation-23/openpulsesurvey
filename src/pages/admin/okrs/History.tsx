@@ -175,7 +175,7 @@ export default function OkrHistory() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Entity Types</SelectLabel>
-                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="all">All Types</SelectItem>
                     {entityTypes.map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
@@ -196,7 +196,7 @@ export default function OkrHistory() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Change Types</SelectLabel>
-                    <SelectItem value="">All Changes</SelectItem>
+                    <SelectItem value="all">All Changes</SelectItem>
                     {changeTypes.map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
