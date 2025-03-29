@@ -8,7 +8,8 @@ import { useObjectivePath } from './useObjectivePath';
 
 export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin = false, canEdit = false) => {
   const { deleteAlignment } = useAlignments(objective.id);
-  const { getObjectiveWithRelations } = useObjectiveWithRelations();
+  // Create a standalone instance of the useObjectiveWithRelations hook for fetching
+  const objectiveRelationsHook = useObjectiveWithRelations();
   const [rootObjective, setRootObjective] = useState<ObjectiveWithRelations | null>(null);
   
   // Calculate objective path for highlighting
@@ -23,8 +24,9 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin = fa
   }, [objective.alignedObjectives]);
   
   const fetchObjectiveWithRelations = useCallback(async (objectiveId: string) => {
-    return await getObjectiveWithRelations(objectiveId);
-  }, [getObjectiveWithRelations]);
+    const result = await objectiveRelationsHook.getObjectiveWithRelations(objectiveId);
+    return result;
+  }, [objectiveRelationsHook]);
   
   // Use our hierarchy processor
   const { processHierarchyData, hasProcessedData } = useHierarchyProcessor({
@@ -46,7 +48,7 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin = fa
       if (objective.parentObjectiveId) {
         try {
           // If there's a parent, try to get the parent as root
-          const parentObj = await getObjectiveWithRelations(objective.parentObjectiveId);
+          const parentObj = await objectiveRelationsHook.getObjectiveWithRelations(objective.parentObjectiveId);
           if (parentObj) {
             setRootObjective(parentObj);
             return;
@@ -61,7 +63,7 @@ export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin = fa
     };
     
     findRootObjective();
-  }, [objective, objective.parentObjectiveId, getObjectiveWithRelations]);
+  }, [objective, objective.parentObjectiveId, objectiveRelationsHook]);
   
   return {
     rootObjective,
