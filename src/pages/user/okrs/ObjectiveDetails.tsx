@@ -299,10 +299,10 @@ const UserObjectiveDetails = () => {
                           <div className="w-32 bg-muted rounded-full h-2 mr-2">
                             <div 
                               className="bg-primary rounded-full h-2" 
-                              style={{ width: `${Math.round(objective.progress * 100) || 0}%` }}
+                              style={{ width: `${objective.progress}%` }}
                             />
                           </div>
-                          <span>{Math.round(objective.progress * 100) || 0}%</span>
+                          <span>{objective.progress}%</span>
                         </div>
                       </dd>
                     </div>
@@ -406,10 +406,10 @@ const UserObjectiveDetails = () => {
                                       ? 'bg-red-500' 
                                       : 'bg-blue-500'
                                   }`}
-                                  style={{ width: `${Math.round(child.progress * 100) || 0}%` }}
+                                  style={{ width: `${child.progress}%` }}
                                 />
                               </div>
-                              <span>{Math.round(child.progress * 100) || 0}%</span>
+                              <span>{child.progress}%</span>
                             </div>
                             <ObjectiveStatusBadge status={child.status} />
                             <Button 
@@ -451,10 +451,10 @@ const UserObjectiveDetails = () => {
                                     ? 'bg-red-500' 
                                     : 'bg-blue-500'
                                 }`}
-                                style={{ width: `${Math.round(kr.progress * 100) || 0}%` }}
+                                style={{ width: `${kr.progress}%` }}
                               />
                             </div>
-                            <span>{Math.round(kr.progress * 100) || 0}%</span>
+                            <span>{kr.progress}%</span>
                           </div>
                           <Badge 
                             variant="outline" 

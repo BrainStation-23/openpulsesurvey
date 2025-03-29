@@ -105,6 +105,7 @@ export interface KeyResult {
   weight: number;
   status: KeyResultStatus;
   progress: number;
+  dueDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -123,6 +124,7 @@ export interface CreateKeyResultInput {
   booleanValue?: boolean;
   weight?: number;
   status?: KeyResultStatus;
+  dueDate?: Date;
 }
 
 export interface UpdateKeyResultInput extends Partial<CreateKeyResultInput> {

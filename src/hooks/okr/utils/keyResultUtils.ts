@@ -1,5 +1,5 @@
 
-import { KeyResult, KeyResultStatus, UpdateKeyResultInput, CreateKeyResultInput } from '@/types/okr';
+import { KeyResult, KeyResultStatus, UpdateKeyResultInput, CreateKeyResultInput, MeasurementType } from '@/types/okr';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -32,17 +32,18 @@ export const mapKeyResultData = (data: any): KeyResult => {
     objectiveId: data.objective_id,
     ownerId: data.owner_id,
     krType: data.kr_type,
-    measurementType: data.measurement_type,
+    measurementType: data.measurement_type as MeasurementType,
     unit: data.unit,
     startValue: data.start_value,
     currentValue: data.current_value,
     targetValue: data.target_value,
     booleanValue: data.boolean_value,
     weight: data.weight,
-    status: data.status,
+    status: data.status as KeyResultStatus,
     progress: data.progress,
     createdAt: new Date(data.created_at),
-    updatedAt: new Date(data.updated_at)
+    updatedAt: new Date(data.updated_at),
+    dueDate: data.due_date ? new Date(data.due_date) : undefined
   } as KeyResult;
 };
 
@@ -120,6 +121,7 @@ export const updateKeyResult = async (data: UpdateKeyResultInput) => {
       boolean_value: data.booleanValue,
       weight: data.weight || 1,
       status: data.status,
+      due_date: data.dueDate ? data.dueDate.toISOString() : null,
       updated_at: new Date().toISOString()
     })
     .eq('id', data.id);
@@ -165,6 +167,7 @@ export const createKeyResult = async (data: CreateKeyResultInput) => {
       boolean_value: data.booleanValue,
       weight: data.weight || 1,
       status: data.status || 'not_started',
+      due_date: data.dueDate ? data.dueDate.toISOString() : null,
     });
   
   if (error) {
