@@ -1,29 +1,14 @@
-import { Edge, Node } from '@xyflow/react';
-import { Objective, ObjectiveWithRelations } from '@/types/okr';
-import { useState, useCallback, useMemo } from 'react';
-import { useToast } from '@/hooks/use-toast';
 
-interface HierarchyProcessorOptions {
+import { useCallback, useRef } from 'react';
+import { Objective, ObjectiveWithRelations } from '@/types/okr';
+import { Node, Edge } from '@xyflow/react';
+
+interface HierarchyProcessorProps {
   isAdmin: boolean;
   canEdit: boolean;
   objective: ObjectiveWithRelations;
-  handleDeleteAlignment: (alignmentId: string, callback?: () => void) => void;
-  fetchObjectiveWithRelations: (id: string) => Promise<ObjectiveWithRelations>;
-}
-
-interface NodeData {
-  objective: Objective;
-  isAdmin: boolean;
-  isCurrentObjective: boolean;
-  isInPath: boolean;
-  canDelete: boolean;
-  canEdit: boolean;
-  onDelete?: () => void;
-}
-
-interface HierarchyData {
-  nodes: Node<NodeData>[];
-  edges: Edge[];
+  handleDeleteAlignment: (alignmentId: string) => Promise<void>;
+  fetchObjectiveWithRelations: (objectiveId: string) => Promise<ObjectiveWithRelations | null>;
 }
 
 export const useHierarchyProcessor = ({
@@ -32,165 +17,220 @@ export const useHierarchyProcessor = ({
   objective,
   handleDeleteAlignment,
   fetchObjectiveWithRelations
-}: HierarchyProcessorOptions) => {
-  const [processedData, setProcessedData] = useState<Map<string, HierarchyData>>(new Map());
-  const { toast } = useToast();
-
-  // Function to check if we've already processed a particular hierarchy
-  const hasProcessedData = useCallback((rootId: string, pathIds: string[]) => {
-    // Convert array to string for map key
-    const key = `${rootId}-${pathIds.join('-')}`;
-    return processedData.has(key);
-  }, [processedData]);
-
-  // Process the hierarchy data to create nodes and edges for ReactFlow
+}: HierarchyProcessorProps) => {
+  // Use a ref to store the last processed result to prevent reprocessing the same data
+  const lastProcessedResult = useRef<{
+    rootId: string;
+    pathHash: string;
+    result: { nodes: Node[]; edges: Edge[] };
+  } | null>(null);
+  
+  // Process objective data into graph nodes and edges
   const processHierarchyData = useCallback(async (
-    rootObjective: ObjectiveWithRelations,
-    currentObjectivePath: string[] = [],
-    useCache = false
-  ): Promise<HierarchyData> => {
-    const nodes: Node<NodeData>[] = [];
+    rootObj: Objective, 
+    highlightPath: string[],
+    useCache: boolean = false
+  ) => {
+    console.log('Starting to process hierarchy data');
+    
+    // Create a hash of the current path to use for caching
+    const pathHash = highlightPath.join('-');
+    
+    // Check if we've already processed this exact hierarchy and path
+    if (useCache && lastProcessedResult.current && 
+        lastProcessedResult.current.rootId === rootObj.id &&
+        lastProcessedResult.current.pathHash === pathHash) {
+      console.log('Using cached hierarchy data');
+      return lastProcessedResult.current.result;
+    }
+    
+    const nodes: Node[] = [];
     const edges: Edge[] = [];
     const processedNodes = new Set<string>();
-    const layoutLevels: { [level: number]: number } = {};
-    const horizontalSpacing = 250;
-    const verticalSpacing = 150;
     
-    // Create a unique key for this hierarchy configuration
-    const cacheKey = `${rootObjective.id}-${currentObjectivePath.join('-')}`;
-
-    // Check cache first if requested
-    if (useCache && processedData.has(cacheKey)) {
-      return processedData.get(cacheKey)!;
-    }
-
-    // Function to recursively process objectives and their relationships
-    const processObjective = async (
-      obj: ObjectiveWithRelations | Objective,
-      level: number = 0,
-      horizontalPosition: number = 0,
-      path: string[] = [], 
-      parent?: ObjectiveWithRelations
-    ) => {
-      if (processedNodes.has(obj.id)) return;
-      processedNodes.add(obj.id);
-
-      // Keep track of how many nodes we have at each level for positioning
-      if (!layoutLevels[level]) {
-        layoutLevels[level] = 0;
-      }
-      layoutLevels[level]++;
-
-      // Calculate position
-      const xPos = horizontalPosition * horizontalSpacing;
-      const yPos = level * verticalSpacing;
-
-      // Check if this objective is in the current path
-      const isInPath = currentObjectivePath.includes(obj.id);
-      const isCurrentObjective = objective.id === obj.id;
-
-      // Add the node
-      const nodeId = obj.id;
-      nodes.push({
-        id: nodeId,
-        type: 'objectiveNode',
-        position: { x: xPos, y: yPos },
-        data: {
-          objective: obj,
-          isAdmin,
-          isCurrentObjective,
-          isInPath,
-          canDelete: canEdit && parent !== undefined,
-          canEdit: canEdit,
-          onDelete: parent ? () => {
-            // Need to find the alignment ID between parent and obj
-            const alignment = parent.sourceAlignments?.find(
-              a => a.alignedObjectiveId === obj.id
-            );
-
-            if (alignment && alignment.id) {
-              handleDeleteAlignment(alignment.id, () => {
-                // Clear the processed data cache to force a refresh
-                setProcessedData(new Map());
-                toast({
-                  title: "Alignment removed",
-                  description: "The alignment has been successfully removed."
-                });
-              });
+    // Calculate positions in a tree-like layout
+    const calculateNodePosition = (level: number, index: number, totalNodesInLevel: number) => {
+      const horizontalSpacing = 300;
+      const verticalSpacing = 150;
+      const levelWidth = Math.max(totalNodesInLevel * horizontalSpacing, horizontalSpacing);
+      const startX = -levelWidth / 2 + horizontalSpacing / 2;
+      
+      return {
+        x: startX + index * horizontalSpacing,
+        y: level * verticalSpacing
+      };
+    };
+    
+    // Process nodes breadth-first instead of depth-first to improve performance
+    const processHierarchy = async () => {
+      console.log(`Processing hierarchy starting from objective: ${rootObj.id} (${rootObj.title})`);
+      
+      const queue: Array<{
+        obj: Objective | ObjectiveWithRelations,
+        level: number,
+        index: number,
+        totalNodesInLevel: number,
+        parentId?: string
+      }> = [{
+        obj: rootObj,
+        level: 0,
+        index: 0,
+        totalNodesInLevel: 1
+      }];
+      
+      while (queue.length > 0) {
+        const { obj, level, index, totalNodesInLevel, parentId } = queue.shift()!;
+        
+        if (processedNodes.has(obj.id)) {
+          console.log(`Node ${obj.id} already processed, skipping`);
+          continue;
+        }
+        
+        console.log(`Processing node ${obj.id} (${obj.title}) at level ${level}, index ${index}`);
+        
+        const isCurrentObjective = obj.id === objective.id;
+        const isInPath = highlightPath.includes(obj.id);
+        
+        // Calculate position
+        const position = calculateNodePosition(level, index, totalNodesInLevel);
+        
+        // Create node
+        const nodeData = {
+          id: obj.id,
+          type: 'objectiveNode',
+          position,
+          draggable: true, // Allow dragging for better UX
+          data: {
+            objective: obj,
+            isAdmin,
+            isCurrentObjective,
+            isInPath,
+            canDelete: canEdit && parentId !== undefined,
+            onDelete: parentId ? () => {
+              const alignment = objective.alignedObjectives?.find(
+                a => (a.sourceObjectiveId === parentId && a.alignedObjectiveId === obj.id) || 
+                    (a.sourceObjectiveId === obj.id && a.alignedObjectiveId === parentId)
+              );
+              if (alignment) handleDeleteAlignment(alignment.id);
+            } : undefined
+          }
+        };
+        
+        nodes.push(nodeData);
+        console.log(`Added node: ${obj.id} (${obj.title}) at position (${position.x}, ${position.y})`);
+        
+        processedNodes.add(obj.id);
+        
+        // Create edge if there's a parent
+        if (parentId) {
+          const edgeData = {
+            id: `${parentId}-${obj.id}`,
+            source: parentId,
+            target: obj.id,
+            type: 'smoothstep',
+            animated: isInPath,
+            style: { 
+              stroke: isInPath ? '#9333ea' : '#64748b', 
+              strokeWidth: isInPath ? 3 : 2 
             }
-          } : undefined
-        }
-      });
-
-      // Check if we need to add an edge from parent to this node
-      if (parent) {
-        edges.push({
-          id: `${parent.id}-${nodeId}`,
-          source: parent.id,
-          target: nodeId,
-          animated: isInPath,
-          style: {
-            stroke: isInPath ? '#9333EA' : '#94a3b8', // Purple if in path, gray otherwise
-            strokeWidth: isInPath ? 2 : 1
-          }
-        });
-      }
-
-      // Get the full objective with relations if this is just a basic objective
-      let objWithRelations = obj as ObjectiveWithRelations;
-      if (!('sourceAlignments' in obj) && !useCache) {
-        try {
-          objWithRelations = await fetchObjectiveWithRelations(obj.id);
-        } catch (error) {
-          toast({
-            variant: "destructive",
-            title: "Error loading alignments",
-            description: error instanceof Error ? error.message : "Failed to load objective alignments"
-          });
-          return;
-        }
-      }
-
-      // Process child objectives
-      if (objWithRelations.sourceAlignments?.length) {
-        // Count how many child nodes we'll have
-        const childCount = objWithRelations.sourceAlignments.length;
-        
-        // Start children at position that centers them under parent
-        const startPosition = horizontalPosition - (childCount - 1) / 2;
-        
-        // Process each child
-        for (let i = 0; i < objWithRelations.sourceAlignments.length; i++) {
-          const alignment = objWithRelations.sourceAlignments[i];
-          const childPosition = startPosition + i;
+          };
           
-          // Fetch the full objective if we only have the ID
-          if (alignment.alignedObjective) {
-            await processObjective(
-              alignment.alignedObjective,
-              level + 1,
-              childPosition,
-              [...path, obj.id],
-              objWithRelations
-            );
+          edges.push(edgeData);
+          console.log(`Added edge: ${parentId} -> ${obj.id}`);
+        }
+        
+        // Fetch complete objective data with relations if needed
+        let objWithRelations = obj as ObjectiveWithRelations;
+        if (!('childObjectives' in obj) || !('alignedObjectives' in obj)) {
+          console.log(`Fetching complete data for objective: ${obj.id}`);
+          const fetchedObj = await fetchObjectiveWithRelations(obj.id);
+          if (fetchedObj) {
+            objWithRelations = fetchedObj;
+          } else {
+            console.warn(`Failed to fetch data for objective: ${obj.id}`);
           }
+        }
+        
+        // Process child objectives
+        const childNodes: Objective[] = [];
+        
+        // Add direct child objectives
+        if (objWithRelations.childObjectives && objWithRelations.childObjectives.length > 0) {
+          console.log(`Adding ${objWithRelations.childObjectives.length} child objectives for ${obj.id}`);
+          childNodes.push(...objWithRelations.childObjectives);
+        }
+        
+        // Add aligned objectives
+        if (objWithRelations.alignedObjectives && objWithRelations.alignedObjectives.length > 0) {
+          const alignments = objWithRelations.alignedObjectives.filter(
+            alignment => alignment.alignmentType === 'parent_child' && 
+                        alignment.sourceObjectiveId === obj.id
+          );
+          
+          console.log(`Adding ${alignments.length} aligned objectives for ${obj.id}`);
+          
+          alignments.forEach(alignment => {
+            if (alignment.alignedObjective) {
+              childNodes.push(alignment.alignedObjective);
+            } else {
+              console.warn(`Alignment ${alignment.id} is missing alignedObjective data`);
+            }
+          });
+        }
+        
+        // Add child nodes to queue
+        if (childNodes.length > 0) {
+          console.log(`Queuing ${childNodes.length} child nodes for ${obj.id}`);
+          childNodes.forEach((childObj, idx) => {
+            queue.push({
+              obj: childObj,
+              level: level + 1,
+              index: idx,
+              totalNodesInLevel: childNodes.length,
+              parentId: obj.id
+            });
+          });
+        } else {
+          console.log(`No child nodes found for ${obj.id}`);
         }
       }
     };
-
-    // Start processing from the root objective
-    await processObjective(rootObjective, 0, 0, [], undefined);
-
-    // Cache the result
+    
+    await processHierarchy();
+    
+    // Store the result in cache
     const result = { nodes, edges };
-    setProcessedData(prev => new Map(prev).set(cacheKey, result));
+    lastProcessedResult.current = {
+      rootId: rootObj.id,
+      pathHash,
+      result
+    };
+    
+    console.log(`Processed ${nodes.length} nodes and ${edges.length} edges`);
+    
+    // Validate that nodes and edges are correctly formatted
+    if (nodes.length === 0) {
+      console.warn('No nodes were generated for the hierarchy');
+    }
+    
+    // Check for common issues
+    nodes.forEach(node => {
+      if (!node.id) console.error('Node missing ID', node);
+      if (!node.position) console.error('Node missing position', node);
+      if (!node.data?.objective) console.error('Node missing objective data', node);
+    });
     
     return result;
-  }, [objective.id, isAdmin, canEdit, handleDeleteAlignment, fetchObjectiveWithRelations, toast]);
+  }, [objective, isAdmin, canEdit, handleDeleteAlignment, fetchObjectiveWithRelations]);
 
-  // Return the hook functions
-  return {
+  return { 
     processHierarchyData,
-    hasProcessedData
+    // Return a method to check if we already have processed data
+    hasProcessedData: (rootId: string, path: string[]) => {
+      const pathHash = path.join('-');
+      return lastProcessedResult.current?.rootId === rootId && 
+             lastProcessedResult.current?.pathHash === pathHash;
+    }
   };
 };
+
