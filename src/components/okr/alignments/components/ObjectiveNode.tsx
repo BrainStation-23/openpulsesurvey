@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowRight, Trash2 } from 'lucide-react';
+import { ArrowRight, Edit, Trash2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ObjectiveNodeOwnerInfo } from './ObjectiveNodeOwnerInfo';
+import { Progress } from "@/components/ui/progress";
 
 interface ObjectiveNodeProps {
   data: {
@@ -41,10 +42,7 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
   const { objective, isAdmin, isCurrentObjective, isInPath, canDelete, onDelete } = data;
   const basePath = isAdmin ? '/admin' : '/user';
   
-  // Log node rendering for debugging
-  console.log(`Rendering node: ${objective.id} (${objective.title})`);
-  
-  // Different styling based on the node's status
+  // Get appropriate background color based on node status
   const getBgColor = () => {
     if (isCurrentObjective) return 'bg-amber-50 border-amber-300';
     if (isInPath) return 'bg-purple-50 border-purple-200';
@@ -53,8 +51,8 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
   
   return (
     <TooltipProvider>
-      <div className={`p-3 rounded-lg shadow-md ${getBgColor()} transition-colors duration-200`}>
-        {/* Handles for connections */}
+      <div className={`p-4 rounded-lg shadow-md border ${getBgColor()} transition-colors duration-200 w-72`}>
+        {/* Connection Handles */}
         <Handle
           type="target"
           position={Position.Top}
@@ -68,16 +66,18 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
           className="w-3 h-3 border-2 border-gray-400 bg-white"
         />
         
-        <div className="w-64 max-w-full">
-          <div className="flex items-center gap-1 mb-1">
+        {/* Card Content */}
+        <div className="space-y-3">
+          {/* 1. Header with objective title */}
+          <div className="flex items-start gap-1">
             {isCurrentObjective && (
-              <ArrowRight className="h-4 w-4 text-amber-500 mr-1 animate-pulse" />
+              <ArrowRight className="h-4 w-4 text-amber-500 mr-1 flex-shrink-0 animate-pulse" />
             )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Link 
                   to={`${basePath}/okrs/objectives/${objective.id}`} 
-                  className={`font-medium hover:underline text-sm block truncate ${
+                  className={`font-semibold text-base block truncate ${
                     isCurrentObjective ? 'text-amber-800 font-bold' : 
                     isInPath ? 'text-purple-800' : ''
                   }`}
@@ -94,13 +94,50 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
                 </div>
               </TooltipContent>
             </Tooltip>
-            <ObjectiveStatusBadge status={objective.status} className="ml-2 text-xs h-5 px-1.5" />
-            
-            {canDelete && onDelete && (
+          </div>
+          
+          {/* 2. Status Badge */}
+          <div>
+            <ObjectiveStatusBadge status={objective.status} className="text-xs" />
+          </div>
+          
+          {/* 3. Owner Information */}
+          <div className="flex items-center gap-2">
+            <User className="h-3 w-3 text-muted-foreground" />
+            <ObjectiveNodeOwnerInfo ownerId={objective.ownerId} />
+          </div>
+          
+          {/* 4. Progress Bar */}
+          <div>
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-muted-foreground">Progress</span>
+              <span>{Math.round(objective.progress)}%</span>
+            </div>
+            <Progress 
+              value={objective.progress || 0} 
+              className="h-2"
+              indicatorClassName={
+                objective.progress >= 100 ? 'bg-green-500' : 
+                objective.progress >= 70 ? 'bg-emerald-500' : 
+                objective.progress >= 50 ? 'bg-amber-500' : 
+                objective.progress >= 30 ? 'bg-orange-500' : 
+                'bg-red-500'
+              }
+            />
+          </div>
+          
+          {/* 5. Action Buttons */}
+          {canDelete && onDelete && (
+            <div className="flex justify-end space-x-2 mt-2">
+              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs">
+                <Edit className="h-3 w-3 mr-1" />
+                Edit
+              </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-5 w-5 ml-auto">
-                    <Trash2 className="h-3 w-3 text-red-500" />
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-red-500 hover:text-red-600">
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Delete
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -113,39 +150,14 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={onDelete}>
-                      Remove
-                    </AlertDialogAction>
+                    <AlertDialogAction onClick={onDelete}>Remove</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            )}
-          </div>
-          
-          <div className="mt-2 space-y-1">
-            <div className="flex items-center">
-              <div className="w-full bg-muted rounded-full h-2 mr-1">
-                <div 
-                  className={`rounded-full h-2 ${
-                    objective.progress >= 100 ? 'bg-green-500' : 
-                    objective.progress >= 70 ? 'bg-emerald-500' : 
-                    objective.progress >= 50 ? 'bg-amber-500' : 
-                    objective.progress >= 30 ? 'bg-orange-500' : 
-                    'bg-red-500'
-                  }`}
-                  style={{ width: `${objective.progress || 0}%` }}
-                />
-              </div>
-              <span className="text-xs text-muted-foreground min-w-[2.5rem] text-right">
-                {Math.round(objective.progress)}%
-              </span>
             </div>
-
-            <ObjectiveNodeOwnerInfo ownerId={objective.ownerId} />
-          </div>
+          )}
         </div>
       </div>
     </TooltipProvider>
   );
 };
-
