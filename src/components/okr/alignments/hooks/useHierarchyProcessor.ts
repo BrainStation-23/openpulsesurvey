@@ -1,21 +1,7 @@
-import { useCallback, useRef } from 'react';
-import { Objective, ObjectiveWithRelations, ObjectiveAlignment } from '@/types/okr';
-import { Node, Edge } from '@xyflow/react';
 
-// Define a type for the node data
-interface NodeData {
-  objective: Objective;
-  isAdmin: boolean;
-  isCurrentObjective: boolean;
-  isInPath: boolean;
-  canDelete: boolean;
-  canEdit: boolean;
-  parentId?: string;
-  alignment?: ObjectiveAlignment | null;
-  onDelete?: () => void;
-  onEdit?: () => void;
-  [key: string]: unknown; // Adding index signature to satisfy Record<string, unknown>
-}
+import { useCallback, useRef } from 'react';
+import { Objective, ObjectiveWithRelations } from '@/types/okr';
+import { Node, Edge } from '@xyflow/react';
 
 interface HierarchyProcessorProps {
   isAdmin: boolean;
@@ -36,7 +22,7 @@ export const useHierarchyProcessor = ({
   const lastProcessedResult = useRef<{
     rootId: string;
     pathHash: string;
-    result: { nodes: Node<NodeData>[]; edges: Edge[] };
+    result: { nodes: Node[]; edges: Edge[] };
   } | null>(null);
   
   // Process objective data into graph nodes and edges
@@ -58,7 +44,7 @@ export const useHierarchyProcessor = ({
       return lastProcessedResult.current.result;
     }
     
-    const nodes: Node<NodeData>[] = [];
+    const nodes: Node[] = [];
     const edges: Edge[] = [];
     const processedNodes = new Set<string>();
     
@@ -84,8 +70,7 @@ export const useHierarchyProcessor = ({
         level: number,
         index: number,
         totalNodesInLevel: number,
-        parentId?: string,
-        alignment?: ObjectiveAlignment | null
+        parentId?: string
       }> = [{
         obj: rootObj,
         level: 0,
@@ -94,7 +79,7 @@ export const useHierarchyProcessor = ({
       }];
       
       while (queue.length > 0) {
-        const { obj, level, index, totalNodesInLevel, parentId, alignment } = queue.shift()!;
+        const { obj, level, index, totalNodesInLevel, parentId } = queue.shift()!;
         
         if (processedNodes.has(obj.id)) {
           console.log(`Node ${obj.id} already processed, skipping`);
@@ -109,12 +94,6 @@ export const useHierarchyProcessor = ({
         // Calculate position
         const position = calculateNodePosition(level, index, totalNodesInLevel);
         
-        // Set correct permissions - IMPORTANT: Make parentId and alignment checks more explicit
-        const nodeCanDelete = canEdit && !!parentId;
-        const nodeCanEdit = canEdit && !!parentId && !!alignment;
-        
-        console.log(`Node ${obj.id} permissions:`, { nodeCanDelete, nodeCanEdit, parentId, hasAlignment: !!alignment });
-        
         // Create node
         const nodeData = {
           id: obj.id,
@@ -126,17 +105,14 @@ export const useHierarchyProcessor = ({
             isAdmin,
             isCurrentObjective,
             isInPath,
-            canDelete: nodeCanDelete,
-            canEdit: nodeCanEdit,
-            parentId,
-            alignment,
-            onDelete: parentId && alignment ? () => {
-              handleDeleteAlignment(alignment.id);
-            } : undefined,
-            onEdit: () => {
-              // This will trigger a refresh of the graph data
-              console.log('Alignment edited, refreshing graph');
-            }
+            canDelete: canEdit && parentId !== undefined,
+            onDelete: parentId ? () => {
+              const alignment = objective.alignedObjectives?.find(
+                a => (a.sourceObjectiveId === parentId && a.alignedObjectiveId === obj.id) || 
+                    (a.sourceObjectiveId === obj.id && a.alignedObjectiveId === parentId)
+              );
+              if (alignment) handleDeleteAlignment(alignment.id);
+            } : undefined
           }
         };
         
@@ -176,17 +152,12 @@ export const useHierarchyProcessor = ({
         }
         
         // Process child objectives
-        const childNodes: { 
-          objective: Objective, 
-          alignment?: ObjectiveAlignment 
-        }[] = [];
+        const childNodes: Objective[] = [];
         
         // Add direct child objectives
         if (objWithRelations.childObjectives && objWithRelations.childObjectives.length > 0) {
           console.log(`Adding ${objWithRelations.childObjectives.length} child objectives for ${obj.id}`);
-          objWithRelations.childObjectives.forEach(child => {
-            childNodes.push({ objective: child });
-          });
+          childNodes.push(...objWithRelations.childObjectives);
         }
         
         // Add aligned objectives
@@ -200,10 +171,7 @@ export const useHierarchyProcessor = ({
           
           alignments.forEach(alignment => {
             if (alignment.alignedObjective) {
-              childNodes.push({ 
-                objective: alignment.alignedObjective,
-                alignment: alignment
-              });
+              childNodes.push(alignment.alignedObjective);
             } else {
               console.warn(`Alignment ${alignment.id} is missing alignedObjective data`);
             }
@@ -213,14 +181,13 @@ export const useHierarchyProcessor = ({
         // Add child nodes to queue
         if (childNodes.length > 0) {
           console.log(`Queuing ${childNodes.length} child nodes for ${obj.id}`);
-          childNodes.forEach((childData, idx) => {
+          childNodes.forEach((childObj, idx) => {
             queue.push({
-              obj: childData.objective,
+              obj: childObj,
               level: level + 1,
               index: idx,
               totalNodesInLevel: childNodes.length,
-              parentId: obj.id,
-              alignment: childData.alignment
+              parentId: obj.id
             });
           });
         } else {
@@ -266,3 +233,4 @@ export const useHierarchyProcessor = ({
     }
   };
 };
+

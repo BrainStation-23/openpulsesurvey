@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Handle, Position } from '@xyflow/react';
 import { ObjectiveStatusBadge } from '@/components/okr/objectives/ObjectiveStatusBadge';
-import { Objective, ObjectiveAlignment } from '@/types/okr';
+import { Objective } from '@/types/okr';
 import {
   Tooltip,
   TooltipContent,
@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ObjectiveNodeOwnerInfo } from './ObjectiveNodeOwnerInfo';
 import { Progress } from "@/components/ui/progress";
-import { EditAlignmentDialog } from '../EditAlignmentDialog';
 
 interface ObjectiveNodeProps {
   data: {
@@ -34,18 +33,13 @@ interface ObjectiveNodeProps {
     isCurrentObjective: boolean;
     isInPath: boolean;
     canDelete: boolean;
-    canEdit: boolean;
-    parentId?: string;
-    alignment?: ObjectiveAlignment | null;
     onDelete?: () => void;
-    onEdit?: () => void;
   };
   isConnectable: boolean;
 }
 
 export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
-  const { objective, isAdmin, isCurrentObjective, isInPath, canDelete, canEdit, alignment, onDelete } = data;
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const { objective, isAdmin, isCurrentObjective, isInPath, canDelete, onDelete } = data;
   const basePath = isAdmin ? '/admin' : '/user';
   
   // Get appropriate background color based on node status
@@ -54,16 +48,6 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
     if (isInPath) return 'bg-purple-50 border-purple-200';
     return 'bg-white border-gray-200';
   };
-  
-  // Debug output to console to understand why buttons aren't showing
-  console.log('Node rendering:', {
-    id: objective.id,
-    canDelete,
-    canEdit,
-    hasParentId: !!data.parentId,
-    hasAlignment: !!alignment,
-    hasOnDelete: !!onDelete
-  });
   
   return (
     <TooltipProvider>
@@ -142,55 +126,38 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
             />
           </div>
           
-          {/* 5. Action Buttons - Fixing visibility condition */}
-          {data.parentId && alignment && (
+          {/* 5. Action Buttons */}
+          {canDelete && onDelete && (
             <div className="flex justify-end space-x-2 mt-2">
-              {canEdit && (
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  className="h-7 px-2 text-xs"
-                  onClick={() => setIsEditDialogOpen(true)}
-                >
-                  <Edit className="h-3 w-3 mr-1" />
-                  Edit
-                </Button>
-              )}
-              {canDelete && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-red-500 hover:text-red-600">
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Delete
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Remove Alignment?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will remove the relationship between these objectives.
-                        The objectives themselves will not be deleted.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={onDelete}>Remove</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
+              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs">
+                <Edit className="h-3 w-3 mr-1" />
+                Edit
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-red-500 hover:text-red-600">
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remove Alignment?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will remove the relationship between these objectives.
+                      The objectives themselves will not be deleted.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={onDelete}>Remove</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
         </div>
       </div>
-      
-      {/* Edit Alignment Dialog */}
-      <EditAlignmentDialog
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        alignment={alignment || null}
-        onSuccess={data.onEdit}
-      />
     </TooltipProvider>
   );
 };

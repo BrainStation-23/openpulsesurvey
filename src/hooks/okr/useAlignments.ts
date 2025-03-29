@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -206,38 +207,6 @@ export const useAlignments = (objectiveId?: string) => {
     }
   });
 
-  // Update an alignment
-  const updateAlignment = useMutation({
-    mutationFn: async (data: { id: string; weight: number }) => {
-      const { data: updatedAlignment, error } = await supabase
-        .from('okr_alignments')
-        .update({ 
-          weight: data.weight,
-        })
-        .eq('id', data.id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating alignment:', error);
-        throw error;
-      }
-
-      return updatedAlignment;
-    },
-    onSuccess: () => {
-      // Use the invalidateRelatedQueries function from the same scope
-      invalidateRelatedQueries(objectiveId);
-    },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Error updating alignment',
-        description: error.message,
-      });
-    }
-  });
-
   // Delete an alignment
   const deleteAlignment = useMutation({
     mutationFn: async (alignmentId: string) => {
@@ -336,7 +305,6 @@ export const useAlignments = (objectiveId?: string) => {
     isLoading,
     error,
     createAlignment,
-    updateAlignment,
     deleteAlignment
   };
 };
