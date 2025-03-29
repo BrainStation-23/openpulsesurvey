@@ -32,6 +32,11 @@ export const useKeyResultForm = ({
     getUser();
   }, []);
 
+  // Convert date string to Date object if necessary
+  const dueDateValue = keyResult?.dueDate 
+    ? (keyResult.dueDate instanceof Date ? keyResult.dueDate : new Date(keyResult.dueDate)) 
+    : undefined;
+
   const defaultValues = mode === 'edit' && keyResult ? {
     title: keyResult.title,
     description: keyResult.description || '',
@@ -44,7 +49,7 @@ export const useKeyResultForm = ({
     booleanValue: keyResult.booleanValue,
     weight: keyResult.weight,
     status: keyResult.status,
-    dueDate: keyResult.dueDate ? new Date(keyResult.dueDate) : undefined,
+    dueDate: dueDateValue,
   } : {
     title: '',
     description: '',

@@ -78,9 +78,10 @@ export const KeyResultStatusFields: React.FC<KeyResultStatusFieldsProps> = ({ fo
       <FormField
         control={form.control}
         name="dueDate"
+        rules={{ required: "Due date is required" }}
         render={({ field }) => (
           <FormItem className="flex flex-col">
-            <FormLabel>Due Date (Optional)</FormLabel>
+            <FormLabel>Due Date <span className="text-red-500">*</span></FormLabel>
             <Popover>
               <PopoverTrigger asChild>
                 <FormControl>
@@ -88,7 +89,7 @@ export const KeyResultStatusFields: React.FC<KeyResultStatusFieldsProps> = ({ fo
                     variant={"outline"}
                     className={cn(
                       "w-full pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground"
+                      !field.value && "text-muted-foreground border-red-500"
                     )}
                   >
                     {field.value ? (
@@ -105,7 +106,6 @@ export const KeyResultStatusFields: React.FC<KeyResultStatusFieldsProps> = ({ fo
                   mode="single"
                   selected={field.value}
                   onSelect={field.onChange}
-                  disabled={(date) => date < new Date()}
                   initialFocus
                 />
               </PopoverContent>
