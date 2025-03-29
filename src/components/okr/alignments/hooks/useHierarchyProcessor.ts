@@ -1,7 +1,21 @@
 
 import { useCallback, useRef } from 'react';
-import { Objective, ObjectiveWithRelations } from '@/types/okr';
+import { Objective, ObjectiveWithRelations, ObjectiveAlignment } from '@/types/okr';
 import { Node, Edge } from '@xyflow/react';
+
+// Define a type for the node data
+interface NodeData {
+  objective: Objective;
+  isAdmin: boolean;
+  isCurrentObjective: boolean;
+  isInPath: boolean;
+  canDelete: boolean;
+  canEdit: boolean;
+  parentId?: string;
+  alignment?: ObjectiveAlignment | null;
+  onDelete?: () => void;
+  onEdit?: () => void;
+}
 
 interface HierarchyProcessorProps {
   isAdmin: boolean;
@@ -22,7 +36,7 @@ export const useHierarchyProcessor = ({
   const lastProcessedResult = useRef<{
     rootId: string;
     pathHash: string;
-    result: { nodes: Node[]; edges: Edge[] };
+    result: { nodes: Node<NodeData>[]; edges: Edge[] };
   } | null>(null);
   
   // Process objective data into graph nodes and edges
@@ -44,7 +58,7 @@ export const useHierarchyProcessor = ({
       return lastProcessedResult.current.result;
     }
     
-    const nodes: Node[] = [];
+    const nodes: Node<NodeData>[] = [];
     const edges: Edge[] = [];
     const processedNodes = new Set<string>();
     
@@ -70,7 +84,8 @@ export const useHierarchyProcessor = ({
         level: number,
         index: number,
         totalNodesInLevel: number,
-        parentId?: string
+        parentId?: string,
+        alignment?: ObjectiveAlignment | null
       }> = [{
         obj: rootObj,
         level: 0,
@@ -79,7 +94,7 @@ export const useHierarchyProcessor = ({
       }];
       
       while (queue.length > 0) {
-        const { obj, level, index, totalNodesInLevel, parentId } = queue.shift()!;
+        const { obj, level, index, totalNodesInLevel, parentId, alignment } = queue.shift()!;
         
         if (processedNodes.has(obj.id)) {
           console.log(`Node ${obj.id} already processed, skipping`);
@@ -106,13 +121,16 @@ export const useHierarchyProcessor = ({
             isCurrentObjective,
             isInPath,
             canDelete: canEdit && parentId !== undefined,
-            onDelete: parentId ? () => {
-              const alignment = objective.alignedObjectives?.find(
-                a => (a.sourceObjectiveId === parentId && a.alignedObjectiveId === obj.id) || 
-                    (a.sourceObjectiveId === obj.id && a.alignedObjectiveId === parentId)
-              );
-              if (alignment) handleDeleteAlignment(alignment.id);
-            } : undefined
+            canEdit: canEdit && parentId !== undefined && alignment !== undefined,
+            parentId,
+            alignment,
+            onDelete: parentId && alignment ? () => {
+              handleDeleteAlignment(alignment.id);
+            } : undefined,
+            onEdit: () => {
+              // This will trigger a refresh of the graph data
+              console.log('Alignment edited, refreshing graph');
+            }
           }
         };
         
@@ -152,12 +170,17 @@ export const useHierarchyProcessor = ({
         }
         
         // Process child objectives
-        const childNodes: Objective[] = [];
+        const childNodes: { 
+          objective: Objective, 
+          alignment?: ObjectiveAlignment 
+        }[] = [];
         
         // Add direct child objectives
         if (objWithRelations.childObjectives && objWithRelations.childObjectives.length > 0) {
           console.log(`Adding ${objWithRelations.childObjectives.length} child objectives for ${obj.id}`);
-          childNodes.push(...objWithRelations.childObjectives);
+          objWithRelations.childObjectives.forEach(child => {
+            childNodes.push({ objective: child });
+          });
         }
         
         // Add aligned objectives
@@ -171,7 +194,10 @@ export const useHierarchyProcessor = ({
           
           alignments.forEach(alignment => {
             if (alignment.alignedObjective) {
-              childNodes.push(alignment.alignedObjective);
+              childNodes.push({ 
+                objective: alignment.alignedObjective,
+                alignment: alignment
+              });
             } else {
               console.warn(`Alignment ${alignment.id} is missing alignedObjective data`);
             }
@@ -181,13 +207,14 @@ export const useHierarchyProcessor = ({
         // Add child nodes to queue
         if (childNodes.length > 0) {
           console.log(`Queuing ${childNodes.length} child nodes for ${obj.id}`);
-          childNodes.forEach((childObj, idx) => {
+          childNodes.forEach((childData, idx) => {
             queue.push({
-              obj: childObj,
+              obj: childData.objective,
               level: level + 1,
               index: idx,
               totalNodesInLevel: childNodes.length,
-              parentId: obj.id
+              parentId: obj.id,
+              alignment: childData.alignment
             });
           });
         } else {
@@ -233,4 +260,3 @@ export const useHierarchyProcessor = ({
     }
   };
 };
-

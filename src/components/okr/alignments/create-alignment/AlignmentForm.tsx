@@ -10,7 +10,6 @@ import { Objective } from '@/types/okr';
 
 // Schema for alignment form validation
 export const alignmentFormSchema = z.object({
-  alignmentType: z.enum(['parent_child']),
   weight: z.number().min(0.000001, { message: "Weight must be greater than 0" }).default(1),
 });
 
@@ -22,6 +21,7 @@ interface AlignmentFormProps {
   isSubmitting: boolean;
   onCancel: () => void;
   selectedObjective: Objective | null;
+  isEditMode?: boolean;
 }
 
 export const AlignmentForm = ({ 
@@ -29,7 +29,8 @@ export const AlignmentForm = ({
   onSubmit, 
   isSubmitting, 
   onCancel, 
-  selectedObjective 
+  selectedObjective,
+  isEditMode = false
 }: AlignmentFormProps) => {
   return (
     <Form {...form}>
@@ -73,9 +74,12 @@ export const AlignmentForm = ({
           </Button>
           <Button 
             type="submit" 
-            disabled={isSubmitting || !selectedObjective}
+            disabled={isSubmitting || (!isEditMode && !selectedObjective)}
           >
-            {isSubmitting ? "Creating..." : "Create Alignment"}
+            {isSubmitting ? 
+              (isEditMode ? "Updating..." : "Creating...") : 
+              (isEditMode ? "Update Alignment" : "Create Alignment")
+            }
           </Button>
         </DialogFooter>
       </form>
