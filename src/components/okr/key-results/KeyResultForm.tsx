@@ -16,6 +16,11 @@ import {
 import { KeyResult, CreateKeyResultInput, UpdateKeyResultInput, MeasurementType, KeyResultStatus } from '@/types/okr';
 import { useKeyResult } from '@/hooks/okr/useKeyResult';
 import { supabase } from '@/integrations/supabase/client';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface KeyResultFormProps {
   objectiveId: string;
@@ -56,6 +61,7 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
     booleanValue: keyResult.booleanValue,
     weight: keyResult.weight,
     status: keyResult.status,
+    dueDate: keyResult.dueDate ? new Date(keyResult.dueDate) : undefined,
   } : {
     title: '',
     description: '',
@@ -68,6 +74,7 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
     booleanValue: false,
     weight: 1,
     status: 'not_started' as KeyResultStatus,
+    dueDate: undefined,
   };
 
   const form = useForm<any>({
@@ -92,6 +99,7 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
         booleanValue: data.measurementType === 'boolean' ? data.booleanValue : undefined,
         weight: data.weight,
         status: data.status,
+        dueDate: data.dueDate,
       };
       
       createKeyResult.mutate(newKeyResult, {
@@ -116,6 +124,7 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
         booleanValue: data.measurementType === 'boolean' ? data.booleanValue : undefined,
         weight: data.weight,
         status: data.status,
+        dueDate: data.dueDate,
       };
       
       updateKeyResult.mutate(updatedKeyResult, {
@@ -367,6 +376,47 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
           />
         </div>
 
+        {/* Add Due Date field */}
+        <FormField
+          control={form.control}
+          name="dueDate"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Due Date (Optional)</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <div className="flex justify-end space-x-2 pt-4">
           <Button 
             type="button" 
@@ -389,3 +439,4 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
     </Form>
   );
 };
+
