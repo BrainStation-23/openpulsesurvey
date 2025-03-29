@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ObjectiveNodeOwnerInfo } from './ObjectiveNodeOwnerInfo';
 import { Progress } from "@/components/ui/progress";
+import { EditObjectiveDialog } from '../../objectives/EditObjectiveDialog';
 
 interface ObjectiveNodeProps {
   data: {
@@ -33,14 +34,16 @@ interface ObjectiveNodeProps {
     isCurrentObjective: boolean;
     isInPath: boolean;
     canDelete: boolean;
+    canEdit?: boolean;
     onDelete?: () => void;
   };
   isConnectable: boolean;
 }
 
 export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
-  const { objective, isAdmin, isCurrentObjective, isInPath, canDelete, onDelete } = data;
+  const { objective, isAdmin, isCurrentObjective, isInPath, canDelete, canEdit = false, onDelete } = data;
   const basePath = isAdmin ? '/admin' : '/user';
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   
   // Get appropriate background color based on node status
   const getBgColor = () => {
@@ -127,37 +130,55 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
           </div>
           
           {/* 5. Action Buttons */}
-          {canDelete && onDelete && (
+          {(canDelete || canEdit) && (
             <div className="flex justify-end space-x-2 mt-2">
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs">
-                <Edit className="h-3 w-3 mr-1" />
-                Edit
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-red-500 hover:text-red-600">
-                    <Trash2 className="h-3 w-3 mr-1" />
-                    Delete
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Remove Alignment?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will remove the relationship between these objectives.
-                      The objectives themselves will not be deleted.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={onDelete}>Remove</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              {canEdit && (
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setIsEditDialogOpen(true)}
+                >
+                  <Edit className="h-3 w-3 mr-1" />
+                  Edit
+                </Button>
+              )}
+              {canDelete && onDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-red-500 hover:text-red-600">
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove Alignment?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove the relationship between these objectives.
+                        The objectives themselves will not be deleted.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={onDelete}>Remove</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Edit Objective Dialog */}
+      {canEdit && (
+        <EditObjectiveDialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          objective={objective}
+        />
+      )}
     </TooltipProvider>
   );
 };

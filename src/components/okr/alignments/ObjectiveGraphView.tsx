@@ -143,7 +143,7 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     return () => {
       mounted = false;
     };
-  }, [rootObjective, currentObjectivePath, processHierarchyData, hasProcessedData, toast]);
+  }, [rootObjective, currentObjectivePath, processHierarchyData, hasProcessedData, toast, setNodes, setEdges]);
 
   const reactFlowOptions = useMemo(() => ({
     fitView: true,
@@ -189,14 +189,29 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               nodeTypes={nodeTypes}
-              {...reactFlowOptions}
+              fitView
+              minZoom={0.1}
+              maxZoom={2}
+              fitViewOptions={{ padding: 0.2 }}
             >
               <Panel position="top-right">
                 <Button 
                   variant="outline" 
                   size="sm" 
                   className="bg-white" 
-                  onClick={toggleFullscreen}
+                  onClick={() => {
+                    if (!graphRef.current) return;
+                    
+                    if (!isFullscreen) {
+                      if (graphRef.current.requestFullscreen) {
+                        graphRef.current.requestFullscreen();
+                      }
+                    } else {
+                      if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                      }
+                    }
+                  }}
                 >
                   {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </Button>
