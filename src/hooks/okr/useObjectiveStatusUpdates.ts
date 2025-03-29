@@ -1,81 +1,61 @@
 
-import { useEffect, useState } from 'react';
-import { Objective, ObjectiveStatus } from '@/types/okr';
+import { useState } from 'react';
+import { ObjectiveStatus, Objective } from '@/types/okr';
+import { toast } from '@/hooks/use-toast';
 
 interface UseObjectiveStatusUpdatesProps {
-  objective: Objective | null;
+  objective?: Objective;
   canEdit: boolean;
   updateStatus: (status: { status: ObjectiveStatus }) => void;
 }
 
-/**
- * Hook to handle automatic status updates for objectives
- * based on progress and other criteria
- */
 export const useObjectiveStatusUpdates = ({
   objective,
   canEdit,
   updateStatus
 }: UseObjectiveStatusUpdatesProps) => {
-  // Lock to prevent duplicate status update calls
   const [isUpdating, setIsUpdating] = useState(false);
   
-  useEffect(() => {
-    // Don't proceed if we're already updating, missing data or don't have permission
-    if (isUpdating || !objective || !canEdit) return;
-    
-    // Auto-complete objectives at 100% progress
-    if (objective.progress === 100 && objective.status !== 'completed') {
-      console.log('Automatically marking objective as completed (progress is 100%)');
-      setIsUpdating(true);
-      updateStatus({ status: 'completed' });
+  // Check if we can change status based on progress/completed state
+  const canChangeStatus = canEdit && objective && objective.status !== 'completed';
+  
+  const handleStatusUpdate = async (status: ObjectiveStatus) => {
+    if (!canChangeStatus) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot update status',
+        description: 'This objective cannot have its status changed.'
+      });
       return;
     }
     
-    // Auto change from draft to in_progress when progress > 0
-    // and not already at_risk or on_track
-    if (
-      objective.status === 'draft' && 
-      objective.progress > 0 && 
-      !['at_risk', 'on_track'].includes(objective.status)
-    ) {
-      console.log('Automatically changing objective from draft to in_progress (progress > 0)');
-      setIsUpdating(true);
-      updateStatus({ status: 'in_progress' });
+    // Prevent changing from completed if progress is 100%
+    if (objective && objective.progress >= 99.99 && status !== 'completed') {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot change status',
+        description: 'Objectives at 100% progress must remain completed.'
+      });
+      return;
     }
-  }, [objective, canEdit, updateStatus, isUpdating]);
-  
-  // Reset the lock when the objective status or progress changes
-  useEffect(() => {
-    if (objective && isUpdating) {
-      setIsUpdating(false);
-    }
-  }, [objective?.status, objective?.progress]);
-  
-  // Return whether the status can be changed from UI
-  const canChangeStatus = objective && objective.progress < 100;
-  
-  // Helper to determine if a status change is allowed
-  const isStatusChangeAllowed = (status: ObjectiveStatus): boolean => {
-    if (!canChangeStatus) return false;
     
-    // Only allow changing to draft, at_risk, or on_track from UI
-    return ['draft', 'at_risk', 'on_track'].includes(status);
-  };
-  
-  // Safe status update handler - adds locking mechanism
-  const handleStatusUpdate = (status: ObjectiveStatus): void => {
-    if (!objective || !canEdit || !canChangeStatus || isUpdating) return;
+    setIsUpdating(true);
     
-    if (isStatusChangeAllowed(status)) {
-      setIsUpdating(true);
+    try {
       updateStatus({ status });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error updating status',
+        description: error.message || 'An error occurred while updating the objective status.'
+      });
+    } finally {
+      setIsUpdating(false);
     }
   };
   
   return {
     canChangeStatus,
-    isStatusChangeAllowed,
     handleStatusUpdate,
     isUpdating
   };

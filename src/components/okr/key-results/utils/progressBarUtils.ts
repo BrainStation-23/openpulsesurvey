@@ -1,34 +1,59 @@
 
-import { KeyResultStatus } from '@/types/okr';
+import { KeyResult } from '@/types/okr';
 
-export const getProgressBarColor = (progress: number, status: KeyResultStatus): string => {
-  if (status === 'at_risk') return "bg-red-500";
-  if (status === 'completed') return "bg-purple-500";
-  if (progress >= 75) return "bg-green-500";
-  if (progress >= 50) return "bg-blue-500";
-  if (progress >= 25) return "bg-amber-500";
-  return "bg-gray-500";
-};
-
+/**
+ * Get a display string for key result progress based on measurement type
+ */
 export const getProgressDisplay = (
-  measurementType: string,
-  booleanValue?: boolean,
-  currentValue?: number,
+  measurementType: string, 
+  booleanValue?: boolean, 
+  currentValue?: number, 
   targetValue?: number,
   unit?: string
 ): string => {
   if (measurementType === 'boolean') {
-    return booleanValue ? 'Completed' : 'Not Completed';
+    return booleanValue ? 'Complete' : 'Incomplete';
   }
-
-  let displayUnit = '';
+  
+  const current = currentValue !== undefined ? currentValue : 0;
+  const target = targetValue !== undefined ? targetValue : 0;
+  
   if (measurementType === 'percentage') {
-    displayUnit = '%';
-  } else if (measurementType === 'currency') {
-    displayUnit = '$';
-  } else if (unit) {
-    displayUnit = unit + ' ';
+    return `${current}% / ${target}%`;
   }
+  
+  if (measurementType === 'currency') {
+    return `$${current} / $${target}`;
+  }
+  
+  if (unit) {
+    return `${current} ${unit} / ${target} ${unit}`;
+  }
+  
+  return `${current} / ${target}`;
+};
 
-  return `${displayUnit}${currentValue} / ${displayUnit}${targetValue}`;
+/**
+ * Calculate progress percentage safely
+ */
+export const calculateProgressPercentage = (keyResult: KeyResult): number => {
+  if (keyResult.measurementType === 'boolean') {
+    return keyResult.booleanValue ? 100 : 0;
+  }
+  
+  if (keyResult.targetValue === keyResult.startValue) {
+    return keyResult.currentValue >= keyResult.targetValue ? 100 : 0;
+  }
+  
+  const progress = ((keyResult.currentValue - keyResult.startValue) / 
+                   (keyResult.targetValue - keyResult.startValue)) * 100;
+  
+  return Math.min(Math.max(0, progress), 100);
+};
+
+/**
+ * Format weight as a percentage string
+ */
+export const formatWeight = (weight: number): string => {
+  return `${(weight * 100).toFixed(0)}%`;
 };
