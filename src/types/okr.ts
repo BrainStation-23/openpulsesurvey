@@ -86,7 +86,7 @@ export interface CreateAlignmentInput {
   weight?: number;
 }
 
-export type KeyResultStatus = 'not_started' | 'in_progress' | 'at_risk' | 'on_track' | 'completed' | 'abandoned';
+export type KeyResultStatus = 'not_started' | 'in_progress' | 'at_risk' | 'on_track' | 'completed';
 export type MeasurementType = 'numeric' | 'percentage' | 'currency' | 'boolean';
 
 export interface KeyResult {
@@ -105,7 +105,6 @@ export interface KeyResult {
   weight: number;
   status: KeyResultStatus;
   progress: number;
-  dueDate?: Date | string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -124,7 +123,6 @@ export interface CreateKeyResultInput {
   booleanValue?: boolean;
   weight?: number;
   status?: KeyResultStatus;
-  dueDate?: Date | string;
 }
 
 export interface UpdateKeyResultInput extends Partial<CreateKeyResultInput> {
