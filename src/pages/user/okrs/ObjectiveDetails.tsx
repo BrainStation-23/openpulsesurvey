@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, Target, List, AlertTriangle } from 'lucide-react';
@@ -134,11 +133,9 @@ const UserObjectiveDetails = () => {
 
   const completedKeyResults = keyResults.filter(kr => kr.status === 'completed').length;
   
-  // Get child objectives count and stats
   const childObjectivesCount = objectiveWithRelations?.childObjectives?.length || 0;
   const completedChildObjectives = objectiveWithRelations?.childObjectives?.filter(child => child.status === 'completed').length || 0;
   
-  // Calculate total weight (key results + child objectives)
   const childObjectivesTotalWeight = objectiveWithRelations?.alignedObjectives
     ?.filter(a => a.sourceObjectiveId === id)
     ?.reduce((sum, alignment) => sum + alignment.weight, 0) || 0;
@@ -302,7 +299,7 @@ const UserObjectiveDetails = () => {
                               style={{ width: `${objective.progress}%` }}
                             />
                           </div>
-                          <span>{objective.progress}%</span>
+                          <span>{objective.progress.toFixed(0)}%</span>
                         </div>
                       </dd>
                     </div>
@@ -380,7 +377,6 @@ const UserObjectiveDetails = () => {
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">Child Objectives</h3>
                   <div className="grid grid-cols-1 gap-2 text-sm">
                     {objectiveWithRelations.childObjectives.map((child) => {
-                      // Find the alignment for this child to get the weight
                       const alignment = objectiveWithRelations.alignedObjectives?.find(
                         a => a.alignedObjectiveId === child.id && a.sourceObjectiveId === objective.id
                       );
@@ -409,7 +405,7 @@ const UserObjectiveDetails = () => {
                                   style={{ width: `${child.progress}%` }}
                                 />
                               </div>
-                              <span>{child.progress}%</span>
+                              <span>{child.progress.toFixed(0)}%</span>
                             </div>
                             <ObjectiveStatusBadge status={child.status} />
                             <Button 
@@ -454,7 +450,7 @@ const UserObjectiveDetails = () => {
                                 style={{ width: `${kr.progress}%` }}
                               />
                             </div>
-                            <span>{kr.progress}%</span>
+                            <span>{kr.progress.toFixed(0)}%</span>
                           </div>
                           <Badge 
                             variant="outline" 
