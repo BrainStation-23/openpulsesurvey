@@ -1,39 +1,84 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage, Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { UseFormReturn } from "react-hook-form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from "zod";
-import { Objective } from '@/types/okr';
+import { Objective, ObjectiveWithRelations } from '@/types/okr';
+import { ObjectiveSelection } from './ObjectiveSelection';
 
 // Schema for alignment form validation
 export const alignmentFormSchema = z.object({
-  alignmentType: z.enum(['parent_child']),
+  alignedObjectiveId: z.string().min(1, { message: "Please select an objective" }),
   weight: z.number().min(0.000001, { message: "Weight must be greater than 0" }).default(1),
 });
 
 export type AlignmentFormValues = z.infer<typeof alignmentFormSchema>;
 
 interface AlignmentFormProps {
-  form: UseFormReturn<AlignmentFormValues>;
-  onSubmit: (e?: React.BaseSyntheticEvent) => Promise<void>;
+  sourceObjectiveId: string;
+  onSubmit: (data: AlignmentFormValues) => Promise<void>;
   isSubmitting: boolean;
   onCancel: () => void;
-  selectedObjective: Objective | null;
+  sourceObjective: ObjectiveWithRelations | null;
 }
 
 export const AlignmentForm = ({ 
-  form,
+  sourceObjectiveId, 
   onSubmit, 
   isSubmitting, 
-  onCancel, 
-  selectedObjective 
+  onCancel,
+  sourceObjective
 }: AlignmentFormProps) => {
+  const [selectedObjective, setSelectedObjective] = useState<Objective | null>(null);
+  
+  const form = useForm<AlignmentFormValues>({
+    resolver: zodResolver(alignmentFormSchema),
+    defaultValues: {
+      alignedObjectiveId: '',
+      weight: 1,
+    }
+  });
+
+  const handleObjectiveSelect = (objective: Objective | null) => {
+    setSelectedObjective(objective);
+    if (objective) {
+      form.setValue('alignedObjectiveId', objective.id);
+    } else {
+      form.setValue('alignedObjectiveId', '');
+    }
+  };
+
+  const handleSubmitForm = async (data: AlignmentFormValues) => {
+    await onSubmit(data);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmitForm)} className="space-y-4">
+        <ObjectiveSelection
+          sourceObjectiveId={sourceObjectiveId}
+          onSelectObjective={handleObjectiveSelect}
+          selectedObjective={selectedObjective}
+          sourceObjective={sourceObjective}
+        />
+        
+        <FormField
+          control={form.control}
+          name="alignedObjectiveId"
+          render={({ field }) => (
+            <FormItem className="hidden">
+              <FormControl>
+                <Input type="hidden" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
         <FormField
           control={form.control}
           name="weight"

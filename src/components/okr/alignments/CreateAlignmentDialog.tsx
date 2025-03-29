@@ -7,7 +7,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { AlignmentForm } from './create-alignment/AlignmentForm';
+import { AlignmentForm, AlignmentFormValues } from './create-alignment/AlignmentForm';
 import { useObjectiveData } from './hooks/useObjectiveData';
 import { useAlignments } from '@/hooks/okr/useAlignments';
 import { useToast } from '@/hooks/use-toast';
@@ -34,10 +34,7 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
     error
   } = useObjectiveData(sourceObjectiveId);
 
-  const handleCreateAlignment = async (alignmentData: {
-    alignedObjectiveId: string;
-    weight: number;
-  }) => {
+  const handleCreateAlignment = async (alignmentData: AlignmentFormValues) => {
     try {
       await createAlignment.mutateAsync({
         sourceObjectiveId,

@@ -1,52 +1,53 @@
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { ObjectiveWithRelations, ObjectiveAlignment, Objective, AlignmentType } from '@/types/okr';
 import { supabase } from '@/integrations/supabase/client';
 
-export const useObjectiveData = (initialCache: Map<string, ObjectiveWithRelations>) => {
-  const [objectiveCache, setObjectiveCache] = useState<Map<string, ObjectiveWithRelations>>(
-    initialCache || new Map()
-  );
+export const useObjectiveData = (objectiveId: string) => {
+  const [sourceObjective, setSourceObjective] = useState<ObjectiveWithRelations | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [objectiveCache] = useState<Map<string, ObjectiveWithRelations>>(new Map());
 
   // Fetch an objective and its related data with caching
-  const fetchObjectiveWithRelations = useCallback(async (objectiveId: string) => {
+  const fetchObjectiveWithRelations = useCallback(async (id: string) => {
     // Check cache first
-    if (objectiveCache.has(objectiveId)) {
-      console.log(`Using cached objective: ${objectiveId}`);
-      return objectiveCache.get(objectiveId);
+    if (objectiveCache.has(id)) {
+      console.log(`Using cached objective: ${id}`);
+      return objectiveCache.get(id) as ObjectiveWithRelations;
     }
     
     try {
-      console.log(`Fetching objective with relations: ${objectiveId}`);
+      console.log(`Fetching objective with relations: ${id}`);
       // Fetch the objective
       const { data: objectiveData, error: objectiveError } = await supabase
         .from('objectives')
         .select('*')
-        .eq('id', objectiveId)
+        .eq('id', id)
         .single();
         
       if (objectiveError) {
-        console.error(`Error fetching objective ${objectiveId}:`, objectiveError);
+        console.error(`Error fetching objective ${id}:`, objectiveError);
         throw objectiveError;
       }
       
       if (!objectiveData) {
-        console.error(`No data found for objective ${objectiveId}`);
-        throw new Error(`Objective not found: ${objectiveId}`);
+        console.error(`No data found for objective ${id}`);
+        throw new Error(`Objective not found: ${id}`);
       }
       
       // Fetch child objectives
       const { data: childObjectives, error: childrenError } = await supabase
         .from('objectives')
         .select('*')
-        .eq('parent_objective_id', objectiveId);
+        .eq('parent_objective_id', id);
         
       if (childrenError) {
-        console.error(`Error fetching child objectives for ${objectiveId}:`, childrenError);
+        console.error(`Error fetching child objectives for ${id}:`, childrenError);
         throw childrenError;
       }
       
-      console.log(`Found ${childObjectives.length} child objectives for ${objectiveId}`);
+      console.log(`Found ${childObjectives?.length || 0} child objectives for ${id}`);
       
       // Fetch alignments where this objective is the source
       const { data: sourceAlignments, error: sourceError } = await supabase
@@ -61,14 +62,14 @@ export const useObjectiveData = (initialCache: Map<string, ObjectiveWithRelation
           created_at,
           aligned_objective:objectives!aligned_objective_id (*)
         `)
-        .eq('source_objective_id', objectiveId);
+        .eq('source_objective_id', id);
         
       if (sourceError) {
-        console.error(`Error fetching alignments for ${objectiveId}:`, sourceError);
+        console.error(`Error fetching alignments for ${id}:`, sourceError);
         throw sourceError;
       }
       
-      console.log(`Found ${sourceAlignments.length} alignments where ${objectiveId} is the source`);
+      console.log(`Found ${sourceAlignments?.length || 0} alignments where ${id} is the source`);
 
       // Transform the data
       const obj = {
@@ -85,7 +86,7 @@ export const useObjectiveData = (initialCache: Map<string, ObjectiveWithRelation
         approvalStatus: objectiveData.approval_status,
         createdAt: new Date(objectiveData.created_at),
         updatedAt: new Date(objectiveData.updated_at),
-        childObjectives: childObjectives.map((child) => ({
+        childObjectives: childObjectives?.map((child) => ({
           id: child.id,
           title: child.title,
           description: child.description,
@@ -99,8 +100,8 @@ export const useObjectiveData = (initialCache: Map<string, ObjectiveWithRelation
           approvalStatus: child.approval_status,
           createdAt: new Date(child.created_at),
           updatedAt: new Date(child.updated_at)
-        })),
-        alignedObjectives: sourceAlignments.map((align) => {
+        })) || [],
+        alignedObjectives: sourceAlignments?.map((align) => {
           if (!align.aligned_objective) {
             console.warn(`Alignment ${align.id} has missing aligned objective data`);
           }
@@ -129,27 +130,47 @@ export const useObjectiveData = (initialCache: Map<string, ObjectiveWithRelation
               updatedAt: new Date(align.aligned_objective.updated_at)
             } : undefined
           };
-        }) as ObjectiveAlignment[]
+        }) as ObjectiveAlignment[] || []
       };
       
       // Cache the result
       const objWithRelations = obj as ObjectiveWithRelations;
-      setObjectiveCache(prev => {
-        const newCache = new Map(prev);
-        newCache.set(objectiveId, objWithRelations);
-        return newCache;
-      });
+      objectiveCache.set(id, objWithRelations);
       
       return objWithRelations;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching objective with relations:', error);
-      return null;
+      throw error;
     }
   }, [objectiveCache]);
 
+  // Load the objective data on component mount
+  useEffect(() => {
+    const loadObjectiveData = async () => {
+      if (!objectiveId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const objective = await fetchObjectiveWithRelations(objectiveId);
+        setSourceObjective(objective);
+        setIsLoading(false);
+      } catch (err: any) {
+        setError(err);
+        setIsLoading(false);
+      }
+    };
+
+    loadObjectiveData();
+  }, [objectiveId, fetchObjectiveWithRelations]);
+
   return {
+    sourceObjective,
+    isLoading,
+    error,
     fetchObjectiveWithRelations,
     objectiveCache
   };
 };
-
