@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, Target, List } from 'lucide-react';
@@ -93,7 +92,6 @@ const AdminObjectiveDetails = () => {
   const isOwner = objective && userId === objective.ownerId;
   const canEdit = true; // Admin pages always have edit permissions
   
-  // Use the enhanced hook for status updates
   const { 
     canChangeStatus, 
     handleStatusUpdate,
@@ -131,7 +129,6 @@ const AdminObjectiveDetails = () => {
 
   const completedKeyResults = keyResults.filter(kr => kr.status === 'completed').length;
   
-  // Get child objectives count and stats
   const childObjectivesCount = objectiveWithRelations?.childObjectives?.length || 0;
   const childObjectivesTotalWeight = objectiveWithRelations?.alignedObjectives
     ?.filter(a => a.sourceObjectiveId === id)
@@ -391,7 +388,6 @@ const AdminObjectiveDetails = () => {
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">Child Objectives</h3>
                   <div className="grid grid-cols-1 gap-2 text-sm">
                     {objectiveWithRelations.childObjectives.map((child) => {
-                      // Find the alignment for this child to get the weight
                       const alignment = objectiveWithRelations.alignedObjectives?.find(
                         a => a.alignedObjectiveId === child.id && a.sourceObjectiveId === objective.id
                       );
@@ -405,7 +401,7 @@ const AdminObjectiveDetails = () => {
                           </div>
                           <div className="flex items-center space-x-3">
                             <div className="text-sm font-mono">
-                              Weight: {weight.toFixed(1)}
+                              Weight: {(weight * 100).toFixed(2)}%
                             </div>
                             <div className="flex items-center">
                               <div className="w-24 bg-muted rounded-full h-2 mr-2">

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, Target, List } from 'lucide-react';
@@ -396,7 +395,7 @@ const UserObjectiveDetails = () => {
                           </div>
                           <div className="flex items-center space-x-3">
                             <div className="text-sm font-mono">
-                              Weight: {weight.toFixed(1)}
+                              Weight: {(weight * 100).toFixed(2)}%
                             </div>
                             <div className="flex items-center">
                               <div className="w-24 bg-muted rounded-full h-2 mr-2">
