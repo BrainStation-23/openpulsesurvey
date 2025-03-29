@@ -28,9 +28,10 @@ import { Objective, AlignmentType, CreateAlignmentInput } from '@/types/okr';
 import { useAlignments } from '@/hooks/okr/useAlignments';
 import { ObjectiveSearchInput } from './ObjectiveSearchInput';
 
+// Updated schema to allow any non-negative number
 const alignmentFormSchema = z.object({
   alignmentType: z.enum(['parent_child']),
-  weight: z.number().min(0).default(1),
+  weight: z.number().min(0, { message: "Weight must be a non-negative number" }).default(1),
 });
 
 interface CreateAlignmentDialogProps {
