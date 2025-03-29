@@ -5,20 +5,30 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { KeyResultItem } from './KeyResultItem';
 import { KeyResultInlineForm } from './KeyResultInlineForm';
+import { useKeyResults } from '@/hooks/okr/useKeyResults';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 interface KeyResultsListProps {
-  keyResults: KeyResult[];
   objectiveId: string;
-  canEdit: boolean;
+  canEdit?: boolean;
   isLoading?: boolean;
+  keyResults?: KeyResult[];
 }
 
 export const KeyResultsList: React.FC<KeyResultsListProps> = ({
-  keyResults,
   objectiveId,
-  canEdit,
-  isLoading = false
+  canEdit: propCanEdit,
+  isLoading: propIsLoading,
+  keyResults: propKeyResults
 }) => {
+  const { userId, isAdmin } = useCurrentUser();
+  const { data: fetchedKeyResults, isLoading: isResultsLoading } = useKeyResults(objectiveId);
+  
+  const keyResults = propKeyResults || fetchedKeyResults || [];
+  const isLoading = propIsLoading || isResultsLoading;
+  // If canEdit prop is provided, use it, otherwise determine based on user permissions
+  const canEdit = propCanEdit !== undefined ? propCanEdit : isAdmin;
+  
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
 

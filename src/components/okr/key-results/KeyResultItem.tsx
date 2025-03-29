@@ -17,7 +17,7 @@ interface KeyResultItemProps {
 }
 
 export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult, canEdit, onEditClick }) => {
-  const { deleteKeyResult } = useKeyResult(keyResult.id);
+  const { deleteKeyResult, updateProgress, updateStatus } = useKeyResult(keyResult.id);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
   const handleDelete = () => {
@@ -26,6 +26,18 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult, canEdit
         setIsDeleteDialogOpen(false);
       }
     });
+  };
+
+  const handleProgressUpdate = (value: number) => {
+    updateProgress.mutate({ currentValue: value });
+  };
+
+  const handleBooleanChange = (checked: boolean) => {
+    updateProgress.mutate({ booleanValue: checked });
+  };
+
+  const handleStatusUpdate = (status: KeyResult['status']) => {
+    updateStatus.mutate(status);
   };
 
   return (
@@ -44,8 +56,17 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult, canEdit
         
         {canEdit && (
           <div className="p-4 pt-0 space-y-4">
-            <KeyResultProgressControls keyResult={keyResult} />
-            <KeyResultStatusControls keyResult={keyResult} />
+            <KeyResultProgressControls 
+              keyResult={keyResult} 
+              onProgressUpdate={handleProgressUpdate}
+              onBooleanChange={handleBooleanChange}
+              isPending={updateProgress.isPending}
+            />
+            <KeyResultStatusControls 
+              status={keyResult.status}
+              progress={keyResult.progress}
+              onStatusUpdate={handleStatusUpdate}
+            />
           </div>
         )}
       </Card>

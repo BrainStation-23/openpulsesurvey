@@ -489,7 +489,7 @@ const UserObjectiveDetails = () => {
           
           <TabsContent value="key-results" className="mt-0">
             <CardContent className="pt-6">
-              {id && <KeyResultsList objectiveId={id} />}
+              {id && <KeyResultsList objectiveId={id} canEdit={canEdit} />}
             </CardContent>
           </TabsContent>
           
