@@ -1,3 +1,4 @@
+
 export type OKRCycleStatus = 'active' | 'upcoming' | 'completed' | 'archived';
 
 export interface OKRCycle {
@@ -85,7 +86,7 @@ export interface CreateAlignmentInput {
   weight?: number;
 }
 
-export type KeyResultStatus = 'not_started' | 'in_progress' | 'at_risk' | 'on_track' | 'completed';
+export type KeyResultStatus = 'not_started' | 'in_progress' | 'at_risk' | 'on_track' | 'completed' | 'abandoned';
 export type MeasurementType = 'numeric' | 'percentage' | 'currency' | 'boolean';
 
 export interface KeyResult {
