@@ -26,6 +26,8 @@ export const fetchKeyResult = async (id: string): Promise<KeyResult | null> => {
     }
 
     console.log('Raw key result data from database:', data);
+    console.log('Database due_date value:', data.due_date);
+    console.log('Database due_date type:', data.due_date ? typeof data.due_date : 'undefined');
     
     // Map the database fields to our KeyResult type
     const keyResult = mapKeyResultData(data);
@@ -47,14 +49,18 @@ export const fetchKeyResult = async (id: string): Promise<KeyResult | null> => {
 export const mapKeyResultData = (data: any): KeyResult => {
   // Add extensive logging to see what we get from the database
   console.log('Mapping key result data:', data);
-  console.log('Database due_date value:', data.due_date);
-  console.log('Database due_date type:', data.due_date ? typeof data.due_date : 'undefined');
   
-  // Ensure proper date conversion
-  const dueDate = data.due_date ? new Date(data.due_date) : undefined;
-  
-  console.log('Converted due date:', dueDate);
-  console.log('Is converted due date a Date object?', dueDate instanceof Date);
+  // Handle the due_date field properly
+  let dueDate = null;
+  if (data.due_date) {
+    try {
+      dueDate = new Date(data.due_date);
+      console.log('Converted due_date to Date object:', dueDate);
+      console.log('Is due_date a Date object?', dueDate instanceof Date);
+    } catch (error) {
+      console.error('Error converting due_date:', error);
+    }
+  }
   
   return {
     id: data.id,
@@ -137,6 +143,15 @@ export const updateKeyResultProgress = async (
 export const updateKeyResult = async (data: UpdateKeyResultInput) => {
   if (!data.id) throw new Error('Key Result ID is required');
   
+  console.log('Updating key result in database:', data);
+  console.log('Due date before saving:', data.dueDate);
+  console.log('Due date type:', data.dueDate ? typeof data.dueDate : 'undefined');
+  console.log('Is due date a Date object?', data.dueDate instanceof Date);
+  
+  // Make sure to properly format the date for Supabase
+  const dueDateFormatted = data.dueDate ? data.dueDate.toISOString() : null;
+  console.log('Formatted due date for database:', dueDateFormatted);
+  
   const { error } = await supabase
     .from('key_results')
     .update({
@@ -152,14 +167,17 @@ export const updateKeyResult = async (data: UpdateKeyResultInput) => {
       boolean_value: data.booleanValue,
       weight: data.weight || 1,
       status: data.status,
-      due_date: data.dueDate ? data.dueDate.toISOString() : null,
+      due_date: dueDateFormatted,
       updated_at: new Date().toISOString()
     })
     .eq('id', data.id);
   
   if (error) {
+    console.error('Error updating key result:', error);
     throw error;
   }
+  
+  console.log('Key result updated successfully');
 };
 
 /**
@@ -182,6 +200,15 @@ export const deleteKeyResult = async (id: string) => {
  * Creates a key result
  */
 export const createKeyResult = async (data: CreateKeyResultInput) => {
+  console.log('Creating key result in database:', data);
+  console.log('Due date before saving:', data.dueDate);
+  console.log('Due date type:', data.dueDate ? typeof data.dueDate : 'undefined');
+  console.log('Is due date a Date object?', data.dueDate instanceof Date);
+  
+  // Make sure to properly format the date for Supabase
+  const dueDateFormatted = data.dueDate ? data.dueDate.toISOString() : null;
+  console.log('Formatted due date for database:', dueDateFormatted);
+  
   const { error } = await supabase
     .from('key_results')
     .insert({
@@ -198,10 +225,13 @@ export const createKeyResult = async (data: CreateKeyResultInput) => {
       boolean_value: data.booleanValue,
       weight: data.weight || 1,
       status: data.status || 'not_started',
-      due_date: data.dueDate ? data.dueDate.toISOString() : null,
+      due_date: dueDateFormatted,
     });
   
   if (error) {
+    console.error('Error creating key result:', error);
     throw error;
   }
+  
+  console.log('Key result created successfully');
 };

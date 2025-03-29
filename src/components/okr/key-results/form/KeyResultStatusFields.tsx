@@ -22,7 +22,7 @@ interface KeyResultStatusFieldsProps {
 }
 
 export const KeyResultStatusFields: React.FC<KeyResultStatusFieldsProps> = ({ form }) => {
-  // Log the due date value from the form
+  // Log the due date value from the form for debugging
   const dueDate = form.getValues('dueDate');
   console.log('Due date in form:', dueDate);
   console.log('Due date type:', dueDate ? typeof dueDate : 'undefined');
@@ -31,12 +31,6 @@ export const KeyResultStatusFields: React.FC<KeyResultStatusFieldsProps> = ({ fo
   // Log form errors
   const formErrors = form.formState.errors;
   console.log('Form errors:', formErrors);
-  
-  // Ensure there's a value for the dueDate field
-  useEffect(() => {
-    const currentDueDate = form.getValues('dueDate');
-    console.log('Current due date value:', currentDueDate);
-  }, [form]);
   
   return (
     <>
@@ -111,7 +105,7 @@ export const KeyResultStatusFields: React.FC<KeyResultStatusFieldsProps> = ({ fo
                       )}
                     >
                       {field.value ? (
-                        format(new Date(field.value), "PPP")
+                        format(field.value, "PPP")
                       ) : (
                         <span>Pick a date</span>
                       )}
