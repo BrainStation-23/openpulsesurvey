@@ -52,14 +52,14 @@ export const ObjectiveCardEnhanced: React.FC<ObjectiveCardEnhancedProps> = ({
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-start gap-3">
+        <div className="flex justify-between items-start gap-2">
           <CardTitle className="truncate text-lg font-semibold">{objective.title}</CardTitle>
-          <ObjectiveStatusBadge status={objective.status} className="whitespace-nowrap shrink-0" />
+          <ObjectiveStatusBadge status={objective.status} />
         </div>
       </CardHeader>
       <CardContent className="py-2 flex-1">
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">
+          <p className="text-sm text-muted-foreground line-clamp-2">
             {objective.description || "No description provided"}
           </p>
           

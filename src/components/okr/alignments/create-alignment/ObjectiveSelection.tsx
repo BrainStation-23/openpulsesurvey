@@ -6,7 +6,7 @@ import { InfoIcon } from "lucide-react";
 import { Objective } from '@/types/okr';
 import { ObjectiveSearchInput } from '../ObjectiveSearchInput';
 
-export interface ObjectiveSelectionProps {
+interface ObjectiveSelectionProps {
   relationDirection: 'parent' | 'child';
   toggleRelationDirection: () => void;
   selectedObjective: Objective | null;

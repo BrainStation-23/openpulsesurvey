@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,42 +18,34 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ObjectiveNode } from './components/ObjectiveNode';
-import { Maximize2, Minimize2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Maximize2, Minimize2, AlertTriangle } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useToast } from "@/hooks/use-toast";
-import { EditAlignmentDialog } from './EditAlignmentDialog';
 
 interface ObjectiveGraphViewProps {
   objective: ObjectiveWithRelations;
   isAdmin?: boolean;
   canEdit?: boolean;
-  onAlignmentChange?: () => void; // Add callback for alignment changes
 }
 
 export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({ 
   objective,
   isAdmin = false,
-  canEdit = false,
-  onAlignmentChange
+  canEdit = false
 }) => {
   const { userId, isAdmin: userIsAdmin } = useCurrentUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const graphRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const dataLoadedRef = useRef(false);
   const { toast } = useToast();
-  const [alignmentToEdit, setAlignmentToEdit] = useState<string | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const {
     rootObjective,
     currentObjectivePath,
     processHierarchyData,
-    hasProcessedData,
-    getAlignmentById,
-    refreshTree
+    hasProcessedData
   } = useObjectiveTree(objective, isAdmin, canEdit);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -71,28 +62,6 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
       if (document.exitFullscreen) {
         document.exitFullscreen();
       }
-    }
-  };
-
-  const handleEditAlignment = (alignmentId: string) => {
-    setAlignmentToEdit(alignmentId);
-    setIsEditDialogOpen(true);
-  };
-
-  // Add a handler for manually refreshing the graph
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    refreshTree();
-    dataLoadedRef.current = false; // Reset loaded flag to force reload
-    // We don't need to call loadGraphData here as the effect will handle it
-    setTimeout(() => setIsRefreshing(false), 1000); // Ensure spinner shows briefly
-  };
-
-  // Handle alignment changes (creation, updates, deletion)
-  const handleAlignmentChanged = () => {
-    handleRefresh();
-    if (onAlignmentChange) {
-      onAlignmentChange();
     }
   };
 
@@ -184,8 +153,6 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     fitViewOptions: { padding: 0.2 }
   }), []);
 
-  const selectedAlignment = alignmentToEdit ? getAlignmentById(alignmentToEdit) : null;
-
   return (
     <Card className={`shadow-sm ${isFullscreen ? 'fullscreen-card' : ''}`}>
       <CardContent className="p-4">
@@ -224,16 +191,7 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
               nodeTypes={nodeTypes}
               {...reactFlowOptions}
             >
-              <Panel position="top-right" className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="bg-white" 
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </Button>
+              <Panel position="top-right">
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -261,17 +219,6 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
             </ReactFlow>
           )}
         </div>
-        
-        {/* Edit Alignment Dialog */}
-        <EditAlignmentDialog
-          open={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
-          alignment={selectedAlignment}
-          onSuccess={() => {
-            setAlignmentToEdit(null);
-            handleAlignmentChanged();
-          }}
-        />
       </CardContent>
     </Card>
   );

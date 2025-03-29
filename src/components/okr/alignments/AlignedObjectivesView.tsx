@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ObjectiveAlignment, Objective } from '@/types/okr';
 import { useObjectiveWithRelations } from '@/hooks/okr/useObjectiveWithRelations';
 import { useAlignments } from '@/hooks/okr/useAlignments';
-import { ExternalLink, ArrowRightLeft, Trash2, Edit } from 'lucide-react';
+import { ExternalLink, ArrowRightLeft, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +20,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { EditAlignmentDialog } from './EditAlignmentDialog';
 
 interface AlignedObjectiveProps {
   alignment: ObjectiveAlignment;
@@ -28,7 +27,6 @@ interface AlignedObjectiveProps {
   isAdmin?: boolean;
   canEdit?: boolean;
   onRemove: (alignmentId: string) => void;
-  onEdit: (alignment: ObjectiveAlignment) => void;
 }
 
 const AlignedObjectiveCard: React.FC<AlignedObjectiveProps> = ({ 
@@ -36,8 +34,7 @@ const AlignedObjectiveCard: React.FC<AlignedObjectiveProps> = ({
   isSource,
   isAdmin = false,
   canEdit = false,
-  onRemove,
-  onEdit
+  onRemove
 }) => {
   const objective = isSource ? alignment.alignedObjective : alignment.sourceObjective;
   const basePath = isAdmin ? '/admin' : '/user';
@@ -45,57 +42,42 @@ const AlignedObjectiveCard: React.FC<AlignedObjectiveProps> = ({
   if (!objective) return null;
 
   return (
-    <div className="border rounded-md p-4 mb-3 hover:bg-muted/20 transition-colors">
+    <div className="border rounded-md p-3 mb-3 hover:bg-muted/20 transition-colors">
       <div className="flex justify-between items-start mb-2">
-        <div className="min-w-0 flex-grow">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <Badge variant="outline" className="text-xs whitespace-nowrap">
+        <div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
               {isSource ? 'Supports' : 'Supported by'}
             </Badge>
-            <Badge variant="secondary" className="text-xs whitespace-nowrap">
+            <Badge variant="secondary" className="text-xs">
               {alignment.alignmentType.replace('_', ' ')}
-            </Badge>
-            <Badge variant="outline" className="text-xs whitespace-nowrap">
-              Weight: {alignment.weight}
             </Badge>
           </div>
           <Link 
             to={`${basePath}/okrs/objectives/${objective.id}`} 
-            className="font-medium hover:underline flex items-center mt-1 break-words"
+            className="font-medium hover:underline flex items-center mt-1"
           >
             {objective.title}
-            <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
+            <ExternalLink className="h-3 w-3 ml-1" />
           </Link>
         </div>
-        <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+        <div className="flex items-center gap-2">
           <ObjectiveStatusBadge status={objective.status} />
           {canEdit && (
-            <div className="flex items-center">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-6 w-6 text-blue-500 hover:bg-blue-50"
-                onClick={() => onEdit(alignment)}
-                title="Edit alignment"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-6 w-6 text-destructive hover:bg-destructive/10"
-                onClick={() => onRemove(alignment.id)}
-                title="Delete alignment"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6 text-destructive hover:bg-destructive/10"
+              onClick={() => onRemove(alignment.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           )}
         </div>
       </div>
       
       {objective.description && (
-        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{objective.description}</p>
+        <p className="text-sm text-muted-foreground mb-2 truncate max-w-md">{objective.description}</p>
       )}
       
       <div>
@@ -122,16 +104,9 @@ export const AlignedObjectivesView: React.FC<AlignedObjectivesViewProps> = ({
   const { objective, isLoading, error } = useObjectiveWithRelations(objectiveId);
   const { deleteAlignment } = useAlignments(objectiveId);
   const [alignmentToDelete, setAlignmentToDelete] = React.useState<string | null>(null);
-  const [alignmentToEdit, setAlignmentToEdit] = React.useState<ObjectiveAlignment | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   
   const handleRemoveAlignment = (alignmentId: string) => {
     setAlignmentToDelete(alignmentId);
-  };
-
-  const handleEditAlignment = (alignment: ObjectiveAlignment) => {
-    setAlignmentToEdit(alignment);
-    setIsEditDialogOpen(true);
   };
 
   const confirmDelete = () => {
@@ -198,7 +173,6 @@ export const AlignedObjectivesView: React.FC<AlignedObjectivesViewProps> = ({
                     isAdmin={isAdmin}
                     canEdit={canEdit}
                     onRemove={handleRemoveAlignment}
-                    onEdit={handleEditAlignment}
                   />
                 ))}
               </div>
@@ -215,7 +189,6 @@ export const AlignedObjectivesView: React.FC<AlignedObjectivesViewProps> = ({
                     isAdmin={isAdmin}
                     canEdit={canEdit}
                     onRemove={handleRemoveAlignment}
-                    onEdit={handleEditAlignment}
                   />
                 ))}
               </div>
@@ -239,13 +212,6 @@ export const AlignedObjectivesView: React.FC<AlignedObjectivesViewProps> = ({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
-        <EditAlignmentDialog
-          open={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
-          alignment={alignmentToEdit}
-          onSuccess={() => setAlignmentToEdit(null)}
-        />
       </CardContent>
     </Card>
   );
