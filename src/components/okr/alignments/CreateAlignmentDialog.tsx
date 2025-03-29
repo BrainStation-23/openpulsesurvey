@@ -7,12 +7,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Form } from "@/components/ui/form";
 import { Objective, AlignmentType, CreateAlignmentInput } from '@/types/okr';
 import { useAlignments } from '@/hooks/okr/useAlignments';
 import { ObjectiveSelection } from './create-alignment/ObjectiveSelection';
-import { AlignmentForm, alignmentFormSchema } from './create-alignment/AlignmentForm';
+import { AlignmentForm, AlignmentFormValues, alignmentFormSchema } from './create-alignment/AlignmentForm';
 import * as z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 interface CreateAlignmentDialogProps {
   open: boolean;
@@ -31,6 +32,14 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedObjective, setSelectedObjective] = useState<Objective | null>(null);
   const [relationDirection, setRelationDirection] = useState<'parent' | 'child'>('parent');
+  
+  const form = useForm<AlignmentFormValues>({
+    resolver: zodResolver(alignmentFormSchema),
+    defaultValues: {
+      alignmentType: 'parent_child',
+      weight: 1,
+    },
+  });
   
   const toggleRelationDirection = () => {
     setRelationDirection(prev => prev === 'parent' ? 'child' : 'parent');
@@ -65,6 +74,7 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
       await createAlignment.mutateAsync(alignmentData);
       
       setSelectedObjective(null);
+      form.reset();
       onOpenChange(false);
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -75,6 +85,8 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
   };
 
   const handleCancel = () => {
+    form.reset();
+    setSelectedObjective(null);
     onOpenChange(false);
   };
 
@@ -96,14 +108,13 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
           sourceObjectiveId={sourceObjectiveId}
         />
         
-        <Form>
-          <AlignmentForm
-            onSubmit={onSubmit}
-            isSubmitting={isSubmitting}
-            onCancel={handleCancel}
-            selectedObjective={selectedObjective}
-          />
-        </Form>
+        <AlignmentForm
+          form={form}
+          onSubmit={form.handleSubmit(onSubmit)}
+          isSubmitting={isSubmitting}
+          onCancel={handleCancel}
+          selectedObjective={selectedObjective}
+        />
       </DialogContent>
     </Dialog>
   );
