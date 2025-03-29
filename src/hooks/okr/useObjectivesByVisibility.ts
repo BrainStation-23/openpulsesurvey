@@ -60,9 +60,10 @@ export const useObjectivesByVisibility = (cycleId?: string) => {
         completedKeyResults: obj.completed_key_results,
         cycleName: obj.cycle_name,
         alignmentsCount: obj.alignments_count,
-        // Add missing fields required by the Objective type
-        createdAt: new Date(obj.created_at || Date.now()),
-        updatedAt: new Date(obj.updated_at || Date.now())
+        // Since created_at and updated_at don't exist in the result, 
+        // use default values to satisfy the type requirements
+        createdAt: new Date(),
+        updatedAt: new Date()
       })) as ObjectiveWithOwner[];
     },
     enabled: true
