@@ -15,15 +15,10 @@ import {
   FormItem, 
   FormLabel, 
   FormControl, 
-  FormMessage 
+  FormMessage,
+  FormDescription
 } from "@/components/ui/form";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,7 +30,7 @@ import { ObjectiveSearchInput } from './ObjectiveSearchInput';
 
 const alignmentFormSchema = z.object({
   alignmentType: z.enum(['parent_child']),
-  weight: z.number().min(1).max(10).default(1),
+  weight: z.number().min(0.1).max(10).default(1),
 });
 
 interface CreateAlignmentDialogProps {
@@ -185,23 +180,23 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
                 <FormItem>
                   <FormLabel>Weight</FormLabel>
                   <FormControl>
-                    <Select 
-                      onValueChange={(val) => field.onChange(parseInt(val))} 
-                      defaultValue={field.value.toString()}
+                    <Input 
+                      type="number"
+                      step="0.1"
+                      min="0.1"
+                      max="10"
                       disabled={isSubmitting}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select weight" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((weight) => (
-                          <SelectItem key={weight} value={weight.toString()}>
-                            {weight}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Enter weight value"
+                      {...field}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        field.onChange(isNaN(value) ? 1 : value);
+                      }}
+                    />
                   </FormControl>
+                  <FormDescription>
+                    Enter a value between 0.1 and 10 to represent the alignment weight
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

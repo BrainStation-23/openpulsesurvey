@@ -1085,7 +1085,6 @@ export type Database = {
           progress: number | null
           sbu_id: string | null
           status: Database["public"]["Enums"]["objective_status"]
-          template_id: string | null
           title: string
           updated_at: string
           visibility: Database["public"]["Enums"]["okr_visibility"]
@@ -1105,7 +1104,6 @@ export type Database = {
           progress?: number | null
           sbu_id?: string | null
           status?: Database["public"]["Enums"]["objective_status"]
-          template_id?: string | null
           title: string
           updated_at?: string
           visibility?: Database["public"]["Enums"]["okr_visibility"]
@@ -1125,7 +1123,6 @@ export type Database = {
           progress?: number | null
           sbu_id?: string | null
           status?: Database["public"]["Enums"]["objective_status"]
-          template_id?: string | null
           title?: string
           updated_at?: string
           visibility?: Database["public"]["Enums"]["okr_visibility"]
@@ -1192,13 +1189,6 @@ export type Database = {
             columns: ["sbu_id"]
             isOneToOne: false
             referencedRelation: "sbus"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "objectives_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "okr_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -1716,57 +1706,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      okr_templates: {
-        Row: {
-          category: string | null
-          created_at: string
-          created_by: string
-          description: string | null
-          id: string
-          is_public: boolean
-          name: string
-          template_data: Json
-          updated_at: string
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string
-          created_by: string
-          description?: string | null
-          id?: string
-          is_public?: boolean
-          name: string
-          template_data?: Json
-          updated_at?: string
-        }
-        Update: {
-          category?: string | null
-          created_at?: string
-          created_by?: string
-          description?: string | null
-          id?: string
-          is_public?: boolean
-          name?: string
-          template_data?: Json
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "okr_templates_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "okr_templates_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "silent_employees"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       profiles: {
         Row: {
