@@ -40,9 +40,8 @@ const AdminAllObjectives = () => {
   const { toast } = useToast();
   const { cycles, isLoading: cyclesLoading } = useOKRCycles();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<ObjectiveVisibilityCategory>('all');
-  const [selectedCycleId, setSelectedCycleId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedCycleId, setSelectedCycleId] = useState<string>("");
   
   // Get the most recent active cycle, or the first cycle if none are active
   const defaultCycleId = React.useMemo(() => {
@@ -54,6 +53,7 @@ const AdminAllObjectives = () => {
   // Set the default cycle when cycles are loaded
   useEffect(() => {
     if (!selectedCycleId && defaultCycleId) {
+      console.log('Setting default cycle ID:', defaultCycleId);
       setSelectedCycleId(defaultCycleId);
     }
   }, [defaultCycleId, selectedCycleId]);
@@ -65,6 +65,8 @@ const AdminAllObjectives = () => {
     departmentalObjectives,
     teamObjectives,
     privateObjectives,
+    selectedCategory,
+    setSelectedCategory,
     isLoading, 
     refetch, 
   } = useObjectivesByVisibility(selectedCycleId);
@@ -94,6 +96,13 @@ const AdminAllObjectives = () => {
           : privateObjectives;
   
   const displayedObjectives = filterObjectivesBySearch(categoryFilteredObjectives);
+
+  // Log current state to help debug
+  useEffect(() => {
+    console.log('Current cycle ID:', selectedCycleId);
+    console.log('Objectives count:', objectives?.length || 0);
+    console.log('Displayed objectives count:', displayedObjectives?.length || 0);
+  }, [selectedCycleId, objectives, displayedObjectives]);
 
   const handleCreateObjective = (data: CreateObjectiveInput) => {
     createObjective.mutate(data, {
@@ -138,7 +147,10 @@ const AdminAllObjectives = () => {
             <div className="w-full md:w-64">
               <Select
                 value={selectedCycleId}
-                onValueChange={setSelectedCycleId}
+                onValueChange={(value) => {
+                  console.log('Selecting cycle:', value);
+                  setSelectedCycleId(value);
+                }}
               >
                 <SelectTrigger className="w-full">
                   <div className="flex items-center">

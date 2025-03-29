@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -55,7 +54,7 @@ const AdminOKRCycleDetails = () => {
     privateObjectives,
     isLoading: isLoadingObjectives,
     selectedCategory,
-    setSelectedCategory 
+    setSelectedCategory, 
   } = useObjectivesByVisibility(id);
   
   const [createDialogOpen, setCreateDialogOpen] = useState(false);

@@ -16,7 +16,7 @@ export const useObjectivesByVisibility = (cycleId?: string) => {
     error,
     refetch
   } = useQuery({
-    queryKey: ['objectives-by-visibility', cycleId],
+    queryKey: ['objectives-by-visibility', cycleId, selectedCategory],
     queryFn: async () => {
       // Build the base query
       let query = supabase
@@ -35,6 +35,13 @@ export const useObjectivesByVisibility = (cycleId?: string) => {
         throw error;
       }
 
+      if (!data || data.length === 0) {
+        console.log('No objectives found for cycleId:', cycleId);
+        return [];
+      }
+
+      console.log('Fetched objectives count:', data.length);
+      
       return data.map(obj => ({
         id: obj.id,
         title: obj.title,
@@ -54,21 +61,22 @@ export const useObjectivesByVisibility = (cycleId?: string) => {
         cycleName: obj.cycle_name,
         alignmentsCount: obj.alignments_count,
         // Add missing fields required by the Objective type
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date(obj.created_at || Date.now()),
+        updatedAt: new Date(obj.updated_at || Date.now())
       })) as ObjectiveWithOwner[];
     },
     enabled: true
   });
 
-  // Filter objectives by visibility
-  const organizationalObjectives = objectives?.filter(obj => obj.visibility === 'organization') || [];
-  const departmentalObjectives = objectives?.filter(obj => obj.visibility === 'department') || [];
-  const teamObjectives = objectives?.filter(obj => obj.visibility === 'team') || [];
-  const privateObjectives = objectives?.filter(obj => obj.visibility === 'private') || [];
+  // Filter objectives by visibility based on the selected category
+  const filteredObjectives = objectives || [];
+  const organizationalObjectives = filteredObjectives.filter(obj => obj.visibility === 'organization');
+  const departmentalObjectives = filteredObjectives.filter(obj => obj.visibility === 'department');
+  const teamObjectives = filteredObjectives.filter(obj => obj.visibility === 'team');
+  const privateObjectives = filteredObjectives.filter(obj => obj.visibility === 'private');
 
   return {
-    objectives,
+    objectives: filteredObjectives,
     organizationalObjectives,
     departmentalObjectives,
     teamObjectives,
