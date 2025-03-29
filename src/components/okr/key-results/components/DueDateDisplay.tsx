@@ -20,12 +20,13 @@ export const DueDateDisplay: React.FC<DueDateDisplayProps> = ({
   // Don't display if no due date
   if (!dueDate) return null;
   
-  // Don't display due date for completed key results if configured that way
-  if (isCompleted) return null;
-
-  const colorClass = getDueDateColorClass(dueDate);
+  // If the key result is completed, we may still want to show the due date with a different style
+  const colorClass = isCompleted 
+    ? "bg-green-50 text-green-700" 
+    : getDueDateColorClass(dueDate);
+    
   const formattedDate = formatDueDate(dueDate);
-  const isPast = isPastDue(dueDate);
+  const isPast = isPastDue(dueDate) && !isCompleted;
   
   return (
     <Badge 
