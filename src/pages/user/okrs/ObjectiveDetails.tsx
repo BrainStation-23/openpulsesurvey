@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, Target } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, Target, List } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -132,6 +133,15 @@ const UserObjectiveDetails = () => {
     : 'Loading...';
 
   const completedKeyResults = keyResults.filter(kr => kr.status === 'completed').length;
+  
+  // Get child objectives count and stats
+  const childObjectivesCount = objectiveWithRelations?.childObjectives?.length || 0;
+  const childObjectivesTotalWeight = objectiveWithRelations?.alignedObjectives
+    ?.filter(a => a.sourceObjectiveId === id)
+    ?.reduce((sum, alignment) => sum + alignment.weight, 0) || 0;
+  const childObjectivesAvgProgress = objectiveWithRelations?.childObjectives?.length 
+    ? Math.round(objectiveWithRelations.childObjectives.reduce((sum, obj) => sum + obj.progress, 0) / objectiveWithRelations.childObjectives.length) 
+    : 0;
   
   if (isLoading) {
     return (
@@ -307,6 +317,38 @@ const UserObjectiveDetails = () => {
                         </Badge>
                       </dd>
                     </div>
+                    <div className="flex justify-between py-1 border-b">
+                      <dt className="font-medium">Child Objectives</dt>
+                      <dd className="text-right">
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                          {childObjectivesCount}
+                        </Badge>
+                      </dd>
+                    </div>
+                    {childObjectivesCount > 0 && (
+                      <div className="flex justify-between py-1 border-b">
+                        <dt className="font-medium">Children Total Weight</dt>
+                        <dd className="text-right">
+                          <span className="font-mono">{childObjectivesTotalWeight.toFixed(1)}</span>
+                        </dd>
+                      </div>
+                    )}
+                    {childObjectivesCount > 0 && (
+                      <div className="flex justify-between py-1 border-b">
+                        <dt className="font-medium">Children Avg Progress</dt>
+                        <dd className="text-right">
+                          <div className="flex items-center">
+                            <div className="w-16 bg-muted rounded-full h-2 mr-2">
+                              <div 
+                                className="bg-purple-500 rounded-full h-2" 
+                                style={{ width: `${childObjectivesAvgProgress}%` }}
+                              />
+                            </div>
+                            <span>{childObjectivesAvgProgress}%</span>
+                          </div>
+                        </dd>
+                      </div>
+                    )}
                   </dl>
                 </div>
                 
@@ -334,6 +376,58 @@ const UserObjectiveDetails = () => {
                   </dl>
                 </div>
               </div>
+
+              {objectiveWithRelations?.childObjectives?.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Child Objectives</h3>
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    {objectiveWithRelations.childObjectives.map((child) => {
+                      // Find the alignment for this child to get the weight
+                      const alignment = objectiveWithRelations.alignedObjectives?.find(
+                        a => a.alignedObjectiveId === child.id && a.sourceObjectiveId === objective.id
+                      );
+                      const weight = alignment?.weight || 0;
+                      
+                      return (
+                        <div key={child.id} className="flex justify-between py-2 border-b items-center">
+                          <div className="flex items-center space-x-2">
+                            <List className="h-4 w-4 text-gray-500" />
+                            <span>{child.title}</span>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <div className="text-sm font-mono">
+                              Weight: {weight.toFixed(1)}
+                            </div>
+                            <div className="flex items-center">
+                              <div className="w-24 bg-muted rounded-full h-2 mr-2">
+                                <div 
+                                  className={`rounded-full h-2 ${
+                                    child.status === 'completed' 
+                                      ? 'bg-green-500' 
+                                      : child.status === 'at_risk' 
+                                      ? 'bg-red-500' 
+                                      : 'bg-blue-500'
+                                  }`}
+                                  style={{ width: `${child.progress || 0}%` }}
+                                />
+                              </div>
+                              <span>{child.progress?.toFixed(0) || 0}%</span>
+                            </div>
+                            <ObjectiveStatusBadge status={child.status} />
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => navigate(`/user/okrs/objectives/${child.id}`)}
+                            >
+                              View
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {keyResults.length > 0 && (
                 <div className="mt-6">
