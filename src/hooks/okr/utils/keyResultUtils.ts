@@ -1,3 +1,4 @@
+
 import { KeyResult, KeyResultStatus, UpdateKeyResultInput, CreateKeyResultInput, MeasurementType } from '@/types/okr';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -26,16 +27,14 @@ export const fetchKeyResult = async (id: string): Promise<KeyResult | null> => {
 
     console.log('Raw key result data from database:', data);
     
-    // Ensure date fields are properly formatted
-    const formattedData = {
-      ...data,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
-      dueDate: data.due_date ? new Date(data.due_date) : undefined
-    };
-
-    console.log('Formatted key result data:', formattedData);
-    return formattedData as KeyResult;
+    // Map the database fields to our KeyResult type
+    const keyResult = mapKeyResultData(data);
+    
+    console.log('Mapped key result data:', keyResult);
+    console.log('Due date after mapping:', keyResult.dueDate);
+    console.log('Due date type:', keyResult.dueDate ? typeof keyResult.dueDate : 'undefined');
+    
+    return keyResult;
   } catch (error) {
     console.error('Exception in fetchKeyResult:', error);
     throw error;
@@ -46,6 +45,17 @@ export const fetchKeyResult = async (id: string): Promise<KeyResult | null> => {
  * Maps database key result data to KeyResult type
  */
 export const mapKeyResultData = (data: any): KeyResult => {
+  // Add extensive logging to see what we get from the database
+  console.log('Mapping key result data:', data);
+  console.log('Database due_date value:', data.due_date);
+  console.log('Database due_date type:', data.due_date ? typeof data.due_date : 'undefined');
+  
+  // Ensure proper date conversion
+  const dueDate = data.due_date ? new Date(data.due_date) : undefined;
+  
+  console.log('Converted due date:', dueDate);
+  console.log('Is converted due date a Date object?', dueDate instanceof Date);
+  
   return {
     id: data.id,
     title: data.title,
@@ -64,7 +74,7 @@ export const mapKeyResultData = (data: any): KeyResult => {
     progress: data.progress,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at),
-    dueDate: data.due_date ? new Date(data.due_date) : undefined
+    dueDate: dueDate
   } as KeyResult;
 };
 

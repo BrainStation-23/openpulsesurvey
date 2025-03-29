@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   FormField,
   FormItem,
@@ -23,7 +23,20 @@ interface KeyResultStatusFieldsProps {
 
 export const KeyResultStatusFields: React.FC<KeyResultStatusFieldsProps> = ({ form }) => {
   // Log the due date value from the form
-  console.log('Due date in form:', form.getValues('dueDate'));
+  const dueDate = form.getValues('dueDate');
+  console.log('Due date in form:', dueDate);
+  console.log('Due date type:', dueDate ? typeof dueDate : 'undefined');
+  console.log('Is due date a Date object?', dueDate instanceof Date);
+  
+  // Log form errors
+  const formErrors = form.formState.errors;
+  console.log('Form errors:', formErrors);
+  
+  // Ensure there's a value for the dueDate field
+  useEffect(() => {
+    const currentDueDate = form.getValues('dueDate');
+    console.log('Current due date value:', currentDueDate);
+  }, [form]);
   
   return (
     <>
@@ -82,40 +95,46 @@ export const KeyResultStatusFields: React.FC<KeyResultStatusFieldsProps> = ({ fo
         control={form.control}
         name="dueDate"
         rules={{ required: "Due date is required" }}
-        render={({ field }) => (
-          <FormItem className="flex flex-col">
-            <FormLabel>Due Date <span className="text-red-500">*</span></FormLabel>
-            <Popover>
-              <PopoverTrigger asChild>
-                <FormControl>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground border-red-500"
-                    )}
-                  >
-                    {field.value ? (
-                      format(field.value, "PPP")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </FormControl>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={field.value}
-                  onSelect={field.onChange}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <FormMessage />
-          </FormItem>
-        )}
+        render={({ field }) => {
+          console.log('Due date field value:', field.value);
+          return (
+            <FormItem className="flex flex-col">
+              <FormLabel>Due Date <span className="text-red-500">*</span></FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground border-red-500"
+                      )}
+                    >
+                      {field.value ? (
+                        format(new Date(field.value), "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value ? new Date(field.value) : undefined}
+                    onSelect={(date) => {
+                      console.log('Date selected:', date);
+                      field.onChange(date);
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          );
+        }}
       />
     </>
   );

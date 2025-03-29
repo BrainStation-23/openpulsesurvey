@@ -43,12 +43,13 @@ export const useKeyResultForm = ({
     }
   }, [keyResult, mode]);
 
-  // Convert date string to Date object if necessary
+  // Ensure we have a valid Date object for the form's dueDate field
   const dueDateValue = keyResult?.dueDate 
     ? (keyResult.dueDate instanceof Date ? keyResult.dueDate : new Date(keyResult.dueDate)) 
     : undefined;
     
-  console.log('Processed due date value:', dueDateValue);
+  console.log('Processed due date value for form:', dueDateValue);
+  console.log('Is dueDateValue a Date object?', dueDateValue instanceof Date);
 
   const defaultValues = mode === 'edit' && keyResult ? {
     title: keyResult.title,
@@ -79,12 +80,21 @@ export const useKeyResultForm = ({
   };
 
   console.log('Form default values:', defaultValues);
+  console.log('Due date in defaultValues:', defaultValues.dueDate);
 
   const form = useForm<any>({
     defaultValues
   });
 
   const measurementType = form.watch('measurementType');
+
+  // Make sure the due date is loaded correctly after form initialization
+  useEffect(() => {
+    if (mode === 'edit' && dueDateValue && !form.getValues('dueDate')) {
+      console.log('Setting due date in form:', dueDateValue);
+      form.setValue('dueDate', dueDateValue);
+    }
+  }, [dueDateValue, form, mode]);
 
   const handleSubmit = (data: any) => {
     console.log('Form submission data:', data);
@@ -108,6 +118,7 @@ export const useKeyResultForm = ({
       };
       
       console.log('Creating key result with:', newKeyResult);
+      console.log('Due date being submitted:', data.dueDate);
       
       createKeyResult.mutate(newKeyResult, {
         onSuccess: () => {
@@ -135,6 +146,7 @@ export const useKeyResultForm = ({
       };
       
       console.log('Updating key result with:', updatedKeyResult);
+      console.log('Due date being updated:', data.dueDate);
       
       updateKeyResult.mutate(updatedKeyResult, {
         onSuccess: () => {
