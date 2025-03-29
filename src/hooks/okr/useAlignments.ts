@@ -1,11 +1,10 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ObjectiveAlignment, CreateAlignmentInput, AlignmentType } from '@/types/okr';
 import { useToast } from '@/hooks/use-toast';
 
-export const useAlignments = (objectiveId?: string) => {
+export const useAlignments = (objectiveId: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -300,11 +299,51 @@ export const useAlignments = (objectiveId?: string) => {
     };
   };
 
+  // Update an alignment
+  const updateAlignment = useMutation({
+    mutationFn: async (data: { id: string, weight: number }) => {
+      const { data: updatedAlignment, error } = await supabase
+        .from('okr_alignments')
+        .update({
+          weight: data.weight
+        })
+        .eq('id', data.id)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return updatedAlignment;
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({
+        queryKey: ['objective', objectiveId, 'alignments']
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['objective', objectiveId, 'withRelations']
+      });
+      
+      toast({
+        title: "Alignment updated",
+        description: "The objective alignment has been updated successfully."
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to update alignment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update alignment. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
   return {
     alignments,
     isLoading,
     error,
     createAlignment,
-    deleteAlignment
+    deleteAlignment,
+    updateAlignment
   };
 };
