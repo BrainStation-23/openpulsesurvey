@@ -45,8 +45,8 @@ export const useHierarchyProcessor = ({
     }
     
     // Configuration for layout spacing
-    const VERTICAL_SPACING = 200;  // Increased vertical space between levels
-    const HORIZONTAL_SPACING = 250; // Space between siblings
+    const VERTICAL_SPACING = 250;  // Increased vertical space between levels
+    const HORIZONTAL_SPACING = 200; // Space between siblings
     const NODE_WIDTH = 180; // Approximate width of a node
 
     const nodes: Node[] = [];
