@@ -30,7 +30,9 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, CheckCircle, Info } from "lucide-react";
+import { AlertCircle, CheckCircle, Info, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { HistoryDetailView } from "@/components/okr/history/HistoryDetailView";
 
 interface OkrHistoryEntry {
   id: string;
@@ -46,10 +48,12 @@ interface OkrHistoryEntry {
 
 export default function OkrHistory() {
   const [filter, setFilter] = useState({
-    entityType: "",
-    changeType: "",
+    entityType: "all",
+    changeType: "all",
     searchTerm: "",
   });
+
+  const [selectedEntry, setSelectedEntry] = useState<OkrHistoryEntry | null>(null);
 
   const { data: historyData, isLoading } = useQuery({
     queryKey: ["okr-history"],
@@ -82,8 +86,8 @@ export default function OkrHistory() {
   // Filter the history data based on the selected filters
   const filteredHistory = historyData
     ? historyData.filter((entry: OkrHistoryEntry) => {
-        const matchesEntityType = !filter.entityType || entry.entity_type.includes(filter.entityType);
-        const matchesChangeType = !filter.changeType || entry.change_type.includes(filter.changeType);
+        const matchesEntityType = filter.entityType === "all" || entry.entity_type.includes(filter.entityType);
+        const matchesChangeType = filter.changeType === "all" || entry.change_type.includes(filter.changeType);
         const matchesSearch =
           !filter.searchTerm ||
           entry.entity_type.toLowerCase().includes(filter.searchTerm.toLowerCase()) ||
@@ -135,6 +139,11 @@ export default function OkrHistory() {
         {type}
       </Badge>
     );
+  };
+
+  // Handle view details click
+  const handleViewDetails = (entry: OkrHistoryEntry) => {
+    setSelectedEntry(entry);
   };
 
   return (
@@ -218,6 +227,7 @@ export default function OkrHistory() {
                   <TableHead>Entity Type</TableHead>
                   <TableHead>Change Type</TableHead>
                   <TableHead>Details</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -241,11 +251,14 @@ export default function OkrHistory() {
                         <TableCell>
                           <Skeleton className="h-4 w-40" />
                         </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-8 w-8 rounded-full ml-auto" />
+                        </TableCell>
                       </TableRow>
                     ))
                 ) : filteredHistory.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
+                    <TableCell colSpan={6} className="h-24 text-center">
                       No history records found.
                     </TableCell>
                   </TableRow>
@@ -263,6 +276,16 @@ export default function OkrHistory() {
                          entry.previous_data?.description || 
                          `Changed ${entry.entity_type}`}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewDetails(entry)}
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -271,6 +294,13 @@ export default function OkrHistory() {
           </div>
         </CardContent>
       </Card>
+
+      {/* History Detail Dialog */}
+      <HistoryDetailView 
+        isOpen={!!selectedEntry} 
+        onClose={() => setSelectedEntry(null)} 
+        historyEntry={selectedEntry} 
+      />
     </div>
   );
 }
