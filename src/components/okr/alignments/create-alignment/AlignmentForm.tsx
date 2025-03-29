@@ -19,11 +19,13 @@ export const alignmentFormSchema = z.object({
 export type AlignmentFormValues = z.infer<typeof alignmentFormSchema>;
 
 interface AlignmentFormProps {
-  sourceObjectiveId: string;
+  sourceObjectiveId?: string;
   onSubmit: (data: AlignmentFormValues) => Promise<void>;
   isSubmitting: boolean;
   onCancel: () => void;
-  sourceObjective: ObjectiveWithRelations | null;
+  sourceObjective?: ObjectiveWithRelations | null;
+  form?: any; // For controlled form in edit mode
+  selectedObjective?: Objective | null;
 }
 
 export const AlignmentForm = ({ 
@@ -31,14 +33,16 @@ export const AlignmentForm = ({
   onSubmit, 
   isSubmitting, 
   onCancel,
-  sourceObjective
+  sourceObjective,
+  form: externalForm,
+  selectedObjective: initialSelectedObjective
 }: AlignmentFormProps) => {
-  const [selectedObjective, setSelectedObjective] = useState<Objective | null>(null);
+  const [selectedObjective, setSelectedObjective] = useState<Objective | null>(initialSelectedObjective || null);
   
-  const form = useForm<AlignmentFormValues>({
+  const form = externalForm || useForm<AlignmentFormValues>({
     resolver: zodResolver(alignmentFormSchema),
     defaultValues: {
-      alignedObjectiveId: '',
+      alignedObjectiveId: initialSelectedObjective?.id || '',
       weight: 1,
     }
   });
@@ -56,15 +60,23 @@ export const AlignmentForm = ({
     await onSubmit(data);
   };
 
+  // For edit mode, we don't need to show the objective selection section
+  const showObjectiveSelection = sourceObjectiveId && !initialSelectedObjective;
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmitForm)} className="space-y-4">
-        <ObjectiveSelection
-          sourceObjectiveId={sourceObjectiveId}
-          onSelectObjective={handleObjectiveSelect}
-          selectedObjective={selectedObjective}
-          sourceObjective={sourceObjective}
-        />
+        {showObjectiveSelection && (
+          <div className="mb-4">
+            <ObjectiveSelection
+              relationDirection="parent"
+              toggleRelationDirection={() => {}}
+              selectedObjective={selectedObjective}
+              setSelectedObjective={handleObjectiveSelect}
+              sourceObjectiveId={sourceObjectiveId || ''}
+            />
+          </div>
+        )}
         
         <FormField
           control={form.control}
@@ -118,9 +130,9 @@ export const AlignmentForm = ({
           </Button>
           <Button 
             type="submit" 
-            disabled={isSubmitting || !selectedObjective}
+            disabled={isSubmitting || (!initialSelectedObjective && !selectedObjective)}
           >
-            {isSubmitting ? "Creating..." : "Create Alignment"}
+            {isSubmitting ? "Creating..." : initialSelectedObjective ? "Update Alignment" : "Create Alignment"}
           </Button>
         </DialogFooter>
       </form>

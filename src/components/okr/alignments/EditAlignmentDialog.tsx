@@ -13,6 +13,7 @@ import { AlignmentForm, AlignmentFormValues, alignmentFormSchema } from './creat
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from '@/hooks/use-toast';
 
 interface EditAlignmentDialogProps {
   open: boolean;
@@ -29,15 +30,16 @@ export const EditAlignmentDialog: React.FC<EditAlignmentDialogProps> = ({
 }) => {
   const { updateAlignment } = useAlignments(alignment?.sourceObjectiveId || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   
   const form = useForm<AlignmentFormValues>({
     resolver: zodResolver(alignmentFormSchema),
     defaultValues: {
-      alignmentType: 'parent_child',
+      alignedObjectiveId: alignment?.alignedObjectiveId || '',
       weight: alignment?.weight || 1,
     },
     values: {
-      alignmentType: 'parent_child',
+      alignedObjectiveId: alignment?.alignedObjectiveId || '',
       weight: alignment?.weight || 1,
     }
   });
@@ -46,13 +48,13 @@ export const EditAlignmentDialog: React.FC<EditAlignmentDialogProps> = ({
   React.useEffect(() => {
     if (alignment) {
       form.reset({
-        alignmentType: 'parent_child',
+        alignedObjectiveId: alignment.alignedObjectiveId || '',
         weight: alignment.weight || 1,
       });
     }
   }, [alignment, form]);
 
-  const onSubmit = async (values: z.infer<typeof alignmentFormSchema>) => {
+  const onSubmit = async (values: AlignmentFormValues) => {
     if (!alignment?.id) return;
     
     setIsSubmitting(true);
@@ -63,10 +65,20 @@ export const EditAlignmentDialog: React.FC<EditAlignmentDialogProps> = ({
         weight: values.weight,
       });
       
+      toast({
+        title: 'Alignment updated',
+        description: 'The objective alignment has been updated successfully.',
+      });
+      
       form.reset();
       onOpenChange(false);
       if (onSuccess) onSuccess();
     } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error updating alignment',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+      });
       console.error('Error updating alignment:', error);
     } finally {
       setIsSubmitting(false);
@@ -99,7 +111,7 @@ export const EditAlignmentDialog: React.FC<EditAlignmentDialogProps> = ({
         
         <AlignmentForm
           form={form}
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={onSubmit}
           isSubmitting={isSubmitting}
           onCancel={handleCancel}
           selectedObjective={alignment?.alignedObjective || null}
