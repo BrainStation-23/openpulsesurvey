@@ -97,6 +97,7 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
           <DialogTitle>Create Alignment</DialogTitle>
           <DialogDescription>
             Connect this objective with another to establish a parent-child relationship.
+            The weight determines how much the child objective's progress contributes to the parent's progress.
           </DialogDescription>
         </DialogHeader>
         

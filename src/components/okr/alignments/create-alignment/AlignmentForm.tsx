@@ -55,7 +55,8 @@ export const AlignmentForm = ({
                 />
               </FormControl>
               <FormDescription>
-                Enter a positive value to represent the alignment weight
+                Enter a value between 0 and 1 to represent the contribution percentage to parent progress.
+                For example, 0.05 means this objective contributes 5% to the parent's overall progress.
               </FormDescription>
               <FormMessage />
             </FormItem>
