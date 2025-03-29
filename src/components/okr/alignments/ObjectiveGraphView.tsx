@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -150,7 +151,10 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     minZoom: 0.1,
     maxZoom: 2,
     proOptions: { hideAttribution: true },
-    fitViewOptions: { padding: 0.2 }
+    fitViewOptions: { 
+      padding: 0.3, // Increased padding to avoid nodes at edges
+      includeHiddenNodes: false 
+    }
   }), []);
 
   return (
@@ -190,6 +194,11 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
               onEdgesChange={onEdgesChange}
               nodeTypes={nodeTypes}
               {...reactFlowOptions}
+              defaultEdgeOptions={{
+                type: 'smoothstep',
+                animated: false,
+                style: { stroke: '#64748b', strokeWidth: 2 }
+              }}
             >
               <Panel position="top-right">
                 <Button 
