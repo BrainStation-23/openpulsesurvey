@@ -55,6 +55,16 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
     return 'bg-white border-gray-200';
   };
   
+  // Debug output to console to understand why buttons aren't showing
+  console.log('Node rendering:', {
+    id: objective.id,
+    canDelete,
+    canEdit,
+    hasParentId: !!data.parentId,
+    hasAlignment: !!alignment,
+    hasOnDelete: !!onDelete
+  });
+  
   return (
     <TooltipProvider>
       <div className={`p-4 rounded-lg shadow-md border ${getBgColor()} transition-colors duration-200 w-72`}>
@@ -132,8 +142,8 @@ export const ObjectiveNode = ({ data, isConnectable }: ObjectiveNodeProps) => {
             />
           </div>
           
-          {/* 5. Action Buttons */}
-          {(canDelete || canEdit) && onDelete && alignment && (
+          {/* 5. Action Buttons - Fixing visibility condition */}
+          {data.parentId && alignment && (
             <div className="flex justify-end space-x-2 mt-2">
               {canEdit && (
                 <Button 

@@ -1,4 +1,3 @@
-
 import { useCallback, useRef } from 'react';
 import { Objective, ObjectiveWithRelations, ObjectiveAlignment } from '@/types/okr';
 import { Node, Edge } from '@xyflow/react';
@@ -110,6 +109,12 @@ export const useHierarchyProcessor = ({
         // Calculate position
         const position = calculateNodePosition(level, index, totalNodesInLevel);
         
+        // Set correct permissions - IMPORTANT: Make parentId and alignment checks more explicit
+        const nodeCanDelete = canEdit && !!parentId;
+        const nodeCanEdit = canEdit && !!parentId && !!alignment;
+        
+        console.log(`Node ${obj.id} permissions:`, { nodeCanDelete, nodeCanEdit, parentId, hasAlignment: !!alignment });
+        
         // Create node
         const nodeData = {
           id: obj.id,
@@ -121,8 +126,8 @@ export const useHierarchyProcessor = ({
             isAdmin,
             isCurrentObjective,
             isInPath,
-            canDelete: canEdit && parentId !== undefined,
-            canEdit: canEdit && parentId !== undefined && alignment !== undefined,
+            canDelete: nodeCanDelete,
+            canEdit: nodeCanEdit,
             parentId,
             alignment,
             onDelete: parentId && alignment ? () => {
