@@ -8,6 +8,7 @@ interface HierarchyProcessorProps {
   canEdit: boolean;
   objective: ObjectiveWithRelations;
   handleDeleteAlignment: (alignmentId: string) => Promise<void>;
+  handleEditAlignment?: (alignmentId: string) => void;
   fetchObjectiveWithRelations: (objectiveId: string) => Promise<ObjectiveWithRelations | null>;
 }
 
@@ -16,6 +17,7 @@ export const useHierarchyProcessor = ({
   canEdit,
   objective,
   handleDeleteAlignment,
+  handleEditAlignment,
   fetchObjectiveWithRelations
 }: HierarchyProcessorProps) => {
   // Use a ref to store the last processed result to prevent reprocessing the same data
@@ -94,6 +96,13 @@ export const useHierarchyProcessor = ({
         // Calculate position
         const position = calculateNodePosition(level, index, totalNodesInLevel);
         
+        // Find alignment if it exists
+        const alignment = parentId ? 
+          objective.alignedObjectives?.find(
+            a => (a.sourceObjectiveId === parentId && a.alignedObjectiveId === obj.id) || 
+                (a.sourceObjectiveId === obj.id && a.alignedObjectiveId === parentId)
+          ) : undefined;
+        
         // Create node
         const nodeData = {
           id: obj.id,
@@ -106,12 +115,11 @@ export const useHierarchyProcessor = ({
             isCurrentObjective,
             isInPath,
             canDelete: canEdit && parentId !== undefined,
-            onDelete: parentId ? () => {
-              const alignment = objective.alignedObjectives?.find(
-                a => (a.sourceObjectiveId === parentId && a.alignedObjectiveId === obj.id) || 
-                    (a.sourceObjectiveId === obj.id && a.alignedObjectiveId === parentId)
-              );
-              if (alignment) handleDeleteAlignment(alignment.id);
+            onDelete: parentId && alignment ? () => {
+              handleDeleteAlignment(alignment.id);
+            } : undefined,
+            onEdit: parentId && alignment && handleEditAlignment ? () => {
+              handleEditAlignment(alignment.id);
             } : undefined
           }
         };
@@ -221,7 +229,7 @@ export const useHierarchyProcessor = ({
     });
     
     return result;
-  }, [objective, isAdmin, canEdit, handleDeleteAlignment, fetchObjectiveWithRelations]);
+  }, [objective, isAdmin, canEdit, handleDeleteAlignment, handleEditAlignment, fetchObjectiveWithRelations]);
 
   return { 
     processHierarchyData,
@@ -233,4 +241,3 @@ export const useHierarchyProcessor = ({
     }
   };
 };
-

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import { ObjectiveNode } from './components/ObjectiveNode';
 import { Maximize2, Minimize2, AlertTriangle } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useToast } from "@/hooks/use-toast";
+import { EditAlignmentDialog } from './EditAlignmentDialog';
 
 interface ObjectiveGraphViewProps {
   objective: ObjectiveWithRelations;
@@ -40,12 +42,15 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const dataLoadedRef = useRef(false);
   const { toast } = useToast();
+  const [alignmentToEdit, setAlignmentToEdit] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const {
     rootObjective,
     currentObjectivePath,
     processHierarchyData,
-    hasProcessedData
+    hasProcessedData,
+    getAlignmentById
   } = useObjectiveTree(objective, isAdmin, canEdit);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -63,6 +68,11 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
         document.exitFullscreen();
       }
     }
+  };
+
+  const handleEditAlignment = (alignmentId: string) => {
+    setAlignmentToEdit(alignmentId);
+    setIsEditDialogOpen(true);
   };
 
   useEffect(() => {
@@ -153,6 +163,8 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     fitViewOptions: { padding: 0.2 }
   }), []);
 
+  const selectedAlignment = alignmentToEdit ? getAlignmentById(alignmentToEdit) : null;
+
   return (
     <Card className={`shadow-sm ${isFullscreen ? 'fullscreen-card' : ''}`}>
       <CardContent className="p-4">
@@ -219,6 +231,14 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
             </ReactFlow>
           )}
         </div>
+        
+        {/* Edit Alignment Dialog */}
+        <EditAlignmentDialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          alignment={selectedAlignment}
+          onSuccess={() => setAlignmentToEdit(null)}
+        />
       </CardContent>
     </Card>
   );

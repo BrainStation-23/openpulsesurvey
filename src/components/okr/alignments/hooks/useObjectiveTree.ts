@@ -1,36 +1,73 @@
 
-import { useObjectivePath } from './useObjectivePath';
-import { useObjectiveData } from './useObjectiveData';
-import { useHierarchyProcessor } from './useHierarchyProcessor';
-import { useAlignmentHelpers } from './useAlignmentHelpers';
+import { useEffect, useState, useCallback } from 'react';
 import { ObjectiveWithRelations } from '@/types/okr';
+import { useAlignments } from '@/hooks/okr/useAlignments';
+import { useObjectiveWithRelations } from '@/hooks/okr/useObjectiveWithRelations';
+import { useHierarchyProcessor } from './useHierarchyProcessor';
+import { useObjectivePath } from './useObjectivePath';
 
-export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin: boolean, canEdit: boolean) => {
-  // Get the objective path and root
-  const { rootObjective, currentObjectivePath, cachedData } = useObjectivePath(objective);
+export const useObjectiveTree = (objective: ObjectiveWithRelations, isAdmin = false, canEdit = false) => {
+  const { deleteAlignment } = useAlignments(objective.id);
+  const { getObjectiveWithRelations } = useObjectiveWithRelations();
+  const [rootObjective, setRootObjective] = useState<ObjectiveWithRelations | null>(null);
   
-  // Get objective data fetching capabilities
-  const { fetchObjectiveWithRelations } = useObjectiveData(cachedData);
+  // Calculate objective path for highlighting
+  const { currentObjectivePath } = useObjectivePath(objective);
   
-  // Get alignment helper functions
-  const { findParentAlignmentId, findChildAlignments, handleDeleteAlignment } = useAlignmentHelpers(objective);
+  const handleDeleteAlignment = useCallback(async (alignmentId: string) => {
+    await deleteAlignment.mutateAsync(alignmentId);
+  }, [deleteAlignment]);
   
-  // Get hierarchy processor
+  const getAlignmentById = useCallback((alignmentId: string) => {
+    return objective.alignedObjectives?.find(a => a.id === alignmentId) || null;
+  }, [objective.alignedObjectives]);
+  
+  const fetchObjectiveWithRelations = useCallback(async (objectiveId: string) => {
+    return await getObjectiveWithRelations(objectiveId);
+  }, [getObjectiveWithRelations]);
+  
+  // Use our hierarchy processor
   const { processHierarchyData, hasProcessedData } = useHierarchyProcessor({
     isAdmin,
     canEdit,
     objective,
     handleDeleteAlignment,
+    handleEditAlignment: (alignmentId: string) => {
+      console.log(`Edit alignment requested for alignment: ${alignmentId}`);
+      // The actual handling is done in the parent component via state
+      return alignmentId;
+    },
     fetchObjectiveWithRelations
   });
-
+  
+  useEffect(() => {
+    // Try to find the most appropriate root objective
+    const findRootObjective = async () => {
+      if (objective.parentObjectiveId) {
+        try {
+          // If there's a parent, try to get the parent as root
+          const parentObj = await getObjectiveWithRelations(objective.parentObjectiveId);
+          if (parentObj) {
+            setRootObjective(parentObj);
+            return;
+          }
+        } catch (error) {
+          console.error('Error fetching parent objective:', error);
+        }
+      }
+      
+      // If no parent or couldn't fetch parent, use current objective as root
+      setRootObjective(objective);
+    };
+    
+    findRootObjective();
+  }, [objective, objective.parentObjectiveId, getObjectiveWithRelations]);
+  
   return {
     rootObjective,
     currentObjectivePath,
-    findParentAlignmentId,
-    findChildAlignments,
-    handleDeleteAlignment,
     processHierarchyData,
-    hasProcessedData
+    hasProcessedData,
+    getAlignmentById
   };
 };
