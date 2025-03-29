@@ -17,11 +17,11 @@ export const DueDateDisplay: React.FC<DueDateDisplayProps> = ({
   showIcon = true,
   className = ''
 }) => {
-  // Don't display due date for completed key results
-  if (isCompleted) return null;
-  
   // Don't display if no due date
   if (!dueDate) return null;
+  
+  // Don't display due date for completed key results if configured that way
+  if (isCompleted) return null;
 
   const colorClass = getDueDateColorClass(dueDate);
   const formattedDate = formatDueDate(dueDate);

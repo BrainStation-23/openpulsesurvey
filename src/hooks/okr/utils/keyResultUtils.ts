@@ -1,4 +1,3 @@
-
 import { KeyResult, KeyResultStatus, UpdateKeyResultInput, CreateKeyResultInput, MeasurementType } from '@/types/okr';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -54,6 +53,7 @@ export const mapKeyResultData = (data: any): KeyResult => {
   let dueDate = null;
   if (data.due_date) {
     try {
+      // Always convert timestamptz to a proper Date object
       dueDate = new Date(data.due_date);
       console.log('Converted due_date to Date object:', dueDate);
       console.log('Is due_date a Date object?', dueDate instanceof Date);

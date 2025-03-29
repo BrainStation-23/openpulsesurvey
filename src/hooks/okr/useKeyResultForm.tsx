@@ -47,9 +47,8 @@ export const useKeyResultForm = ({
   const processDateValue = (dateValue: any): Date | undefined => {
     if (!dateValue) return undefined;
     
-    // Handle different possible date formats/types
     try {
-      // If it's already a Date object
+      // Handle different possible date formats/types
       if (dateValue instanceof Date) {
         console.log('Date is already a Date object:', dateValue);
         return dateValue;
@@ -61,24 +60,8 @@ export const useKeyResultForm = ({
         return new Date(dateValue);
       }
       
-      // If it's an object with _type and value properties (from the database)
-      if (dateValue._type === 'Date' && dateValue.value) {
-        if (dateValue.value.iso) {
-          console.log('Converting object with ISO to Date:', dateValue.value.iso);
-          return new Date(dateValue.value.iso);
-        }
-        if (typeof dateValue.value === 'string') {
-          console.log('Converting object value string to Date:', dateValue.value);
-          return new Date(dateValue.value);
-        }
-        if (typeof dateValue.value === 'number') {
-          console.log('Converting object value number to Date:', dateValue.value);
-          return new Date(dateValue.value);
-        }
-      }
-      
-      console.log('Unable to process date value, returning undefined');
-      return undefined;
+      console.log('Converting value to Date:', dateValue);
+      return new Date(dateValue);
     } catch (error) {
       console.error('Error processing date:', error);
       return undefined;

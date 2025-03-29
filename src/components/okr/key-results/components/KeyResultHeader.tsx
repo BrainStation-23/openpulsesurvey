@@ -37,21 +37,22 @@ export const KeyResultHeader: React.FC<KeyResultHeaderProps> = ({
   return (
     <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
       <div>
-        <CardTitle className="text-lg font-medium">
+        <CardTitle className="text-lg font-medium flex items-center flex-wrap gap-2">
           {keyResult.title}
           <Badge 
             variant="outline" 
-            className={`ml-2 ${getKrTypeColor(keyResult.krType)}`}
+            className={getKrTypeColor(keyResult.krType)}
           >
             {keyResult.krType.charAt(0).toUpperCase() + keyResult.krType.slice(1)}
           </Badge>
           
-          {/* Due date display */}
-          <DueDateDisplay 
-            dueDate={keyResult.dueDate} 
-            isCompleted={keyResult.status === 'completed'} 
-            className="ml-2"
-          />
+          {/* Due date display - now always rendered if there's a date */}
+          {keyResult.dueDate && (
+            <DueDateDisplay 
+              dueDate={keyResult.dueDate} 
+              isCompleted={keyResult.status === 'completed'} 
+            />
+          )}
         </CardTitle>
         <p className="text-sm text-muted-foreground">Owned by: {ownerName}</p>
       </div>
