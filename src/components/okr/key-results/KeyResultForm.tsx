@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface KeyResultFormProps {
   objectiveId: string;
   keyResult?: KeyResult;
-  onClose: (success?: boolean) => void; // Updated to accept success parameter
+  onClose: (success?: boolean) => void;
   mode: 'create' | 'edit';
 }
 
@@ -33,7 +32,6 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
   const { createKeyResult, updateKeyResult } = useKeyResult(keyResult?.id);
   const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
 
-  // Get current user
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -56,6 +54,7 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
     booleanValue: keyResult.booleanValue,
     weight: keyResult.weight,
     status: keyResult.status,
+    dueDate: keyResult.dueDate || '',
   } : {
     title: '',
     description: '',
@@ -68,6 +67,7 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
     booleanValue: false,
     weight: 1,
     status: 'not_started' as KeyResultStatus,
+    dueDate: '',
   };
 
   const form = useForm<any>({
@@ -92,14 +92,15 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
         booleanValue: data.measurementType === 'boolean' ? data.booleanValue : undefined,
         weight: data.weight,
         status: data.status,
+        dueDate: data.dueDate || null,
       };
       
       createKeyResult.mutate(newKeyResult, {
         onSuccess: () => {
-          onClose(true); // Pass true to indicate successful creation
+          onClose(true);
         },
         onError: () => {
-          onClose(false); // Pass false on error
+          onClose(false);
         }
       });
     } else if (mode === 'edit' && keyResult) {
@@ -116,14 +117,15 @@ export const KeyResultForm: React.FC<KeyResultFormProps> = ({
         booleanValue: data.measurementType === 'boolean' ? data.booleanValue : undefined,
         weight: data.weight,
         status: data.status,
+        dueDate: data.dueDate || null,
       };
       
       updateKeyResult.mutate(updatedKeyResult, {
         onSuccess: () => {
-          onClose(true); // Pass true to indicate successful update
+          onClose(true);
         },
         onError: () => {
-          onClose(false); // Pass false on error
+          onClose(false);
         }
       });
     }

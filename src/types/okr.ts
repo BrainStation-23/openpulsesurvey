@@ -1,4 +1,3 @@
-
 export type OKRCycleStatus = 'active' | 'upcoming' | 'completed' | 'archived';
 
 export interface OKRCycle {
@@ -105,6 +104,7 @@ export interface KeyResult {
   weight: number;
   status: KeyResultStatus;
   progress: number;
+  dueDate?: Date | string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -123,6 +123,7 @@ export interface CreateKeyResultInput {
   booleanValue?: boolean;
   weight?: number;
   status?: KeyResultStatus;
+  dueDate?: Date | string;
 }
 
 export interface UpdateKeyResultInput extends Partial<CreateKeyResultInput> {
