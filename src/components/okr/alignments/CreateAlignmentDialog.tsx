@@ -36,7 +36,6 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
   const form = useForm<AlignmentFormValues>({
     resolver: zodResolver(alignmentFormSchema),
     defaultValues: {
-      alignmentType: 'parent_child',
       weight: 1,
     },
   });

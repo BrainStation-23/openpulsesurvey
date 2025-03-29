@@ -15,6 +15,7 @@ interface NodeData {
   alignment?: ObjectiveAlignment | null;
   onDelete?: () => void;
   onEdit?: () => void;
+  [key: string]: unknown; // Adding index signature to satisfy Record<string, unknown>
 }
 
 interface HierarchyProcessorProps {
