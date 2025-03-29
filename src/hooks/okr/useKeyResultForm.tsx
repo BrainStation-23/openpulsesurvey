@@ -32,10 +32,23 @@ export const useKeyResultForm = ({
     getUser();
   }, []);
 
+  // Log incoming keyResult data for debugging
+  useEffect(() => {
+    if (mode === 'edit' && keyResult) {
+      console.log('Editing key result data:', keyResult);
+      console.log('Key result due date:', keyResult.dueDate);
+      console.log('Due date type:', keyResult.dueDate ? typeof keyResult.dueDate : 'undefined');
+      console.log('Is due date a Date object?', keyResult.dueDate instanceof Date);
+      console.log('Raw due date value:', keyResult.dueDate);
+    }
+  }, [keyResult, mode]);
+
   // Convert date string to Date object if necessary
   const dueDateValue = keyResult?.dueDate 
     ? (keyResult.dueDate instanceof Date ? keyResult.dueDate : new Date(keyResult.dueDate)) 
     : undefined;
+    
+  console.log('Processed due date value:', dueDateValue);
 
   const defaultValues = mode === 'edit' && keyResult ? {
     title: keyResult.title,
@@ -65,6 +78,8 @@ export const useKeyResultForm = ({
     dueDate: undefined,
   };
 
+  console.log('Form default values:', defaultValues);
+
   const form = useForm<any>({
     defaultValues
   });
@@ -72,6 +87,8 @@ export const useKeyResultForm = ({
   const measurementType = form.watch('measurementType');
 
   const handleSubmit = (data: any) => {
+    console.log('Form submission data:', data);
+    
     if (mode === 'create' && currentUserId) {
       const newKeyResult: CreateKeyResultInput = {
         title: data.title,
@@ -89,6 +106,8 @@ export const useKeyResultForm = ({
         status: data.status,
         dueDate: data.dueDate,
       };
+      
+      console.log('Creating key result with:', newKeyResult);
       
       createKeyResult.mutate(newKeyResult, {
         onSuccess: () => {
@@ -114,6 +133,8 @@ export const useKeyResultForm = ({
         status: data.status,
         dueDate: data.dueDate,
       };
+      
+      console.log('Updating key result with:', updatedKeyResult);
       
       updateKeyResult.mutate(updatedKeyResult, {
         onSuccess: () => {

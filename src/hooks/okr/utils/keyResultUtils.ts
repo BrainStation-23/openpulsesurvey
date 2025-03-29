@@ -1,4 +1,3 @@
-
 import { KeyResult, KeyResultStatus, UpdateKeyResultInput, CreateKeyResultInput, MeasurementType } from '@/types/okr';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -6,19 +5,41 @@ import { supabase } from '@/integrations/supabase/client';
  * Fetches a key result by its ID
  */
 export const fetchKeyResult = async (id: string): Promise<KeyResult | null> => {
-  if (!id) return null;
+  console.log(`Fetching key result with ID: ${id}`);
   
-  const { data, error } = await supabase
-    .from('key_results')
-    .select('*')
-    .eq('id', id)
-    .single();
-  
-  if (error) {
+  try {
+    const { data, error } = await supabase
+      .from('key_results')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching key result:', error);
+      throw new Error(`Error fetching key result: ${error.message}`);
+    }
+
+    if (!data) {
+      console.log('No key result found with ID:', id);
+      return null;
+    }
+
+    console.log('Raw key result data from database:', data);
+    
+    // Ensure date fields are properly formatted
+    const formattedData = {
+      ...data,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+      dueDate: data.due_date ? new Date(data.due_date) : undefined
+    };
+
+    console.log('Formatted key result data:', formattedData);
+    return formattedData as KeyResult;
+  } catch (error) {
+    console.error('Exception in fetchKeyResult:', error);
     throw error;
   }
-  
-  return mapKeyResultData(data);
 };
 
 /**
