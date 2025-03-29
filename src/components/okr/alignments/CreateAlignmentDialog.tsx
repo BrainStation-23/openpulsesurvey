@@ -30,7 +30,7 @@ import { ObjectiveSearchInput } from './ObjectiveSearchInput';
 
 const alignmentFormSchema = z.object({
   alignmentType: z.enum(['parent_child']),
-  weight: z.number().min(0.1).max(10).default(1),
+  weight: z.number().min(0).default(1),
 });
 
 interface CreateAlignmentDialogProps {
