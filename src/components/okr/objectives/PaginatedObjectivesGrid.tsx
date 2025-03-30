@@ -137,7 +137,7 @@ export const PaginatedObjectivesGrid: React.FC<PaginatedObjectivesGridProps> = (
                     <PaginationItem key={pageNum}>
                       <PaginationLink
                         isActive={page === pageNum}
-                        onClick={() => onPageChange(pageNum)}
+                        onClick={() => typeof pageNum === 'number' && onPageChange(pageNum)}
                       >
                         {pageNum}
                       </PaginationLink>
