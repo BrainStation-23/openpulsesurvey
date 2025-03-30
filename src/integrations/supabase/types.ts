@@ -3094,8 +3094,10 @@ export type Database = {
           p_user_id?: string
           p_page_number?: number
           p_page_size?: number
+          p_sort_column?: string
+          p_sort_direction?: string
         }
-        Returns: Json[]
+        Returns: Json
       }
       search_users:
         | {
