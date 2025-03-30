@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Objective, ObjectiveWithRelations, ObjectiveAlignment } from '@/types/okr';
@@ -34,7 +35,7 @@ export const useBFSHierarchyLoader = () => {
     try {
       const { data, error } = await supabase
         .from('objectives')
-        .select('*, owner:profiles!objectives_owner_id_fkey(id, first_name, last_name, email, avatar_url)')
+        .select('*, owner:profiles!objectives_owner_id_fkey(id, first_name, last_name, email)')
         .eq('id', startObjectiveId)
         .single();
       
@@ -66,9 +67,9 @@ export const useBFSHierarchyLoader = () => {
         _fetched: false,
         owner: data.owner ? {
           id: data.owner.id,
-          fullName: `${data.owner.first_name} ${data.owner.last_name}`,
+          fullName: `${data.owner.first_name || ''} ${data.owner.last_name || ''}`.trim(),
           email: data.owner.email,
-          avatarUrl: data.owner.avatar_url
+          avatarUrl: undefined // The avatar_url field doesn't exist in the profiles table
         } : undefined
       };
       
@@ -103,7 +104,7 @@ export const useBFSHierarchyLoader = () => {
     } else {
       const { data, error } = await supabase
         .from('objectives')
-        .select('*, owner:profiles!objectives_owner_id_fkey(id, first_name, last_name, email, avatar_url)')
+        .select('*, owner:profiles!objectives_owner_id_fkey(id, first_name, last_name, email)')
         .eq('id', rootObjectiveId)
         .single();
         
@@ -130,9 +131,9 @@ export const useBFSHierarchyLoader = () => {
         _fetched: false,
         owner: data.owner ? {
           id: data.owner.id,
-          fullName: `${data.owner.first_name} ${data.owner.last_name}`,
+          fullName: `${data.owner.first_name || ''} ${data.owner.last_name || ''}`.trim(),
           email: data.owner.email,
-          avatarUrl: data.owner.avatar_url
+          avatarUrl: undefined // The avatar_url field doesn't exist in the profiles table
         } : undefined
       };
     }
@@ -168,7 +169,7 @@ export const useBFSHierarchyLoader = () => {
           // 1. Fetch child objectives (direct children)
           const { data: childObjectives, error: childError } = await supabase
             .from('objectives')
-            .select('*, owner:profiles!objectives_owner_id_fkey(id, first_name, last_name, email, avatar_url)')
+            .select('*, owner:profiles!objectives_owner_id_fkey(id, first_name, last_name, email)')
             .eq('parent_objective_id', objectiveId);
           
           if (childError) {
@@ -192,9 +193,9 @@ export const useBFSHierarchyLoader = () => {
                 _fetched: false,
                 owner: child.owner ? {
                   id: child.owner.id,
-                  fullName: `${child.owner.first_name} ${child.owner.last_name}`,
+                  fullName: `${child.owner.first_name || ''} ${child.owner.last_name || ''}`.trim(), 
                   email: child.owner.email,
-                  avatarUrl: child.owner.avatar_url
+                  avatarUrl: undefined // The avatar_url field doesn't exist in the profiles table
                 } : undefined
               };
               
@@ -221,7 +222,7 @@ export const useBFSHierarchyLoader = () => {
               weight,
               aligned_objective:objectives!aligned_objective_id (
                 *,
-                owner:profiles!objectives_owner_id_fkey(id, first_name, last_name, email, avatar_url)
+                owner:profiles!objectives_owner_id_fkey(id, first_name, last_name, email)
               )
             `)
             .eq('source_objective_id', objectiveId)
@@ -249,9 +250,9 @@ export const useBFSHierarchyLoader = () => {
                   _fetched: false,
                   owner: alignment.aligned_objective.owner ? {
                     id: alignment.aligned_objective.owner.id,
-                    fullName: `${alignment.aligned_objective.owner.first_name} ${alignment.aligned_objective.owner.last_name}`,
+                    fullName: `${alignment.aligned_objective.owner.first_name || ''} ${alignment.aligned_objective.owner.last_name || ''}`.trim(),
                     email: alignment.aligned_objective.owner.email,
-                    avatarUrl: alignment.aligned_objective.owner.avatar_url
+                    avatarUrl: undefined // The avatar_url field doesn't exist in the profiles table
                   } : undefined
                 };
                 
