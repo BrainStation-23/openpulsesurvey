@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -89,11 +90,11 @@ export const ObjectivesFilterPanel: React.FC<ObjectivesFilterPanelProps> = ({
   };
 
   const handleCycleChange = (cycleId: string) => {
-    onFilterChange({ ...filters, cycleId });
+    onFilterChange({ ...filters, cycleId: cycleId === "all_cycles" ? undefined : cycleId });
   };
 
   const handleSbuChange = (sbuId: string) => {
-    onFilterChange({ ...filters, sbuId });
+    onFilterChange({ ...filters, sbuId: sbuId === "all_departments" ? undefined : sbuId });
   };
 
   const clearFilters = () => {
@@ -187,7 +188,7 @@ export const ObjectivesFilterPanel: React.FC<ObjectivesFilterPanelProps> = ({
             <AccordionTrigger className="text-sm font-medium py-2">OKR Cycle</AccordionTrigger>
             <AccordionContent>
               <Select 
-                value={filters.cycleId || ''} 
+                value={filters.cycleId || "all_cycles"} 
                 onValueChange={handleCycleChange}
               >
                 <SelectTrigger className="w-full">
@@ -195,7 +196,7 @@ export const ObjectivesFilterPanel: React.FC<ObjectivesFilterPanelProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="">All cycles</SelectItem>
+                    <SelectItem value="all_cycles">All cycles</SelectItem>
                     {cycles.map((cycle) => (
                       <SelectItem key={cycle.id} value={cycle.id}>
                         {cycle.name}
@@ -212,7 +213,7 @@ export const ObjectivesFilterPanel: React.FC<ObjectivesFilterPanelProps> = ({
               <AccordionTrigger className="text-sm font-medium py-2">Department (SBU)</AccordionTrigger>
               <AccordionContent>
                 <Select 
-                  value={filters.sbuId || ''} 
+                  value={filters.sbuId || "all_departments"} 
                   onValueChange={handleSbuChange}
                 >
                   <SelectTrigger className="w-full">
@@ -220,7 +221,7 @@ export const ObjectivesFilterPanel: React.FC<ObjectivesFilterPanelProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectItem value="">All departments</SelectItem>
+                      <SelectItem value="all_departments">All departments</SelectItem>
                       {sbus.map((sbu) => (
                         <SelectItem key={sbu.id} value={sbu.id}>
                           {sbu.name}

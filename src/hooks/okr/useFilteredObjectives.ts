@@ -111,7 +111,11 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
         
         // Make sure objectives is an array before mapping
         if (Array.isArray(objectives)) {
-          return objectives.map((obj: any): ObjectiveWithOwner => ({
+          interface EnhancedObjectiveWithOwner extends ObjectiveWithOwner {
+            childCount?: number;
+          }
+
+          return objectives.map((obj: any): EnhancedObjectiveWithOwner => ({
             id: obj.id,
             title: obj.title,
             description: obj.description,
@@ -123,15 +127,15 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
             parentObjectiveId: obj.parentObjectiveId,
             sbuId: obj.sbuId,
             createdAt: new Date(obj.createdAt),
-            updatedAt: new Date(), // Adding missing property
-            approvalStatus: 'pending', // Adding missing property with default value
+            updatedAt: new Date(obj.updatedAt || Date.now()),
+            approvalStatus: obj.approvalStatus || 'pending',
             owner: obj.ownerName ? {
               id: obj.ownerId,
               fullName: obj.ownerName,
               email: '',  // Email not returned for privacy reasons
             } : undefined,
-            keyResultsCount: 0, // Will be fetched separately or available in child count
-            childCount: obj.childCount
+            keyResultsCount: obj.keyResultsCount || 0,
+            childCount: obj.childCount || 0
           }));
         } else {
           console.error('Expected objectives to be an array but got:', objectives);
