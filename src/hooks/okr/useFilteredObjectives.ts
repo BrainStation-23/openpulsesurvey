@@ -26,6 +26,12 @@ export type ObjectiveSort = {
 
 export const DEFAULT_PAGE_SIZE = 10;
 
+// Define the shape of the response data from the search_objectives function
+interface SearchObjectivesResponse {
+  objectives: any[];
+  total_count: number;
+}
+
 export const useFilteredObjectives = (isAdmin: boolean = false) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -103,7 +109,8 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
         }
         
         // The first item contains our result object with objectives array and total_count
-        const result = data[0];
+        // Explicitly cast the result to our interface type
+        const result = data[0] as unknown as SearchObjectivesResponse;
         
         // Extract objectives and total count
         const objectives = result.objectives || [];
