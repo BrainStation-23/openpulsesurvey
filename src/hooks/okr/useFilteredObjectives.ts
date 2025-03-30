@@ -26,12 +26,6 @@ export type ObjectiveSort = {
 
 export const DEFAULT_PAGE_SIZE = 10;
 
-// Define the shape of the response data from the search_objectives function
-interface SearchObjectivesResponse {
-  objectives: any[];
-  total_count: number;
-}
-
 export const useFilteredObjectives = (isAdmin: boolean = false) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -62,7 +56,7 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
   }, [filters, debouncedSearchText, sort]);
 
   const { 
-    data, 
+    data: objectives, 
     isLoading,
     isError,
     error, 
@@ -75,13 +69,15 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
           throw new Error('User not authenticated');
         }
 
-        // Send status filters properly formatted
-        // Using simple string array to avoid type mismatches with database enums
-        const statusFilters = filters.status.length > 0 ? filters.status : null;
+        // Convert status filters to string array for the SQL function
+        const statusFilters = filters.status.length > 0 
+          ? filters.status.map(status => status.toString()) 
+          : null;
         
         // Convert visibility to array if it's not 'all'
-        const visibilityFilters = filters.visibility !== 'all' ? 
-          [filters.visibility] : null;
+        const visibilityFilters = filters.visibility !== 'all' 
+          ? [filters.visibility] 
+          : null;
 
         // Call our custom SQL function
         const { data, error } = await supabase.rpc('search_objectives', {
@@ -101,53 +97,56 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
           throw error;
         }
         
-        // With the new return type, we need to handle it differently
-        // data is now an array of jsonb objects, we need the first one
+        // Handle the response format safely
         if (!data || !Array.isArray(data) || data.length === 0) {
           setTotalCount(0);
           return [];
         }
         
-        // The first item contains our result object with objectives array and total_count
-        // Explicitly cast the result to our interface type
-        const result = data[0] as unknown as SearchObjectivesResponse;
+        // Process the first result object - it should contain objectives and total count
+        const result = data[0];
         
-        // Extract objectives and total count
-        const objectives = result.objectives || [];
-        setTotalCount(result.total_count || 0);
-        
-        // Make sure objectives is an array before mapping
-        if (Array.isArray(objectives)) {
-          interface EnhancedObjectiveWithOwner extends ObjectiveWithOwner {
-            childCount?: number;
-          }
-
-          return objectives.map((obj: any): EnhancedObjectiveWithOwner => ({
-            id: obj.id,
-            title: obj.title,
-            description: obj.description,
-            status: obj.status,
-            progress: obj.progress,
-            visibility: obj.visibility,
-            ownerId: obj.ownerId,
-            cycleId: obj.cycleId,
-            parentObjectiveId: obj.parentObjectiveId,
-            sbuId: obj.sbuId,
-            createdAt: new Date(obj.createdAt),
-            updatedAt: new Date(obj.updatedAt || Date.now()),
-            approvalStatus: obj.approvalStatus || 'pending',
-            owner: obj.ownerName ? {
-              id: obj.ownerId,
-              fullName: obj.ownerName,
-              email: '',  // Email not returned for privacy reasons
-            } : undefined,
-            keyResultsCount: obj.keyResultsCount || 0,
-            childCount: obj.childCount || 0
-          }));
-        } else {
-          console.error('Expected objectives to be an array but got:', objectives);
+        // Check for valid result structure
+        if (!result || typeof result !== 'object') {
+          setTotalCount(0);
           return [];
         }
+        
+        // Extract objectives array and total count
+        const objectivesData = result.objectives || [];
+        const count = result.total_count || 0;
+        
+        setTotalCount(count);
+        
+        // Make sure objectives is an array before mapping
+        if (!Array.isArray(objectivesData)) {
+          console.error('Expected objectives to be an array but got:', objectivesData);
+          return [];
+        }
+
+        // Map the data to the expected format
+        return objectivesData.map((obj): ObjectiveWithOwner => ({
+          id: obj.id,
+          title: obj.title,
+          description: obj.description,
+          status: obj.status,
+          progress: obj.progress,
+          visibility: obj.visibility,
+          ownerId: obj.ownerId,
+          cycleId: obj.cycleId,
+          parentObjectiveId: obj.parentObjectiveId,
+          sbuId: obj.sbuId,
+          createdAt: new Date(obj.createdAt),
+          updatedAt: new Date(obj.updatedAt || Date.now()),
+          approvalStatus: obj.approvalStatus || 'pending',
+          owner: obj.ownerName ? {
+            id: obj.ownerId,
+            fullName: obj.ownerName,
+            email: '',  // Email not returned for privacy reasons
+          } : undefined,
+          keyResultsCount: obj.keyResultsCount || 0,
+          childCount: obj.childCount || 0
+        }));
       } catch (error) {
         console.error('Error in useFilteredObjectives:', error);
         toast({
@@ -181,7 +180,7 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
   }, [queryClient]);
 
   return {
-    objectives: data || [],
+    objectives: objectives || [],
     filters,
     sort,
     isLoading,

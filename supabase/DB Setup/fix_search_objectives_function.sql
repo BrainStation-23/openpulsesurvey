@@ -1,4 +1,5 @@
 
+-- Create an improved search_objectives function with proper type handling
 CREATE OR REPLACE FUNCTION public.search_objectives(
   p_search_text TEXT DEFAULT '',
   p_status_filters TEXT[] DEFAULT NULL,
@@ -107,9 +108,9 @@ BEGIN
     OR CONCAT(p.first_name, ' ', p.last_name) ILIKE '%' || p_search_text || '%'
   )
   -- Apply status filter if provided
-  AND (p_status_filters IS NULL OR o.status = ANY(p_status_filters))
+  AND (p_status_filters IS NULL OR o.status::TEXT = ANY(p_status_filters))
   -- Apply visibility filter if provided
-  AND (p_visibility_filters IS NULL OR o.visibility = ANY(p_visibility_filters))
+  AND (p_visibility_filters IS NULL OR o.visibility::TEXT = ANY(p_visibility_filters))
   -- Apply cycle filter if provided
   AND (p_cycle_id IS NULL OR o.cycle_id = p_cycle_id)
   -- Apply SBU filter if provided
@@ -176,9 +177,9 @@ BEGIN
         OR CONCAT(p.first_name, ' ', p.last_name) ILIKE '%' || p_search_text || '%'
       )
       -- Apply status filter if provided
-      AND (p_status_filters IS NULL OR o.status = ANY(p_status_filters))
+      AND (p_status_filters IS NULL OR o.status::TEXT = ANY(p_status_filters))
       -- Apply visibility filter if provided
-      AND (p_visibility_filters IS NULL OR o.visibility = ANY(p_visibility_filters))
+      AND (p_visibility_filters IS NULL OR o.visibility::TEXT = ANY(p_visibility_filters))
       -- Apply cycle filter if provided
       AND (p_cycle_id IS NULL OR o.cycle_id = p_cycle_id)
       -- Apply SBU filter if provided
@@ -227,6 +228,11 @@ BEGIN
     OFFSET v_offset
   ) f;
 
+  -- Handle empty result sets
+  IF v_results->'objectives' IS NULL THEN
+    v_results := jsonb_set(v_results, '{objectives}', '[]');
+  END IF;
+
   -- Log successful execution with result size
   INSERT INTO okr_history (
     entity_id,
@@ -241,7 +247,10 @@ BEGIN
     p_user_id,
     jsonb_build_object(
       'total_count', v_total_count,
-      'result_size', jsonb_array_length(v_results->'objectives'),
+      'result_size', CASE 
+                        WHEN v_results->'objectives' IS NULL THEN 0
+                        ELSE jsonb_array_length(v_results->'objectives')
+                      END,
       'execution_time', clock_timestamp()
     )
   );
@@ -251,7 +260,7 @@ END;
 $$;
 
 -- Grant execute permission to authenticated users
-GRANT EXECUTE ON FUNCTION search_objectives TO authenticated;
+GRANT EXECUTE ON FUNCTION public.search_objectives TO authenticated;
 
 -- Add a comment explaining the function
 COMMENT ON FUNCTION search_objectives IS 'Searches and filters objectives based on provided parameters with pagination, visibility rules and sorting';
