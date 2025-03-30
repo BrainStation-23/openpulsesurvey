@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ObjectiveCard } from '@/components/okr/objectives/ObjectiveCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -128,7 +129,11 @@ export const PaginatedObjectivesGrid: React.FC<PaginatedObjectivesGridProps> = (
                     <PaginationItem key={pageNum}>
                       <PaginationLink
                         isActive={page === pageNum}
-                        onClick={() => onPageChange(pageNum as number)}
+                        onClick={() => {
+                          if (typeof pageNum === 'number') {
+                            onPageChange(pageNum);
+                          }
+                        }}
                       >
                         {pageNum}
                       </PaginationLink>
