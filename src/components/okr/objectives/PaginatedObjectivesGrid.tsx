@@ -2,14 +2,14 @@
 import React from 'react';
 import { ObjectiveCard } from '@/components/okr/objectives/ObjectiveCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Button } from "@/components/ui/button";
 import { 
   Pagination, 
   PaginationContent, 
-  PaginationEllipsis, 
   PaginationItem, 
-  PaginationLink, 
   PaginationNext, 
-  PaginationPrevious 
+  PaginationPrevious, 
+  PaginationLink 
 } from '@/components/ui/pagination';
 import { 
   Select, 
@@ -43,28 +43,35 @@ export const PaginatedObjectivesGrid: React.FC<PaginatedObjectivesGridProps> = (
   onPageSizeChange,
   objectiveChildCounts = {}
 }) => {
-  const getPageNumbers = () => {
-    const pages: (number | 'ellipsis')[] = [];
+  const renderPaginationItems = () => {
+    const items = [];
+    const maxVisiblePages = 5;
+    const halfVisible = Math.floor(maxVisiblePages / 2);
     
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-      
-      if (page <= 3) {
-        pages.push(2, 3, 4, 5, 'ellipsis');
-      } else if (page >= totalPages - 2) {
-        pages.push('ellipsis', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1);
-      } else {
-        pages.push('ellipsis', page - 1, page, page + 1, 'ellipsis');
-      }
-      
-      pages.push(totalPages);
+    let startPage = Math.max(1, page - halfVisible);
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      items.push(
+        <PaginationItem key={i}>
+          <Button
+            variant={i === page ? "outline" : "ghost"}
+            onClick={() => onPageChange(i)}
+            className="cursor-pointer"
+          >
+            <PaginationLink isActive={i === page}>
+              {i}
+            </PaginationLink>
+          </Button>
+        </PaginationItem>
+      );
     }
     
-    return pages;
+    return items;
   };
 
   if (isLoading) {
@@ -113,40 +120,27 @@ export const PaginatedObjectivesGrid: React.FC<PaginatedObjectivesGridProps> = (
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
-                  <PaginationPrevious 
-                    aria-disabled={page === 1}
-                    className={page === 1 ? 'pointer-events-none opacity-50' : ''}
-                    onClick={() => page > 1 && onPageChange(page - 1)}
-                  />
+                  <Button
+                    variant="ghost"
+                    onClick={() => onPageChange(page - 1)}
+                    disabled={page === 1}
+                    className="cursor-pointer"
+                  >
+                    <PaginationPrevious />
+                  </Button>
                 </PaginationItem>
                 
-                {getPageNumbers().map((pageNum, idx) => 
-                  pageNum === 'ellipsis' ? (
-                    <PaginationItem key={`ellipsis-${idx}`}>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                  ) : (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink
-                        isActive={page === pageNum}
-                        onClick={() => {
-                          if (typeof pageNum === 'number') {
-                            onPageChange(pageNum);
-                          }
-                        }}
-                      >
-                        {pageNum}
-                      </PaginationLink>
-                    </PaginationItem>
-                  )
-                )}
+                {renderPaginationItems()}
                 
                 <PaginationItem>
-                  <PaginationNext 
-                    aria-disabled={page === totalPages}
-                    className={page === totalPages ? 'pointer-events-none opacity-50' : ''}
-                    onClick={() => page < totalPages && onPageChange(page + 1)}
-                  />
+                  <Button
+                    variant="ghost"
+                    onClick={() => onPageChange(page + 1)}
+                    disabled={page === totalPages}
+                    className="cursor-pointer"
+                  >
+                    <PaginationNext />
+                  </Button>
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
