@@ -106,7 +106,7 @@ export const PaginatedObjectivesGrid: React.FC<PaginatedObjectivesGridProps> = (
                 onValueChange={(value) => onPageSizeChange(Number(value))}
               >
                 <SelectTrigger className="w-16 h-8">
-                  <SelectValue placeholder={pageSize} />
+                  <SelectValue placeholder={pageSize.toString()} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="5">5</SelectItem>

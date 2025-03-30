@@ -98,31 +98,43 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
         }
         
         // Extract the objectives and total count from the result
-        const objectives = data?.[0]?.objectives || [];
-        const total = data?.[0]?.total_count || 0;
+        if (!data || data.length === 0) {
+          setTotalCount(0);
+          return [];
+        }
+        
+        const firstResult = data[0];
+        const objectives = firstResult?.objectives || [];
+        const total = firstResult?.total_count || 0;
         
         setTotalCount(total);
         
-        return objectives.map((obj: any) => ({
-          id: obj.id,
-          title: obj.title,
-          description: obj.description,
-          status: obj.status,
-          progress: obj.progress,
-          visibility: obj.visibility,
-          ownerId: obj.ownerId,
-          cycleId: obj.cycleId,
-          parentObjectiveId: obj.parentObjectiveId,
-          sbuId: obj.sbuId,
-          createdAt: new Date(obj.createdAt),
-          owner: obj.ownerName ? {
-            id: obj.ownerId,
-            fullName: obj.ownerName,
-            email: '',  // Email not returned for privacy reasons
-          } : undefined,
-          keyResultsCount: 0, // Will be fetched separately or available in child count
-          childCount: obj.childCount
-        })) as ObjectiveWithOwner[];
+        // Make sure objectives is an array before mapping
+        if (Array.isArray(objectives)) {
+          return objectives.map((obj: any) => ({
+            id: obj.id,
+            title: obj.title,
+            description: obj.description,
+            status: obj.status,
+            progress: obj.progress,
+            visibility: obj.visibility,
+            ownerId: obj.ownerId,
+            cycleId: obj.cycleId,
+            parentObjectiveId: obj.parentObjectiveId,
+            sbuId: obj.sbuId,
+            createdAt: new Date(obj.createdAt),
+            owner: obj.ownerName ? {
+              id: obj.ownerId,
+              fullName: obj.ownerName,
+              email: '',  // Email not returned for privacy reasons
+            } : undefined,
+            keyResultsCount: 0, // Will be fetched separately or available in child count
+            childCount: obj.childCount
+          })) as ObjectiveWithOwner[];
+        } else {
+          console.error('Expected objectives to be an array but got:', objectives);
+          return [];
+        }
       } catch (error) {
         console.error('Error in useFilteredObjectives:', error);
         toast({

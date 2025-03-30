@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +20,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { X } from 'lucide-react';
-import { ObjectiveStatus, ObjectiveVisibilityCategory } from '@/hooks/okr/useObjectivesByVisibility';
+import { ObjectiveVisibilityCategory } from '@/hooks/okr/useObjectivesByVisibility';
+import { ObjectiveStatus } from '@/types/okr';
 import { OKRCycle } from '@/types/okr';
 
 export type ObjectivesFilter = {
