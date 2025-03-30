@@ -8,8 +8,7 @@ import {
   PaginationContent, 
   PaginationItem, 
   PaginationNext, 
-  PaginationPrevious, 
-  PaginationLink 
+  PaginationPrevious
 } from '@/components/ui/pagination';
 import { 
   Select, 
@@ -63,7 +62,7 @@ export const PaginatedObjectivesGrid: React.FC<PaginatedObjectivesGridProps> = (
             onClick={() => onPageChange(i)}
             className="cursor-pointer"
           >
-            {i}
+            {i.toString()}
           </Button>
         </PaginationItem>
       );
@@ -99,11 +98,11 @@ export const PaginatedObjectivesGrid: React.FC<PaginatedObjectivesGridProps> = (
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Rows per page</span>
               <Select
-                value={String(pageSize)}
+                value={pageSize.toString()}
                 onValueChange={(value) => onPageSizeChange(Number(value))}
               >
                 <SelectTrigger className="w-16 h-8">
-                  <SelectValue placeholder={String(pageSize)} />
+                  <SelectValue placeholder={pageSize.toString()} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="5">5</SelectItem>
