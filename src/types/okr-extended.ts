@@ -12,6 +12,4 @@ export interface ObjectiveWithOwner extends Objective {
   owner?: Owner;
   keyResultsCount?: number;
   childCount?: number;
-  // Add fetched flag to help with optimization
-  _fetched?: boolean;
 }
