@@ -74,7 +74,7 @@ export const PaginatedObjectivesGrid: React.FC<PaginatedObjectivesGridProps> = (
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <LoadingSpinner size="lg" />
+        <LoadingSpinner size={36} />
       </div>
     );
   }
