@@ -3095,10 +3095,7 @@ export type Database = {
           p_page_number?: number
           p_page_size?: number
         }
-        Returns: {
-          objectives: Json
-          total_count: number
-        }[]
+        Returns: Json[]
       }
       search_users:
         | {
