@@ -69,16 +69,13 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
           throw new Error('User not authenticated');
         }
 
-        // Convert status array to proper format for SQL by wrapping each status in single quotes
-        // The status filter needs to be in the format: ['draft', 'in_progress', 'on_track', 'at_risk', 'completed']
-        const statusFilters = filters.status.length > 0 ? 
-          filters.status.map(status => status) : null;
+        // Send status filters properly formatted
+        // Using simple string array to avoid type mismatches with database enums
+        const statusFilters = filters.status.length > 0 ? filters.status : null;
         
         // Convert visibility to array if it's not 'all'
         const visibilityFilters = filters.visibility !== 'all' ? 
           [filters.visibility] : null;
-
-        console.log("Sending status filters to backend:", statusFilters);
 
         // Call our custom SQL function
         const { data, error } = await supabase.rpc('search_objectives', {
