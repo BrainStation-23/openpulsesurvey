@@ -105,6 +105,7 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
         
         // The response from search_objectives is an array with a single object
         // containing 'objectives' array and 'total_count'
+        // Safely handle the case where data[0] might not be an object with those properties
         const result = data[0] as Record<string, any>;
         
         if (!result || typeof result !== 'object') {
@@ -112,9 +113,10 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
           return [];
         }
         
-        // Extract objectives array and total count using type assertion
-        const objectivesData = result.objectives || [];
-        const count = result.total_count || 0;
+        // Safely extract objectives array and total count
+        // If result.objectives is null or undefined, default to an empty array
+        const objectivesData = Array.isArray(result.objectives) ? result.objectives : [];
+        const count = typeof result.total_count === 'number' ? result.total_count : 0;
         
         setTotalCount(count);
         
