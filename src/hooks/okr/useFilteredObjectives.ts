@@ -103,10 +103,10 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
           return [];
         }
         
-        // Process the first result object - it should contain objectives and total count
+        // The response from search_objectives is an array with a single object
+        // containing 'objectives' array and 'total_count'
         const result = data[0];
         
-        // Check for valid result structure
         if (!result || typeof result !== 'object') {
           setTotalCount(0);
           return [];

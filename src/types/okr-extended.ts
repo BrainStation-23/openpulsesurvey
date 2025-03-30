@@ -11,4 +11,5 @@ export interface Owner {
 export interface ObjectiveWithOwner extends Objective {
   owner?: Owner;
   keyResultsCount?: number;
+  childCount?: number;
 }
