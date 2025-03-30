@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ObjectiveCard } from '@/components/okr/objectives/ObjectiveCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -43,32 +42,24 @@ export const PaginatedObjectivesGrid: React.FC<PaginatedObjectivesGridProps> = (
   onPageSizeChange,
   objectiveChildCounts = {}
 }) => {
-  // Generate array of page numbers to display, with ellipsis for large ranges
   const getPageNumbers = () => {
     const pages: (number | 'ellipsis')[] = [];
     
     if (totalPages <= 7) {
-      // If there are 7 or fewer pages, show all
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
-      // Always show first page
       pages.push(1);
       
-      // Logic for middle pages with ellipsis
       if (page <= 3) {
-        // If near start, show first 5 pages and then ellipsis
         pages.push(2, 3, 4, 5, 'ellipsis');
       } else if (page >= totalPages - 2) {
-        // If near end, show ellipsis and last 5 pages
         pages.push('ellipsis', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1);
       } else {
-        // In middle, show ellipsis, current page and siblings, then ellipsis
         pages.push('ellipsis', page - 1, page, page + 1, 'ellipsis');
       }
       
-      // Always show last page
       pages.push(totalPages);
     }
     
@@ -137,7 +128,7 @@ export const PaginatedObjectivesGrid: React.FC<PaginatedObjectivesGridProps> = (
                     <PaginationItem key={pageNum}>
                       <PaginationLink
                         isActive={page === pageNum}
-                        onClick={() => typeof pageNum === 'number' && onPageChange(pageNum)}
+                        onClick={() => onPageChange(pageNum as number)}
                       >
                         {pageNum}
                       </PaginationLink>
