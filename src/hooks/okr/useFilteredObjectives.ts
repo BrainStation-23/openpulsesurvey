@@ -111,7 +111,7 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
         
         // Make sure objectives is an array before mapping
         if (Array.isArray(objectives)) {
-          return objectives.map((obj: any) => ({
+          return objectives.map((obj: any): ObjectiveWithOwner => ({
             id: obj.id,
             title: obj.title,
             description: obj.description,
@@ -123,6 +123,8 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
             parentObjectiveId: obj.parentObjectiveId,
             sbuId: obj.sbuId,
             createdAt: new Date(obj.createdAt),
+            updatedAt: new Date(), // Adding missing property
+            approvalStatus: 'pending', // Adding missing property with default value
             owner: obj.ownerName ? {
               id: obj.ownerId,
               fullName: obj.ownerName,
@@ -130,7 +132,7 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
             } : undefined,
             keyResultsCount: 0, // Will be fetched separately or available in child count
             childCount: obj.childCount
-          })) as ObjectiveWithOwner[];
+          }));
         } else {
           console.error('Expected objectives to be an array but got:', objectives);
           return [];
