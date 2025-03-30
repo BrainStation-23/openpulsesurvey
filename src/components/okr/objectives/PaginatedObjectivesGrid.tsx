@@ -63,9 +63,7 @@ export const PaginatedObjectivesGrid: React.FC<PaginatedObjectivesGridProps> = (
             onClick={() => onPageChange(i)}
             className="cursor-pointer"
           >
-            <PaginationLink isActive={i === page}>
-              {i}
-            </PaginationLink>
+            {i}
           </Button>
         </PaginationItem>
       );

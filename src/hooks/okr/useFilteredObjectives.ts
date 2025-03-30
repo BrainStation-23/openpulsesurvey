@@ -70,14 +70,13 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
         }
 
         // Convert status array to string array for the SQL function
+        // Make sure we're explicitly casting to text[] to avoid type mismatches
         const statusFilters = filters.status.length > 0 ? 
-          filters.status.map(status => `'${status}'`) : 
-          null;
+          filters.status : null;
         
         // Convert visibility to array if it's not 'all'
         const visibilityFilters = filters.visibility !== 'all' ? 
-          [`'${filters.visibility}'`] : 
-          null;
+          [filters.visibility] : null;
 
         // Call our custom SQL function
         const { data, error } = await supabase.rpc('search_objectives', {

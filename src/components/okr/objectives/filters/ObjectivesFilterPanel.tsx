@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +26,7 @@ import { OKRCycle } from '@/types/okr';
 
 export type ObjectivesFilter = {
   search: string;
-  status: string[];
+  status: ObjectiveStatus[];
   visibility: ObjectiveVisibilityCategory;
   cycleId?: string;
   sbuId?: string;
