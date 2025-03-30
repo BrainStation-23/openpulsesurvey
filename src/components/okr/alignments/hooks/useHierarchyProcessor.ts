@@ -1,7 +1,7 @@
-
 import { useCallback, useRef } from 'react';
 import { Objective, ObjectiveWithRelations } from '@/types/okr';
 import { Node, Edge } from '@xyflow/react';
+import { ObjectiveWithOwner } from '@/types/okr-extended';
 
 interface HierarchyProcessorProps {
   isAdmin: boolean;
@@ -29,7 +29,8 @@ export const useHierarchyProcessor = ({
   const processHierarchyData = useCallback(async (
     rootObj: Objective, 
     highlightPath: string[],
-    useCache: boolean = false
+    useCache: boolean = false,
+    objectiveMap?: Map<string, ObjectiveWithOwner>
   ) => {
     console.log('Starting to process hierarchy data');
     
@@ -51,188 +52,317 @@ export const useHierarchyProcessor = ({
 
     const nodes: Node[] = [];
     const edges: Edge[] = [];
-    const processedNodes = new Set<string>();
     
-    // First pass: Calculate node hierarchy and collect children information
-    const nodeMap = new Map<string, { 
-      node: Objective,
-      children: string[],
-      level: number,
-      width: number, // Required width for this subtree
-      position?: { x: number, y: number }
-    }>();
-    
-    const collectNodeInfo = async (
-      node: Objective | ObjectiveWithRelations, 
-      level: number, 
-      parentId?: string
-    ) => {
-      if (processedNodes.has(node.id)) {
-        return;
-      }
+    // If we have pre-loaded objectiveMap, use it directly instead of fetching objectives individually
+    if (objectiveMap && objectiveMap.size > 0) {
+      console.log(`Processing ${objectiveMap.size} pre-loaded objectives for hierarchy view`);
       
-      processedNodes.add(node.id);
-      nodeMap.set(node.id, { node, children: [], level, width: 0 });
+      // This keeps track of each node's children
+      const childrenMap = new Map<string, string[]>();
       
-      // Fetch complete objective data with relations if needed
-      let objWithRelations = node as ObjectiveWithRelations;
-      if (!('childObjectives' in node) || !('alignedObjectives' in node)) {
-        const fetchedObj = await fetchObjectiveWithRelations(node.id);
-        if (fetchedObj) {
-          objWithRelations = fetchedObj;
+      // First, identify the parent-child relationships
+      objectiveMap.forEach((obj) => {
+        // Handle direct parent-child relationships
+        if (obj.parentObjectiveId && objectiveMap.has(obj.parentObjectiveId)) {
+          const parentChildren = childrenMap.get(obj.parentObjectiveId) || [];
+          if (!parentChildren.includes(obj.id)) {
+            parentChildren.push(obj.id);
+            childrenMap.set(obj.parentObjectiveId, parentChildren);
+          }
         }
-      }
+      });
       
-      // Collect all child nodes
-      const childNodes: Objective[] = [];
-      
-      // Add direct child objectives
-      if (objWithRelations.childObjectives && objWithRelations.childObjectives.length > 0) {
-        childNodes.push(...objWithRelations.childObjectives);
-      }
-      
-      // Add aligned objectives
-      if (objWithRelations.alignedObjectives && objWithRelations.alignedObjectives.length > 0) {
-        const alignments = objWithRelations.alignedObjectives.filter(
-          alignment => alignment.alignmentType === 'parent_child' && 
-                      alignment.sourceObjectiveId === node.id
-        );
+      // Calculate node width and positioning based on children
+      const calculateSubtreeWidth = (nodeId: string): number => {
+        const children = childrenMap.get(nodeId) || [];
         
-        alignments.forEach(alignment => {
-          if (alignment.alignedObjective) {
-            childNodes.push(alignment.alignedObjective);
-          }
-        });
-      }
-      
-      // Process each child and add to parent's children list
-      for (const child of childNodes) {
-        if (!processedNodes.has(child.id)) {
-          const nodeInfo = nodeMap.get(node.id);
-          if (nodeInfo) {
-            nodeInfo.children.push(child.id);
-          }
-          await collectNodeInfo(child, level + 1, node.id);
+        if (children.length === 0) {
+          return NODE_WIDTH;
         }
-      }
-    };
-    
-    // Start with the root node
-    await collectNodeInfo(rootObj, 0);
-    
-    // Second pass: Calculate widths for each subtree
-    const calculateSubtreeWidth = (nodeId: string): number => {
-      const nodeInfo = nodeMap.get(nodeId);
-      if (!nodeInfo) return NODE_WIDTH;
-      
-      if (nodeInfo.children.length === 0) {
-        nodeInfo.width = NODE_WIDTH;
-        return NODE_WIDTH;
-      }
-      
-      // Calculate width of all children
-      let totalChildrenWidth = 0;
-      for (const childId of nodeInfo.children) {
-        totalChildrenWidth += calculateSubtreeWidth(childId);
-      }
-      
-      // Add spacing between children
-      if (nodeInfo.children.length > 1) {
-        totalChildrenWidth += (nodeInfo.children.length - 1) * HORIZONTAL_SPACING;
-      }
-      
-      // Node width is max of its own width and width of all children
-      nodeInfo.width = Math.max(NODE_WIDTH, totalChildrenWidth);
-      return nodeInfo.width;
-    };
-    
-    // Start width calculation from root
-    calculateSubtreeWidth(rootObj.id);
-    
-    // Clear processed nodes for the next phase
-    processedNodes.clear();
-    
-    // Third pass: Calculate positions for all nodes
-    const calculateNodePositions = (nodeId: string, startX: number, y: number) => {
-      const nodeInfo = nodeMap.get(nodeId);
-      if (!nodeInfo || processedNodes.has(nodeId)) return;
-      
-      processedNodes.add(nodeId);
-      
-      // Calculate center position for this node
-      const x = startX + (nodeInfo.width / 2) - (NODE_WIDTH / 2);
-      nodeInfo.position = { x, y };
-      
-      // If no children, we're done
-      if (nodeInfo.children.length === 0) return;
-      
-      // Calculate positions for children
-      let childStartX = startX;
-      for (const childId of nodeInfo.children) {
-        const childInfo = nodeMap.get(childId);
-        if (childInfo) {
-          calculateNodePositions(
-            childId, 
-            childStartX, 
-            y + VERTICAL_SPACING
-          );
-          childStartX += childInfo.width + HORIZONTAL_SPACING;
+        
+        let totalChildrenWidth = 0;
+        for (const childId of children) {
+          totalChildrenWidth += calculateSubtreeWidth(childId);
         }
-      }
-    };
-    
-    // Start position calculation from root
-    calculateNodePositions(rootObj.id, 0, 0);
-    
-    // Fourth pass: Create nodes and edges
-    for (const [id, info] of nodeMap.entries()) {
-      if (!info.position) continue;
-      
-      const isCurrentObjective = id === objective.id;
-      const isInPath = highlightPath.includes(id);
-      const parentId = Array.from(nodeMap.entries()).find(
-        ([_, nodeInfo]) => nodeInfo.children.includes(id)
-      )?.[0];
-      
-      // Create node
-      const nodeData = {
-        id,
-        type: 'objectiveNode',
-        position: info.position,
-        draggable: true,
-        data: {
-          objective: info.node,
-          isAdmin,
-          isCurrentObjective,
-          isInPath,
-          canDelete: canEdit && parentId !== undefined,
-          onDelete: parentId ? () => {
-            const alignment = objective.alignedObjectives?.find(
-              a => (a.sourceObjectiveId === parentId && a.alignedObjectiveId === id) || 
-                  (a.sourceObjectiveId === id && a.alignedObjectiveId === parentId)
-            );
-            if (alignment) handleDeleteAlignment(alignment.id);
-          } : undefined
+        
+        if (children.length > 1) {
+          totalChildrenWidth += (children.length - 1) * HORIZONTAL_SPACING;
         }
+        
+        return Math.max(NODE_WIDTH, totalChildrenWidth);
       };
       
-      nodes.push(nodeData);
+      // Calculate positions
+      const processedNodes = new Set<string>();
       
-      // Create edge if there's a parent
-      if (parentId) {
-        const edgeData = {
-          id: `${parentId}-${id}`,
-          source: parentId,
-          target: id,
-          type: 'smoothstep',
-          animated: isInPath,
-          style: { 
-            stroke: isInPath ? '#9333ea' : '#64748b', 
-            strokeWidth: isInPath ? 3 : 2 
+      const calculateNodePositions = (nodeId: string, startX: number, y: number) => {
+        if (!objectiveMap.has(nodeId) || processedNodes.has(nodeId)) return;
+        
+        const obj = objectiveMap.get(nodeId)!;
+        const children = childrenMap.get(nodeId) || [];
+        processedNodes.add(nodeId);
+        
+        const subtreeWidth = calculateSubtreeWidth(nodeId);
+        const x = startX + (subtreeWidth / 2) - (NODE_WIDTH / 2);
+        
+        // Create the node
+        const isCurrentObjective = nodeId === objective.id;
+        const isInPath = highlightPath.includes(nodeId);
+        
+        // Find parent (for deletion capabilities)
+        let parentId: string | undefined;
+        if (obj.parentObjectiveId && objectiveMap.has(obj.parentObjectiveId)) {
+          parentId = obj.parentObjectiveId;
+        }
+        
+        // Create the node
+        const node: Node = {
+          id: nodeId,
+          type: 'objectiveNode',
+          position: { x, y },
+          draggable: true,
+          data: {
+            objective: obj,
+            isAdmin,
+            isCurrentObjective,
+            isInPath,
+            canDelete: canEdit && parentId !== undefined,
+            onDelete: parentId ? () => {
+              const alignment = objective.alignedObjectives?.find(
+                a => (a.sourceObjectiveId === parentId && a.alignedObjectiveId === nodeId) || 
+                    (a.sourceObjectiveId === nodeId && a.alignedObjectiveId === parentId)
+              );
+              if (alignment) handleDeleteAlignment(alignment.id);
+            } : undefined
           }
         };
         
-        edges.push(edgeData);
+        nodes.push(node);
+        
+        // Create edge if there's a parent
+        if (parentId) {
+          const edgeData: Edge = {
+            id: `${parentId}-${nodeId}`,
+            source: parentId,
+            target: nodeId,
+            type: 'smoothstep',
+            animated: isInPath,
+            style: { 
+              stroke: isInPath ? '#9333ea' : '#64748b', 
+              strokeWidth: isInPath ? 3 : 2 
+            }
+          };
+          
+          edges.push(edgeData);
+        }
+        
+        // Process children
+        if (children.length > 0) {
+          const totalChildrenWidth = calculateSubtreeWidth(nodeId);
+          let childStartX = startX;
+          
+          for (const childId of children) {
+            const childWidth = calculateSubtreeWidth(childId);
+            calculateNodePositions(
+              childId,
+              childStartX,
+              y + VERTICAL_SPACING
+            );
+            childStartX += childWidth + HORIZONTAL_SPACING;
+          }
+        }
+      };
+      
+      // Start from the root
+      calculateNodePositions(rootObj.id, 0, 0);
+    } else {
+      // Fallback to the old algorithm if we don't have preloaded data
+      console.log('No preloaded data available, using fallback algorithm');
+      
+      // ... keep existing code (for the fallback DFS algorithm)
+      const processedNodes = new Set<string>();
+      
+      // First pass: Calculate node hierarchy and collect children information
+      const nodeMap = new Map<string, { 
+        node: Objective,
+        children: string[],
+        level: number,
+        width: number, 
+        position?: { x: number, y: number }
+      }>();
+      
+      const collectNodeInfo = async (
+        node: Objective | ObjectiveWithRelations, 
+        level: number, 
+        parentId?: string
+      ) => {
+        if (processedNodes.has(node.id)) {
+          return;
+        }
+        
+        processedNodes.add(node.id);
+        nodeMap.set(node.id, { node, children: [], level, width: 0 });
+        
+        // Fetch complete objective data with relations if needed
+        let objWithRelations = node as ObjectiveWithRelations;
+        if (!('childObjectives' in node) || !('alignedObjectives' in node)) {
+          const fetchedObj = await fetchObjectiveWithRelations(node.id);
+          if (fetchedObj) {
+            objWithRelations = fetchedObj;
+          }
+        }
+        
+        // Collect all child nodes
+        const childNodes: Objective[] = [];
+        
+        // Add direct child objectives
+        if (objWithRelations.childObjectives && objWithRelations.childObjectives.length > 0) {
+          childNodes.push(...objWithRelations.childObjectives);
+        }
+        
+        // Add aligned objectives
+        if (objWithRelations.alignedObjectives && objWithRelations.alignedObjectives.length > 0) {
+          const alignments = objWithRelations.alignedObjectives.filter(
+            alignment => alignment.alignmentType === 'parent_child' && 
+                      alignment.sourceObjectiveId === node.id
+          );
+          
+          alignments.forEach(alignment => {
+            if (alignment.alignedObjective) {
+              childNodes.push(alignment.alignedObjective);
+            }
+          });
+        }
+        
+        // Process each child and add to parent's children list
+        for (const child of childNodes) {
+          if (!processedNodes.has(child.id)) {
+            const nodeInfo = nodeMap.get(node.id);
+            if (nodeInfo) {
+              nodeInfo.children.push(child.id);
+            }
+            await collectNodeInfo(child, level + 1, node.id);
+          }
+        }
+      };
+      
+      // Start with the root node
+      await collectNodeInfo(rootObj, 0);
+      
+      // Second pass: Calculate widths for each subtree
+      const calculateSubtreeWidth = (nodeId: string): number => {
+        const nodeInfo = nodeMap.get(nodeId);
+        if (!nodeInfo) return NODE_WIDTH;
+        
+        if (nodeInfo.children.length === 0) {
+          nodeInfo.width = NODE_WIDTH;
+          return NODE_WIDTH;
+        }
+        
+        // Calculate width of all children
+        let totalChildrenWidth = 0;
+        for (const childId of nodeInfo.children) {
+          totalChildrenWidth += calculateSubtreeWidth(childId);
+        }
+        
+        // Add spacing between children
+        if (nodeInfo.children.length > 1) {
+          totalChildrenWidth += (nodeInfo.children.length - 1) * HORIZONTAL_SPACING;
+        }
+        
+        // Node width is max of its own width and width of all children
+        nodeInfo.width = Math.max(NODE_WIDTH, totalChildrenWidth);
+        return nodeInfo.width;
+      };
+      
+      // Start width calculation from root
+      calculateSubtreeWidth(rootObj.id);
+      
+      // Clear processed nodes for the next phase
+      processedNodes.clear();
+      
+      // Third pass: Calculate positions for all nodes
+      const calculateNodePositions = (nodeId: string, startX: number, y: number) => {
+        const nodeInfo = nodeMap.get(nodeId);
+        if (!nodeInfo || processedNodes.has(nodeId)) return;
+        
+        processedNodes.add(nodeId);
+        
+        // Calculate center position for this node
+        const x = startX + (nodeInfo.width / 2) - (NODE_WIDTH / 2);
+        nodeInfo.position = { x, y };
+        
+        // If no children, we're done
+        if (nodeInfo.children.length === 0) return;
+        
+        // Calculate positions for children
+        let childStartX = startX;
+        for (const childId of nodeInfo.children) {
+          const childInfo = nodeMap.get(childId);
+          if (childInfo) {
+            calculateNodePositions(
+              childId, 
+              childStartX, 
+              y + VERTICAL_SPACING
+            );
+            childStartX += childInfo.width + HORIZONTAL_SPACING;
+          }
+        }
+      };
+      
+      // Start position calculation from root
+      calculateNodePositions(rootObj.id, 0, 0);
+      
+      // Fourth pass: Create nodes and edges
+      for (const [id, info] of nodeMap.entries()) {
+        if (!info.position) continue;
+        
+        const isCurrentObjective = id === objective.id;
+        const isInPath = highlightPath.includes(id);
+        const parentId = Array.from(nodeMap.entries()).find(
+          ([_, nodeInfo]) => nodeInfo.children.includes(id)
+        )?.[0];
+        
+        // Create node
+        const nodeData = {
+          id,
+          type: 'objectiveNode',
+          position: info.position,
+          draggable: true,
+          data: {
+            objective: info.node,
+            isAdmin,
+            isCurrentObjective,
+            isInPath,
+            canDelete: canEdit && parentId !== undefined,
+            onDelete: parentId ? () => {
+              const alignment = objective.alignedObjectives?.find(
+                a => (a.sourceObjectiveId === parentId && a.alignedObjectiveId === id) || 
+                    (a.sourceObjectiveId === id && a.alignedObjectiveId === parentId)
+              );
+              if (alignment) handleDeleteAlignment(alignment.id);
+            } : undefined
+          }
+        };
+        
+        nodes.push(nodeData);
+        
+        // Create edge if there's a parent
+        if (parentId) {
+          const edgeData = {
+            id: `${parentId}-${id}`,
+            source: parentId,
+            target: id,
+            type: 'smoothstep',
+            animated: isInPath,
+            style: { 
+              stroke: isInPath ? '#9333ea' : '#64748b', 
+              strokeWidth: isInPath ? 3 : 2 
+            }
+          };
+          
+          edges.push(edgeData);
+        }
       }
     }
     

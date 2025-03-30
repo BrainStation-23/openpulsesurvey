@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ObjectiveWithRelations } from '@/types/okr';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useObjectiveTree } from './hooks/useObjectiveTree';
+import { useBFSHierarchyLoader } from './hooks/useBFSHierarchyLoader';
 import {
   ReactFlow,
   MiniMap,
@@ -22,6 +23,7 @@ import { ObjectiveNode } from './components/ObjectiveNode';
 import { Maximize2, Minimize2, AlertTriangle } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useToast } from "@/hooks/use-toast";
+import { Progress } from '@/components/ui/progress';
 
 interface ObjectiveGraphViewProps {
   objective: ObjectiveWithRelations;
@@ -46,8 +48,15 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     rootObjective,
     currentObjectivePath,
     processHierarchyData,
-    hasProcessedData
+    hasProcessedData,
+    handleDeleteAlignment
   } = useObjectiveTree(objective, isAdmin, canEdit);
+
+  const { 
+    findRootObjective, 
+    loadObjectiveHierarchy, 
+    loadingState 
+  } = useBFSHierarchyLoader();
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -81,52 +90,66 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     objectiveNode: ObjectiveNode
   }), []);
 
+  // Load the hierarchy using BFS when the component mounts
   useEffect(() => {
     let mounted = true;
     
     const loadGraphData = async () => {
-      if (!rootObjective || dataLoadedRef.current) return;
-      
-      if (rootObjective && hasProcessedData && 
-          hasProcessedData(rootObjective.id, currentObjectivePath)) {
-        console.log('Using cached hierarchy data');
-        const cachedData = await processHierarchyData(rootObjective, currentObjectivePath, true);
-        if (mounted) {
-          if (cachedData.nodes.length === 0) {
-            console.error('No nodes found in cached data');
-            setError('No objectives found in the hierarchy. The graph may be empty.');
-          } else {
-            console.log(`Loaded ${cachedData.nodes.length} nodes and ${cachedData.edges.length} edges from cache`);
-            setNodes(cachedData.nodes);
-            setEdges(cachedData.edges);
-          }
-          dataLoadedRef.current = true;
-          setIsLoading(false);
-        }
-        return;
-      }
-      
-      setIsLoading(true);
-      setError(null);
+      if (!objective || dataLoadedRef.current) return;
       
       try {
-        console.log('Processing hierarchy data for display...');
-        const graphData = await processHierarchyData(rootObjective, currentObjectivePath, false);
+        console.log('Starting BFS hierarchy loading process...');
+        setIsLoading(true);
+        setError(null);
         
-        if (mounted) {
-          if (!graphData || graphData.nodes.length === 0) {
-            console.error('No nodes found in processed hierarchy data');
-            setError('No objectives found in the hierarchy. The graph may be empty.');
-          } else {
-            console.log(`Processed ${graphData.nodes.length} nodes and ${graphData.edges.length} edges`);
-            setNodes(graphData.nodes);
-            setEdges(graphData.edges);
-          }
-          dataLoadedRef.current = true;
+        // Step 1: Find the root objective (objective with no parent)
+        console.log('Finding root objective...');
+        const root = await findRootObjective(objective.id);
+        
+        if (!mounted) return;
+        
+        if (!root) {
+          console.error('Could not find root objective');
+          setError('Could not find the root objective in the hierarchy.');
           setIsLoading(false);
+          return;
         }
+        
+        // Step 2: Load the entire hierarchy using BFS
+        console.log(`Found root objective: ${root.id}. Loading full hierarchy...`);
+        const hierarchyMap = await loadObjectiveHierarchy(root.id);
+        
+        if (!mounted) return;
+        
+        if (hierarchyMap.size === 0) {
+          setError('No objectives found in the hierarchy.');
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log(`Loaded ${hierarchyMap.size} objectives in the hierarchy.`);
+        
+        // Step 3: Build the graph using the hierarchy data
+        const path = currentObjectivePath.length > 0 ? currentObjectivePath : [objective.id];
+        const graphData = await processHierarchyData(root, path, false, hierarchyMap);
+        
+        if (!mounted) return;
+        
+        if (!graphData || graphData.nodes.length === 0) {
+          setError('Could not build the hierarchy visualization.');
+          setIsLoading(false);
+          return;
+        }
+        
+        // Step 4: Update the graph
+        setNodes(graphData.nodes);
+        setEdges(graphData.edges);
+        
+        dataLoadedRef.current = true;
+        setIsLoading(false);
+        
       } catch (error) {
-        console.error('Error processing hierarchy data:', error);
+        console.error('Error loading objective hierarchy:', error);
         if (mounted) {
           setError(`Error loading objective hierarchy: ${error instanceof Error ? error.message : 'Unknown error'}`);
           toast({
@@ -144,7 +167,7 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
     return () => {
       mounted = false;
     };
-  }, [rootObjective, currentObjectivePath, processHierarchyData, hasProcessedData, toast]);
+  }, [objective, findRootObjective, loadObjectiveHierarchy, processHierarchyData, currentObjectivePath, toast]);
 
   const reactFlowOptions = useMemo(() => ({
     fitView: true,
@@ -166,10 +189,20 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
           className={`${isFullscreen ? 'h-screen w-full' : 'h-[500px]'} border rounded-md overflow-hidden relative`}
         >
           {isLoading ? (
-            <div className="flex items-center justify-center h-full w-full">
-              <div className="text-center space-y-3">
+            <div className="flex flex-col items-center justify-center h-full w-full">
+              <div className="text-center space-y-4 max-w-md px-4">
                 <LoadingSpinner size={36} />
-                <p className="text-sm text-muted-foreground">Building objective hierarchy...</p>
+                <p className="text-sm text-muted-foreground">
+                  {loadingState.isLoading 
+                    ? `Building objective hierarchy... (${loadingState.progress}/${loadingState.total})`
+                    : "Preparing hierarchy visualization..."}
+                </p>
+                {loadingState.isLoading && loadingState.total > 0 && (
+                  <Progress 
+                    value={(loadingState.progress / loadingState.total) * 100} 
+                    className="h-2" 
+                  />
+                )}
               </div>
             </div>
           ) : error ? (
