@@ -3083,6 +3083,23 @@ export type Database = {
           created_by: string
         }[]
       }
+      search_objectives: {
+        Args: {
+          p_search_text?: string
+          p_status_filters?: string[]
+          p_visibility_filters?: string[]
+          p_cycle_id?: string
+          p_sbu_id?: string
+          p_is_admin?: boolean
+          p_user_id?: string
+          p_page_number?: number
+          p_page_size?: number
+        }
+        Returns: {
+          objectives: Json
+          total_count: number
+        }[]
+      }
       search_users:
         | {
             Args: {

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,12 +20,14 @@ import { PaginatedObjectivesGrid } from '@/components/okr/objectives/PaginatedOb
 import { useFilteredObjectives } from '@/hooks/okr/useFilteredObjectives';
 import { useSBUs } from '@/hooks/okr/useSBUs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Input } from "@/components/ui/input";
 
 const AdminAllObjectives = () => {
   const { toast } = useToast();
   const { cycles, isLoading: cyclesLoading } = useOKRCycles();
   const { sbus, isLoading: sbusLoading } = useSBUs();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Get the most recent active cycle, or the first cycle if none are active
   const defaultCycleId = React.useMemo(() => {
@@ -45,11 +47,18 @@ const AdminAllObjectives = () => {
     setPage,
     setPageSize,
     handleFilterChange,
+    handleSearchChange,
     refetch
   } = useFilteredObjectives(true); // true for admin view
 
   // Use the regular objectives hook for the createObjective mutation
   const { createObjective, objectiveChildCounts } = useObjectives();
+
+  // Handle search input changes with debounce
+  const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    handleSearchChange(e.target.value);
+  };
 
   const handleCreateObjective = (data: CreateObjectiveInput) => {
     createObjective.mutate(data, {
@@ -82,6 +91,18 @@ const AdminAllObjectives = () => {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+      </div>
+      
+      <div className="flex items-center mb-4">
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by title, description, or owner name..."
+            className="pl-10 w-full"
+            value={searchQuery}
+            onChange={handleSearchInput}
+          />
+        </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
