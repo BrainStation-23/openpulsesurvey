@@ -103,7 +103,7 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
         
         // With the new return type, we need to handle it differently
         // data is now an array of jsonb objects, we need the first one
-        if (!data || data.length === 0) {
+        if (!data || !Array.isArray(data) || data.length === 0) {
           setTotalCount(0);
           return [];
         }
