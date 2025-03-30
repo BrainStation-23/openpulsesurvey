@@ -105,14 +105,14 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
         
         // The response from search_objectives is an array with a single object
         // containing 'objectives' array and 'total_count'
-        const result = data[0];
+        const result = data[0] as Record<string, any>;
         
         if (!result || typeof result !== 'object') {
           setTotalCount(0);
           return [];
         }
         
-        // Extract objectives array and total count
+        // Extract objectives array and total count using type assertion
         const objectivesData = result.objectives || [];
         const count = result.total_count || 0;
         
