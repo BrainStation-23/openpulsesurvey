@@ -95,17 +95,19 @@ export const useFilteredObjectives = (isAdmin: boolean = false) => {
           throw error;
         }
         
-        // Extract the objectives and total count from the result
+        // With the new return type, we need to handle it differently
+        // data is now an array of jsonb objects, we need the first one
         if (!data || data.length === 0) {
           setTotalCount(0);
           return [];
         }
         
-        const firstResult = data[0];
-        const objectives = firstResult?.objectives || [];
-        const total = firstResult?.total_count || 0;
+        // The first item contains our result object with objectives array and total_count
+        const result = data[0];
         
-        setTotalCount(total);
+        // Extract objectives and total count
+        const objectives = result.objectives || [];
+        setTotalCount(result.total_count || 0);
         
         // Make sure objectives is an array before mapping
         if (Array.isArray(objectives)) {
