@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Objective, CreateObjectiveInput, UpdateObjectiveInput } from '@/types/okr';
@@ -9,6 +9,7 @@ export const useObjectives = (cycleId?: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [objectiveChildCounts, setObjectiveChildCounts] = useState<Record<string, number>>({});
 
   // Fetch objectives for a specific cycle
   const { 
@@ -53,6 +54,21 @@ export const useObjectives = (cycleId?: string) => {
     enabled: true
   });
 
+  // Get child counts for objectives
+  useEffect(() => {
+    if (objectives && objectives.length > 0) {
+      const counts: Record<string, number> = {};
+      
+      objectives.forEach(obj => {
+        // Count how many objectives have this objective as parent
+        const childCount = objectives.filter(o => o.parentObjectiveId === obj.id).length;
+        counts[obj.id] = childCount;
+      });
+      
+      setObjectiveChildCounts(counts);
+    }
+  }, [objectives]);
+
   // Create a new objective
   const createObjective = useMutation({
     mutationFn: async (objectiveData: CreateObjectiveInput) => {
@@ -67,7 +83,7 @@ export const useObjectives = (cycleId?: string) => {
           title: objectiveData.title,
           description: objectiveData.description,
           cycle_id: objectiveData.cycleId,
-          owner_id: session.session.user.id,
+          owner_id: objectiveData.ownerId || session.session.user.id,
           visibility: objectiveData.visibility,
           parent_objective_id: objectiveData.parentObjectiveId,
           sbu_id: objectiveData.sbuId,
@@ -86,7 +102,7 @@ export const useObjectives = (cycleId?: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['objectives', cycleId] });
+      queryClient.invalidateQueries({ queryKey: ['objectives'] });
       toast({
         title: 'Success',
         description: 'Objective created successfully',
@@ -128,7 +144,7 @@ export const useObjectives = (cycleId?: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['objectives', cycleId] });
+      queryClient.invalidateQueries({ queryKey: ['objectives'] });
       toast({
         title: 'Success',
         description: 'Objective updated successfully',
@@ -161,7 +177,7 @@ export const useObjectives = (cycleId?: string) => {
       return id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['objectives', cycleId] });
+      queryClient.invalidateQueries({ queryKey: ['objectives'] });
       toast({
         title: 'Success',
         description: 'Objective deleted successfully',
@@ -186,6 +202,7 @@ export const useObjectives = (cycleId?: string) => {
     createObjective,
     updateObjective,
     deleteObjective,
-    isDeleting
+    isDeleting,
+    objectiveChildCounts
   };
 };

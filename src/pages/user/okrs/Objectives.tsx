@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -11,19 +11,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useObjectives } from '@/hooks/okr/useObjectives';
-import { ObjectiveCard } from '@/components/okr/objectives/ObjectiveCard';
 import { CreateObjectiveForm } from '@/components/okr/objectives/CreateObjectiveForm';
 import { CreateObjectiveInput } from '@/types/okr';
 import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
 import { useToast } from '@/hooks/use-toast';
+import { useSBUs } from '@/hooks/okr/useSBUs';
+import { ObjectivesFilterPanel } from '@/components/okr/objectives/filters/ObjectivesFilterPanel';
+import { PaginatedObjectivesGrid } from '@/components/okr/objectives/PaginatedObjectivesGrid';
+import { useFilteredObjectives } from '@/hooks/okr/useFilteredObjectives';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const UserObjectives = () => {
   const { toast } = useToast();
-  const { objectives, isLoading, createObjective, refetch } = useObjectives();
   const { cycles, isLoading: cyclesLoading } = useOKRCycles();
+  const { sbus, isLoading: sbusLoading } = useSBUs();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [objectiveChildCounts, setObjectiveChildCounts] = useState<Record<string, number>>({});
-
+  
   // Get the most recent active cycle, or the first cycle if none are active
   const defaultCycleId = React.useMemo(() => {
     if (!cycles || cycles.length === 0) return "";
@@ -31,20 +34,22 @@ const UserObjectives = () => {
     return activeCycle?.id || cycles[0].id;
   }, [cycles]);
 
-  // Get child counts for objectives
-  useEffect(() => {
-    if (objectives && objectives.length > 0) {
-      const counts: Record<string, number> = {};
-      
-      objectives.forEach(obj => {
-        // Count how many objectives have this objective as parent
-        const childCount = objectives.filter(o => o.parentObjectiveId === obj.id).length;
-        counts[obj.id] = childCount;
-      });
-      
-      setObjectiveChildCounts(counts);
-    }
-  }, [objectives]);
+  // Use the filtered objectives hook
+  const {
+    objectives,
+    filters,
+    isLoading,
+    page,
+    pageSize,
+    totalPages,
+    setPage,
+    setPageSize,
+    handleFilterChange,
+    refetch
+  } = useFilteredObjectives(false); // false for user view
+
+  // Use the regular objectives hook for the createObjective mutation and child counts
+  const { createObjective, objectiveChildCounts } = useObjectives();
 
   const handleCreateObjective = (data: CreateObjectiveInput) => {
     createObjective.mutate(data, {
@@ -64,47 +69,54 @@ const UserObjectives = () => {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">My Objectives</h1>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Objective
-        </Button>
-      </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>My Objectives List</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-64 bg-muted rounded-lg animate-pulse" />
-              ))}
-            </div>
-          ) : objectives && objectives.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {objectives.map((objective) => (
-                <ObjectiveCard 
-                  key={objective.id} 
-                  objective={objective} 
-                  isAdmin={false} 
-                  childCount={objectiveChildCounts[objective.id] || 0}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                You don't have any objectives yet. Create your first objective to get started.
-              </p>
-              <Button onClick={() => setCreateDialogOpen(true)} className="mt-4">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Objective
               </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Create a new objective in the current OKR cycle</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Filters sidebar */}
+        <div className="lg:col-span-1">
+          <ObjectivesFilterPanel
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            cycles={cycles || []}
+            sbus={sbus || []}
+            cyclesLoading={cyclesLoading}
+            sbusLoading={sbusLoading}
+          />
+        </div>
+        
+        {/* Main content */}
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>My Objectives List</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <PaginatedObjectivesGrid 
+              objectives={objectives || []}
+              isLoading={isLoading}
+              isAdmin={false}
+              page={page}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              objectiveChildCounts={objectiveChildCounts}
+            />
+          </CardContent>
+        </Card>
+      </div>
 
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">

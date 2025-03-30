@@ -1,21 +1,14 @@
 
-import { Objective, KeyResult } from './okr';
+import { Objective } from '@/types/okr';
 
-export interface ObjectiveWithOwner extends Objective {
-  owner?: {
-    id: string;
-    fullName: string;
-    email: string;
-    avatarUrl?: string;
-  };
-  keyResultsCount?: number;
+export interface Owner {
+  id: string;
+  fullName: string;
+  email: string;
+  avatarUrl?: string;
 }
 
-export interface KeyResultWithOwner extends KeyResult {
-  owner?: {
-    id: string;
-    fullName: string;
-    email: string;
-    avatarUrl?: string;
-  };
+export interface ObjectiveWithOwner extends Objective {
+  owner?: Owner;
+  keyResultsCount?: number;
 }
