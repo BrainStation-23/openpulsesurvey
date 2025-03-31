@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, Target, List, AlertTriangle, CalendarClock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useObjective } from '@/hooks/okr/useObjective';
 import { useObjectiveWithRelations } from '@/hooks/okr/useObjectiveWithRelations';
@@ -47,7 +47,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PermissionsList } from '@/components/okr/permissions/PermissionsList';
 import { useObjectiveStatusUpdates } from '@/hooks/okr/useObjectiveStatusUpdates';
-import { ObjectiveDetailsView } from '@/components/okr/objectives/ObjectiveDetailsView';
+import { getDueDateColorClass, formatDueDate } from '@/components/okr/key-results/utils/dueDateUtils';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -72,7 +72,6 @@ const UserObjectiveDetails = () => {
   } = useObjectiveWithRelations(id);
 
   const { data: keyResults = [] } = useKeyResults(id);
-  const completedKeyResults = keyResults.filter(kr => kr.status === 'completed').length;
   
   const { data: creatorInfo } = useQuery({
     queryKey: ['user', objective?.ownerId],
@@ -132,6 +131,20 @@ const UserObjectiveDetails = () => {
   const creatorName = creatorInfo 
     ? `${creatorInfo.first_name || ''} ${creatorInfo.last_name || ''}`.trim() 
     : 'Loading...';
+
+  const completedKeyResults = keyResults.filter(kr => kr.status === 'completed').length;
+  
+  const childObjectivesCount = objectiveWithRelations?.childObjectives?.length || 0;
+  const completedChildObjectives = objectiveWithRelations?.childObjectives?.filter(child => child.status === 'completed').length || 0;
+  
+  const childObjectivesTotalWeight = objectiveWithRelations?.alignedObjectives
+    ?.filter(a => a.sourceObjectiveId === id)
+    ?.reduce((sum, alignment) => sum + alignment.weight, 0) || 0;
+    
+  const keyResultsTotalWeight = keyResults.reduce((sum, kr) => sum + (kr.weight || 0), 0);
+  const totalWeight = (childObjectivesTotalWeight + keyResultsTotalWeight).toFixed(2);
+  const isOverweighted = parseFloat(totalWeight) > 1;
+  const isUnderweighted = parseFloat(totalWeight) < 1;
   
   if (isLoading) {
     return (
@@ -270,19 +283,6 @@ const UserObjectiveDetails = () => {
               <TabsTrigger value="permissions">Permissions</TabsTrigger>
             </TabsList>
           </div>
-          
-          <TabsContent value="details" className="mt-0">
-            <CardContent className="pt-6">
-              {objectiveWithRelations && (
-                <ObjectiveDetailsView 
-                  objective={objectiveWithRelations}
-                  creatorName={creatorName}
-                  keyResultsCount={keyResults.length}
-                  completedKeyResults={completedKeyResults}
-                />
-              )}
-            </CardContent>
-          </TabsContent>
           
           <TabsContent value="key-results" className="mt-0">
             <CardContent className="pt-6">
