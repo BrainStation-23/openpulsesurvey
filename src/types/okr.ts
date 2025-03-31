@@ -1,3 +1,4 @@
+
 export type OKRCycleStatus = 'active' | 'upcoming' | 'completed' | 'archived';
 
 export interface OKRCycle {
@@ -42,8 +43,6 @@ export interface Objective {
   approvalStatus: ApprovalStatus;
   createdAt: Date;
   updatedAt: Date;
-  approved_by?: string;
-  approved_at?: Date;
 }
 
 export interface ObjectiveWithRelations extends Objective {

@@ -7,8 +7,6 @@ import { KeyResultItem } from './KeyResultItem';
 import { KeyResultInlineForm } from './KeyResultInlineForm';
 import { useKeyResults } from '@/hooks/okr/useKeyResults';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useOkrPermissions } from '@/hooks/okr/useOkrPermissions';
-import { useObjectivePermissions } from '@/hooks/okr/useObjectivePermissions';
 
 interface KeyResultsListProps {
   objectiveId: string;
@@ -25,57 +23,11 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
 }) => {
   const { userId, isAdmin } = useCurrentUser();
   const { data: fetchedKeyResults, isLoading: isResultsLoading } = useKeyResults(objectiveId);
-  const { canCreateKeyResults } = useOkrPermissions();
-  const { checkAccess, isCheckingAccess } = useObjectivePermissions(objectiveId);
   
   const keyResults = propKeyResults || fetchedKeyResults || [];
-  const isLoading = propIsLoading || isResultsLoading || isCheckingAccess;
-  
-  // Determine if user can edit this objective's key results
-  // If canEdit prop is provided, use it
-  // Otherwise check for admin rights, key result creation permission, and objective edit permission
-  const [canEditKeyResults, setCanEditKeyResults] = useState<boolean | undefined>(propCanEdit);
-  
-  // Check permission once when component mounts
-  React.useEffect(() => {
-    if (propCanEdit !== undefined) return; // Skip if prop is provided
-    
-    const checkEditPermission = async () => {
-      // Log permissions for debugging
-      console.log('Checking key result permissions:', {
-        isAdmin,
-        canCreateKeyResults,
-        objectiveId
-      });
-      
-      // Admin always has permission
-      if (isAdmin) {
-        console.log('User is admin, allowing key result editing');
-        setCanEditKeyResults(true);
-        return;
-      }
-      
-      // If user has canCreateKeyResults permission, allow them to create key results
-      if (canCreateKeyResults) {
-        console.log('User has key result creation permission, allowing editing');
-        setCanEditKeyResults(true);
-        return;
-      }
-      
-      // Fall back to checking objective-specific permission
-      try {
-        // Check if user has edit permission on this specific objective
-        const hasEditPermission = await checkAccess('edit');
-        console.log('User objective-specific edit permission:', hasEditPermission);
-        setCanEditKeyResults(hasEditPermission);
-      } catch (error) {
-        console.error('Error checking objective permissions:', error);
-        setCanEditKeyResults(false);
-      }
-    };
-    
-    checkEditPermission();
-  }, [objectiveId, isAdmin, canCreateKeyResults, propCanEdit, checkAccess]);
+  const isLoading = propIsLoading || isResultsLoading;
+  // If canEdit prop is provided, use it, otherwise determine based on user permissions
+  const canEdit = propCanEdit !== undefined ? propCanEdit : isAdmin;
   
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
@@ -116,7 +68,7 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
       {keyResults.length === 0 && !isAddingNew ? (
         <div className="py-8 text-center text-muted-foreground">
           No key results defined yet.
-          {canEditKeyResults && (
+          {canEdit && (
             <div className="mt-2">
               <Button onClick={handleAddNewClick}>
                 <Plus className="h-4 w-4 mr-1" /> Add Key Result
@@ -138,14 +90,14 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
               ) : (
                 <KeyResultItem
                   keyResult={keyResult}
-                  canEdit={canEditKeyResults}
+                  canEdit={canEdit}
                   onEditClick={() => handleEditClick(keyResult.id)}
                 />
               )}
             </React.Fragment>
           ))}
           
-          {canEditKeyResults && !isAddingNew && !editingId && (
+          {canEdit && !isAddingNew && !editingId && (
             <div className="mt-4">
               <Button onClick={handleAddNewClick}>
                 <Plus className="h-4 w-4 mr-1" /> Add Key Result
