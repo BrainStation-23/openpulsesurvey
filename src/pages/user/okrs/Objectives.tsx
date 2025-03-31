@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,10 +29,21 @@ const UserObjectives = () => {
   const { sbus, isLoading: sbusLoading } = useSBUs();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { canCreateObjectives, isLoading: permissionsLoading } = useOkrPermissions();
+  const { 
+    canCreateObjectives, 
+    canCreateOrgObjectives, 
+    canCreateDeptObjectives, 
+    canCreateTeamObjectives,
+    isLoading: permissionsLoading 
+  } = useOkrPermissions();
   
-  console.log('User Objectives - Permission to create objectives:', canCreateObjectives);
-  console.log('User Objectives - Permissions loading:', permissionsLoading);
+  // Check if user has ANY type of create objective permission
+  const canCreateAnyObjectives = canCreateObjectives || 
+    canCreateOrgObjectives || 
+    canCreateDeptObjectives || 
+    canCreateTeamObjectives;
+  
+  console.log('User Objectives - Permission to create ANY objectives:', canCreateAnyObjectives);
   
   // Get the most recent active cycle, or the first cycle if none are active
   const defaultCycleId = React.useMemo(() => {
@@ -82,8 +94,8 @@ const UserObjectives = () => {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">My Objectives</h1>
-        {/* Only show Create button if user has permission and permissions are done loading */}
-        {!permissionsLoading && canCreateObjectives && (
+        {/* Show Create button if user has ANY type of objective creation permission */}
+        {!permissionsLoading && canCreateAnyObjectives && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>

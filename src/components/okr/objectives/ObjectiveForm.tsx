@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CreateObjectiveInput, Objective, ObjectiveVisibility, UpdateObjectiveInput } from '@/types/okr';
 import { UserSelector } from '@/components/okr/permissions/UserSelector';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useOkrPermissions } from '@/hooks/okr/useOkrPermissions';
 
 // Define the form schema
 const formSchema = z.object({
@@ -59,6 +59,15 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
   const { userId, isAdmin } = useCurrentUser();
   const [parentObjectiveOptions, setParentObjectiveOptions] = useState<{ id: string; title: string }[]>([]);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
+  
+  // Get permissions to determine allowed visibility options
+  const { 
+    canCreateObjectives,
+    canCreateOrgObjectives, 
+    canCreateDeptObjectives, 
+    canCreateTeamObjectives,
+    isLoading: permissionsLoading 
+  } = useOkrPermissions();
 
   // Get OKR cycles
   const { data: cycles } = useQuery({
@@ -88,6 +97,16 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
     }
   });
 
+  // Determine initial visibility based on permissions
+  const getDefaultVisibility = (): ObjectiveVisibility => {
+    if (objective) return objective.visibility;
+    
+    if (canCreateTeamObjectives) return 'team';
+    if (canCreateDeptObjectives) return 'department';
+    if (canCreateOrgObjectives) return 'organization';
+    return 'private';
+  };
+
   // Initialize form with objective data if editing, otherwise use defaults
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -95,7 +114,7 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
       title: objective?.title || '',
       description: objective?.description || '',
       cycleId: objective?.cycleId || initialCycleId || '',
-      visibility: objective?.visibility || 'private',
+      visibility: objective?.visibility || getDefaultVisibility(),
       parentObjectiveId: objective?.parentObjectiveId || null,
       sbuId: objective?.sbuId || null,
       ownerId: objective?.ownerId || userId || '',
@@ -152,6 +171,43 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
     }
     setSelectedOwner(userId);
   };
+
+  // Determine which visibility options to show based on permissions
+  const getVisibilityOptions = () => {
+    const options = [
+      {
+        value: 'private',
+        label: 'Private - Only visible to you and those you specifically share with',
+        always: true
+      },
+      {
+        value: 'team',
+        label: 'Team - Visible to your team members',
+        allowed: canCreateTeamObjectives || canCreateObjectives
+      },
+      {
+        value: 'department',
+        label: 'Department - Visible to your entire department',
+        allowed: canCreateDeptObjectives || canCreateObjectives
+      },
+      {
+        value: 'organization',
+        label: 'Organization - Visible to the entire organization',
+        allowed: canCreateOrgObjectives || canCreateObjectives
+      }
+    ];
+
+    // If editing an existing objective, show all options
+    if (objective) {
+      return options;
+    }
+    
+    // Otherwise filter based on permissions
+    return options.filter(option => option.always || option.allowed || isAdmin);
+  };
+
+  // Get visibility options based on permissions
+  const visibilityOptions = getVisibilityOptions();
 
   return (
     <Form {...form}>
@@ -315,38 +371,17 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
                   defaultValue={field.value}
                   className="grid grid-cols-1 md:grid-cols-2 gap-2"
                 >
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="private" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Private - Only visible to you and those you specifically share with
-                    </FormLabel>
-                  </FormItem>
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="team" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Team - Visible to your team members
-                    </FormLabel>
-                  </FormItem>
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="department" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Department - Visible to your entire department
-                    </FormLabel>
-                  </FormItem>
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="organization" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Organization - Visible to the entire organization
-                    </FormLabel>
-                  </FormItem>
+                  {/* Only show visibility options that the user has permission for */}
+                  {visibilityOptions.map((option) => (
+                    <FormItem key={option.value} className="flex items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <RadioGroupItem value={option.value} />
+                      </FormControl>
+                      <FormLabel className="font-normal">
+                        {option.label}
+                      </FormLabel>
+                    </FormItem>
+                  ))}
                 </RadioGroup>
               </FormControl>
               <FormMessage />
