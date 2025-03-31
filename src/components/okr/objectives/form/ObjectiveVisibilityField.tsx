@@ -12,7 +12,7 @@ import { UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 import { useObjectiveVisibilityPermissions } from '@/hooks/okr/useObjectiveVisibilityPermissions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { LockClosedIcon } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
 const formSchema = z.object({
   visibility: z.enum(['private', 'team', 'department', 'organization']),
@@ -48,7 +48,7 @@ export const ObjectiveVisibilityField: React.FC<ObjectiveVisibilityFieldProps> =
             </FormControl>
             <FormLabel className="font-normal flex items-center">
               {label}
-              {isDisabled && <LockClosedIcon className="h-3 w-3 ml-1" />}
+              {isDisabled && <Lock className="h-3 w-3 ml-1" />}
             </FormLabel>
           </FormItem>
         </TooltipTrigger>
