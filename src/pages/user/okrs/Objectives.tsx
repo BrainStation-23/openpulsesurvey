@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,6 +72,13 @@ const UserObjectives = () => {
         toast({
           title: 'Success',
           description: 'Objective created successfully',
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to create objective',
+          variant: 'destructive'
         });
       }
     });

@@ -10,6 +10,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { ObjectiveFormFields } from './form/ObjectiveFormFields';
 import { ObjectiveVisibilityField } from './form/ObjectiveVisibilityField';
 import { ObjectiveFormActions } from './form/ObjectiveFormActions';
+import { useToast } from '@/hooks/use-toast';
 
 // Define the form schema
 const formSchema = z.object({
@@ -42,6 +43,7 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
   hideParentObjective = false
 }) => {
   const { userId } = useCurrentUser();
+  const { toast } = useToast();
   const [parentObjectiveOptions, setParentObjectiveOptions] = useState<{ id: string; title: string }[]>([]);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
 
@@ -81,6 +83,11 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
         
         if (error) {
           console.error('Error fetching parent objectives:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load parent objectives",
+            variant: "destructive"
+          });
           return;
         }
         
@@ -91,7 +98,7 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
       
       fetchParentObjectives();
     }
-  }, [form.watch('cycleId'), objective, hideParentObjective]);
+  }, [form.watch('cycleId'), objective, hideParentObjective, toast]);
 
   // Handle form submission
   const handleSubmit = (values: FormValues) => {
