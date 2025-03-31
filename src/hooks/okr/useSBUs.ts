@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 export interface SBU {
   id: string;
   name: string;
-  code: string;
   description?: string;
 }
 
@@ -15,7 +14,7 @@ export const useSBUs = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sbus')
-        .select('id, name, code, description')
+        .select('id, name, description')
         .order('name');
       
       if (error) {
