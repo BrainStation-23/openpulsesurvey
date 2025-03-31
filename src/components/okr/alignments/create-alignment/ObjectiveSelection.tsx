@@ -2,9 +2,8 @@
 import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, ArrowUp, ArrowDown, LockIcon } from "lucide-react";
+import { InfoIcon, ArrowUp, ArrowDown, LockIcon, Search } from "lucide-react";
 import { Objective, ObjectiveVisibility } from '@/types/okr';
-import { ObjectiveSearchInput } from '../ObjectiveSearchInput';
 import { 
   Select,
   SelectContent,
@@ -17,6 +16,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useSBUs } from '@/hooks/okr/useSBUs';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
+import { getVisibilityColorClass, getVisibilityLabel } from '../utils/visibilityUtils';
 
 interface ObjectiveSelectionProps {
   relationDirection: 'parent' | 'child';
@@ -34,6 +35,10 @@ interface ObjectiveSelectionProps {
     hasAnyPermission: boolean;
   };
   isLoadingPermissions: boolean;
+  selectedSbuId: string | null;
+  setSelectedSbuId: (id: string | null) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
 export const ObjectiveSelection = ({
@@ -45,11 +50,14 @@ export const ObjectiveSelection = ({
   visibilityFilter,
   setVisibilityFilter,
   permissions,
-  isLoadingPermissions
+  isLoadingPermissions,
+  selectedSbuId,
+  setSelectedSbuId,
+  searchQuery,
+  setSearchQuery
 }: ObjectiveSelectionProps) => {
   const { sbus, isLoading: sbusLoading } = useSBUs();
   const { user } = useCurrentUser();
-  const [selectedSbuId, setSelectedSbuId] = React.useState<string | null>(null);
   const [userSbuId, setUserSbuId] = React.useState<string | null>(null);
   
   // Fetch the user's primary SBU when component mounts
@@ -71,18 +79,14 @@ export const ObjectiveSelection = ({
     };
     
     fetchUserSbu();
-  }, [user]);
+  }, [user, setSelectedSbuId]);
   
-  const handleSelectObjective = (objective: Objective) => {
-    setSelectedObjective(objective);
-  };
-
   // Reset SBU filter when visibility changes
   useEffect(() => {
     if (visibilityFilter === 'department' && userSbuId) {
       setSelectedSbuId(userSbuId);
     }
-  }, [visibilityFilter, userSbuId]);
+  }, [visibilityFilter, userSbuId, setSelectedSbuId]);
 
   // If user doesn't have permission to view any type of objective, default to "all"
   // to avoid empty selection
@@ -246,10 +250,25 @@ export const ObjectiveSelection = ({
             </Select>
           </div>
         )}
+        
+        {/* Search Input */}
+        <div className="space-y-2">
+          <Label>Search objectives</Label>
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search objectives..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+        </div>
       </div>
       
+      {/* Selected Objective Preview */}
       {selectedObjective && (
-        <div className={`p-4 rounded-md border ${getVisibilityColorClass(selectedObjective.visibility)}`}>
+        <div className={`p-4 rounded-md border mt-6 ${getVisibilityColorClass(selectedObjective.visibility)}`}>
           <div className="flex justify-between items-start">
             <div className="space-y-1">
               <h4 className="text-sm font-medium">Selected Objective</h4>
@@ -284,50 +303,6 @@ export const ObjectiveSelection = ({
           </div>
         </div>
       )}
-      
-      <div className="space-y-2">
-        <Label>Select an objective:</Label>
-        <ObjectiveSearchInput 
-          currentObjectiveId={sourceObjectiveId}
-          onSelect={handleSelectObjective}
-          placeholder="Search for objectives..."
-          visibilityFilter={visibilityFilter}
-          permissions={permissions}
-          selectedSbuId={visibilityFilter === 'department' ? selectedSbuId : undefined}
-        />
-      </div>
     </div>
   );
-};
-
-// Helper function to get visibility label
-const getVisibilityLabel = (visibility: ObjectiveVisibility): string => {
-  switch (visibility) {
-    case 'organization':
-      return 'Organization';
-    case 'department':
-      return 'Department';
-    case 'team':
-      return 'Team';
-    case 'private':
-      return 'Private';
-    default:
-      return visibility;
-  }
-};
-
-// Helper function to get color class based on visibility
-const getVisibilityColorClass = (visibility: ObjectiveVisibility): string => {
-  switch (visibility) {
-    case 'organization':
-      return 'bg-orange-50 border-orange-200';
-    case 'department':
-      return 'bg-purple-50 border-purple-200';
-    case 'team':
-      return 'bg-blue-50 border-blue-200';
-    case 'private':
-      return 'bg-gray-50 border-gray-200';
-    default:
-      return 'bg-gray-50 border-gray-200';
-  }
 };

@@ -1,26 +1,23 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Objective, ObjectiveAlignment, ObjectiveVisibility } from '@/types/okr';
+import { Objective, ObjectiveVisibility } from '@/types/okr';
 import { useObjectives } from '@/hooks/okr/useObjectives';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAlignments } from '@/hooks/okr/useAlignments';
 import { useSBUs } from '@/hooks/okr/useSBUs';
-import { getVisibilityColorClass } from './utils/visibilityUtils';
+import { getVisibilityColorClass } from '../utils/visibilityUtils';
 
-interface ObjectiveSearchInputProps {
+interface ObjectiveSearchResultsProps {
   currentObjectiveId: string;
   onSelect: (objective: Objective) => void;
-  placeholder?: string;
-  className?: string;
   visibilityFilter?: ObjectiveVisibility | 'all';
   selectedSbuId?: string | null;
+  searchQuery: string;
   permissions?: {
     organization: boolean;
     department: boolean;
@@ -30,16 +27,14 @@ interface ObjectiveSearchInputProps {
   };
 }
 
-export const ObjectiveSearchInput = ({
+export const ObjectiveSearchResults = ({
   currentObjectiveId,
   onSelect,
-  placeholder = 'Search objectives...',
-  className,
   visibilityFilter = 'all',
   selectedSbuId,
+  searchQuery,
   permissions
-}: ObjectiveSearchInputProps) => {
-  const [searchQuery, setSearchQuery] = useState('');
+}: ObjectiveSearchResultsProps) => {
   const { objectives, isLoading } = useObjectives();
   const { alignments } = useAlignments(currentObjectiveId);
   const { sbus } = useSBUs();
@@ -156,25 +151,16 @@ export const ObjectiveSearchInput = ({
   }, [objectives, currentObjectiveId, searchQuery, alignments, visibilityFilter, selectedSbuId, permissions]);
 
   return (
-    <div className={cn("space-y-4", className)}>
-      <div className="relative">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder={placeholder}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-8"
-        />
-      </div>
-      
-      <div className="border rounded-md">
+    <div className="space-y-2">
+      <h3 className="text-sm font-medium">Available Objectives</h3>
+      <div className="border rounded-md h-[350px]">
         {isLoading ? (
-          <div className="py-8 text-center">
+          <div className="py-8 text-center h-full flex flex-col items-center justify-center">
             <LoadingSpinner className="mx-auto" />
             <p className="text-sm text-muted-foreground mt-2">Loading objectives...</p>
           </div>
         ) : filteredObjectives.length > 0 ? (
-          <ScrollArea className="h-72">
+          <ScrollArea className="h-full">
             <div className="p-2 grid gap-2">
               {filteredObjectives.map((objective) => (
                 <ObjectiveCard 
@@ -187,11 +173,13 @@ export const ObjectiveSearchInput = ({
             </div>
           </ScrollArea>
         ) : (
-          <div className="py-8 text-center">
+          <div className="py-8 text-center h-full flex items-center justify-center">
             <p className="text-sm text-muted-foreground">
               {visibilityFilter !== 'all' 
                 ? `No matching ${visibilityFilter} objectives found.`
-                : "No matching objectives found."}
+                : searchQuery 
+                  ? "No objectives match your search query."
+                  : "No matching objectives found."}
             </p>
           </div>
         )}

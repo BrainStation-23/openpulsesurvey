@@ -11,10 +11,12 @@ import { Objective, AlignmentType, CreateAlignmentInput, ObjectiveVisibility } f
 import { useAlignments } from '@/hooks/okr/useAlignments';
 import { useAlignmentPermissions } from '@/hooks/okr/useAlignmentPermissions';
 import { ObjectiveSelection } from './create-alignment/ObjectiveSelection';
-import { AlignmentForm, AlignmentFormValues, alignmentFormSchema } from './create-alignment/AlignmentForm';
+import { AlignmentForm } from './create-alignment/AlignmentForm';
+import { ObjectiveSearchResults } from './create-alignment/ObjectiveSearchResults';
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { alignmentFormSchema } from './create-alignment/AlignmentForm';
 import { Separator } from "@/components/ui/separator";
 
 interface CreateAlignmentDialogProps {
@@ -36,8 +38,10 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
   const [selectedObjective, setSelectedObjective] = useState<Objective | null>(null);
   const [relationDirection, setRelationDirection] = useState<'parent' | 'child'>('parent');
   const [visibilityFilter, setVisibilityFilter] = useState<ObjectiveVisibility | 'all'>('all');
+  const [selectedSbuId, setSelectedSbuId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
-  const form = useForm<AlignmentFormValues>({
+  const form = useForm<z.infer<typeof alignmentFormSchema>>({
     resolver: zodResolver(alignmentFormSchema),
     defaultValues: {
       alignmentType: 'parent_child',
@@ -100,6 +104,7 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
       setSelectedObjective(null);
       setRelationDirection('parent');
       setVisibilityFilter('all');
+      setSearchQuery('');
     }
   }, [open]);
 
@@ -115,8 +120,9 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
         </DialogHeader>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Left Column: Selection Configuration */}
           <div className="p-6 pt-2 border-r border-border">
-            <ObjectiveSelection
+            <ObjectiveSelection 
               relationDirection={relationDirection}
               toggleRelationDirection={toggleRelationDirection}
               selectedObjective={selectedObjective}
@@ -126,18 +132,39 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
               setVisibilityFilter={setVisibilityFilter}
               permissions={permissions}
               isLoadingPermissions={isLoadingPermissions}
+              selectedSbuId={selectedSbuId}
+              setSelectedSbuId={setSelectedSbuId}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
             />
           </div>
           
-          <div className="p-6 pt-2">
-            <AlignmentForm
-              form={form}
-              onSubmit={form.handleSubmit(onSubmit)}
-              isSubmitting={isSubmitting}
-              onCancel={handleCancel}
-              selectedObjective={selectedObjective}
-              relationDirection={relationDirection}
-            />
+          {/* Right Column: Search Results & Weights */}
+          <div className="p-6 pt-2 flex flex-col h-full">
+            {/* Search Results Section */}
+            <div className="flex-grow mb-4">
+              <ObjectiveSearchResults 
+                currentObjectiveId={sourceObjectiveId}
+                onSelect={(objective) => setSelectedObjective(objective)}
+                visibilityFilter={visibilityFilter}
+                permissions={permissions}
+                selectedSbuId={visibilityFilter === 'department' ? selectedSbuId : undefined}
+                searchQuery={searchQuery}
+              />
+            </div>
+            
+            {/* Form & Weight Section */}
+            <Separator className="my-4" />
+            <div>
+              <AlignmentForm
+                form={form}
+                onSubmit={form.handleSubmit(onSubmit)}
+                isSubmitting={isSubmitting}
+                onCancel={handleCancel}
+                selectedObjective={selectedObjective}
+                relationDirection={relationDirection}
+              />
+            </div>
           </div>
         </div>
       </DialogContent>
