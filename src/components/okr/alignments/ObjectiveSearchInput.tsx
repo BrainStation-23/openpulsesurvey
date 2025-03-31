@@ -7,27 +7,31 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Objective, ObjectiveAlignment } from '@/types/okr';
+import { Objective, ObjectiveAlignment, ObjectiveVisibility } from '@/types/okr';
 import { useObjectives } from '@/hooks/okr/useObjectives';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAlignments } from '@/hooks/okr/useAlignments';
+import { useSBUs } from '@/hooks/okr/useSBUs';
 
 interface ObjectiveSearchInputProps {
   currentObjectiveId: string;
   onSelect: (objective: Objective) => void;
   placeholder?: string;
   className?: string;
+  visibilityFilter?: ObjectiveVisibility | 'all';
 }
 
 export const ObjectiveSearchInput = ({
   currentObjectiveId,
   onSelect,
   placeholder = 'Search objectives...',
-  className
+  className,
+  visibilityFilter = 'all'
 }: ObjectiveSearchInputProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { objectives, isLoading } = useObjectives();
   const { alignments } = useAlignments(currentObjectiveId);
+  const { sbus } = useSBUs();
   const [filteredObjectives, setFilteredObjectives] = useState<Objective[]>([]);
   
   // Create a set of already aligned objective IDs
@@ -50,8 +54,15 @@ export const ObjectiveSearchInput = ({
     
     return alignedIds;
   };
+
+  // Get SBU name by ID
+  const getSbuNameById = (sbuId: string | undefined): string => {
+    if (!sbuId || !sbus) return 'N/A';
+    const sbu = sbus.find(s => s.id === sbuId);
+    return sbu ? sbu.name : 'Unknown';
+  };
   
-  // Filter objectives to prevent cyclic relationships, self-selection, and already aligned objectives
+  // Filter objectives to prevent cyclic relationships, self-selection, already aligned objectives, and by visibility
   useEffect(() => {
     if (!objectives || !objectives.length) {
       setFilteredObjectives([]);
@@ -66,6 +77,7 @@ export const ObjectiveSearchInput = ({
     // 2. Objectives that already have this objective as parent
     // 3. Child objectives of the current objective (to prevent cycles)
     // 4. Objectives that are already aligned with this objective
+    // 5. Filter by visibility if provided
     const childIdsToExclude = new Set<string>();
     
     // Helper function to recursively collect all child IDs
@@ -91,6 +103,11 @@ export const ObjectiveSearchInput = ({
       // Exclude already aligned objectives
       if (alignedIds.has(obj.id)) return false;
       
+      // Filter by visibility if not "all"
+      if (visibilityFilter !== 'all' && obj.visibility !== visibilityFilter) {
+        return false;
+      }
+      
       // Apply search query
       if (searchQuery) {
         return obj.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -100,7 +117,7 @@ export const ObjectiveSearchInput = ({
     });
     
     setFilteredObjectives(filtered);
-  }, [objectives, currentObjectiveId, searchQuery, alignments]);
+  }, [objectives, currentObjectiveId, searchQuery, alignments, visibilityFilter]);
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -128,13 +145,18 @@ export const ObjectiveSearchInput = ({
                   key={objective.id} 
                   objective={objective} 
                   onSelect={onSelect}
+                  sbuName={getSbuNameById(objective.sbuId)}
                 />
               ))}
             </div>
           </ScrollArea>
         ) : (
           <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">No matching objectives found.</p>
+            <p className="text-sm text-muted-foreground">
+              {visibilityFilter !== 'all' 
+                ? `No matching ${visibilityFilter} objectives found.`
+                : "No matching objectives found."}
+            </p>
           </div>
         )}
       </div>
@@ -142,24 +164,61 @@ export const ObjectiveSearchInput = ({
   );
 };
 
-// Extracted this as a separate component for clarity
-const ObjectiveCard = ({ objective, onSelect }: { objective: Objective, onSelect: (objective: Objective) => void }) => {
+// Helper function to get color class based on visibility
+const getVisibilityColorClass = (visibility: ObjectiveVisibility): string => {
+  switch (visibility) {
+    case 'organization':
+      return 'bg-orange-50 hover:bg-orange-100 border-orange-200';
+    case 'department':
+      return 'bg-purple-50 hover:bg-purple-100 border-purple-200';
+    case 'team':
+      return 'bg-blue-50 hover:bg-blue-100 border-blue-200';
+    case 'private':
+      return 'bg-gray-50 hover:bg-gray-100 border-gray-200';
+    default:
+      return 'hover:bg-accent';
+  }
+};
+
+// Extracted as a separate component for clarity
+interface ObjectiveCardProps {
+  objective: Objective;
+  onSelect: (objective: Objective) => void;
+  sbuName: string;
+}
+
+const ObjectiveCard = ({ objective, onSelect, sbuName }: ObjectiveCardProps) => {
   return (
-    <Card className="hover:bg-accent cursor-pointer transition-colors">
+    <Card 
+      className={cn(
+        "transition-colors cursor-pointer border", 
+        getVisibilityColorClass(objective.visibility)
+      )}
+    >
       <CardContent className="p-3">
         <div className="flex justify-between items-start">
           <div className="space-y-1">
             <h4 className="font-medium text-sm">{objective.title}</h4>
             {objective.description && (
-              <p className="text-xs text-muted-foreground truncate max-w-[300px]">
+              <p className="text-xs text-muted-foreground line-clamp-1 max-w-[300px]">
                 {objective.description}
               </p>
             )}
+            <div className="flex flex-wrap gap-1 pt-1">
+              <Badge variant="outline" className="text-xs">
+                {objective.visibility}
+              </Badge>
+              {objective.sbuId && (
+                <Badge variant="outline" className="text-xs">
+                  {sbuName}
+                </Badge>
+              )}
+              <Badge variant="outline" className="text-xs">
+                Progress: {objective.progress}%
+              </Badge>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Badge variant="outline" className="text-xs">
-              {objective.status.replace('_', ' ')}
-            </Badge>
+          <div className="flex gap-2 ml-2">
             <Button size="sm" variant="secondary" onClick={() => onSelect(objective)}>
               Select
             </Button>

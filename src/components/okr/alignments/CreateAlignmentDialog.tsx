@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
   DialogContent,
@@ -7,13 +7,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Objective, AlignmentType, CreateAlignmentInput } from '@/types/okr';
+import { Objective, AlignmentType, CreateAlignmentInput, ObjectiveVisibility } from '@/types/okr';
 import { useAlignments } from '@/hooks/okr/useAlignments';
 import { ObjectiveSelection } from './create-alignment/ObjectiveSelection';
 import { AlignmentForm, AlignmentFormValues, alignmentFormSchema } from './create-alignment/AlignmentForm';
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Separator } from "@/components/ui/separator";
 
 interface CreateAlignmentDialogProps {
   open: boolean;
@@ -32,6 +33,7 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedObjective, setSelectedObjective] = useState<Objective | null>(null);
   const [relationDirection, setRelationDirection] = useState<'parent' | 'child'>('parent');
+  const [visibilityFilter, setVisibilityFilter] = useState<ObjectiveVisibility | 'all'>('all');
   
   const form = useForm<AlignmentFormValues>({
     resolver: zodResolver(alignmentFormSchema),
@@ -90,10 +92,19 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
     onOpenChange(false);
   };
 
+  // Reset selected objective when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setSelectedObjective(null);
+      setRelationDirection('parent');
+      setVisibilityFilter('all');
+    }
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[900px] p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2">
           <DialogTitle>Create Alignment</DialogTitle>
           <DialogDescription>
             Connect this objective with another to establish a parent-child relationship.
@@ -101,21 +112,30 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <ObjectiveSelection
-          relationDirection={relationDirection}
-          toggleRelationDirection={toggleRelationDirection}
-          selectedObjective={selectedObjective}
-          setSelectedObjective={setSelectedObjective}
-          sourceObjectiveId={sourceObjectiveId}
-        />
-        
-        <AlignmentForm
-          form={form}
-          onSubmit={form.handleSubmit(onSubmit)}
-          isSubmitting={isSubmitting}
-          onCancel={handleCancel}
-          selectedObjective={selectedObjective}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-6 pt-2 border-r border-border">
+            <ObjectiveSelection
+              relationDirection={relationDirection}
+              toggleRelationDirection={toggleRelationDirection}
+              selectedObjective={selectedObjective}
+              setSelectedObjective={setSelectedObjective}
+              sourceObjectiveId={sourceObjectiveId}
+              visibilityFilter={visibilityFilter}
+              setVisibilityFilter={setVisibilityFilter}
+            />
+          </div>
+          
+          <div className="p-6 pt-2">
+            <AlignmentForm
+              form={form}
+              onSubmit={form.handleSubmit(onSubmit)}
+              isSubmitting={isSubmitting}
+              onCancel={handleCancel}
+              selectedObjective={selectedObjective}
+              relationDirection={relationDirection}
+            />
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

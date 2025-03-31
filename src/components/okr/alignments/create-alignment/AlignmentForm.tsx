@@ -2,12 +2,12 @@
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage, Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
 import * as z from "zod";
 import { Objective } from '@/types/okr';
 import { Slider } from "@/components/ui/slider";
+import { Card } from '@/components/ui/card';
 
 // Schema for alignment form validation
 export const alignmentFormSchema = z.object({
@@ -23,6 +23,7 @@ interface AlignmentFormProps {
   isSubmitting: boolean;
   onCancel: () => void;
   selectedObjective: Objective | null;
+  relationDirection: 'parent' | 'child';
 }
 
 export const AlignmentForm = ({ 
@@ -30,23 +31,42 @@ export const AlignmentForm = ({
   onSubmit, 
   isSubmitting, 
   onCancel, 
-  selectedObjective 
+  selectedObjective,
+  relationDirection
 }: AlignmentFormProps) => {
   // Convert the weight value for display purposes
   const displayPercentage = (value: number) => `${(value * 100).toFixed(2)}%`;
   
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="weight"
-          render={({ field }) => (
-            <FormItem className="space-y-6">
-              <FormLabel>Weight ({displayPercentage(field.value)})</FormLabel>
-              <div className="flex flex-col space-y-4">
-                <FormControl>
-                  <div className="flex items-center space-x-4">
+      <form onSubmit={onSubmit} className="space-y-6">
+        <div className="space-y-6 pb-6">
+          <h3 className="text-base font-medium">Alignment Weight</h3>
+          
+          {selectedObjective ? (
+            <Card className="p-4">
+              <p className="text-sm mb-2">
+                {relationDirection === 'parent' ? (
+                  <>This will determine how much <strong className="font-semibold">your objective</strong> contributes to the progress of <strong className="font-semibold">{selectedObjective.title}</strong></>
+                ) : (
+                  <>This will determine how much <strong className="font-semibold">{selectedObjective.title}</strong> contributes to the progress of <strong className="font-semibold">your objective</strong></>
+                )}
+              </p>
+            </Card>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              Select an objective to create an alignment.
+            </div>
+          )}
+          
+          <FormField
+            control={form.control}
+            name="weight"
+            render={({ field }) => (
+              <FormItem className="space-y-6">
+                <FormLabel>Weight ({displayPercentage(field.value)})</FormLabel>
+                <div className="space-y-6">
+                  <FormControl>
                     <Slider 
                       defaultValue={[field.value * 100]} 
                       min={0.01} 
@@ -57,39 +77,36 @@ export const AlignmentForm = ({
                         // Convert percentage back to decimal for the form
                         field.onChange(values[0] / 100);
                       }}
-                      className="flex-grow"
                     />
-                  </div>
-                </FormControl>
+                  </FormControl>
 
-                <FormControl>
-                  <Input 
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    max="100"
-                    disabled={isSubmitting}
-                    placeholder="Enter weight percentage"
-                    value={(field.value * 100).toFixed(2)}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      // Convert percentage to decimal for the form
-                      field.onChange(isNaN(value) ? 1 : value / 100);
-                    }}
-                    className="w-full"
-                  />
-                </FormControl>
-              </div>
-              <FormDescription>
-                Enter a value between 0.01% and 100% to represent the contribution percentage to parent progress.
-                For example, 5% means this objective contributes 5% to the parent's overall progress.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  <FormControl>
+                    <Input 
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      max="100"
+                      disabled={isSubmitting}
+                      placeholder="Enter weight percentage"
+                      value={(field.value * 100).toFixed(2)}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        // Convert percentage to decimal for the form
+                        field.onChange(isNaN(value) ? 1 : value / 100);
+                      }}
+                    />
+                  </FormControl>
+                </div>
+                <FormDescription>
+                  Enter a value between 0.01% and 100% to represent the contribution percentage.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         
-        <DialogFooter>
+        <div className="flex justify-end gap-2 pt-4 border-t border-border">
           <Button 
             type="button" 
             variant="outline" 
@@ -104,7 +121,7 @@ export const AlignmentForm = ({
           >
             {isSubmitting ? "Creating..." : "Create Alignment"}
           </Button>
-        </DialogFooter>
+        </div>
       </form>
     </Form>
   );

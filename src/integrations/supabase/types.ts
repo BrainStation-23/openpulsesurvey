@@ -2833,6 +2833,19 @@ export type Database = {
         }
         Returns: number
       }
+      can_create_alignment: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      can_create_alignment_by_visibility: {
+        Args: {
+          p_user_id: string
+          p_visibility: string
+        }
+        Returns: boolean
+      }
       can_create_key_result: {
         Args: {
           p_user_id: string
@@ -2842,6 +2855,14 @@ export type Database = {
       can_create_objective: {
         Args: {
           p_user_id: string
+        }
+        Returns: boolean
+      }
+      can_create_objective_alignment: {
+        Args: {
+          p_user_id: string
+          p_source_objective_id: string
+          p_aligned_objective_id: string
         }
         Returns: boolean
       }

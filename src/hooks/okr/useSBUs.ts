@@ -5,10 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 export interface SBU {
   id: string;
   name: string;
-  profileImageUrl?: string;
-  headId?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  code: string;
+  description?: string;
 }
 
 export const useSBUs = () => {
@@ -17,7 +15,7 @@ export const useSBUs = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sbus')
-        .select('*')
+        .select('id, name, code, description')
         .order('name');
       
       if (error) {
@@ -25,19 +23,12 @@ export const useSBUs = () => {
         throw error;
       }
       
-      return data.map(sbu => ({
-        id: sbu.id,
-        name: sbu.name,
-        profileImageUrl: sbu.profile_image_url,
-        headId: sbu.head_id,
-        createdAt: new Date(sbu.created_at),
-        updatedAt: new Date(sbu.updated_at)
-      })) as SBU[];
+      return data as SBU[];
     }
   });
 
   return {
-    sbus: sbus || [],
+    sbus,
     isLoading,
     error
   };
