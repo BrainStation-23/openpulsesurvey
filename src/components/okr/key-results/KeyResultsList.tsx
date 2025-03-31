@@ -29,9 +29,10 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
   const keyResults = propKeyResults || fetchedKeyResults || [];
   const isLoading = propIsLoading || isResultsLoading;
   
-  // If canEdit prop is provided, use it, otherwise determine based on user permissions
-  const canEdit = propCanEdit !== undefined ? propCanEdit : (isAdmin || canCreateKeyResults);
+  // If canEdit prop is provided, use it for general editing
+  const canEdit = propCanEdit !== undefined ? propCanEdit : (isAdmin || false);
   
+  // canCreateKeyResults is now separate from canEdit
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
 
@@ -103,7 +104,7 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
       {keyResults.length === 0 && !isAddingNew ? (
         <div className="py-8 text-center text-muted-foreground">
           No key results defined yet.
-          {canEdit && (
+          {(canEdit || canCreateKeyResults) && (
             <div className="mt-2">
               <Button onClick={handleAddNewClick}>
                 <Plus className="h-4 w-4 mr-1" /> Add Key Result
@@ -132,7 +133,7 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
             </React.Fragment>
           ))}
           
-          {canEdit && !isAddingNew && !editingId && (
+          {(canEdit || canCreateKeyResults) && !isAddingNew && !editingId && (
             <div className="mt-4">
               <Button onClick={handleAddNewClick}>
                 <Plus className="h-4 w-4 mr-1" /> Add Key Result
