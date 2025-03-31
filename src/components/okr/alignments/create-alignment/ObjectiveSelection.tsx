@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, ArrowUp, ArrowDown } from "lucide-react";
+import { InfoIcon, ArrowUp, ArrowDown, LockIcon } from "lucide-react";
 import { Objective, ObjectiveVisibility } from '@/types/okr';
 import { ObjectiveSearchInput } from '../ObjectiveSearchInput';
 import { 
@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ObjectiveSelectionProps {
   relationDirection: 'parent' | 'child';
@@ -22,6 +23,14 @@ interface ObjectiveSelectionProps {
   sourceObjectiveId: string;
   visibilityFilter: ObjectiveVisibility | 'all';
   setVisibilityFilter: (filter: ObjectiveVisibility | 'all') => void;
+  permissions: {
+    organization: boolean;
+    department: boolean;
+    team: boolean;
+    private: boolean;
+    hasAnyPermission: boolean;
+  };
+  isLoadingPermissions: boolean;
 }
 
 export const ObjectiveSelection = ({
@@ -31,12 +40,22 @@ export const ObjectiveSelection = ({
   setSelectedObjective,
   sourceObjectiveId,
   visibilityFilter,
-  setVisibilityFilter
+  setVisibilityFilter,
+  permissions,
+  isLoadingPermissions
 }: ObjectiveSelectionProps) => {
   
   const handleSelectObjective = (objective: Objective) => {
     setSelectedObjective(objective);
   };
+
+  // If user doesn't have permission to view any type of objective, default to "all"
+  // to avoid empty selection
+  React.useEffect(() => {
+    if (!isLoadingPermissions && !permissions.hasAnyPermission) {
+      setVisibilityFilter('all');
+    }
+  }, [permissions.hasAnyPermission, isLoadingPermissions, setVisibilityFilter]);
 
   return (
     <div className="space-y-4">
@@ -87,10 +106,82 @@ export const ObjectiveSelection = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Objectives</SelectItem>
-              <SelectItem value="organization">Organization</SelectItem>
-              <SelectItem value="department">Department</SelectItem>
-              <SelectItem value="team">Team</SelectItem>
-              <SelectItem value="private">Private</SelectItem>
+              
+              <SelectItem 
+                value="organization" 
+                disabled={!permissions.organization}
+              >
+                <div className="flex items-center">
+                  <span>Organization</span>
+                  {!permissions.organization && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <LockIcon className="h-3.5 w-3.5 ml-2 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>You don't have permission to align with organization objectives</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </SelectItem>
+              
+              <SelectItem 
+                value="department" 
+                disabled={!permissions.department}
+              >
+                <div className="flex items-center">
+                  <span>Department</span>
+                  {!permissions.department && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <LockIcon className="h-3.5 w-3.5 ml-2 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>You don't have permission to align with department objectives</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </SelectItem>
+              
+              <SelectItem 
+                value="team" 
+                disabled={!permissions.team}
+              >
+                <div className="flex items-center">
+                  <span>Team</span>
+                  {!permissions.team && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <LockIcon className="h-3.5 w-3.5 ml-2 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>You don't have permission to align with team objectives</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </SelectItem>
+              
+              <SelectItem 
+                value="private" 
+                disabled={!permissions.private}
+              >
+                <div className="flex items-center">
+                  <span>Private</span>
+                  {!permissions.private && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <LockIcon className="h-3.5 w-3.5 ml-2 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>You don't have permission to align with private objectives</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -140,6 +231,7 @@ export const ObjectiveSelection = ({
           onSelect={handleSelectObjective}
           placeholder="Search for objectives..."
           visibilityFilter={visibilityFilter}
+          permissions={permissions}
         />
       </div>
     </div>

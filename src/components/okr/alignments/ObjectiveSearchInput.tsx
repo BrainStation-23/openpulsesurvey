@@ -19,6 +19,13 @@ interface ObjectiveSearchInputProps {
   placeholder?: string;
   className?: string;
   visibilityFilter?: ObjectiveVisibility | 'all';
+  permissions?: {
+    organization: boolean;
+    department: boolean;
+    team: boolean;
+    private: boolean;
+    hasAnyPermission: boolean;
+  };
 }
 
 export const ObjectiveSearchInput = ({
@@ -26,7 +33,8 @@ export const ObjectiveSearchInput = ({
   onSelect,
   placeholder = 'Search objectives...',
   className,
-  visibilityFilter = 'all'
+  visibilityFilter = 'all',
+  permissions
 }: ObjectiveSearchInputProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { objectives, isLoading } = useObjectives();
@@ -78,6 +86,7 @@ export const ObjectiveSearchInput = ({
     // 3. Child objectives of the current objective (to prevent cycles)
     // 4. Objectives that are already aligned with this objective
     // 5. Filter by visibility if provided
+    // 6. Filter by user's permission to align with objectives
     const childIdsToExclude = new Set<string>();
     
     // Helper function to recursively collect all child IDs
@@ -103,6 +112,24 @@ export const ObjectiveSearchInput = ({
       // Exclude already aligned objectives
       if (alignedIds.has(obj.id)) return false;
       
+      // If permissions are provided, check if user can align with this objective's visibility
+      if (permissions) {
+        switch (obj.visibility) {
+          case 'organization':
+            if (!permissions.organization) return false;
+            break;
+          case 'department':
+            if (!permissions.department) return false;
+            break;
+          case 'team':
+            if (!permissions.team) return false;
+            break;
+          case 'private':
+            if (!permissions.private) return false;
+            break;
+        }
+      }
+
       // Filter by visibility if not "all"
       if (visibilityFilter !== 'all' && obj.visibility !== visibilityFilter) {
         return false;
@@ -117,7 +144,7 @@ export const ObjectiveSearchInput = ({
     });
     
     setFilteredObjectives(filtered);
-  }, [objectives, currentObjectiveId, searchQuery, alignments, visibilityFilter]);
+  }, [objectives, currentObjectiveId, searchQuery, alignments, visibilityFilter, permissions]);
 
   return (
     <div className={cn("space-y-4", className)}>

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Objective, AlignmentType, CreateAlignmentInput, ObjectiveVisibility } from '@/types/okr';
 import { useAlignments } from '@/hooks/okr/useAlignments';
+import { useAlignmentPermissions } from '@/hooks/okr/useAlignmentPermissions';
 import { ObjectiveSelection } from './create-alignment/ObjectiveSelection';
 import { AlignmentForm, AlignmentFormValues, alignmentFormSchema } from './create-alignment/AlignmentForm';
 import * as z from "zod";
@@ -30,6 +31,7 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
   onSuccess
 }) => {
   const { createAlignment } = useAlignments(sourceObjectiveId);
+  const { permissions, isLoading: isLoadingPermissions } = useAlignmentPermissions();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedObjective, setSelectedObjective] = useState<Objective | null>(null);
   const [relationDirection, setRelationDirection] = useState<'parent' | 'child'>('parent');
@@ -122,6 +124,8 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
               sourceObjectiveId={sourceObjectiveId}
               visibilityFilter={visibilityFilter}
               setVisibilityFilter={setVisibilityFilter}
+              permissions={permissions}
+              isLoadingPermissions={isLoadingPermissions}
             />
           </div>
           
