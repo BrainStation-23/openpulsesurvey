@@ -7,7 +7,6 @@ import { UseFormReturn } from "react-hook-form";
 import * as z from "zod";
 import { Objective } from '@/types/okr';
 import { Slider } from "@/components/ui/slider";
-import { Card } from '@/components/ui/card';
 
 // Schema for alignment form validation
 export const alignmentFormSchema = z.object({
@@ -42,21 +41,13 @@ export const AlignmentForm = ({
       <form onSubmit={onSubmit} className="space-y-4">
         <h3 className="text-sm font-medium">Alignment Weight</h3>
         
-        {selectedObjective ? (
-          <Card className="p-3 bg-muted/50">
-            <p className="text-sm">
-              {relationDirection === 'parent' ? (
-                <>This determines how much <strong className="font-semibold">your objective</strong> contributes to the progress of <strong className="font-semibold">{selectedObjective.title}</strong></>
-              ) : (
-                <>This determines how much <strong className="font-semibold">{selectedObjective.title}</strong> contributes to the progress of <strong className="font-semibold">your objective</strong></>
-              )}
-            </p>
-          </Card>
-        ) : (
-          <div className="text-sm text-muted-foreground italic">
-            Select an objective to create an alignment.
-          </div>
-        )}
+        <p className="text-sm">
+          {relationDirection === 'parent' ? (
+            <>This determines how much <strong className="font-semibold">your objective</strong> contributes to the progress of <strong className="font-semibold">{selectedObjective?.title || 'the selected objective'}</strong></>
+          ) : (
+            <>This determines how much <strong className="font-semibold">{selectedObjective?.title || 'the selected objective'}</strong> contributes to the progress of <strong className="font-semibold">your objective</strong></>
+          )}
+        </p>
         
         <FormField
           control={form.control}

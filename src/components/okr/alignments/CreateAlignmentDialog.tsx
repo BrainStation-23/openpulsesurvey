@@ -18,6 +18,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { alignmentFormSchema } from './create-alignment/AlignmentForm';
 import { Separator } from "@/components/ui/separator";
+import { Card } from "@/components/ui/card";
+import { getVisibilityLabel, getVisibilityColorClass } from './utils/visibilityUtils';
+import { Badge } from "@/components/ui/badge";
 
 interface CreateAlignmentDialogProps {
   open: boolean;
@@ -119,9 +122,9 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2">
           {/* Left Column: Selection Configuration */}
-          <div className="p-6 pt-2 border-r border-border">
+          <div className="p-6 pt-2 border-r border-border flex flex-col h-full">
             <ObjectiveSelection 
               relationDirection={relationDirection}
               toggleRelationDirection={toggleRelationDirection}
@@ -137,11 +140,34 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
             />
+            
+            {/* Selected objective preview card - moved from right column */}
+            {selectedObjective && (
+              <div className="mt-4">
+                <h3 className="text-sm font-medium mb-2">Selected Objective</h3>
+                <Card className={`p-3 border-l-4 ${getVisibilityColorClass(selectedObjective.visibility)}`}>
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <Badge variant="outline" className={getVisibilityColorClass(selectedObjective.visibility)}>
+                        {getVisibilityLabel(selectedObjective.visibility)}
+                      </Badge>
+                      <Badge variant="outline">{selectedObjective.progress}% complete</Badge>
+                    </div>
+                    <h4 className="font-medium">{selectedObjective.title}</h4>
+                    {selectedObjective.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {selectedObjective.description}
+                      </p>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            )}
           </div>
           
           {/* Right Column: Search Results & Weights */}
           <div className="p-6 pt-2 flex flex-col h-full">
-            {/* Search Results Section */}
+            {/* Search Results Section - now takes more space */}
             <div className="flex-grow mb-4">
               <ObjectiveSearchResults 
                 currentObjectiveId={sourceObjectiveId}

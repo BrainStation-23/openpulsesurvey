@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KeyResult } from '@/types/okr';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -7,6 +7,7 @@ import { KeyResultItem } from './KeyResultItem';
 import { KeyResultInlineForm } from './KeyResultInlineForm';
 import { useKeyResults } from '@/hooks/okr/useKeyResults';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { supabase } from '@/integrations/supabase/client';
 
 interface KeyResultsListProps {
   objectiveId: string;
@@ -23,15 +24,36 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
 }) => {
   const { userId, isAdmin } = useCurrentUser();
   const { data: fetchedKeyResults, isLoading: isResultsLoading } = useKeyResults(objectiveId);
+  const [canCreateKeyResults, setCanCreateKeyResults] = useState(false);
   
   const keyResults = propKeyResults || fetchedKeyResults || [];
   const isLoading = propIsLoading || isResultsLoading;
   // If canEdit prop is provided, use it, otherwise determine based on user permissions
-  const canEdit = propCanEdit !== undefined ? propCanEdit : isAdmin;
+  const canEdit = propCanEdit !== undefined ? propCanEdit : (isAdmin || canCreateKeyResults);
   
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
 
+  // Check if the user can create key results using the database function
+  useEffect(() => {
+    const checkKeyResultPermission = async () => {
+      if (!userId) return;
+      
+      const { data, error } = await supabase.rpc('can_create_key_result', {
+        p_user_id: userId
+      });
+      
+      if (error) {
+        console.error('Error checking key result permission:', error);
+        return;
+      }
+      
+      setCanCreateKeyResults(!!data);
+    };
+    
+    checkKeyResultPermission();
+  }, [userId]);
+  
   const handleEditClick = (keyResultId: string) => {
     if (isAddingNew) setIsAddingNew(false);
     setEditingId(keyResultId);
