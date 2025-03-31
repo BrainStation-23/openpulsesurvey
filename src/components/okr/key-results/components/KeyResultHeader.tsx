@@ -1,11 +1,10 @@
 
 import React from 'react';
-import { MoreHorizontal, Calendar, User } from 'lucide-react';
+import { MoreHorizontal, Calendar, User, Edit, Trash2 } from 'lucide-react';
 import { KeyResult } from '@/types/okr';
 import { CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useOwnerInfo } from '../hooks/useOwnerInfo';
 import { DueDateDisplay } from './DueDateDisplay';
 
@@ -58,24 +57,24 @@ export const KeyResultHeader: React.FC<KeyResultHeaderProps> = ({
           <h3 className="text-lg font-medium leading-tight">{keyResult.title}</h3>
           
           {canEdit && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onEditClick}>
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={onDeleteClick}
-                  className="text-destructive focus:text-destructive"
-                >
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0" 
+                onClick={onEditClick}
+              >
+                <Edit className="h-4 w-4 text-blue-600 hover:text-blue-700" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0" 
+                onClick={onDeleteClick}
+              >
+                <Trash2 className="h-4 w-4 text-red-600 hover:text-red-700" />
+              </Button>
+            </div>
           )}
         </div>
         
