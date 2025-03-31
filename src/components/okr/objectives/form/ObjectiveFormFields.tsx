@@ -132,7 +132,6 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
             <Select 
               onValueChange={field.onChange} 
               defaultValue={field.value} 
-              disabled={!!form.getValues('id')}
             >
               <FormControl>
                 <SelectTrigger>
