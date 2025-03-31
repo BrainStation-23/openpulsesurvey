@@ -285,12 +285,12 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
             )}
           />
 
-          {/* Owner field is always included but hidden for regular users creating their own objectives */}
+          {/* Owner field is now always visible */}
           <FormField
             control={form.control}
             name="ownerId"
             render={({ field }) => (
-              <FormItem className={!isAdmin && !objective ? "hidden" : ""}>
+              <FormItem>
                 <FormLabel>Owner</FormLabel>
                 <FormControl>
                   <UserSelector
