@@ -7,15 +7,10 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import {
   Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
+  useSidebar
 } from "@/components/ui/sidebar";
 
 import { userNavigationItems, userNavigationSections } from "@/config/user-navigation";
@@ -28,6 +23,7 @@ export default function UserSidebar({ onSignOut }: UserSidebarProps) {
   const { data: pendingSurveysCount } = usePendingSurveysCount();
   const location = useLocation();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const { collapsed } = useSidebar();
 
   // Toggle section expansion
   const toggleSection = (section: string) => {
@@ -55,96 +51,107 @@ export default function UserSidebar({ onSignOut }: UserSidebarProps) {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b px-6 py-3">
-        <h2 className="font-semibold">User Portal</h2>
-      </SidebarHeader>
-      <SidebarContent>
-        {groupedItems.map(section => (
-          section.items.length > 0 && (
-            <SidebarGroup key={section.id}>
-              <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {section.items.map(item => (
-                    <SidebarMenuItem key={item.title}>
-                      {item.children ? (
-                        <div className="flex flex-col w-full">
-                          <button
-                            onClick={() => toggleSection(item.title)}
-                            className={cn(
-                              "flex items-center justify-between w-full p-2 rounded-md",
-                              isSectionActive(item.children) && "bg-muted"
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className="border-b px-6 py-3">
+          <h2 className="font-semibold">User Portal</h2>
+        </div>
+        
+        {/* Content */}
+        <div className="flex-1 py-4 overflow-auto">
+          {groupedItems.map(section => (
+            section.items.length > 0 && (
+              <div key={section.id} className="mb-6">
+                <h3 className="px-4 text-xs font-medium text-muted-foreground mb-2">{section.label}</h3>
+                <div className="space-y-1">
+                  <SidebarMenu>
+                    {section.items.map(item => (
+                      <SidebarMenuItem key={item.title}>
+                        {item.children ? (
+                          <div className="flex flex-col w-full">
+                            <button
+                              onClick={() => toggleSection(item.title)}
+                              className={cn(
+                                "flex items-center justify-between w-full p-2 rounded-md",
+                                isSectionActive(item.children) && "bg-muted"
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                <item.icon className="h-4 w-4" />
+                                {!collapsed && <span>{item.title}</span>}
+                                {!collapsed && item.path === "/user/my-surveys" && pendingSurveysCount > 0 && (
+                                  <span className="ml-auto bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
+                                    {pendingSurveysCount}
+                                  </span>
+                                )}
+                              </div>
+                              {!collapsed && (
+                                <ChevronDown className={cn(
+                                  "h-4 w-4 transition-transform",
+                                  expanded[item.title] && "transform rotate-180"
+                                )} />
+                              )}
+                            </button>
+                            {expanded[item.title] && !collapsed && (
+                              <div className="ml-6 mt-1 space-y-1">
+                                {item.children.map(child => (
+                                  <SidebarMenuButton key={child.path} asChild
+                                    isActive={isActive(child.path)}
+                                  >
+                                    <Link to={child.path} className="flex items-center gap-2 py-1">
+                                      <child.icon className="h-4 w-4" />
+                                      <span>
+                                        {child.title}
+                                        {child.path === "/user/my-surveys" && pendingSurveysCount > 0 && (
+                                          <span className="ml-2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
+                                            {pendingSurveysCount}
+                                          </span>
+                                        )}
+                                      </span>
+                                    </Link>
+                                  </SidebarMenuButton>
+                                ))}
+                              </div>
                             )}
-                          >
-                            <div className="flex items-center gap-2">
+                          </div>
+                        ) : (
+                          <SidebarMenuButton asChild isActive={isActive(item.path)}>
+                            <Link to={item.path} className="flex items-center gap-2">
                               <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
-                              {item.path === "/user/my-surveys" && pendingSurveysCount > 0 && (
-                                <span className="ml-auto bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
-                                  {pendingSurveysCount}
-                                </span>
-                              )}
-                            </div>
-                            <ChevronDown className={cn(
-                              "h-4 w-4 transition-transform",
-                              expanded[item.title] && "transform rotate-180"
-                            )} />
-                          </button>
-                          {expanded[item.title] && (
-                            <div className="ml-6 mt-1 space-y-1">
-                              {item.children.map(child => (
-                                <SidebarMenuButton key={child.path} asChild
-                                  isActive={isActive(child.path)}
-                                >
-                                  <Link to={child.path} className="flex items-center gap-2 py-1">
-                                    <child.icon className="h-4 w-4" />
-                                    <span>
-                                      {child.title}
-                                      {child.path === "/user/my-surveys" && pendingSurveysCount > 0 && (
-                                        <span className="ml-2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
-                                          {pendingSurveysCount}
-                                        </span>
-                                      )}
+                              {!collapsed && (
+                                <span>
+                                  {item.title}
+                                  {item.title === "My Surveys" && pendingSurveysCount > 0 && (
+                                    <span className="ml-2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
+                                      {pendingSurveysCount}
                                     </span>
-                                  </Link>
-                                </SidebarMenuButton>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <SidebarMenuButton asChild isActive={isActive(item.path)}>
-                          <Link to={item.path} className="flex items-center gap-2">
-                            <item.icon className="h-4 w-4" />
-                            <span>
-                              {item.title}
-                              {item.title === "My Surveys" && pendingSurveysCount > 0 && (
-                                <span className="ml-2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
-                                  {pendingSurveysCount}
+                                  )}
                                 </span>
                               )}
-                            </span>
-                          </Link>
-                        </SidebarMenuButton>
-                      )}
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )
-        ))}
-      </SidebarContent>
-      <SidebarFooter className="p-2">
-        <Button
-          variant="ghost"
-          className="w-full justify-start"
-          onClick={onSignOut}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </Button>
-      </SidebarFooter>
+                            </Link>
+                          </SidebarMenuButton>
+                        )}
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </div>
+              </div>
+            )
+          ))}
+        </div>
+        
+        {/* Footer */}
+        <div className="border-t p-4">
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            onClick={onSignOut}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            {!collapsed && "Logout"}
+          </Button>
+        </div>
+      </div>
     </Sidebar>
   );
 }
