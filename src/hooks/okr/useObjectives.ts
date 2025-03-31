@@ -1,28 +1,75 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Objective, CreateObjectiveInput, UpdateObjectiveInput } from '@/types/okr';
+import { Objective, CreateObjectiveInput, UpdateObjectiveInput, ApprovalStatus, ObjectiveVisibility, ObjectiveStatus } from '@/types/okr';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useOkrPermissions } from '@/hooks/okr/useOkrPermissions';
 
-export function useObjectives() {
+// Type for database response to help with conversion
+interface ObjectiveDB {
+  id: string;
+  title: string;
+  description: string;
+  cycle_id: string;
+  owner_id: string;
+  status: string;
+  progress: number;
+  visibility: string;
+  parent_objective_id?: string;
+  sbu_id?: string;
+  approval_status: string;
+  created_at: string;
+  updated_at: string;
+  approved_by?: string;
+  approved_at?: string;
+}
+
+// Helper function to convert DB response to our Objective type
+const mapDbObjectiveToObjective = (dbObj: ObjectiveDB): Objective => {
+  return {
+    id: dbObj.id,
+    title: dbObj.title,
+    description: dbObj.description || '',
+    cycleId: dbObj.cycle_id,
+    ownerId: dbObj.owner_id,
+    status: dbObj.status as ObjectiveStatus,
+    progress: dbObj.progress,
+    visibility: dbObj.visibility as ObjectiveVisibility,
+    parentObjectiveId: dbObj.parent_objective_id || undefined,
+    sbuId: dbObj.sbu_id || undefined,
+    approvalStatus: dbObj.approval_status as ApprovalStatus,
+    createdAt: new Date(dbObj.created_at),
+    updatedAt: new Date(dbObj.updated_at),
+    approvedBy: dbObj.approved_by,
+    approvedAt: dbObj.approved_at ? new Date(dbObj.approved_at) : undefined
+  };
+};
+
+export function useObjectives(cycleId?: string) {
   const queryClient = useQueryClient();
   const { userId, isAdmin } = useCurrentUser();
-  const { canCreateObjectives, canCreateOrgObjectives, canCreateDeptObjectives, canCreateTeamObjectives } = useOkrPermissions();
+  const { canCreateObjectives, canCreateOrgObjectives, canCreateDeptObjectives, canCreateTeamObjectives, canCreateKeyResults } = useOkrPermissions();
   const [objectiveChildCounts, setObjectiveChildCounts] = useState<Record<string, number>>({});
 
   // Query to fetch all objectives
   const { data: objectives, isLoading, error, refetch } = useQuery({
-    queryKey: ['objectives'],
+    queryKey: ['objectives', cycleId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('objectives')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
+      
+      if (cycleId) {
+        query = query.eq('cycle_id', cycleId);
+      }
+      
+      query = query.order('created_at', { ascending: false });
+      
+      const { data, error } = await query;
 
       if (error) throw error;
-      return data as Objective[];
+      return (data as ObjectiveDB[]).map(mapDbObjectiveToObjective);
     }
   });
 
@@ -69,22 +116,22 @@ export function useObjectives() {
         description: objective.description || '',
         cycle_id: objective.cycleId,
         owner_id: objective.ownerId || userId, // Default to current user if not specified
-        status: 'draft', // Default status
+        status: 'draft' as ObjectiveStatus, // Default status
         progress: 0, // Default progress
         visibility: objective.visibility,
         parent_objective_id: objective.parentObjectiveId === 'none' ? null : objective.parentObjectiveId,
         sbu_id: objective.sbuId === 'none' ? null : objective.sbuId,
-        approval_status: 'pending' // Default approval status
+        approval_status: 'pending' as ApprovalStatus // Default approval status
       };
 
       const { data, error } = await supabase
         .from('objectives')
-        .insert([objectiveData])
+        .insert(objectiveData)
         .select()
         .single();
 
       if (error) throw error;
-      return data as Objective;
+      return mapDbObjectiveToObjective(data as ObjectiveDB);
     },
     onSuccess: () => {
       // Invalidate and refetch objectives query
@@ -124,7 +171,7 @@ export function useObjectives() {
         .single();
 
       if (error) throw error;
-      return data as Objective;
+      return mapDbObjectiveToObjective(data as ObjectiveDB);
     },
     onSuccess: (_, variables) => {
       // Invalidate and refetch objectives query

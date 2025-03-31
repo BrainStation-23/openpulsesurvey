@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -45,8 +44,7 @@ const AdminOKRCycleDetails = () => {
   const { toast } = useToast();
   const { cycle, isLoading, error, updateStatus } = useOKRCycle(id);
   const { createObjective } = useObjectives(id);
-  
-  // Use the more robust objectives by visibility hook
+
   const { 
     objectives, 
     organizationalObjectives,
@@ -86,7 +84,6 @@ const AdminOKRCycleDetails = () => {
     setDeleteDialogOpen(true);
   };
 
-  // Determine which objectives to show based on selected category
   const displayedObjectives = selectedCategory === 'all' 
     ? objectives 
     : selectedCategory === 'organization' 
@@ -303,7 +300,6 @@ const AdminOKRCycleDetails = () => {
         </CardContent>
       </Card>
 
-      {/* Create Objective Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -317,7 +313,6 @@ const AdminOKRCycleDetails = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Cycle Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -335,7 +330,6 @@ const AdminOKRCycleDetails = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Cycle Dialog */}
       {cycle && (
         <DeleteCycleDialog
           cycle={cycle}
