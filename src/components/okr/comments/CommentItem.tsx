@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { formatDistanceToNow } from 'date-fns';
+import ReactMarkdown from 'react-markdown';
 
 interface CommentItemProps {
   comment: Comment;
@@ -63,7 +64,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   return (
-    <Card className="mb-2 shadow-sm border-muted">
+    <Card className="mb-2 shadow-sm border-muted hover:border-muted-foreground/20 transition-all">
       <CardContent className="pt-4">
         <div className="flex items-start gap-3">
           <Avatar className="h-8 w-8">
@@ -82,7 +83,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 )}
               </div>
               {isAuthor && !isEditing && (
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditing(true)}>
                     <Edit className="h-4 w-4" />
                     <span className="sr-only">Edit</span>
@@ -123,6 +124,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                   onChange={(e) => setEditedContent(e.target.value)}
                   rows={3}
                   className="resize-none"
+                  autoFocus
+                  placeholder="Use markdown for formatting. *italic* **bold** `code` etc."
                 />
                 <div className="flex justify-end space-x-2">
                   <Button 
@@ -135,13 +138,16 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                   <Button 
                     size="sm" 
                     onClick={handleEdit}
+                    disabled={editedContent.trim() === ''}
                   >
                     <Check className="h-4 w-4 mr-1" /> Save
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="text-sm mt-1 whitespace-pre-wrap">{comment.content}</div>
+              <div className="text-sm mt-1 prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-headings:mb-1">
+                <ReactMarkdown>{comment.content}</ReactMarkdown>
+              </div>
             )}
           </div>
         </div>
