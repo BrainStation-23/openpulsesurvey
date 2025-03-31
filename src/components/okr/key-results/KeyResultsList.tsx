@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { KeyResult } from '@/types/okr';
 import { Button } from '@/components/ui/button';
@@ -35,24 +36,42 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
   // Otherwise check for admin rights, key result creation permission, and objective edit permission
   const [canEditKeyResults, setCanEditKeyResults] = useState<boolean | undefined>(propCanEdit);
   
-  // Check objective edit permission once when component mounts
+  // Check permission once when component mounts
   React.useEffect(() => {
     if (propCanEdit !== undefined) return; // Skip if prop is provided
     
     const checkEditPermission = async () => {
+      // Log permissions for debugging
+      console.log('Checking key result permissions:', {
+        isAdmin,
+        canCreateKeyResults,
+        objectiveId
+      });
+      
+      // Admin always has permission
       if (isAdmin) {
+        console.log('User is admin, allowing key result editing');
         setCanEditKeyResults(true);
         return;
       }
       
-      if (!canCreateKeyResults) {
-        setCanEditKeyResults(false);
+      // If user has canCreateKeyResults permission, allow them to create key results
+      if (canCreateKeyResults) {
+        console.log('User has key result creation permission, allowing editing');
+        setCanEditKeyResults(true);
         return;
       }
       
-      // Check if user has edit permission on this specific objective
-      const hasEditPermission = await checkAccess('edit');
-      setCanEditKeyResults(hasEditPermission);
+      // Fall back to checking objective-specific permission
+      try {
+        // Check if user has edit permission on this specific objective
+        const hasEditPermission = await checkAccess('edit');
+        console.log('User objective-specific edit permission:', hasEditPermission);
+        setCanEditKeyResults(hasEditPermission);
+      } catch (error) {
+        console.error('Error checking objective permissions:', error);
+        setCanEditKeyResults(false);
+      }
     };
     
     checkEditPermission();
