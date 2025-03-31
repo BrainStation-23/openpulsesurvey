@@ -41,8 +41,9 @@ const mapDbObjectiveToObjective = (dbObj: ObjectiveDB): Objective => {
     approvalStatus: dbObj.approval_status as ApprovalStatus,
     createdAt: new Date(dbObj.created_at),
     updatedAt: new Date(dbObj.updated_at),
-    approved_by: dbObj.approved_by, // Using snake_case to match Objective type definition
-    approved_at: dbObj.approved_at ? new Date(dbObj.approved_at) : undefined
+    // The Objective interface is expecting these properties with camelCase
+    approvedBy: dbObj.approved_by,
+    approvedAt: dbObj.approved_at ? new Date(dbObj.approved_at) : undefined
   };
 };
 
