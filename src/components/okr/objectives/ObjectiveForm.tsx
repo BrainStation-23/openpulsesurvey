@@ -47,6 +47,7 @@ interface ObjectiveFormProps {
   objective?: Objective;
   initialCycleId?: string;
   onCancel?: () => void;
+  hideParentObjective?: boolean;
 }
 
 export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
@@ -54,7 +55,8 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
   isSubmitting,
   objective,
   initialCycleId,
-  onCancel
+  onCancel,
+  hideParentObjective = false
 }) => {
   const { userId, isAdmin } = useCurrentUser();
   const [parentObjectiveOptions, setParentObjectiveOptions] = useState<{ id: string; title: string }[]>([]);
@@ -114,7 +116,7 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
   useEffect(() => {
     const cycleId = form.watch('cycleId');
     
-    if (cycleId) {
+    if (cycleId && !hideParentObjective) {
       const fetchParentObjectives = async () => {
         const { data, error } = await supabase
           .from('objectives')
@@ -134,7 +136,7 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
       
       fetchParentObjectives();
     }
-  }, [form.watch('cycleId'), objective]);
+  }, [form.watch('cycleId'), objective, hideParentObjective]);
 
   // Handle form submission
   const handleSubmit = (values: FormValues) => {
@@ -222,34 +224,37 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
             )}
           />
           
-          <FormField
-            control={form.control}
-            name="parentObjectiveId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Parent Objective (Optional)</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value || undefined}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select parent objective" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem key="none" value="none">None</SelectItem>
-                    {parentObjectiveOptions.map(obj => (
-                      <SelectItem key={obj.id} value={obj.id}>
-                        {obj.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Only show parent objective field if not hidden */}
+          {!hideParentObjective && (
+            <FormField
+              control={form.control}
+              name="parentObjectiveId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Parent Objective (Optional)</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value || undefined}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select parent objective" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem key="none" value="none">None</SelectItem>
+                      {parentObjectiveOptions.map(obj => (
+                        <SelectItem key={obj.id} value={obj.id}>
+                          {obj.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           
           <FormField
             control={form.control}
@@ -280,27 +285,25 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
             )}
           />
 
-          {/* Add Owner field - only visible to admins or when editing */}
-          {(isAdmin || objective) && (
-            <FormField
-              control={form.control}
-              name="ownerId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Owner</FormLabel>
-                  <FormControl>
-                    <UserSelector
-                      selectedUsers={selectedOwner ? [selectedOwner] : []}
-                      onChange={handleOwnerChange}
-                      placeholder="Search for objective owner..."
-                      singleSelect={true}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+          {/* Owner field is always included but hidden for regular users creating their own objectives */}
+          <FormField
+            control={form.control}
+            name="ownerId"
+            render={({ field }) => (
+              <FormItem className={!isAdmin && !objective ? "hidden" : ""}>
+                <FormLabel>Owner</FormLabel>
+                <FormControl>
+                  <UserSelector
+                    selectedUsers={selectedOwner ? [selectedOwner] : []}
+                    onChange={handleOwnerChange}
+                    placeholder="Search for objective owner..."
+                    singleSelect={true}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
         
         <FormField

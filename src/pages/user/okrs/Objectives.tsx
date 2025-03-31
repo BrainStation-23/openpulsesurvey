@@ -162,6 +162,7 @@ const UserObjectives = () => {
               onSubmit={handleCreateObjective} 
               isSubmitting={createObjective.isPending} 
               cycleId={defaultCycleId}
+              hideParentObjective={true}
             />
           </DialogContent>
         </Dialog>

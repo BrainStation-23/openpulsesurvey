@@ -8,13 +8,15 @@ interface CreateObjectiveFormProps {
   isSubmitting: boolean;
   cycleId?: string;
   onCancel?: () => void;
+  hideParentObjective?: boolean;
 }
 
 export const CreateObjectiveForm = ({ 
   onSubmit, 
   isSubmitting, 
   cycleId,
-  onCancel
+  onCancel,
+  hideParentObjective = false
 }: CreateObjectiveFormProps) => {
   return (
     <ObjectiveForm
@@ -22,6 +24,7 @@ export const CreateObjectiveForm = ({
       isSubmitting={isSubmitting}
       initialCycleId={cycleId}
       onCancel={onCancel}
+      hideParentObjective={hideParentObjective}
     />
   );
 };
