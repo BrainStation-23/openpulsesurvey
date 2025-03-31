@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, Target, List, AlertTriangle, CalendarClock } from 'lucide-react';
@@ -283,6 +284,97 @@ const UserObjectiveDetails = () => {
               <TabsTrigger value="permissions">Permissions</TabsTrigger>
             </TabsList>
           </div>
+          
+          <TabsContent value="details" className="mt-0">
+            <CardContent className="pt-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center">
+                    <Target className="h-5 w-5 mr-2" />
+                    Objective Statistics
+                  </h3>
+                  <div className="bg-muted/50 p-4 rounded-md space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Status:</span>
+                      <ObjectiveStatusBadge status={objective.status} />
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Progress:</span>
+                      <span className="font-medium">{objective.progress}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Key Results:</span>
+                      <span className="font-medium">{keyResults.length} total ({completedKeyResults} completed)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Visibility:</span>
+                      <Badge variant="outline" className="capitalize">
+                        {objective.visibility}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center">
+                    <List className="h-5 w-5 mr-2" />
+                    Alignment Information
+                  </h3>
+                  <div className="bg-muted/50 p-4 rounded-md space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Parent Objective:</span>
+                      <span className="font-medium">
+                        {objective.parentObjectiveId ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Child Objectives:</span>
+                      <span className="font-medium">
+                        {childObjectivesCount > 0 ? `${completedChildObjectives}/${childObjectivesCount} completed` : 'None'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Total Weight:</span>
+                      <div className="flex items-center">
+                        <span className={`font-medium ${isOverweighted ? 'text-destructive' : isUnderweighted ? 'text-amber-500' : 'text-green-600'}`}>
+                          {totalWeight}
+                        </span>
+                        {isOverweighted && (
+                          <span className="ml-2 text-destructive" title="Total weight exceeds 1.0">
+                            <AlertTriangle className="h-4 w-4" />
+                          </span>
+                        )}
+                        {isUnderweighted && (
+                          <span className="ml-2 text-amber-500" title="Total weight is less than 1.0">
+                            <AlertTriangle className="h-4 w-4" />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold flex items-center mb-4">
+                  <CalendarClock className="h-5 w-5 mr-2" />
+                  Timeline
+                </h3>
+                <div className="bg-muted/50 p-4 rounded-md">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-muted-foreground mb-1">Created At</div>
+                      <div className="font-medium">{new Date(objective.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground mb-1">Last Updated</div>
+                      <div className="font-medium">{new Date(objective.updatedAt).toLocaleString()}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </TabsContent>
           
           <TabsContent value="key-results" className="mt-0">
             <CardContent className="pt-6">
