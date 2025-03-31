@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { Edit, Trash2, Calendar, Info } from 'lucide-react';
+import { MoreHorizontal, Calendar, User } from 'lucide-react';
 import { KeyResult } from '@/types/okr';
 import { CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useOwnerInfo } from '../hooks/useOwnerInfo';
 import { DueDateDisplay } from './DueDateDisplay';
 
@@ -52,22 +52,30 @@ export const KeyResultHeader: React.FC<KeyResultHeaderProps> = ({
   };
 
   return (
-    <CardHeader className="pb-2">
+    <CardHeader className="pb-3">
       <div className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-start justify-between">
           <h3 className="text-lg font-medium leading-tight">{keyResult.title}</h3>
           
           {canEdit && (
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" className="h-8" onClick={onEditClick}>
-                <Edit className="h-4 w-4 mr-1" />
-                Edit
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={onDeleteClick}>
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={onEditClick}>
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={onDeleteClick}
+                  className="text-destructive focus:text-destructive"
+                >
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
         
@@ -93,28 +101,17 @@ export const KeyResultHeader: React.FC<KeyResultHeaderProps> = ({
               showIcon={true}
             />
           )}
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="outline" className="bg-gray-50 text-gray-700 cursor-help">
-                  <Info className="h-3 w-3 mr-1" />
-                  Weight: {(keyResult.weight * 100).toFixed(0)}%
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>This key result contributes {(keyResult.weight * 100).toFixed(0)}% to the objective's overall progress</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </div>
         
-        <div className="flex items-center text-xs text-muted-foreground">
-          <span>Owned by {ownerName}</span>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center">
+            <User className="h-3 w-3 mr-1" />
+            {ownerName}
+          </span>
           {keyResult.dueDate && (
-            <span className="flex items-center ml-4">
+            <span className="flex items-center">
               <Calendar className="h-3 w-3 mr-1" />
-              Due {new Date(keyResult.dueDate).toLocaleDateString()}
+              {new Date(keyResult.dueDate).toLocaleDateString()}
             </span>
           )}
         </div>

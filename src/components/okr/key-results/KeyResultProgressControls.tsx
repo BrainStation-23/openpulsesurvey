@@ -42,29 +42,17 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
 
   const handleUpdate = () => {
     if (progressValue !== keyResult.currentValue && !isDisabled) {
-      console.log('Updating key result progress:', {
-        id: keyResult.id,
-        oldValue: keyResult.currentValue,
-        newValue: progressValue
-      });
       onProgressUpdate(progressValue);
     }
   };
 
   if (keyResult.measurementType === 'boolean') {
     return (
-      <div className="flex items-center justify-between mb-4 mt-2">
-        <span className="text-sm font-medium">Completed</span>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm">Completed</span>
         <Switch 
           checked={keyResult.booleanValue} 
-          onCheckedChange={(checked) => {
-            console.log('Toggling boolean key result:', {
-              id: keyResult.id,
-              oldValue: keyResult.booleanValue,
-              newValue: checked
-            });
-            onBooleanChange(checked);
-          }} 
+          onCheckedChange={onBooleanChange} 
           disabled={isPending || isDisabled} 
         />
       </div>
@@ -81,23 +69,25 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
   }
 
   return (
-    <div className="space-y-4 mb-4">
+    <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium">Current Value:</span>
+        <span className="text-sm">Current Value:</span>
         <div className="flex items-center gap-2">
-          <Input 
-            type="number" 
-            value={progressValue} 
-            onChange={handleInputChange} 
-            min={keyResult.startValue} 
-            max={keyResult.targetValue} 
-            step={keyResult.measurementType === 'percentage' ? 5 : 1} 
-            disabled={isPending || isDisabled} 
-            className="w-full text-right" 
-          />
-          <span className="text-sm w-4">{unit}</span>
+          <div className="flex items-center">
+            <Input 
+              type="number" 
+              value={progressValue} 
+              onChange={handleInputChange} 
+              min={keyResult.startValue} 
+              max={keyResult.targetValue} 
+              step={keyResult.measurementType === 'percentage' ? 5 : 1} 
+              disabled={isPending || isDisabled} 
+              className="w-20 text-right" 
+            />
+            <span className="text-sm ml-1 w-4">{unit}</span>
+          </div>
           <Button 
-            variant="outline" 
+            variant="secondary" 
             size="sm" 
             onClick={handleUpdate} 
             disabled={isPending || isDisabled || progressValue === keyResult.currentValue}
@@ -106,11 +96,8 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
           </Button>
         </div>
       </div>
+      
       <div className="space-y-1">
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{unit}{keyResult.startValue}</span>
-          <span>{unit}{keyResult.targetValue}</span>
-        </div>
         <Slider 
           value={[progressValue]} 
           min={keyResult.startValue} 
@@ -118,8 +105,11 @@ export const KeyResultProgressControls: React.FC<KeyResultProgressControlsProps>
           step={keyResult.measurementType === 'percentage' ? 5 : 1} 
           onValueChange={handleSliderChange} 
           disabled={isPending || isDisabled} 
-          className="mt-2" 
         />
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>{unit}{keyResult.startValue}</span>
+          <span>{unit}{keyResult.targetValue}</span>
+        </div>
       </div>
     </div>
   );
