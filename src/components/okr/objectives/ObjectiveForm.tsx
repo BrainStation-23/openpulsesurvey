@@ -3,30 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useQuery } from '@tanstack/react-query';
+import { Form } from "@/components/ui/form";
 import { supabase } from '@/integrations/supabase/client';
-import { CreateObjectiveInput, Objective, ObjectiveVisibility, UpdateObjectiveInput } from '@/types/okr';
-import { UserSelector } from '@/components/okr/permissions/UserSelector';
+import { CreateObjectiveInput, Objective, UpdateObjectiveInput } from '@/types/okr';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { ObjectiveFormFields } from './form/ObjectiveFormFields';
+import { ObjectiveVisibilityField } from './form/ObjectiveVisibilityField';
+import { ObjectiveFormActions } from './form/ObjectiveFormActions';
 
 // Define the form schema
 const formSchema = z.object({
@@ -58,37 +41,9 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
   onCancel,
   hideParentObjective = false
 }) => {
-  const { userId, isAdmin } = useCurrentUser();
+  const { userId } = useCurrentUser();
   const [parentObjectiveOptions, setParentObjectiveOptions] = useState<{ id: string; title: string }[]>([]);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
-
-  // Get OKR cycles
-  const { data: cycles } = useQuery({
-    queryKey: ['okrCycles'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('okr_cycles')
-        .select('id, name')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
-    }
-  });
-
-  // Get SBU options
-  const { data: sbus } = useQuery({
-    queryKey: ['sbus'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sbus')
-        .select('id, name')
-        .order('name');
-      
-      if (error) throw error;
-      return data || [];
-    }
-  });
 
   // Initialize form with objective data if editing, otherwise use defaults
   const form = useForm<FormValues>({
@@ -147,226 +102,24 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
     });
   };
 
-  // Handle owner change - now accepts a single userId
-  const handleOwnerChange = (userId: string | null) => {
-    if (userId) {
-      form.setValue('ownerId', userId);
-    }
-    setSelectedOwner(userId);
-  };
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        {/* Use grid layout for better horizontal space usage */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-6 md:col-span-2">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter objective title" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Describe the objective" 
-                      className="min-h-[100px]"
-                      {...field} 
-                      value={field.value || ''}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <FormField
-            control={form.control}
-            name="cycleId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>OKR Cycle</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value} 
-                  disabled={!!objective}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select OKR cycle" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {cycles?.map(cycle => (
-                      <SelectItem key={cycle.id} value={cycle.id}>
-                        {cycle.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          {/* Only show parent objective field if not hidden */}
-          {!hideParentObjective && (
-            <FormField
-              control={form.control}
-              name="parentObjectiveId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Parent Objective (Optional)</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value || undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select parent objective" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem key="none" value="none">None</SelectItem>
-                      {parentObjectiveOptions.map(obj => (
-                        <SelectItem key={obj.id} value={obj.id}>
-                          {obj.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-          
-          <FormField
-            control={form.control}
-            name="sbuId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Business Unit (Optional)</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value || undefined}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select business unit" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem key="none" value="none">None</SelectItem>
-                    {sbus?.map(sbu => (
-                      <SelectItem key={sbu.id} value={sbu.id}>
-                        {sbu.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Owner field is now always visible */}
-          <FormField
-            control={form.control}
-            name="ownerId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Owner</FormLabel>
-                <FormControl>
-                  <UserSelector
-                    selectedUsers={selectedOwner ? [selectedOwner] : []}
-                    onChange={handleOwnerChange}
-                    placeholder="Search for objective owner..."
-                    singleSelect={true}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        
-        <FormField
-          control={form.control}
-          name="visibility"
-          render={({ field }) => (
-            <FormItem className="space-y-3">
-              <FormLabel>Visibility</FormLabel>
-              <FormControl>
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-2"
-                >
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="private" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Private - Only visible to you and those you specifically share with
-                    </FormLabel>
-                  </FormItem>
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="team" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Team - Visible to your team members
-                    </FormLabel>
-                  </FormItem>
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="department" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Department - Visible to your entire department
-                    </FormLabel>
-                  </FormItem>
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="organization" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Organization - Visible to the entire organization
-                    </FormLabel>
-                  </FormItem>
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+        <ObjectiveFormFields
+          form={form}
+          parentObjectiveOptions={parentObjectiveOptions}
+          selectedOwner={selectedOwner}
+          setSelectedOwner={setSelectedOwner}
+          hideParentObjective={hideParentObjective}
         />
         
-        <div className="flex justify-end space-x-2 pt-4">
-          {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-              Cancel
-            </Button>
-          )}
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : (objective ? 'Update Objective' : 'Create Objective')}
-          </Button>
-        </div>
+        <ObjectiveVisibilityField form={form} />
+        
+        <ObjectiveFormActions
+          isSubmitting={isSubmitting}
+          onCancel={onCancel}
+          isEditing={!!objective}
+        />
       </form>
     </Form>
   );
