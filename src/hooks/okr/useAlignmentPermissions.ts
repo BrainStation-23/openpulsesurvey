@@ -10,11 +10,29 @@ export const useAlignmentPermissions = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['alignment-permissions'],
     queryFn: async () => {
+      // Get current user
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      
+      if (!userId) {
+        // If no user is logged in, return no permissions
+        return {
+          organization: false,
+          department: false,
+          team: false,
+          private: false,
+          hasAnyPermission: false
+        };
+      }
+      
       // Check permissions for different visibility levels
       const checkPermission = async (visibility: ObjectiveVisibility) => {
         const { data, error } = await supabase.rpc(
           'can_create_alignment_by_visibility',
-          { p_visibility: visibility }
+          { 
+            p_user_id: userId, 
+            p_visibility: visibility 
+          }
         );
         
         if (error) {
