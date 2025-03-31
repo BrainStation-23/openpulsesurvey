@@ -2833,6 +2833,25 @@ export type Database = {
         }
         Returns: number
       }
+      can_create_key_result: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      can_create_objective: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      can_create_objective_by_visibility: {
+        Args: {
+          p_user_id: string
+          p_visibility: string
+        }
+        Returns: boolean
+      }
       check_and_award_achievements: {
         Args: {
           p_user_id: string

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +20,7 @@ import { PaginatedObjectivesGrid } from '@/components/okr/objectives/PaginatedOb
 import { useFilteredObjectives } from '@/hooks/okr/useFilteredObjectives';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from "@/components/ui/input";
+import { useObjectivePermissions } from '@/hooks/okr/useObjectivePermissions';
 
 const UserObjectives = () => {
   const { toast } = useToast();
@@ -28,6 +28,9 @@ const UserObjectives = () => {
   const { sbus, isLoading: sbusLoading } = useSBUs();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Check if user can create objectives
+  const { canCreateObjective } = useObjectivePermissions();
   
   // Get the most recent active cycle, or the first cycle if none are active
   const defaultCycleId = React.useMemo(() => {
@@ -81,13 +84,20 @@ const UserObjectives = () => {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Objective
-              </Button>
+              <span>
+                <Button 
+                  onClick={() => setCreateDialogOpen(true)}
+                  disabled={!canCreateObjective}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Objective
+                </Button>
+              </span>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Create a new objective in the current OKR cycle</p>
+              {canCreateObjective 
+                ? "Create a new objective in the current OKR cycle"
+                : "You don't have permission to create objectives"}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
