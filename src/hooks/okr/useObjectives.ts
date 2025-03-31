@@ -1,208 +1,163 @@
 
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Objective, CreateObjectiveInput, UpdateObjectiveInput } from '@/types/okr';
-import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useOkrPermissions } from '@/hooks/okr/useOkrPermissions';
 
-export const useObjectives = (cycleId?: string) => {
-  const { toast } = useToast();
+export function useObjectives() {
   const queryClient = useQueryClient();
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { userId, isAdmin } = useCurrentUser();
+  const { canCreateObjectives, canCreateOrgObjectives, canCreateDeptObjectives, canCreateTeamObjectives } = useOkrPermissions();
   const [objectiveChildCounts, setObjectiveChildCounts] = useState<Record<string, number>>({});
 
-  // Fetch objectives for a specific cycle
-  const { 
-    data: objectives, 
-    isLoading, 
-    error,
-    refetch 
-  } = useQuery({
-    queryKey: ['objectives', cycleId],
+  // Query to fetch all objectives
+  const { data: objectives, isLoading, error, refetch } = useQuery({
+    queryKey: ['objectives'],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('objectives')
-        .select('*');
-      
-      if (cycleId) {
-        query = query.eq('cycle_id', cycleId);
-      }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching objectives:', error);
-        throw error;
-      }
-      
-      return data.map(objective => ({
-        id: objective.id,
-        title: objective.title,
-        description: objective.description,
-        cycleId: objective.cycle_id,
-        ownerId: objective.owner_id,
-        status: objective.status,
-        progress: objective.progress,
-        visibility: objective.visibility,
-        parentObjectiveId: objective.parent_objective_id,
-        sbuId: objective.sbu_id,
-        approvalStatus: objective.approval_status,
-        createdAt: new Date(objective.created_at),
-        updatedAt: new Date(objective.updated_at)
-      })) as Objective[];
-    },
-    enabled: true
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Objective[];
+    }
   });
 
-  // Get child counts for objectives
+  // Calculate child counts for objectives
   useEffect(() => {
-    if (objectives && objectives.length > 0) {
+    if (objectives) {
       const counts: Record<string, number> = {};
-      
       objectives.forEach(obj => {
-        // Count how many objectives have this objective as parent
         const childCount = objectives.filter(o => o.parentObjectiveId === obj.id).length;
         counts[obj.id] = childCount;
       });
-      
       setObjectiveChildCounts(counts);
     }
   }, [objectives]);
 
   // Create a new objective
   const createObjective = useMutation({
-    mutationFn: async (objectiveData: CreateObjectiveInput) => {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user) {
-        throw new Error('User not authenticated');
+    mutationFn: async (objective: CreateObjectiveInput) => {
+      // Validate that the user has permission to create an objective with the selected visibility
+      if (!isAdmin) {
+        const hasPermission = 
+          (objective.visibility === 'team' && (canCreateTeamObjectives || canCreateObjectives)) ||
+          (objective.visibility === 'department' && (canCreateDeptObjectives || canCreateObjectives)) ||
+          (objective.visibility === 'organization' && (canCreateOrgObjectives || canCreateObjectives)) || 
+          (objective.visibility === 'private'); // Everyone can create private objectives
+          
+        if (!hasPermission) {
+          throw new Error(`You don't have permission to create ${objective.visibility} objectives`);
+        }
       }
+      
+      console.log('Creating objective with permissions check:', {
+        visibility: objective.visibility,
+        canCreateObjectives,
+        canCreateTeamObjectives,
+        canCreateDeptObjectives,
+        canCreateOrgObjectives,
+        isAdmin
+      });
+      
+      // Prepare the data for insertion
+      const objectiveData = {
+        title: objective.title,
+        description: objective.description || '',
+        cycle_id: objective.cycleId,
+        owner_id: objective.ownerId || userId, // Default to current user if not specified
+        status: 'draft', // Default status
+        progress: 0, // Default progress
+        visibility: objective.visibility,
+        parent_objective_id: objective.parentObjectiveId === 'none' ? null : objective.parentObjectiveId,
+        sbu_id: objective.sbuId === 'none' ? null : objective.sbuId,
+        approval_status: 'pending' // Default approval status
+      };
 
       const { data, error } = await supabase
         .from('objectives')
-        .insert({
-          title: objectiveData.title,
-          description: objectiveData.description,
-          cycle_id: objectiveData.cycleId,
-          owner_id: objectiveData.ownerId || session.session.user.id,
-          visibility: objectiveData.visibility,
-          parent_objective_id: objectiveData.parentObjectiveId,
-          sbu_id: objectiveData.sbuId,
-          status: 'draft',
-          progress: 0,
-          approval_status: 'pending'
-        })
+        .insert([objectiveData])
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating objective:', error);
-        throw error;
-      }
-
-      return data;
+      if (error) throw error;
+      return data as Objective;
     },
     onSuccess: () => {
+      // Invalidate and refetch objectives query
       queryClient.invalidateQueries({ queryKey: ['objectives'] });
-      toast({
-        title: 'Success',
-        description: 'Objective created successfully',
-      });
-    },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Error creating objective',
-        description: error.message,
-      });
     }
   });
 
   // Update an existing objective
   const updateObjective = useMutation({
-    mutationFn: async ({ id, ...objectiveData }: UpdateObjectiveInput & { id: string }) => {
-      const updateData: any = {};
+    mutationFn: async (objective: UpdateObjectiveInput & { id: string }) => {
+      const { id, ...updates } = objective;
       
-      if (objectiveData.title) updateData.title = objectiveData.title;
-      if (objectiveData.description !== undefined) updateData.description = objectiveData.description;
-      if (objectiveData.status) updateData.status = objectiveData.status;
-      if (objectiveData.progress !== undefined) updateData.progress = objectiveData.progress;
-      if (objectiveData.visibility) updateData.visibility = objectiveData.visibility;
-      if (objectiveData.approvalStatus) updateData.approval_status = objectiveData.approvalStatus;
-      
+      // Transform field names to match database column names
+      const objectiveData: Record<string, any> = {};
+      if (updates.title !== undefined) objectiveData.title = updates.title;
+      if (updates.description !== undefined) objectiveData.description = updates.description;
+      if (updates.cycleId !== undefined) objectiveData.cycle_id = updates.cycleId;
+      if (updates.ownerId !== undefined) objectiveData.owner_id = updates.ownerId;
+      if (updates.status !== undefined) objectiveData.status = updates.status;
+      if (updates.progress !== undefined) objectiveData.progress = updates.progress;
+      if (updates.visibility !== undefined) objectiveData.visibility = updates.visibility;
+      if (updates.parentObjectiveId !== undefined) {
+        objectiveData.parent_objective_id = updates.parentObjectiveId === 'none' 
+          ? null 
+          : updates.parentObjectiveId;
+      }
+      if (updates.sbuId !== undefined) {
+        objectiveData.sbu_id = updates.sbuId === 'none' ? null : updates.sbuId;
+      }
+      if (updates.approvalStatus !== undefined) objectiveData.approval_status = updates.approvalStatus;
+
       const { data, error } = await supabase
         .from('objectives')
-        .update(updateData)
+        .update(objectiveData)
         .eq('id', id)
         .select()
         .single();
 
-      if (error) {
-        console.error('Error updating objective:', error);
-        throw error;
-      }
-
-      return data;
+      if (error) throw error;
+      return data as Objective;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Invalidate and refetch objectives query
       queryClient.invalidateQueries({ queryKey: ['objectives'] });
-      toast({
-        title: 'Success',
-        description: 'Objective updated successfully',
-      });
-    },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Error updating objective',
-        description: error.message,
-      });
+      queryClient.invalidateQueries({ queryKey: ['objective', variables.id] });
     }
   });
 
   // Delete an objective
   const deleteObjective = useMutation({
     mutationFn: async (id: string) => {
-      setIsDeleting(true);
-      
       const { error } = await supabase
         .from('objectives')
         .delete()
         .eq('id', id);
 
-      if (error) {
-        console.error('Error deleting objective:', error);
-        throw error;
-      }
-      
+      if (error) throw error;
       return id;
     },
     onSuccess: () => {
+      // Invalidate and refetch objectives query
       queryClient.invalidateQueries({ queryKey: ['objectives'] });
-      toast({
-        title: 'Success',
-        description: 'Objective deleted successfully',
-      });
-      setIsDeleting(false);
-    },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Error deleting objective',
-        description: error.message,
-      });
-      setIsDeleting(false);
     }
   });
 
   return {
     objectives,
+    objectiveChildCounts,
     isLoading,
     error,
     refetch,
     createObjective,
     updateObjective,
-    deleteObjective,
-    isDeleting,
-    objectiveChildCounts
+    deleteObjective
   };
-};
+}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -208,6 +209,27 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
 
   // Get visibility options based on permissions
   const visibilityOptions = getVisibilityOptions();
+  
+  // Check if the form's visibility selection is valid based on user permissions
+  const isVisibilityValid = (): boolean => {
+    if (isAdmin) return true;
+    if (objective) return true; // Always allow editing existing objectives
+    
+    const selectedVisibility = form.watch('visibility');
+    
+    switch (selectedVisibility) {
+      case 'team':
+        return canCreateTeamObjectives || canCreateObjectives;
+      case 'department':
+        return canCreateDeptObjectives || canCreateObjectives;
+      case 'organization':
+        return canCreateOrgObjectives || canCreateObjectives;
+      case 'private':
+        return true; // Everyone can create private objectives
+      default:
+        return false;
+    }
+  };
 
   return (
     <Form {...form}>
@@ -395,7 +417,10 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
               Cancel
             </Button>
           )}
-          <Button type="submit" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            disabled={isSubmitting || !isVisibilityValid()}
+          >
             {isSubmitting ? 'Saving...' : (objective ? 'Update Objective' : 'Create Objective')}
           </Button>
         </div>
