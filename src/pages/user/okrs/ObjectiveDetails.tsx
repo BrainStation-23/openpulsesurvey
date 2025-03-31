@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User } from 'lucide-react';
@@ -48,6 +47,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PermissionsList } from '@/components/okr/permissions/PermissionsList';
 import { useObjectiveStatusUpdates } from '@/hooks/okr/useObjectiveStatusUpdates';
 import { ObjectiveDetailsTab } from '@/components/okr/objectives/ObjectiveDetailsTab';
+import { useObjectiveAccessPermission } from '@/hooks/okr/useObjectiveAccessPermission';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -66,7 +66,7 @@ const UserObjectiveDetails = () => {
     deleteObjective,
     isDeleting
   } = useObjective(id);
-  
+
   const { 
     objective: objectiveWithRelations 
   } = useObjectiveWithRelations(id);
@@ -91,7 +91,12 @@ const UserObjectiveDetails = () => {
   });
   
   const isOwner = objective && userId === objective.ownerId;
-  const canEdit = isOwner || isAdmin;
+  const { canEdit: hasExplicitEditPermission } = useObjectiveAccessPermission({
+    userId,
+    objectiveId: id
+  });
+  
+  const canEdit = isOwner || isAdmin || hasExplicitEditPermission;
   
   const { 
     canChangeStatus, 
@@ -180,6 +185,13 @@ const UserObjectiveDetails = () => {
       </div>
     );
   }
+  
+  console.log('Objective permissions:', {
+    isOwner,
+    isAdmin,
+    hasExplicitEditPermission,
+    canEdit
+  });
   
   return (
     <div className="container mx-auto py-6 space-y-6">
