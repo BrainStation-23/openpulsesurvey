@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +20,7 @@ import { PaginatedObjectivesGrid } from '@/components/okr/objectives/PaginatedOb
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from "@/components/ui/input";
 import { useOkrPermissions } from '@/hooks/okr/useOkrPermissions';
+import { useFilteredObjectives } from '@/hooks/okr/useFilteredObjectives';
 
 const UserObjectives = () => {
   const { toast } = useToast();
