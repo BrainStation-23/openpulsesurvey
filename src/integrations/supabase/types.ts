@@ -738,6 +738,7 @@ export type Database = {
           created_at: string
           current_value: number | null
           description: string | null
+          due_date: string | null
           id: string
           kr_type: string
           measurement_type: string | null
@@ -757,6 +758,7 @@ export type Database = {
           created_at?: string
           current_value?: number | null
           description?: string | null
+          due_date?: string | null
           id?: string
           kr_type: string
           measurement_type?: string | null
@@ -776,6 +778,7 @@ export type Database = {
           created_at?: string
           current_value?: number | null
           description?: string | null
+          due_date?: string | null
           id?: string
           kr_type?: string
           measurement_type?: string | null
@@ -1085,7 +1088,6 @@ export type Database = {
           progress: number | null
           sbu_id: string | null
           status: Database["public"]["Enums"]["objective_status"]
-          template_id: string | null
           title: string
           updated_at: string
           visibility: Database["public"]["Enums"]["okr_visibility"]
@@ -1105,7 +1107,6 @@ export type Database = {
           progress?: number | null
           sbu_id?: string | null
           status?: Database["public"]["Enums"]["objective_status"]
-          template_id?: string | null
           title: string
           updated_at?: string
           visibility?: Database["public"]["Enums"]["okr_visibility"]
@@ -1125,7 +1126,6 @@ export type Database = {
           progress?: number | null
           sbu_id?: string | null
           status?: Database["public"]["Enums"]["objective_status"]
-          template_id?: string | null
           title?: string
           updated_at?: string
           visibility?: Database["public"]["Enums"]["okr_visibility"]
@@ -1192,13 +1192,6 @@ export type Database = {
             columns: ["sbu_id"]
             isOneToOne: false
             referencedRelation: "sbus"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "objectives_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "okr_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -1716,57 +1709,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      okr_templates: {
-        Row: {
-          category: string | null
-          created_at: string
-          created_by: string
-          description: string | null
-          id: string
-          is_public: boolean
-          name: string
-          template_data: Json
-          updated_at: string
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string
-          created_by: string
-          description?: string | null
-          id?: string
-          is_public?: boolean
-          name: string
-          template_data?: Json
-          updated_at?: string
-        }
-        Update: {
-          category?: string | null
-          created_at?: string
-          created_by?: string
-          description?: string | null
-          id?: string
-          is_public?: boolean
-          name?: string
-          template_data?: Json
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "okr_templates_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "okr_templates_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "silent_employees"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       profiles: {
         Row: {
@@ -2855,7 +2797,7 @@ export type Database = {
       }
       calculate_cascaded_objective_progress: {
         Args: {
-          p_objective_id: string
+          objective_id: string
         }
         Returns: undefined
       }
@@ -2890,6 +2832,46 @@ export type Database = {
           p_boolean_value: boolean
         }
         Returns: number
+      }
+      can_create_alignment: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      can_create_alignment_by_visibility: {
+        Args: {
+          p_user_id: string
+          p_visibility: string
+        }
+        Returns: boolean
+      }
+      can_create_key_result: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      can_create_objective: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      can_create_objective_alignment: {
+        Args: {
+          p_user_id: string
+          p_source_objective_id: string
+          p_aligned_objective_id: string
+        }
+        Returns: boolean
+      }
+      can_create_objective_by_visibility: {
+        Args: {
+          p_user_id: string
+          p_visibility: string
+        }
+        Returns: boolean
       }
       check_and_award_achievements: {
         Args: {
@@ -3140,6 +3122,22 @@ export type Database = {
           survey_id: string
           created_by: string
         }[]
+      }
+      search_objectives: {
+        Args: {
+          p_search_text?: string
+          p_status_filters?: string[]
+          p_visibility_filters?: string[]
+          p_cycle_id?: string
+          p_sbu_id?: string
+          p_is_admin?: boolean
+          p_user_id?: string
+          p_page_number?: number
+          p_page_size?: number
+          p_sort_column?: string
+          p_sort_direction?: string
+        }
+        Returns: Json
       }
       search_users:
         | {

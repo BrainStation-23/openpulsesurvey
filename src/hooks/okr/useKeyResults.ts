@@ -21,6 +21,7 @@ const convertKeyResult = (data: any): KeyResult => {
     weight: data.weight,
     status: data.status,
     progress: data.progress,
+    dueDate: data.due_date ? new Date(data.due_date) : undefined,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at)
   };

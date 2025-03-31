@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -84,6 +83,7 @@ import AdminOKRCycleDetails from "./pages/admin/okrs/CycleDetails";
 import AdminAllObjectives from "./pages/admin/okrs/Objectives";
 import AdminObjectiveDetails from "./pages/admin/okrs/ObjectiveDetails";
 import OkrSettingsPage from "./pages/admin/okrs/OkrSettings";
+import OkrHistory from "./pages/admin/okrs/History";
 
 const queryClient = new QueryClient();
 
@@ -164,6 +164,7 @@ const App = () => (
               <Route path="okrs/cycles/:id" element={<AdminOKRCycleDetails />} />
               <Route path="okrs/objectives" element={<AdminAllObjectives />} />
               <Route path="okrs/objectives/:id" element={<AdminObjectiveDetails />} />
+              <Route path="okrs/history" element={<OkrHistory />} />
               <Route path="okrs/settings" element={<OkrSettingsPage />} />
               
               <Route path="config" element={<PlatformConfigLayout />}>

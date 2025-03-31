@@ -1,149 +1,147 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KeyResult } from '@/types/okr';
-import { KeyResultItem } from './KeyResultItem';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { KeyResultForm } from './KeyResultForm';
-import { Card, CardContent } from '@/components/ui/card';
+import { Plus } from 'lucide-react';
+import { KeyResultItem } from './KeyResultItem';
+import { KeyResultInlineForm } from './KeyResultInlineForm';
 import { useKeyResults } from '@/hooks/okr/useKeyResults';
-import { useObjective } from '@/hooks/okr/useObjective';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { supabase } from '@/integrations/supabase/client';
 
 interface KeyResultsListProps {
   objectiveId: string;
+  canEdit?: boolean;
+  isLoading?: boolean;
+  keyResults?: KeyResult[];
 }
 
-export const KeyResultsList: React.FC<KeyResultsListProps> = ({ objectiveId }) => {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const { data: keyResults, isLoading, error, refetch } = useKeyResults(objectiveId);
-  const { objective } = useObjective(objectiveId);
+export const KeyResultsList: React.FC<KeyResultsListProps> = ({
+  objectiveId,
+  canEdit: propCanEdit,
+  isLoading: propIsLoading,
+  keyResults: propKeyResults
+}) => {
   const { userId, isAdmin } = useCurrentUser();
+  const { data: fetchedKeyResults, isLoading: isResultsLoading } = useKeyResults(objectiveId);
+  const [canCreateKeyResults, setCanCreateKeyResults] = useState(false);
   
-  const isOwner = objective && objective.ownerId === userId;
-  const isPublicObjective = objective && (objective.visibility === 'organization' || objective.visibility === 'team');
-  const canAddKeyResult = isAdmin || isOwner || isPublicObjective;
+  const keyResults = propKeyResults || fetchedKeyResults || [];
+  const isLoading = propIsLoading || isResultsLoading;
+  
+  // If canEdit prop is provided, use it for general editing
+  const canEdit = propCanEdit !== undefined ? propCanEdit : (isAdmin || false);
+  
+  // canCreateKeyResults is now separate from canEdit
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isAddingNew, setIsAddingNew] = useState(false);
 
-  // Handle form close with successful submission
-  const handleFormClose = (success: boolean = false) => {
-    setIsAddDialogOpen(false);
-    // If the form was submitted successfully, refetch key results
-    if (success) {
-      refetch();
-    }
+  // Check if the user can create key results using the database function
+  useEffect(() => {
+    const checkKeyResultPermission = async () => {
+      if (!userId) return;
+      
+      console.log('Checking key result permission for user:', userId);
+      
+      const { data, error } = await supabase.rpc('can_create_key_result', {
+        p_user_id: userId
+      });
+      
+      if (error) {
+        console.error('Error checking key result permission:', error);
+        return;
+      }
+      
+      console.log('Permission check result:', data);
+      setCanCreateKeyResults(!!data);
+    };
+    
+    checkKeyResultPermission();
+  }, [userId]);
+  
+  const handleEditClick = (keyResultId: string) => {
+    if (isAddingNew) setIsAddingNew(false);
+    setEditingId(keyResultId);
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Key Results</h3>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setIsAddDialogOpen(true)}
-            disabled
-          >
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Add Key Result
-          </Button>
-        </div>
-        <div className="space-y-4">
-          {[1, 2, 3].map(i => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const handleAddNewClick = () => {
+    if (editingId) setEditingId(null);
+    setIsAddingNew(true);
+  };
 
-  if (error) {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Key Results</h3>
-          {canAddKeyResult && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setIsAddDialogOpen(true)}
-            >
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add Key Result
-            </Button>
-          )}
-        </div>
-        <Card className="border-red-200">
-          <CardContent className="p-6 text-center text-red-600">
-            Error loading key results. Please try again.
-          </CardContent>
-        </Card>
-      </div>
-    );
+  const handleCloseForm = () => {
+    setEditingId(null);
+    setIsAddingNew(false);
+  };
+
+  const editingKeyResult = editingId 
+    ? keyResults.find(kr => kr.id === editingId)
+    : undefined;
+
+  // Debug logging
+  console.log('KeyResultsList permissions:', {
+    userId,
+    isAdmin,
+    canCreateKeyResults,
+    canEdit,
+    propCanEdit
+  });
+
+  if (isLoading) {
+    return <div className="py-8 text-center text-muted-foreground">Loading key results...</div>;
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Key Results</h3>
-        {canAddKeyResult && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setIsAddDialogOpen(true)}
-          >
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Add Key Result
-          </Button>
-        )}
-      </div>
+      {isAddingNew && (
+        <KeyResultInlineForm
+          objectiveId={objectiveId}
+          onClose={handleCloseForm}
+          mode="create"
+        />
+      )}
       
-      {keyResults && keyResults.length > 0 ? (
-        <div>
-          {keyResults.map((keyResult: KeyResult) => (
-            <KeyResultItem 
-              key={keyResult.id} 
-              keyResult={keyResult} 
-              onDelete={() => refetch()}
-            />
-          ))}
+      {keyResults.length === 0 && !isAddingNew ? (
+        <div className="py-8 text-center text-muted-foreground">
+          No key results defined yet.
+          {(canEdit || canCreateKeyResults) && (
+            <div className="mt-2">
+              <Button onClick={handleAddNewClick}>
+                <Plus className="h-4 w-4 mr-1" /> Add Key Result
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
-        <Card className="border-dashed">
-          <CardContent className="py-10 text-center">
-            <p className="text-muted-foreground">No key results associated with this objective yet.</p>
-            {canAddKeyResult && (
-              <Button 
-                onClick={() => setIsAddDialogOpen(true)} 
-                className="mt-4"
-              >
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add Key Result
+        <>
+          {keyResults.map((keyResult) => (
+            <React.Fragment key={keyResult.id}>
+              {editingId === keyResult.id ? (
+                <KeyResultInlineForm
+                  objectiveId={objectiveId}
+                  keyResult={editingKeyResult}
+                  onClose={handleCloseForm}
+                  mode="edit"
+                />
+              ) : (
+                <KeyResultItem
+                  keyResult={keyResult}
+                  canEdit={canEdit || (userId === keyResult.ownerId)}
+                  onEditClick={() => handleEditClick(keyResult.id)}
+                />
+              )}
+            </React.Fragment>
+          ))}
+          
+          {(canEdit || canCreateKeyResults) && !isAddingNew && !editingId && (
+            <div className="mt-4">
+              <Button onClick={handleAddNewClick}>
+                <Plus className="h-4 w-4 mr-1" /> Add Key Result
               </Button>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          )}
+        </>
       )}
-
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Add Key Result</DialogTitle>
-          </DialogHeader>
-          <KeyResultForm
-            objectiveId={objectiveId}
-            onClose={(success) => handleFormClose(success)}
-            mode="create"
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

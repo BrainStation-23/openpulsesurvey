@@ -1,42 +1,26 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { 
-  Form, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormControl, 
-  FormMessage 
-} from "@/components/ui/form";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { Objective, AlignmentType, CreateAlignmentInput } from '@/types/okr';
+import { Objective, AlignmentType, CreateAlignmentInput, ObjectiveVisibility } from '@/types/okr';
 import { useAlignments } from '@/hooks/okr/useAlignments';
-import { ObjectiveSearchInput } from './ObjectiveSearchInput';
-
-const alignmentFormSchema = z.object({
-  alignmentType: z.enum(['parent_child']),
-  weight: z.number().min(1).max(10).default(1),
-});
+import { useAlignmentPermissions } from '@/hooks/okr/useAlignmentPermissions';
+import { ObjectiveSelection } from './create-alignment/ObjectiveSelection';
+import { AlignmentForm } from './create-alignment/AlignmentForm';
+import { ObjectiveSearchResults } from './create-alignment/ObjectiveSearchResults';
+import * as z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { alignmentFormSchema } from './create-alignment/AlignmentForm';
+import { Separator } from "@/components/ui/separator";
+import { Card } from "@/components/ui/card";
+import { getVisibilityLabel, getVisibilityColorClass } from './utils/visibilityUtils';
+import { Badge } from "@/components/ui/badge";
 
 interface CreateAlignmentDialogProps {
   open: boolean;
@@ -52,22 +36,22 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
   onSuccess
 }) => {
   const { createAlignment } = useAlignments(sourceObjectiveId);
+  const { permissions, isLoading: isLoadingPermissions } = useAlignmentPermissions();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedObjective, setSelectedObjective] = useState<Objective | null>(null);
   const [relationDirection, setRelationDirection] = useState<'parent' | 'child'>('parent');
+  const [visibilityFilter, setVisibilityFilter] = useState<ObjectiveVisibility | 'all'>('all');
+  const [selectedSbuId, setSelectedSbuId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const form = useForm<z.infer<typeof alignmentFormSchema>>({
     resolver: zodResolver(alignmentFormSchema),
     defaultValues: {
       alignmentType: 'parent_child',
-      weight: 1,
+      weight: 1, // Default to 100%
     },
   });
   
-  const handleSelectObjective = (objective: Objective) => {
-    setSelectedObjective(objective);
-  };
-
   const toggleRelationDirection = () => {
     setRelationDirection(prev => prev === 'parent' ? 'child' : 'parent');
   };
@@ -100,8 +84,8 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
       
       await createAlignment.mutateAsync(alignmentData);
       
-      form.reset();
       setSelectedObjective(null);
+      form.reset();
       onOpenChange(false);
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -111,120 +95,104 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
     }
   };
 
+  const handleCancel = () => {
+    form.reset();
+    setSelectedObjective(null);
+    onOpenChange(false);
+  };
+
+  // Reset selected objective when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setSelectedObjective(null);
+      setRelationDirection('parent');
+      setVisibilityFilter('all');
+      setSearchQuery('');
+    }
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[900px] p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2">
           <DialogTitle>Create Alignment</DialogTitle>
           <DialogDescription>
             Connect this objective with another to establish a parent-child relationship.
+            The weight determines how much the child objective's progress contributes to the parent's progress.
           </DialogDescription>
         </DialogHeader>
         
-        <Alert variant="default" className="bg-blue-50">
-          <InfoIcon className="h-4 w-4" />
-          <AlertDescription>
-            {relationDirection === 'parent' 
-              ? "The selected objective will be the parent of your current objective."
-              : "Your current objective will be the parent of the selected objective."
-            }
-          </AlertDescription>
-        </Alert>
-        
-        <div className="space-y-4 py-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Relationship Direction:</span>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={toggleRelationDirection}
-            >
-              {relationDirection === 'parent' 
-                ? "Selected objective is parent" 
-                : "Selected objective is child"
-              }
-            </Button>
-          </div>
-          
-          {selectedObjective && (
-            <div className="bg-accent/50 p-3 rounded-md">
-              <p className="text-sm font-medium">Selected objective:</p>
-              <p className="text-base">{selectedObjective.title}</p>
-              {selectedObjective.description && (
-                <p className="text-sm text-muted-foreground mt-1 truncate">
-                  {selectedObjective.description}
-                </p>
-              )}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="mt-2" 
-                onClick={() => setSelectedObjective(null)}
-              >
-                Clear selection
-              </Button>
-            </div>
-          )}
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Select an objective:</label>
-            <ObjectiveSearchInput 
-              currentObjectiveId={sourceObjectiveId}
-              onSelect={handleSelectObjective}
-              placeholder="Search for objectives..."
-            />
-          </div>
-        </div>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="weight"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Weight</FormLabel>
-                  <FormControl>
-                    <Select 
-                      onValueChange={(val) => field.onChange(parseInt(val))} 
-                      defaultValue={field.value.toString()}
-                      disabled={isSubmitting}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select weight" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((weight) => (
-                          <SelectItem key={weight} value={weight.toString()}>
-                            {weight}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+        <div className="grid grid-cols-1 md:grid-cols-2">
+          {/* Left Column: Selection Configuration */}
+          <div className="p-6 pt-2 border-r border-border flex flex-col h-full">
+            <ObjectiveSelection 
+              relationDirection={relationDirection}
+              toggleRelationDirection={toggleRelationDirection}
+              selectedObjective={selectedObjective}
+              setSelectedObjective={setSelectedObjective}
+              sourceObjectiveId={sourceObjectiveId}
+              visibilityFilter={visibilityFilter}
+              setVisibilityFilter={setVisibilityFilter}
+              permissions={permissions}
+              isLoadingPermissions={isLoadingPermissions}
+              selectedSbuId={selectedSbuId}
+              setSelectedSbuId={setSelectedSbuId}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
             />
             
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting || !selectedObjective}
-              >
-                {isSubmitting ? "Creating..." : "Create Alignment"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+            {/* Selected objective preview card - moved from right column */}
+            {selectedObjective && (
+              <div className="mt-4">
+                <h3 className="text-sm font-medium mb-2">Selected Objective</h3>
+                <Card className={`p-3 border-l-4 ${getVisibilityColorClass(selectedObjective.visibility)}`}>
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <Badge variant="outline" className={getVisibilityColorClass(selectedObjective.visibility)}>
+                        {getVisibilityLabel(selectedObjective.visibility)}
+                      </Badge>
+                      <Badge variant="outline">{selectedObjective.progress}% complete</Badge>
+                    </div>
+                    <h4 className="font-medium">{selectedObjective.title}</h4>
+                    {selectedObjective.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {selectedObjective.description}
+                      </p>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            )}
+          </div>
+          
+          {/* Right Column: Search Results & Weights */}
+          <div className="p-6 pt-2 flex flex-col h-full">
+            {/* Search Results Section - now takes more space */}
+            <div className="flex-grow mb-4">
+              <ObjectiveSearchResults 
+                currentObjectiveId={sourceObjectiveId}
+                onSelect={(objective) => setSelectedObjective(objective)}
+                visibilityFilter={visibilityFilter}
+                permissions={permissions}
+                selectedSbuId={visibilityFilter === 'department' ? selectedSbuId : undefined}
+                searchQuery={searchQuery}
+              />
+            </div>
+            
+            {/* Form & Weight Section */}
+            <Separator className="my-4" />
+            <div>
+              <AlignmentForm
+                form={form}
+                onSubmit={form.handleSubmit(onSubmit)}
+                isSubmitting={isSubmitting}
+                onCancel={handleCancel}
+                selectedObjective={selectedObjective}
+                relationDirection={relationDirection}
+              />
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

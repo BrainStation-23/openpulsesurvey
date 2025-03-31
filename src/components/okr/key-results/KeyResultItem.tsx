@@ -1,162 +1,146 @@
 
 import React, { useState } from 'react';
 import { KeyResult } from '@/types/okr';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
+import { Card } from '@/components/ui/card';
 import { useKeyResult } from '@/hooks/okr/useKeyResult';
-import { KeyResultStatusBadge } from './KeyResultStatusBadge';
-import { KeyResultProgressControls } from './KeyResultProgressControls';
-import { KeyResultStatusControls } from './KeyResultStatusControls';
-import { KeyResultDialogs } from './KeyResultDialogs';
-import { getProgressBarColor } from './utils/progressBarUtils';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { KeyResultHeader } from './components/KeyResultHeader';
 import { KeyResultDescription } from './components/KeyResultDescription';
 import { KeyResultProgressDisplay } from './components/KeyResultProgressDisplay';
-import { useKeyResultAutoStatusUpdate } from './hooks/useKeyResultAutoStatusUpdate';
+import { KeyResultProgressControls } from './KeyResultProgressControls';
+import { KeyResultStatusControls } from './KeyResultStatusControls';
+import { KeyResultDialogs } from './KeyResultDialogs';
+import { Progress } from '@/components/ui/progress';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { getProgressBarColor } from './utils/progressBarUtils';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 interface KeyResultItemProps {
   keyResult: KeyResult;
-  onDelete?: () => void;
+  canEdit: boolean;
+  onEditClick: () => void;
 }
 
-export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult, onDelete }) => {
+export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult, canEdit, onEditClick }) => {
+  const { userId } = useCurrentUser();
+  const { deleteKeyResult, updateProgress, updateStatus } = useKeyResult(keyResult.id);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const { userId, isAdmin } = useCurrentUser();
-  const isOwner = userId === keyResult.ownerId;
-  const canEdit = isOwner || isAdmin;
+  const [isProgressOpen, setIsProgressOpen] = useState(false);
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
   
-  const {
-    updateStatus,
-    updateProgress,
-    deleteKeyResult,
-    isDeleting
-  } = useKeyResult(keyResult.id);
-
-  useKeyResultAutoStatusUpdate(keyResult, updateStatus, updateProgress);
-
-  const handleStatusUpdate = (status) => {
-    if (!canEdit) return;
-    
-    if (status === 'completed' && keyResult.measurementType !== 'boolean') {
-      console.log('Marking key result as completed and setting current value to target', {
-        id: keyResult.id,
-        currentValue: keyResult.targetValue
-      });
-      
-      updateProgress.mutate({ currentValue: keyResult.targetValue }, {
-        onSuccess: () => {
-          updateStatus.mutate(status);
-        }
-      });
-    } else {
-      console.log('Updating key result status:', { id: keyResult.id, status });
-      updateStatus.mutate(status);
-    }
-  };
-
-  const handleProgressUpdate = (progressValue) => {
-    if (keyResult.measurementType === 'boolean' || !canEdit) {
-      return;
-    }
-
-    if (progressValue !== keyResult.currentValue) {
-      console.log('Updating key result progress:', { 
-        id: keyResult.id, 
-        objectiveId: keyResult.objectiveId,
-        oldValue: keyResult.currentValue, 
-        newValue: progressValue 
-      });
-      updateProgress.mutate({ currentValue: progressValue });
-    }
-  };
-
-  const handleBooleanChange = (checked) => {
-    if (!canEdit) return;
-    
-    console.log('Updating boolean key result:', { 
-      id: keyResult.id, 
-      objectiveId: keyResult.objectiveId,
-      oldValue: keyResult.booleanValue, 
-      newValue: checked 
-    });
-    
-    updateProgress.mutate({ booleanValue: checked }, {
-      onSuccess: () => {
-        if (checked && keyResult.status !== 'completed') {
-          updateStatus.mutate('completed');
-        }
-      }
-    });
-  };
-
+  // Determine if the current user can manage this key result
+  const isOwner = keyResult.ownerId === userId;
+  const canManage = canEdit || isOwner;
+  
   const handleDelete = () => {
-    if (!canEdit) return;
-    
     deleteKeyResult.mutate(undefined, {
       onSuccess: () => {
         setIsDeleteDialogOpen(false);
-        if (onDelete) {
-          onDelete();
-        }
       }
     });
   };
 
+  const handleProgressUpdate = (value: number) => {
+    updateProgress.mutate({ currentValue: value });
+  };
+
+  const handleBooleanChange = (checked: boolean) => {
+    updateProgress.mutate({ booleanValue: checked });
+  };
+
+  const handleStatusUpdate = (status: KeyResult['status']) => {
+    updateStatus.mutate(status);
+  };
+
   return (
-    <Card className="mb-4">
-      <KeyResultHeader 
-        keyResult={keyResult}
-        canEdit={canEdit}
-        onEditClick={() => setIsEditDialogOpen(true)}
-        onDeleteClick={() => setIsDeleteDialogOpen(true)}
-      />
-      
-      <CardContent className="pb-4">
-        <KeyResultDescription description={keyResult.description} />
-        
-        <KeyResultProgressDisplay keyResult={keyResult} />
-
-        <KeyResultProgressControls 
+    <>
+      <Card className="overflow-hidden border-l-4" style={{ borderLeftColor: getProgressBarColor(keyResult.progress, keyResult.status) }}>
+        <KeyResultHeader
           keyResult={keyResult}
-          onProgressUpdate={handleProgressUpdate}
-          onBooleanChange={handleBooleanChange}
-          isPending={updateProgress.isPending}
-          isDisabled={!canEdit}
+          canEdit={canManage}
+          onEditClick={onEditClick}
+          onDeleteClick={() => setIsDeleteDialogOpen(true)}
         />
-
-        {canEdit && (
-          <KeyResultStatusControls 
-            status={keyResult.status}
-            progress={keyResult.progress}
-            onStatusUpdate={handleStatusUpdate}
-          />
-        )}
-      </CardContent>
-      
-      <CardFooter className="pt-0 pb-3 px-6">
-        <div className="w-full">
+        
+        <div className="px-6 pb-3">
           <Progress 
             value={keyResult.progress} 
-            className="h-4 rounded-md" 
+            className="h-3 mt-2"
             indicatorClassName={getProgressBarColor(keyResult.progress, keyResult.status)}
           />
+          
+          <KeyResultProgressDisplay keyResult={keyResult} />
+          
+          {keyResult.description && (
+            <Collapsible>
+              <div className="flex items-center justify-between mt-2">
+                <h4 className="text-sm font-medium text-muted-foreground">Description</h4>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-0 h-7 w-7">
+                    <ChevronDown className="h-4 w-4" />
+                    <span className="sr-only">Toggle description</span>
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent>
+                <KeyResultDescription description={keyResult.description} />
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </div>
-      </CardFooter>
+        
+        {canManage && (
+          <div className="border-t bg-muted/30 px-6 py-3 space-y-3">
+            <Collapsible open={isProgressOpen} onOpenChange={setIsProgressOpen}>
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium">Update Progress</h4>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-7">
+                    {isProgressOpen ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
+                    {isProgressOpen ? "Hide" : "Show"}
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent className="pt-3">
+                <KeyResultProgressControls 
+                  keyResult={keyResult} 
+                  onProgressUpdate={handleProgressUpdate}
+                  onBooleanChange={handleBooleanChange}
+                  isPending={updateProgress.isPending}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+            
+            <Collapsible open={isStatusOpen} onOpenChange={setIsStatusOpen}>
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium">Update Status</h4>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-7">
+                    {isStatusOpen ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
+                    {isStatusOpen ? "Hide" : "Show"}
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent className="pt-3">
+                <KeyResultStatusControls 
+                  status={keyResult.status}
+                  progress={keyResult.progress}
+                  onStatusUpdate={handleStatusUpdate}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        )}
+      </Card>
 
-      {canEdit && (
-        <KeyResultDialogs 
-          keyResult={keyResult}
-          isDeleteDialogOpen={isDeleteDialogOpen}
-          setIsDeleteDialogOpen={setIsDeleteDialogOpen}
-          isEditDialogOpen={isEditDialogOpen}
-          setIsEditDialogOpen={setIsEditDialogOpen}
-          onDelete={handleDelete}
-          isDeleting={isDeleting}
-        />
-      )}
-    </Card>
+      <KeyResultDialogs
+        keyResult={keyResult}
+        isDeleteDialogOpen={isDeleteDialogOpen}
+        setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+        onDelete={handleDelete}
+        isDeleting={deleteKeyResult.isPending}
+      />
+    </>
   );
 };

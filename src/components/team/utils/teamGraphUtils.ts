@@ -10,45 +10,50 @@ export const processTeamData = (
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   
-  // Horizontal layout configuration
-  const startX = 100;
-  const supervisorX = startX;
-  const teamMembersX = startX + 350; // Put team members to the right with good spacing
-  const verticalSpacing = 120; // Space between team members vertically
+  // Improved layout configuration
+  const startX = 200;
+  const supervisorY = 100;
+  const teamMembersY = supervisorY + 200; // Better vertical spacing
+  const horizontalSpacing = 180; // Better horizontal spacing between team members
+  
+  // Calculate total width needed for team members
+  const totalTeamWidth = teamMembers.length * horizontalSpacing;
+  
+  // Calculate starting X position to center the team members
+  const teamStartX = startX - totalTeamWidth / 2 + horizontalSpacing / 2;
   
   if (supervisor) {
     nodes.push({
       id: `supervisor-${supervisor.id}`,
       type: 'teamMember',
-      position: { x: supervisorX, y: 200 }, // Center supervisor vertically
+      position: { x: startX, y: supervisorY }, // Position supervisor at the top center
       data: {
         label: `${supervisor.firstName} ${supervisor.lastName}`,
         sublabel: supervisor.designation || 'Supervisor',
         imageUrl: supervisor.profileImageUrl,
         isSupervisor: true
       },
-      sourcePosition: Position.Right // Connections come from right side
+      sourcePosition: Position.Bottom // Connections come from bottom side for hierarchical layout
     });
   }
   
-  // Position team members vertically on the right side
+  // Position team members in a row beneath the supervisor
   teamMembers.forEach((member, index) => {
-    const startY = Math.max(50, 200 - (verticalSpacing * (teamMembers.length - 1) / 2)); // Center the column vertically
-    const y = startY + (index * verticalSpacing);
+    const x = teamStartX + (index * horizontalSpacing);
     
     const nodeId = `member-${member.id}`;
     
     nodes.push({
       id: nodeId,
       type: 'teamMember',
-      position: { x: teamMembersX, y },
+      position: { x, y: teamMembersY },
       data: {
         label: `${member.firstName} ${member.lastName}`,
         sublabel: member.designation || member.email,
         imageUrl: member.profileImageUrl,
         isLoggedInUser: member.isLoggedInUser
       },
-      targetPosition: Position.Left // Connections come into left side
+      targetPosition: Position.Top // Connections come into top side for hierarchical layout
     });
     
     if (supervisor) {
@@ -56,12 +61,10 @@ export const processTeamData = (
         id: `edge-supervisor-${member.id}`,
         source: `supervisor-${supervisor.id}`,
         target: nodeId,
-        sourceHandle: 'supervisor-output',
-        targetHandle: 'member-input',
         type: 'smoothstep',
         style: { 
-          stroke: '#64748b', 
-          strokeWidth: 2 
+          stroke: member.isLoggedInUser ? '#3b82f6' : '#64748b', 
+          strokeWidth: member.isLoggedInUser ? 3 : 2
         }
       });
     }

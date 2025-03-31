@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { KeyResultStatus } from '@/types/okr';
-import { AlertTriangle, Check } from 'lucide-react';
+import { AlertTriangle, Check, Clock } from 'lucide-react';
 
 interface KeyResultStatusControlsProps {
   status: KeyResultStatus;
@@ -16,9 +16,8 @@ export const KeyResultStatusControls: React.FC<KeyResultStatusControlsProps> = (
   onStatusUpdate
 }) => {
   return (
-    <div className="mt-4">
-      <h4 className="text-sm font-medium mb-2">Status: <span className="font-normal">{status.replace('_', ' ')}</span></h4>
-      <div className="grid grid-cols-2 gap-2">
+    <div className="space-y-2">
+      <div className="grid grid-cols-3 gap-2">
         {/* Only show "Mark At Risk" button if not already completed */}
         {status !== 'at_risk' && status !== 'completed' && (
           <Button 
@@ -28,7 +27,7 @@ export const KeyResultStatusControls: React.FC<KeyResultStatusControlsProps> = (
             onClick={() => onStatusUpdate('at_risk')}
           >
             <AlertTriangle className="h-4 w-4 mr-1" />
-            Mark At Risk
+            At Risk
           </Button>
         )}
         
@@ -39,6 +38,7 @@ export const KeyResultStatusControls: React.FC<KeyResultStatusControlsProps> = (
             className="text-green-600 border-green-200 hover:bg-green-50"
             onClick={() => onStatusUpdate('on_track')}
           >
+            <Clock className="h-4 w-4 mr-1" />
             On Track
           </Button>
         )}
@@ -51,10 +51,14 @@ export const KeyResultStatusControls: React.FC<KeyResultStatusControlsProps> = (
             onClick={() => onStatusUpdate('completed')}
           >
             <Check className="h-4 w-4 mr-1" />
-            Mark Complete
+            Complete
           </Button>
         )}
       </div>
+      
+      <p className="text-xs text-muted-foreground">
+        Current status: <span className="font-medium">{status.replace('_', ' ')}</span>
+      </p>
     </div>
   );
 };

@@ -44,159 +44,197 @@ export const useHierarchyProcessor = ({
       return lastProcessedResult.current.result;
     }
     
+    // Configuration for layout spacing
+    const VERTICAL_SPACING = 250;  // Increased vertical space between levels
+    const HORIZONTAL_SPACING = 200; // Space between siblings
+    const NODE_WIDTH = 180; // Approximate width of a node
+
     const nodes: Node[] = [];
     const edges: Edge[] = [];
     const processedNodes = new Set<string>();
     
-    // Calculate positions in a tree-like layout
-    const calculateNodePosition = (level: number, index: number, totalNodesInLevel: number) => {
-      const horizontalSpacing = 300;
-      const verticalSpacing = 150;
-      const levelWidth = Math.max(totalNodesInLevel * horizontalSpacing, horizontalSpacing);
-      const startX = -levelWidth / 2 + horizontalSpacing / 2;
-      
-      return {
-        x: startX + index * horizontalSpacing,
-        y: level * verticalSpacing
-      };
-    };
+    // First pass: Calculate node hierarchy and collect children information
+    const nodeMap = new Map<string, { 
+      node: Objective,
+      children: string[],
+      level: number,
+      width: number, // Required width for this subtree
+      position?: { x: number, y: number }
+    }>();
     
-    // Process nodes breadth-first instead of depth-first to improve performance
-    const processHierarchy = async () => {
-      console.log(`Processing hierarchy starting from objective: ${rootObj.id} (${rootObj.title})`);
+    const collectNodeInfo = async (
+      node: Objective | ObjectiveWithRelations, 
+      level: number, 
+      parentId?: string
+    ) => {
+      if (processedNodes.has(node.id)) {
+        return;
+      }
       
-      const queue: Array<{
-        obj: Objective | ObjectiveWithRelations,
-        level: number,
-        index: number,
-        totalNodesInLevel: number,
-        parentId?: string
-      }> = [{
-        obj: rootObj,
-        level: 0,
-        index: 0,
-        totalNodesInLevel: 1
-      }];
+      processedNodes.add(node.id);
+      nodeMap.set(node.id, { node, children: [], level, width: 0 });
       
-      while (queue.length > 0) {
-        const { obj, level, index, totalNodesInLevel, parentId } = queue.shift()!;
-        
-        if (processedNodes.has(obj.id)) {
-          console.log(`Node ${obj.id} already processed, skipping`);
-          continue;
+      // Fetch complete objective data with relations if needed
+      let objWithRelations = node as ObjectiveWithRelations;
+      if (!('childObjectives' in node) || !('alignedObjectives' in node)) {
+        const fetchedObj = await fetchObjectiveWithRelations(node.id);
+        if (fetchedObj) {
+          objWithRelations = fetchedObj;
         }
+      }
+      
+      // Collect all child nodes
+      const childNodes: Objective[] = [];
+      
+      // Add direct child objectives
+      if (objWithRelations.childObjectives && objWithRelations.childObjectives.length > 0) {
+        childNodes.push(...objWithRelations.childObjectives);
+      }
+      
+      // Add aligned objectives
+      if (objWithRelations.alignedObjectives && objWithRelations.alignedObjectives.length > 0) {
+        const alignments = objWithRelations.alignedObjectives.filter(
+          alignment => alignment.alignmentType === 'parent_child' && 
+                      alignment.sourceObjectiveId === node.id
+        );
         
-        console.log(`Processing node ${obj.id} (${obj.title}) at level ${level}, index ${index}`);
-        
-        const isCurrentObjective = obj.id === objective.id;
-        const isInPath = highlightPath.includes(obj.id);
-        
-        // Calculate position
-        const position = calculateNodePosition(level, index, totalNodesInLevel);
-        
-        // Create node
-        const nodeData = {
-          id: obj.id,
-          type: 'objectiveNode',
-          position,
-          draggable: true, // Allow dragging for better UX
-          data: {
-            objective: obj,
-            isAdmin,
-            isCurrentObjective,
-            isInPath,
-            canDelete: canEdit && parentId !== undefined,
-            onDelete: parentId ? () => {
-              const alignment = objective.alignedObjectives?.find(
-                a => (a.sourceObjectiveId === parentId && a.alignedObjectiveId === obj.id) || 
-                    (a.sourceObjectiveId === obj.id && a.alignedObjectiveId === parentId)
-              );
-              if (alignment) handleDeleteAlignment(alignment.id);
-            } : undefined
+        alignments.forEach(alignment => {
+          if (alignment.alignedObjective) {
+            childNodes.push(alignment.alignedObjective);
           }
-        };
-        
-        nodes.push(nodeData);
-        console.log(`Added node: ${obj.id} (${obj.title}) at position (${position.x}, ${position.y})`);
-        
-        processedNodes.add(obj.id);
-        
-        // Create edge if there's a parent
-        if (parentId) {
-          const edgeData = {
-            id: `${parentId}-${obj.id}`,
-            source: parentId,
-            target: obj.id,
-            type: 'smoothstep',
-            animated: isInPath,
-            style: { 
-              stroke: isInPath ? '#9333ea' : '#64748b', 
-              strokeWidth: isInPath ? 3 : 2 
-            }
-          };
-          
-          edges.push(edgeData);
-          console.log(`Added edge: ${parentId} -> ${obj.id}`);
-        }
-        
-        // Fetch complete objective data with relations if needed
-        let objWithRelations = obj as ObjectiveWithRelations;
-        if (!('childObjectives' in obj) || !('alignedObjectives' in obj)) {
-          console.log(`Fetching complete data for objective: ${obj.id}`);
-          const fetchedObj = await fetchObjectiveWithRelations(obj.id);
-          if (fetchedObj) {
-            objWithRelations = fetchedObj;
-          } else {
-            console.warn(`Failed to fetch data for objective: ${obj.id}`);
+        });
+      }
+      
+      // Process each child and add to parent's children list
+      for (const child of childNodes) {
+        if (!processedNodes.has(child.id)) {
+          const nodeInfo = nodeMap.get(node.id);
+          if (nodeInfo) {
+            nodeInfo.children.push(child.id);
           }
-        }
-        
-        // Process child objectives
-        const childNodes: Objective[] = [];
-        
-        // Add direct child objectives
-        if (objWithRelations.childObjectives && objWithRelations.childObjectives.length > 0) {
-          console.log(`Adding ${objWithRelations.childObjectives.length} child objectives for ${obj.id}`);
-          childNodes.push(...objWithRelations.childObjectives);
-        }
-        
-        // Add aligned objectives
-        if (objWithRelations.alignedObjectives && objWithRelations.alignedObjectives.length > 0) {
-          const alignments = objWithRelations.alignedObjectives.filter(
-            alignment => alignment.alignmentType === 'parent_child' && 
-                        alignment.sourceObjectiveId === obj.id
-          );
-          
-          console.log(`Adding ${alignments.length} aligned objectives for ${obj.id}`);
-          
-          alignments.forEach(alignment => {
-            if (alignment.alignedObjective) {
-              childNodes.push(alignment.alignedObjective);
-            } else {
-              console.warn(`Alignment ${alignment.id} is missing alignedObjective data`);
-            }
-          });
-        }
-        
-        // Add child nodes to queue
-        if (childNodes.length > 0) {
-          console.log(`Queuing ${childNodes.length} child nodes for ${obj.id}`);
-          childNodes.forEach((childObj, idx) => {
-            queue.push({
-              obj: childObj,
-              level: level + 1,
-              index: idx,
-              totalNodesInLevel: childNodes.length,
-              parentId: obj.id
-            });
-          });
-        } else {
-          console.log(`No child nodes found for ${obj.id}`);
+          await collectNodeInfo(child, level + 1, node.id);
         }
       }
     };
     
-    await processHierarchy();
+    // Start with the root node
+    await collectNodeInfo(rootObj, 0);
+    
+    // Second pass: Calculate widths for each subtree
+    const calculateSubtreeWidth = (nodeId: string): number => {
+      const nodeInfo = nodeMap.get(nodeId);
+      if (!nodeInfo) return NODE_WIDTH;
+      
+      if (nodeInfo.children.length === 0) {
+        nodeInfo.width = NODE_WIDTH;
+        return NODE_WIDTH;
+      }
+      
+      // Calculate width of all children
+      let totalChildrenWidth = 0;
+      for (const childId of nodeInfo.children) {
+        totalChildrenWidth += calculateSubtreeWidth(childId);
+      }
+      
+      // Add spacing between children
+      if (nodeInfo.children.length > 1) {
+        totalChildrenWidth += (nodeInfo.children.length - 1) * HORIZONTAL_SPACING;
+      }
+      
+      // Node width is max of its own width and width of all children
+      nodeInfo.width = Math.max(NODE_WIDTH, totalChildrenWidth);
+      return nodeInfo.width;
+    };
+    
+    // Start width calculation from root
+    calculateSubtreeWidth(rootObj.id);
+    
+    // Clear processed nodes for the next phase
+    processedNodes.clear();
+    
+    // Third pass: Calculate positions for all nodes
+    const calculateNodePositions = (nodeId: string, startX: number, y: number) => {
+      const nodeInfo = nodeMap.get(nodeId);
+      if (!nodeInfo || processedNodes.has(nodeId)) return;
+      
+      processedNodes.add(nodeId);
+      
+      // Calculate center position for this node
+      const x = startX + (nodeInfo.width / 2) - (NODE_WIDTH / 2);
+      nodeInfo.position = { x, y };
+      
+      // If no children, we're done
+      if (nodeInfo.children.length === 0) return;
+      
+      // Calculate positions for children
+      let childStartX = startX;
+      for (const childId of nodeInfo.children) {
+        const childInfo = nodeMap.get(childId);
+        if (childInfo) {
+          calculateNodePositions(
+            childId, 
+            childStartX, 
+            y + VERTICAL_SPACING
+          );
+          childStartX += childInfo.width + HORIZONTAL_SPACING;
+        }
+      }
+    };
+    
+    // Start position calculation from root
+    calculateNodePositions(rootObj.id, 0, 0);
+    
+    // Fourth pass: Create nodes and edges
+    for (const [id, info] of nodeMap.entries()) {
+      if (!info.position) continue;
+      
+      const isCurrentObjective = id === objective.id;
+      const isInPath = highlightPath.includes(id);
+      const parentId = Array.from(nodeMap.entries()).find(
+        ([_, nodeInfo]) => nodeInfo.children.includes(id)
+      )?.[0];
+      
+      // Create node
+      const nodeData = {
+        id,
+        type: 'objectiveNode',
+        position: info.position,
+        draggable: true,
+        data: {
+          objective: info.node,
+          isAdmin,
+          isCurrentObjective,
+          isInPath,
+          canDelete: canEdit && parentId !== undefined,
+          onDelete: parentId ? () => {
+            const alignment = objective.alignedObjectives?.find(
+              a => (a.sourceObjectiveId === parentId && a.alignedObjectiveId === id) || 
+                  (a.sourceObjectiveId === id && a.alignedObjectiveId === parentId)
+            );
+            if (alignment) handleDeleteAlignment(alignment.id);
+          } : undefined
+        }
+      };
+      
+      nodes.push(nodeData);
+      
+      // Create edge if there's a parent
+      if (parentId) {
+        const edgeData = {
+          id: `${parentId}-${id}`,
+          source: parentId,
+          target: id,
+          type: 'smoothstep',
+          animated: isInPath,
+          style: { 
+            stroke: isInPath ? '#9333ea' : '#64748b', 
+            strokeWidth: isInPath ? 3 : 2 
+          }
+        };
+        
+        edges.push(edgeData);
+      }
+    }
     
     // Store the result in cache
     const result = { nodes, edges };
@@ -207,18 +245,6 @@ export const useHierarchyProcessor = ({
     };
     
     console.log(`Processed ${nodes.length} nodes and ${edges.length} edges`);
-    
-    // Validate that nodes and edges are correctly formatted
-    if (nodes.length === 0) {
-      console.warn('No nodes were generated for the hierarchy');
-    }
-    
-    // Check for common issues
-    nodes.forEach(node => {
-      if (!node.id) console.error('Node missing ID', node);
-      if (!node.position) console.error('Node missing position', node);
-      if (!node.data?.objective) console.error('Node missing objective data', node);
-    });
     
     return result;
   }, [objective, isAdmin, canEdit, handleDeleteAlignment, fetchObjectiveWithRelations]);
@@ -233,4 +259,3 @@ export const useHierarchyProcessor = ({
     }
   };
 };
-

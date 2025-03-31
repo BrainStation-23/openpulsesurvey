@@ -1,30 +1,67 @@
-
-import { KeyResult, KeyResultStatus, UpdateKeyResultInput, CreateKeyResultInput } from '@/types/okr';
+import { KeyResult, KeyResultStatus, UpdateKeyResultInput, CreateKeyResultInput, MeasurementType } from '@/types/okr';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Fetches a key result by its ID
  */
 export const fetchKeyResult = async (id: string): Promise<KeyResult | null> => {
-  if (!id) return null;
+  console.log(`Fetching key result with ID: ${id}`);
   
-  const { data, error } = await supabase
-    .from('key_results')
-    .select('*')
-    .eq('id', id)
-    .single();
-  
-  if (error) {
+  try {
+    const { data, error } = await supabase
+      .from('key_results')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching key result:', error);
+      throw new Error(`Error fetching key result: ${error.message}`);
+    }
+
+    if (!data) {
+      console.log('No key result found with ID:', id);
+      return null;
+    }
+
+    console.log('Raw key result data from database:', data);
+    console.log('Database due_date value:', data.due_date);
+    console.log('Database due_date type:', data.due_date ? typeof data.due_date : 'undefined');
+    
+    // Map the database fields to our KeyResult type
+    const keyResult = mapKeyResultData(data);
+    
+    console.log('Mapped key result data:', keyResult);
+    console.log('Due date after mapping:', keyResult.dueDate);
+    console.log('Due date type:', keyResult.dueDate ? typeof keyResult.dueDate : 'undefined');
+    
+    return keyResult;
+  } catch (error) {
+    console.error('Exception in fetchKeyResult:', error);
     throw error;
   }
-  
-  return mapKeyResultData(data);
 };
 
 /**
  * Maps database key result data to KeyResult type
  */
 export const mapKeyResultData = (data: any): KeyResult => {
+  // Add extensive logging to see what we get from the database
+  console.log('Mapping key result data:', data);
+  
+  // Handle the due_date field properly
+  let dueDate = null;
+  if (data.due_date) {
+    try {
+      // Always convert timestamptz to a proper Date object
+      dueDate = new Date(data.due_date);
+      console.log('Converted due_date to Date object:', dueDate);
+      console.log('Is due_date a Date object?', dueDate instanceof Date);
+    } catch (error) {
+      console.error('Error converting due_date:', error);
+    }
+  }
+  
   return {
     id: data.id,
     title: data.title,
@@ -32,17 +69,18 @@ export const mapKeyResultData = (data: any): KeyResult => {
     objectiveId: data.objective_id,
     ownerId: data.owner_id,
     krType: data.kr_type,
-    measurementType: data.measurement_type,
+    measurementType: data.measurement_type as MeasurementType,
     unit: data.unit,
     startValue: data.start_value,
     currentValue: data.current_value,
     targetValue: data.target_value,
     booleanValue: data.boolean_value,
     weight: data.weight,
-    status: data.status,
+    status: data.status as KeyResultStatus,
     progress: data.progress,
     createdAt: new Date(data.created_at),
-    updatedAt: new Date(data.updated_at)
+    updatedAt: new Date(data.updated_at),
+    dueDate: dueDate
   } as KeyResult;
 };
 
@@ -105,6 +143,15 @@ export const updateKeyResultProgress = async (
 export const updateKeyResult = async (data: UpdateKeyResultInput) => {
   if (!data.id) throw new Error('Key Result ID is required');
   
+  console.log('Updating key result in database:', data);
+  console.log('Due date before saving:', data.dueDate);
+  console.log('Due date type:', data.dueDate ? typeof data.dueDate : 'undefined');
+  console.log('Is due date a Date object?', data.dueDate instanceof Date);
+  
+  // Make sure to properly format the date for Supabase
+  const dueDateFormatted = data.dueDate ? data.dueDate.toISOString() : null;
+  console.log('Formatted due date for database:', dueDateFormatted);
+  
   const { error } = await supabase
     .from('key_results')
     .update({
@@ -120,13 +167,17 @@ export const updateKeyResult = async (data: UpdateKeyResultInput) => {
       boolean_value: data.booleanValue,
       weight: data.weight || 1,
       status: data.status,
+      due_date: dueDateFormatted,
       updated_at: new Date().toISOString()
     })
     .eq('id', data.id);
   
   if (error) {
+    console.error('Error updating key result:', error);
     throw error;
   }
+  
+  console.log('Key result updated successfully');
 };
 
 /**
@@ -149,6 +200,15 @@ export const deleteKeyResult = async (id: string) => {
  * Creates a key result
  */
 export const createKeyResult = async (data: CreateKeyResultInput) => {
+  console.log('Creating key result in database:', data);
+  console.log('Due date before saving:', data.dueDate);
+  console.log('Due date type:', data.dueDate ? typeof data.dueDate : 'undefined');
+  console.log('Is due date a Date object?', data.dueDate instanceof Date);
+  
+  // Make sure to properly format the date for Supabase
+  const dueDateFormatted = data.dueDate ? data.dueDate.toISOString() : null;
+  console.log('Formatted due date for database:', dueDateFormatted);
+  
   const { error } = await supabase
     .from('key_results')
     .insert({
@@ -165,9 +225,13 @@ export const createKeyResult = async (data: CreateKeyResultInput) => {
       boolean_value: data.booleanValue,
       weight: data.weight || 1,
       status: data.status || 'not_started',
+      due_date: dueDateFormatted,
     });
   
   if (error) {
+    console.error('Error creating key result:', error);
     throw error;
   }
+  
+  console.log('Key result created successfully');
 };

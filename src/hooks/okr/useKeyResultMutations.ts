@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { KeyResultStatus, UpdateKeyResultInput, CreateKeyResultInput } from '@/types/okr';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +10,8 @@ import {
   deleteKeyResult as deleteKeyResultData,
   createKeyResult as createKeyResultData
 } from './utils/keyResultUtils';
+import { supabase } from '@/integrations/supabase/client';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 /**
  * Hook providing mutations for key result operations
@@ -18,6 +20,33 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDeleting, setIsDeleting] = useState(false);
+  const { userId } = useCurrentUser();
+  const [canCreate, setCanCreate] = useState(false);
+
+  // Check if user can create key results
+  useEffect(() => {
+    const checkKeyResultPermission = async () => {
+      if (!userId) return;
+      
+      console.log('useKeyResultMutations: Checking create permission for user:', userId);
+      
+      const { data, error } = await supabase.rpc('can_create_key_result', {
+        p_user_id: userId
+      });
+      
+      if (error) {
+        console.error('Error checking key result permission:', error);
+        return;
+      }
+      
+      console.log('useKeyResultMutations: Permission check result:', data);
+      setCanCreate(!!data);
+    };
+    
+    if (userId) {
+      checkKeyResultPermission();
+    }
+  }, [userId]);
 
   // Helper function to invalidate related queries
   const invalidateRelatedQueries = () => {
@@ -139,7 +168,15 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
 
   // Create key result
   const createKeyResult = useMutation({
-    mutationFn: (data: CreateKeyResultInput) => createKeyResultData(data),
+    mutationFn: (data: CreateKeyResultInput) => {
+      // Check if user has permission to create key results
+      if (!canCreate) {
+        throw new Error("You don't have permission to create key results");
+      }
+      
+      console.log('Creating key result with permission check passed');
+      return createKeyResultData(data);
+    },
     onSuccess: () => {
       // Invalidate relevant queries
       invalidateRelatedQueries();
@@ -150,6 +187,7 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
       });
     },
     onError: (error) => {
+      console.error('Error creating key result:', error);
       toast({
         variant: 'destructive',
         title: 'Error creating key result',
@@ -164,6 +202,7 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
     updateKeyResult,
     deleteKeyResult,
     isDeleting,
-    createKeyResult
+    createKeyResult,
+    canCreate
   };
 };
