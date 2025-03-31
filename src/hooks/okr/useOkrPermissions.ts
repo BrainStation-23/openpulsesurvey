@@ -30,6 +30,8 @@ export function useOkrPermissions(): OkrPermissions {
       if (!user) return;
       
       try {
+        console.log('Fetching roles for user:', user.id);
+        
         const { data, error } = await supabase
           .from('user_roles')
           .select('role')
@@ -39,6 +41,7 @@ export function useOkrPermissions(): OkrPermissions {
         
         // Extract role names
         const roles = data?.map(r => r.role) || [];
+        console.log('User roles fetched:', roles);
         setUserRoles(roles);
       } catch (error) {
         console.error('Error fetching user roles:', error);
@@ -53,25 +56,42 @@ export function useOkrPermissions(): OkrPermissions {
   // Helper function to check if user role is allowed for a specific permission
   const hasPermission = (permissionType: OkrPermissionType): boolean => {
     // Admin always has permission
-    if (isAdmin) return true;
+    if (isAdmin) {
+      console.log(`Permission ${permissionType}: true (user is admin)`);
+      return true;
+    }
     
     // When settings or user roles are still loading, default to no permission
-    if (settingsLoading || isLoading) return false;
+    if (settingsLoading || isLoading) {
+      console.log(`Permission ${permissionType}: false (still loading)`);
+      return false;
+    }
     
     // When settings or user doesn't exist, default to no permission
-    if (!settings || !user) return false;
+    if (!settings || !user) {
+      console.log(`Permission ${permissionType}: false (no settings or user)`);
+      return false;
+    }
     
     // Map permission type to the corresponding setting field
     const settingField = `can_${permissionType}` as keyof typeof settings;
+    
+    console.log(`Checking permission ${permissionType}`);
+    console.log(`Settings field: ${settingField}`);
+    console.log(`Allowed roles for this permission:`, settings[settingField]);
+    console.log(`User roles:`, userRoles);
     
     // Get allowed roles for this permission
     const allowedRoles = settings[settingField] as string[] || [];
     
     // Check if any of the user's roles are in the allowed roles
-    return userRoles.some(role => allowedRoles.includes(role));
+    const hasAccess = userRoles.some(role => allowedRoles.includes(role));
+    console.log(`Permission ${permissionType} granted:`, hasAccess);
+    
+    return hasAccess;
   };
-  
-  return {
+
+  const permissions = {
     canCreateObjectives: hasPermission('create_objectives'),
     canCreateOrgObjectives: hasPermission('create_org_objectives'),
     canCreateDeptObjectives: hasPermission('create_dept_objectives'),
@@ -83,4 +103,8 @@ export function useOkrPermissions(): OkrPermissions {
     canAlignWithTeamObjectives: hasPermission('align_with_team_objectives'),
     isLoading: settingsLoading || isLoading
   };
+  
+  console.log('Final OKR permissions:', permissions);
+  
+  return permissions;
 }

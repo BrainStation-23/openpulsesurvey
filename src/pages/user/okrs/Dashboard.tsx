@@ -10,11 +10,16 @@ import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
 import { Progress } from '@/components/ui/progress';
 import { ObjectiveCardEnhanced } from '@/components/okr/objectives/ObjectiveCardEnhanced';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useOkrPermissions } from '@/hooks/okr/useOkrPermissions';
 
 const UserOKRDashboard = () => {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
   const [selectedCycle, setSelectedCycle] = useState<string | null>(null);
+  const { canCreateObjectives, isLoading: permissionsLoading } = useOkrPermissions();
+  
+  console.log('Dashboard - Permission to create objectives:', canCreateObjectives);
+  console.log('Dashboard - Permissions loading:', permissionsLoading);
   
   const { cycles, isLoading: isLoadingCycles } = useOKRCycles();
   const { 
@@ -90,10 +95,12 @@ const UserOKRDashboard = () => {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-bold">My OKRs Dashboard</h1>
-        <Button onClick={handleCreateObjective}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Objective
-        </Button>
+        {!permissionsLoading && canCreateObjectives && (
+          <Button onClick={handleCreateObjective}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Objective
+          </Button>
+        )}
       </div>
       
       {isLoadingCycles ? (
@@ -242,10 +249,12 @@ const UserOKRDashboard = () => {
                       <p className="text-muted-foreground">
                         No {selectedCategory !== 'all' ? selectedCategory : ''} objectives found for this cycle.
                       </p>
-                      <Button onClick={handleCreateObjective} className="mt-4">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create Objective
-                      </Button>
+                      {!permissionsLoading && canCreateObjectives && (
+                        <Button onClick={handleCreateObjective} className="mt-4">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create Objective
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>

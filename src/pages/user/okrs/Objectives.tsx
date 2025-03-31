@@ -18,7 +18,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useSBUs } from '@/hooks/okr/useSBUs';
 import { ObjectivesFilterPanel } from '@/components/okr/objectives/filters/ObjectivesFilterPanel';
 import { PaginatedObjectivesGrid } from '@/components/okr/objectives/PaginatedObjectivesGrid';
-import { useFilteredObjectives } from '@/hooks/okr/useFilteredObjectives';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from "@/components/ui/input";
 import { useOkrPermissions } from '@/hooks/okr/useOkrPermissions';
@@ -29,7 +28,10 @@ const UserObjectives = () => {
   const { sbus, isLoading: sbusLoading } = useSBUs();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { canCreateObjectives } = useOkrPermissions();
+  const { canCreateObjectives, isLoading: permissionsLoading } = useOkrPermissions();
+  
+  console.log('User Objectives - Permission to create objectives:', canCreateObjectives);
+  console.log('User Objectives - Permissions loading:', permissionsLoading);
   
   // Get the most recent active cycle, or the first cycle if none are active
   const defaultCycleId = React.useMemo(() => {
@@ -80,8 +82,8 @@ const UserObjectives = () => {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">My Objectives</h1>
-        {/* Only show Create button if user has permission */}
-        {canCreateObjectives && (
+        {/* Only show Create button if user has permission and permissions are done loading */}
+        {!permissionsLoading && canCreateObjectives && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
