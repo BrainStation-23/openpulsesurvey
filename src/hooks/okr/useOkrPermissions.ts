@@ -21,39 +21,40 @@ interface OkrPermissions {
 export function useOkrPermissions(): OkrPermissions {
   const { user, isAdmin } = useCurrentUser();
   const { settings, loading: settingsLoading } = useOkrRoles();
-  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [employeeRoleId, setEmployeeRoleId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Fetch user roles
+  // Fetch user's employee role ID from their profile
   useEffect(() => {
-    const fetchUserRoles = async () => {
+    const fetchUserEmployeeRole = async () => {
       if (!user) return;
       
       try {
-        console.log('Fetching roles for user:', user.id);
+        console.log('Fetching employee role ID for user:', user.id);
         
         const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id);
+          .from('profiles')
+          .select('employee_role_id')
+          .eq('id', user.id)
+          .single();
           
         if (error) throw error;
         
-        // Extract role names
-        const roles = data?.map(r => r.role) || [];
-        console.log('User roles fetched:', roles);
-        setUserRoles(roles);
+        // Extract employee role ID
+        const roleId = data?.employee_role_id || null;
+        console.log('User employee role ID fetched:', roleId);
+        setEmployeeRoleId(roleId);
       } catch (error) {
-        console.error('Error fetching user roles:', error);
+        console.error('Error fetching user employee role ID:', error);
       } finally {
         setIsLoading(false);
       }
     };
     
-    fetchUserRoles();
+    fetchUserEmployeeRole();
   }, [user]);
   
-  // Helper function to check if user role is allowed for a specific permission
+  // Helper function to check if user's employee role is allowed for a specific permission
   const hasPermission = (permissionType: OkrPermissionType): boolean => {
     // Admin always has permission
     if (isAdmin) {
@@ -61,9 +62,9 @@ export function useOkrPermissions(): OkrPermissions {
       return true;
     }
     
-    // When settings or user roles are still loading, default to no permission
-    if (settingsLoading || isLoading) {
-      console.log(`Permission ${permissionType}: false (still loading)`);
+    // When settings, user or employee role are still loading, default to no permission
+    if (settingsLoading || isLoading || !employeeRoleId) {
+      console.log(`Permission ${permissionType}: false (still loading or no employee role ID found)`);
       return false;
     }
     
@@ -78,14 +79,14 @@ export function useOkrPermissions(): OkrPermissions {
     
     console.log(`Checking permission ${permissionType}`);
     console.log(`Settings field: ${settingField}`);
-    console.log(`Allowed roles for this permission:`, settings[settingField]);
-    console.log(`User roles:`, userRoles);
+    console.log(`Allowed role IDs for this permission:`, settings[settingField]);
+    console.log(`User employee role ID:`, employeeRoleId);
     
     // Get allowed roles for this permission
-    const allowedRoles = settings[settingField] as string[] || [];
+    const allowedRoleIds = settings[settingField] as string[] || [];
     
-    // Check if any of the user's roles are in the allowed roles
-    const hasAccess = userRoles.some(role => allowedRoles.includes(role));
+    // Check if the user's employee role ID is in the allowed roles
+    const hasAccess = allowedRoleIds.includes(employeeRoleId);
     console.log(`Permission ${permissionType} granted:`, hasAccess);
     
     return hasAccess;
