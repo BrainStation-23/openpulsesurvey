@@ -42,7 +42,6 @@ export const ObjectiveDetailsContent: React.FC<ObjectiveDetailsContentProps> = (
         <KeyResultsList
           objectiveId={objective.id}
           canEdit={canEditObjective}
-          isAdmin={isAdmin}
           keyResults={keyResults}
         />
       </TabsContent>
