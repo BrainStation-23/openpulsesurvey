@@ -126,7 +126,7 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
               ) : (
                 <KeyResultItem
                   keyResult={keyResult}
-                  canEdit={canEdit}
+                  canEdit={canEdit || (userId === keyResult.ownerId)}
                   onEditClick={() => handleEditClick(keyResult.id)}
                 />
               )}

@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getProgressBarColor } from './utils/progressBarUtils';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 interface KeyResultItemProps {
   keyResult: KeyResult;
@@ -22,10 +23,15 @@ interface KeyResultItemProps {
 }
 
 export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult, canEdit, onEditClick }) => {
+  const { userId } = useCurrentUser();
   const { deleteKeyResult, updateProgress, updateStatus } = useKeyResult(keyResult.id);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isProgressOpen, setIsProgressOpen] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
+  
+  // Determine if the current user can manage this key result
+  const isOwner = keyResult.ownerId === userId;
+  const canManage = canEdit || isOwner;
   
   const handleDelete = () => {
     deleteKeyResult.mutate(undefined, {
@@ -52,7 +58,7 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult, canEdit
       <Card className="overflow-hidden border-l-4" style={{ borderLeftColor: getProgressBarColor(keyResult.progress, keyResult.status) }}>
         <KeyResultHeader
           keyResult={keyResult}
-          canEdit={canEdit}
+          canEdit={canManage}
           onEditClick={onEditClick}
           onDeleteClick={() => setIsDeleteDialogOpen(true)}
         />
@@ -84,7 +90,7 @@ export const KeyResultItem: React.FC<KeyResultItemProps> = ({ keyResult, canEdit
           )}
         </div>
         
-        {canEdit && (
+        {canManage && (
           <div className="border-t bg-muted/30 px-6 py-3 space-y-3">
             <Collapsible open={isProgressOpen} onOpenChange={setIsProgressOpen}>
               <div className="flex items-center justify-between">
