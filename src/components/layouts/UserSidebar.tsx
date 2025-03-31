@@ -23,7 +23,8 @@ export default function UserSidebar({ onSignOut }: UserSidebarProps) {
   const { data: pendingSurveysCount } = usePendingSurveysCount();
   const location = useLocation();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const { collapsed } = useSidebar();
+  const { state } = useSidebar();
+  const isSidebarCollapsed = state === "collapsed";
 
   // Toggle section expansion
   const toggleSection = (section: string) => {
@@ -78,21 +79,21 @@ export default function UserSidebar({ onSignOut }: UserSidebarProps) {
                             >
                               <div className="flex items-center gap-2">
                                 <item.icon className="h-4 w-4" />
-                                {!collapsed && <span>{item.title}</span>}
-                                {!collapsed && item.path === "/user/my-surveys" && pendingSurveysCount > 0 && (
+                                {!isSidebarCollapsed && <span>{item.title}</span>}
+                                {!isSidebarCollapsed && item.path === "/user/my-surveys" && pendingSurveysCount > 0 && (
                                   <span className="ml-auto bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
                                     {pendingSurveysCount}
                                   </span>
                                 )}
                               </div>
-                              {!collapsed && (
+                              {!isSidebarCollapsed && (
                                 <ChevronDown className={cn(
                                   "h-4 w-4 transition-transform",
                                   expanded[item.title] && "transform rotate-180"
                                 )} />
                               )}
                             </button>
-                            {expanded[item.title] && !collapsed && (
+                            {expanded[item.title] && !isSidebarCollapsed && (
                               <div className="ml-6 mt-1 space-y-1">
                                 {item.children.map(child => (
                                   <SidebarMenuButton key={child.path} asChild
@@ -118,7 +119,7 @@ export default function UserSidebar({ onSignOut }: UserSidebarProps) {
                           <SidebarMenuButton asChild isActive={isActive(item.path)}>
                             <Link to={item.path} className="flex items-center gap-2">
                               <item.icon className="h-4 w-4" />
-                              {!collapsed && (
+                              {!isSidebarCollapsed && (
                                 <span>
                                   {item.title}
                                   {item.title === "My Surveys" && pendingSurveysCount > 0 && (
@@ -148,7 +149,7 @@ export default function UserSidebar({ onSignOut }: UserSidebarProps) {
             onClick={onSignOut}
           >
             <LogOut className="mr-2 h-4 w-4" />
-            {!collapsed && "Logout"}
+            {!isSidebarCollapsed && "Logout"}
           </Button>
         </div>
       </div>
