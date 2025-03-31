@@ -28,6 +28,7 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
   
   const keyResults = propKeyResults || fetchedKeyResults || [];
   const isLoading = propIsLoading || isResultsLoading;
+  
   // If canEdit prop is provided, use it, otherwise determine based on user permissions
   const canEdit = propCanEdit !== undefined ? propCanEdit : (isAdmin || canCreateKeyResults);
   
@@ -39,6 +40,8 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
     const checkKeyResultPermission = async () => {
       if (!userId) return;
       
+      console.log('Checking key result permission for user:', userId);
+      
       const { data, error } = await supabase.rpc('can_create_key_result', {
         p_user_id: userId
       });
@@ -48,6 +51,7 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
         return;
       }
       
+      console.log('Permission check result:', data);
       setCanCreateKeyResults(!!data);
     };
     
@@ -72,6 +76,15 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
   const editingKeyResult = editingId 
     ? keyResults.find(kr => kr.id === editingId)
     : undefined;
+
+  // Debug logging
+  console.log('KeyResultsList permissions:', {
+    userId,
+    isAdmin,
+    canCreateKeyResults,
+    canEdit,
+    propCanEdit
+  });
 
   if (isLoading) {
     return <div className="py-8 text-center text-muted-foreground">Loading key results...</div>;

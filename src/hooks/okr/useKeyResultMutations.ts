@@ -28,6 +28,8 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
     const checkKeyResultPermission = async () => {
       if (!userId) return;
       
+      console.log('useKeyResultMutations: Checking create permission for user:', userId);
+      
       const { data, error } = await supabase.rpc('can_create_key_result', {
         p_user_id: userId
       });
@@ -37,6 +39,7 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
         return;
       }
       
+      console.log('useKeyResultMutations: Permission check result:', data);
       setCanCreate(!!data);
     };
     
@@ -170,6 +173,8 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
       if (!canCreate) {
         throw new Error("You don't have permission to create key results");
       }
+      
+      console.log('Creating key result with permission check passed');
       return createKeyResultData(data);
     },
     onSuccess: () => {
@@ -182,6 +187,7 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
       });
     },
     onError: (error) => {
+      console.error('Error creating key result:', error);
       toast({
         variant: 'destructive',
         title: 'Error creating key result',
