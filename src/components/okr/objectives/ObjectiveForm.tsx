@@ -11,6 +11,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +29,8 @@ import { CreateObjectiveInput, Objective, ObjectiveVisibility, UpdateObjectiveIn
 import { UserSelector } from '@/components/okr/permissions/UserSelector';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useOkrPermissions } from '@/hooks/okr/useOkrPermissions';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from 'lucide-react';
 
 // Define the form schema
 const formSchema = z.object({
@@ -70,6 +73,14 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
     isLoading: permissionsLoading 
   } = useOkrPermissions();
 
+  // Create a map of user permissions for clearer permission checking
+  const userPermissions = {
+    team: canCreateTeamObjectives || canCreateObjectives,
+    department: canCreateDeptObjectives || canCreateObjectives,
+    organization: canCreateOrgObjectives || canCreateObjectives,
+    private: true // Everyone can create private objectives
+  };
+
   // Get OKR cycles
   const { data: cycles } = useQuery({
     queryKey: ['okrCycles'],
@@ -98,13 +109,28 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
     }
   });
 
+  // Log permission info for debugging
+  useEffect(() => {
+    if (!permissionsLoading) {
+      console.log('User Permissions for Objective Form:', {
+        canCreateObjectives,
+        canCreateOrgObjectives,
+        canCreateDeptObjectives,
+        canCreateTeamObjectives,
+        userPermissions,
+        isAdmin
+      });
+    }
+  }, [permissionsLoading, canCreateObjectives, canCreateOrgObjectives, canCreateDeptObjectives, canCreateTeamObjectives, isAdmin]);
+
   // Determine initial visibility based on permissions
   const getDefaultVisibility = (): ObjectiveVisibility => {
     if (objective) return objective.visibility;
     
-    if (canCreateTeamObjectives) return 'team';
-    if (canCreateDeptObjectives) return 'department';
-    if (canCreateOrgObjectives) return 'organization';
+    // Select the most specific visibility level the user has permission for
+    if (userPermissions.team) return 'team';
+    if (userPermissions.department) return 'department';
+    if (userPermissions.organization) return 'organization';
     return 'private';
   };
 
@@ -158,6 +184,17 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
 
   // Handle form submission
   const handleSubmit = (values: FormValues) => {
+    // Check if user has permission for the selected visibility
+    const selectedVisibility = values.visibility;
+    
+    if (!isAdmin && !userPermissions[selectedVisibility]) {
+      form.setError('visibility', { 
+        type: 'manual', 
+        message: `You don't have permission to create ${selectedVisibility} objectives`
+      });
+      return;
+    }
+    
     // Transform values to match API expectations if needed
     onSubmit({
       ...values,
@@ -174,41 +211,32 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
   };
 
   // Determine which visibility options to show based on permissions
-  const getVisibilityOptions = () => {
-    const options = [
-      {
-        value: 'private',
-        label: 'Private - Only visible to you and those you specifically share with',
-        always: true
-      },
-      {
-        value: 'team',
-        label: 'Team - Visible to your team members',
-        allowed: canCreateTeamObjectives || canCreateObjectives
-      },
-      {
-        value: 'department',
-        label: 'Department - Visible to your entire department',
-        allowed: canCreateDeptObjectives || canCreateObjectives
-      },
-      {
-        value: 'organization',
-        label: 'Organization - Visible to the entire organization',
-        allowed: canCreateOrgObjectives || canCreateObjectives
-      }
-    ];
-
-    // If editing an existing objective, show all options
-    if (objective) {
-      return options;
+  const visibilityOptions = [
+    {
+      value: 'private',
+      label: 'Private - Only visible to you and those you specifically share with',
+      allowed: true,
+      description: 'Everyone can create private objectives'
+    },
+    {
+      value: 'team',
+      label: 'Team - Visible to your team members',
+      allowed: userPermissions.team || isAdmin,
+      description: userPermissions.team ? 'You can create team objectives' : 'You do not have permission to create team objectives'
+    },
+    {
+      value: 'department',
+      label: 'Department - Visible to your entire department',
+      allowed: userPermissions.department || isAdmin,
+      description: userPermissions.department ? 'You can create department objectives' : 'You do not have permission to create department objectives'
+    },
+    {
+      value: 'organization',
+      label: 'Organization - Visible to the entire organization',
+      allowed: userPermissions.organization || isAdmin,
+      description: userPermissions.organization ? 'You can create organization objectives' : 'You do not have permission to create organization objectives'
     }
-    
-    // Otherwise filter based on permissions
-    return options.filter(option => option.always || option.allowed || isAdmin);
-  };
-
-  // Get visibility options based on permissions
-  const visibilityOptions = getVisibilityOptions();
+  ];
   
   // Check if the form's visibility selection is valid based on user permissions
   const isVisibilityValid = (): boolean => {
@@ -216,24 +244,29 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
     if (objective) return true; // Always allow editing existing objectives
     
     const selectedVisibility = form.watch('visibility');
-    
-    switch (selectedVisibility) {
-      case 'team':
-        return canCreateTeamObjectives || canCreateObjectives;
-      case 'department':
-        return canCreateDeptObjectives || canCreateObjectives;
-      case 'organization':
-        return canCreateOrgObjectives || canCreateObjectives;
-      case 'private':
-        return true; // Everyone can create private objectives
-      default:
-        return false;
-    }
+    return userPermissions[selectedVisibility];
   };
+
+  // Count how many visibility types the user can create
+  const allowedVisibilityCount = Object.values(userPermissions).filter(Boolean).length;
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        {/* Permission alert message if user has limited permissions */}
+        {!isAdmin && allowedVisibilityCount < 4 && !permissionsLoading && !objective && (
+          <Alert className="bg-blue-50 border-blue-200 mb-4">
+            <InfoIcon className="h-4 w-4 text-blue-500" />
+            <AlertDescription>
+              Based on your permissions, you can only create objectives with these visibility levels: {' '}
+              {Object.entries(userPermissions)
+                .filter(([_, hasPermission]) => hasPermission)
+                .map(([type]) => type.charAt(0).toUpperCase() + type.slice(1))
+                .join(', ')}
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {/* Use grid layout for better horizontal space usage */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-6 md:col-span-2">
@@ -393,15 +426,22 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
                   defaultValue={field.value}
                   className="grid grid-cols-1 md:grid-cols-2 gap-2"
                 >
-                  {/* Only show visibility options that the user has permission for */}
                   {visibilityOptions.map((option) => (
                     <FormItem key={option.value} className="flex items-center space-x-3 space-y-0">
                       <FormControl>
-                        <RadioGroupItem value={option.value} />
+                        <RadioGroupItem 
+                          value={option.value} 
+                          disabled={!isAdmin && !option.allowed && !objective}
+                        />
                       </FormControl>
-                      <FormLabel className="font-normal">
-                        {option.label}
-                      </FormLabel>
+                      <div className="space-y-0.5">
+                        <FormLabel className={`font-normal ${!isAdmin && !option.allowed && !objective ? 'text-gray-400' : ''}`}>
+                          {option.label}
+                        </FormLabel>
+                        <FormDescription className="text-xs">
+                          {option.description}
+                        </FormDescription>
+                      </div>
                     </FormItem>
                   ))}
                 </RadioGroup>

@@ -22,6 +22,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Input } from "@/components/ui/input";
 import { useOkrPermissions } from '@/hooks/okr/useOkrPermissions';
 import { useFilteredObjectives } from '@/hooks/okr/useFilteredObjectives';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const UserObjectives = () => {
   const { toast } = useToast();
@@ -29,6 +31,8 @@ const UserObjectives = () => {
   const { sbus, isLoading: sbusLoading } = useSBUs();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
+  
   const { 
     canCreateObjectives, 
     canCreateOrgObjectives, 
@@ -76,7 +80,15 @@ const UserObjectives = () => {
     handleSearchChange(e.target.value);
   };
 
+  // Reset error when dialog is opened or closed
+  React.useEffect(() => {
+    setCreateError(null);
+  }, [createDialogOpen]);
+
   const handleCreateObjective = (data: CreateObjectiveInput) => {
+    // Clear any previous errors
+    setCreateError(null);
+    
     createObjective.mutate(data, {
       onSuccess: () => {
         setCreateDialogOpen(false);
@@ -85,6 +97,17 @@ const UserObjectives = () => {
         toast({
           title: 'Success',
           description: 'Objective created successfully',
+        });
+      },
+      onError: (error) => {
+        console.error('Error creating objective:', error);
+        // Set the error message to display in the UI
+        setCreateError(error instanceof Error ? error.message : 'An unknown error occurred while creating the objective');
+        
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'Failed to create objective',
+          variant: 'destructive',
         });
       }
     });
@@ -166,6 +189,14 @@ const UserObjectives = () => {
               Create a new objective in an active OKR cycle
             </DialogDescription>
           </DialogHeader>
+          
+          {createError && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{createError}</AlertDescription>
+            </Alert>
+          )}
+          
           <CreateObjectiveForm 
             onSubmit={handleCreateObjective} 
             isSubmitting={createObjective.isPending} 

@@ -87,27 +87,32 @@ export function useObjectives(cycleId?: string) {
   // Create a new objective
   const createObjective = useMutation({
     mutationFn: async (objective: CreateObjectiveInput) => {
-      // Validate that the user has permission to create an objective with the selected visibility
-      if (!isAdmin) {
-        const hasPermission = 
-          (objective.visibility === 'team' && (canCreateTeamObjectives || canCreateObjectives)) ||
-          (objective.visibility === 'department' && (canCreateDeptObjectives || canCreateObjectives)) ||
-          (objective.visibility === 'organization' && (canCreateOrgObjectives || canCreateObjectives)) || 
-          (objective.visibility === 'private'); // Everyone can create private objectives
-          
-        if (!hasPermission) {
-          throw new Error(`You don't have permission to create ${objective.visibility} objectives`);
-        }
-      }
+      // Check user permissions based on selected visibility
+      const userPermissions = {
+        team: canCreateTeamObjectives || canCreateObjectives,
+        department: canCreateDeptObjectives || canCreateObjectives,
+        organization: canCreateOrgObjectives || canCreateObjectives,
+        private: true // Everyone can create private objectives
+      };
       
-      console.log('Creating objective with permissions check:', {
-        visibility: objective.visibility,
-        canCreateObjectives,
-        canCreateTeamObjectives,
-        canCreateDeptObjectives,
-        canCreateOrgObjectives,
-        isAdmin
+      // Log detailed permission information for debugging
+      console.log('Creating objective - Permission details:', {
+        selectedVisibility: objective.visibility,
+        userPermissions: userPermissions,
+        hasPermissionForSelectedVisibility: userPermissions[objective.visibility],
+        isAdmin,
+        userId
       });
+      
+      // Check if user has permission for the selected visibility
+      if (!isAdmin && !userPermissions[objective.visibility]) {
+        const errorMessage = `You don't have permission to create ${objective.visibility} objectives. Your permissions: ${Object.entries(userPermissions)
+          .filter(([_, hasPermission]) => hasPermission)
+          .map(([type]) => type)
+          .join(', ')}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+      }
       
       // Prepare the data for insertion
       const objectiveData = {
@@ -129,7 +134,12 @@ export function useObjectives(cycleId?: string) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error creating objective:', error);
+        throw error;
+      }
+      
+      console.log('Objective created successfully:', data);
       return mapDbObjectiveToObjective(data as ObjectiveDB);
     },
     onSuccess: () => {
