@@ -122,6 +122,9 @@ export const useObjectivesByVisibility = (cycleId?: string) => {
             ? obj.owners[0] as unknown as OwnerProfile 
             : null;
 
+          // Convert the approved_at string to a Date object if present
+          const approvedAt = obj.approved_at ? new Date(obj.approved_at) : undefined;
+
           return {
             ...obj,
             id: obj.id,
@@ -137,6 +140,8 @@ export const useObjectivesByVisibility = (cycleId?: string) => {
             approvalStatus: obj.approval_status,
             createdAt: new Date(obj.created_at),
             updatedAt: new Date(obj.updated_at),
+            approved_by: obj.approved_by,
+            approved_at: approvedAt, // Convert string to Date
             owner: ownerData ? {
               id: ownerData.id,
               fullName: `${ownerData.first_name || ''} ${ownerData.last_name || ''}`.trim(),
