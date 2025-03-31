@@ -21,6 +21,7 @@ import { PaginatedObjectivesGrid } from '@/components/okr/objectives/PaginatedOb
 import { useFilteredObjectives } from '@/hooks/okr/useFilteredObjectives';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from "@/components/ui/input";
+import { useOkrPermissions } from '@/hooks/okr/useOkrPermissions';
 
 const UserObjectives = () => {
   const { toast } = useToast();
@@ -28,6 +29,7 @@ const UserObjectives = () => {
   const { sbus, isLoading: sbusLoading } = useSBUs();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { canCreateObjectives } = useOkrPermissions();
   
   // Get the most recent active cycle, or the first cycle if none are active
   const defaultCycleId = React.useMemo(() => {
@@ -78,19 +80,22 @@ const UserObjectives = () => {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">My Objectives</h1>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Objective
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Create a new objective in the current OKR cycle</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {/* Only show Create button if user has permission */}
+        {canCreateObjectives && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={() => setCreateDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Objective
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Create a new objective in the current OKR cycle</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
       
       <div className="flex items-center mb-4">
