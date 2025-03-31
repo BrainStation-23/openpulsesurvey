@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,26 +82,25 @@ const UserObjectives = () => {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">My Objectives</h1>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button 
-                  onClick={() => setCreateDialogOpen(true)}
-                  disabled={!canCreateObjective}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Objective
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              {canCreateObjective 
-                ? "Create a new objective in the current OKR cycle"
-                : "You don't have permission to create objectives"}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {canCreateObjective && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button 
+                    onClick={() => setCreateDialogOpen(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Objective
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                Create a new objective in the current OKR cycle
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
       
       <div className="flex items-center mb-4">
@@ -149,21 +149,23 @@ const UserObjectives = () => {
         </Card>
       </div>
 
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Create New Objective</DialogTitle>
-            <DialogDescription>
-              Create a new objective in an active OKR cycle
-            </DialogDescription>
-          </DialogHeader>
-          <CreateObjectiveForm 
-            onSubmit={handleCreateObjective} 
-            isSubmitting={createObjective.isPending} 
-            cycleId={defaultCycleId}
-          />
-        </DialogContent>
-      </Dialog>
+      {canCreateObjective && (
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Create New Objective</DialogTitle>
+              <DialogDescription>
+                Create a new objective in an active OKR cycle
+              </DialogDescription>
+            </DialogHeader>
+            <CreateObjectiveForm 
+              onSubmit={handleCreateObjective} 
+              isSubmitting={createObjective.isPending} 
+              cycleId={defaultCycleId}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
