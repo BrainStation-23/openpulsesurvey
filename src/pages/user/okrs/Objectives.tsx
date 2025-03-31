@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,6 @@ import { Input } from "@/components/ui/input";
 import { useOkrPermissions } from '@/hooks/okr/useOkrPermissions';
 import { useFilteredObjectives } from '@/hooks/okr/useFilteredObjectives';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
 
 const UserObjectives = () => {
   const { toast } = useToast();
@@ -48,6 +47,12 @@ const UserObjectives = () => {
     canCreateTeamObjectives;
   
   console.log('User Objectives - Permission to create ANY objectives:', canCreateAnyObjectives);
+  console.log('User Objectives - Detailed permissions:', {
+    canCreateObjectives,
+    canCreateOrgObjectives,
+    canCreateDeptObjectives,
+    canCreateTeamObjectives
+  });
   
   // Get the most recent active cycle, or the first cycle if none are active
   const defaultCycleId = React.useMemo(() => {
@@ -85,32 +90,45 @@ const UserObjectives = () => {
     setCreateError(null);
   }, [createDialogOpen]);
 
-  const handleCreateObjective = (data: CreateObjectiveInput) => {
+  const handleCreateObjective = async (data: CreateObjectiveInput) => {
     // Clear any previous errors
     setCreateError(null);
     
-    createObjective.mutate(data, {
-      onSuccess: () => {
-        setCreateDialogOpen(false);
-        // Immediately refetch objectives to show the newly created one
-        refetch();
-        toast({
-          title: 'Success',
-          description: 'Objective created successfully',
-        });
-      },
-      onError: (error) => {
-        console.error('Error creating objective:', error);
-        // Set the error message to display in the UI
-        setCreateError(error instanceof Error ? error.message : 'An unknown error occurred while creating the objective');
-        
-        toast({
-          title: 'Error',
-          description: error instanceof Error ? error.message : 'Failed to create objective',
-          variant: 'destructive',
-        });
-      }
-    });
+    // Log the form data for debugging
+    console.log('Submitting objective creation form with data:', data);
+    
+    try {
+      await createObjective.mutateAsync(data, {
+        onSuccess: () => {
+          setCreateDialogOpen(false);
+          // Immediately refetch objectives to show the newly created one
+          refetch();
+          toast({
+            title: 'Success',
+            description: 'Objective created successfully',
+          });
+        },
+        onError: (error) => {
+          console.error('Error creating objective:', error);
+          // Set the error message to display in the UI
+          setCreateError(error instanceof Error ? error.message : 'An unknown error occurred while creating the objective');
+          
+          toast({
+            title: 'Error',
+            description: error instanceof Error ? error.message : 'Failed to create objective',
+            variant: 'destructive',
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Exception in handleCreateObjective:', error);
+      setCreateError(error instanceof Error ? error.message : 'An unknown error occurred');
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to create objective',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (

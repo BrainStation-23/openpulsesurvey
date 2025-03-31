@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Objective, CreateObjectiveInput, UpdateObjectiveInput, ApprovalStatus, ObjectiveVisibility, ObjectiveStatus } from '@/types/okr';
@@ -98,21 +99,33 @@ export function useObjectives(cycleId?: string) {
       // Log detailed permission information for debugging
       console.log('Creating objective - Permission details:', {
         selectedVisibility: objective.visibility,
-        userPermissions: userPermissions,
+        userPermissions,
         hasPermissionForSelectedVisibility: userPermissions[objective.visibility],
         isAdmin,
         userId
       });
       
+      // Form validation - Check required fields
+      if (!objective.title || !objective.title.trim()) {
+        throw new Error("Title is required");
+      }
+      
+      if (!objective.cycleId) {
+        throw new Error("Please select an OKR cycle");
+      }
+      
       // Check if user has permission for the selected visibility
       if (!isAdmin && !userPermissions[objective.visibility]) {
-        const errorMessage = `You don't have permission to create ${objective.visibility} objectives. Your permissions: ${Object.entries(userPermissions)
+        const visibilityPermissions = Object.entries(userPermissions)
           .filter(([_, hasPermission]) => hasPermission)
-          .map(([type]) => type)
-          .join(', ')}`;
+          .map(([type]) => type);
+          
+        const errorMessage = `You don't have permission to create ${objective.visibility} objectives. You can only create: ${visibilityPermissions.join(', ')} objectives.`;
         console.error(errorMessage);
         throw new Error(errorMessage);
       }
+      
+      console.log('Permissions validated, preparing data for insertion');
       
       // Prepare the data for insertion
       const objectiveData = {
@@ -128,6 +141,8 @@ export function useObjectives(cycleId?: string) {
         approval_status: 'pending' as ApprovalStatus // Default approval status
       };
 
+      console.log('Sending objective data to database:', objectiveData);
+
       const { data, error } = await supabase
         .from('objectives')
         .insert(objectiveData)
@@ -136,7 +151,7 @@ export function useObjectives(cycleId?: string) {
 
       if (error) {
         console.error('Supabase error creating objective:', error);
-        throw error;
+        throw new Error(`Database error: ${error.message}`);
       }
       
       console.log('Objective created successfully:', data);
@@ -145,6 +160,9 @@ export function useObjectives(cycleId?: string) {
     onSuccess: () => {
       // Invalidate and refetch objectives query
       queryClient.invalidateQueries({ queryKey: ['objectives'] });
+    },
+    onError: (error) => {
+      console.error('Error in createObjective mutation:', error);
     }
   });
 
