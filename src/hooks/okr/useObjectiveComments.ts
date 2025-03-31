@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -159,7 +159,7 @@ export const useObjectiveComments = (objectiveId?: string) => {
     queryKey: ['objective-comments', objectiveId, page],
     queryFn: () => fetchComments({ page }),
     enabled: !!objectiveId,
-    keepPreviousData: true
+    staleTime: 1000 * 60 // 1 minute
   });
 
   // Load more comments
@@ -178,15 +178,16 @@ export const useObjectiveComments = (objectiveId?: string) => {
 
   // Combine comments from all pages
   const allComments = useMemo(() => {
-    const queryCache = queryClient.getQueryCache();
-    const queries = queryCache.findAll(['objective-comments', objectiveId]);
+    const queries = queryClient.getQueriesData({
+      queryKey: ['objective-comments', objectiveId]
+    });
     
     let combinedComments: Comment[] = [];
     
-    queries.forEach(query => {
-      const pageData = query.state.data as { comments: Comment[], hasMore: boolean } | undefined;
-      if (pageData?.comments) {
-        combinedComments = [...combinedComments, ...pageData.comments];
+    queries.forEach(([, pageData]) => {
+      const typedData = pageData as { comments: Comment[], hasMore: boolean } | undefined;
+      if (typedData?.comments) {
+        combinedComments = [...combinedComments, ...typedData.comments];
       }
     });
     
@@ -299,7 +300,7 @@ export const useObjectiveComments = (objectiveId?: string) => {
   });
 
   return {
-    comments: allComments || [],
+    comments: data?.comments || [],
     isLoading,
     error,
     createComment: createComment.mutate,
