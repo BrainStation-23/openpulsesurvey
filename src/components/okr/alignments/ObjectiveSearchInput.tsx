@@ -19,6 +19,7 @@ interface ObjectiveSearchInputProps {
   placeholder?: string;
   className?: string;
   visibilityFilter?: ObjectiveVisibility | 'all';
+  selectedSbuId?: string | null;
   permissions?: {
     organization: boolean;
     department: boolean;
@@ -34,6 +35,7 @@ export const ObjectiveSearchInput = ({
   placeholder = 'Search objectives...',
   className,
   visibilityFilter = 'all',
+  selectedSbuId,
   permissions
 }: ObjectiveSearchInputProps) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -87,6 +89,7 @@ export const ObjectiveSearchInput = ({
     // 4. Objectives that are already aligned with this objective
     // 5. Filter by visibility if provided
     // 6. Filter by user's permission to align with objectives
+    // 7. Filter by SBU if department visibility is selected and sbuId is provided
     const childIdsToExclude = new Set<string>();
     
     // Helper function to recursively collect all child IDs
@@ -135,6 +138,11 @@ export const ObjectiveSearchInput = ({
         return false;
       }
       
+      // Filter by SBU for department visibility
+      if (visibilityFilter === 'department' && selectedSbuId && obj.sbuId !== selectedSbuId) {
+        return false;
+      }
+      
       // Apply search query
       if (searchQuery) {
         return obj.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -144,7 +152,7 @@ export const ObjectiveSearchInput = ({
     });
     
     setFilteredObjectives(filtered);
-  }, [objectives, currentObjectiveId, searchQuery, alignments, visibilityFilter, permissions]);
+  }, [objectives, currentObjectiveId, searchQuery, alignments, visibilityFilter, selectedSbuId, permissions]);
 
   return (
     <div className={cn("space-y-4", className)}>

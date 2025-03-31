@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, ArrowUp, ArrowDown, LockIcon } from "lucide-react";
@@ -14,6 +14,9 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useSBUs } from '@/hooks/okr/useSBUs';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ObjectiveSelectionProps {
   relationDirection: 'parent' | 'child';
@@ -44,14 +47,46 @@ export const ObjectiveSelection = ({
   permissions,
   isLoadingPermissions
 }: ObjectiveSelectionProps) => {
+  const { sbus, isLoading: sbusLoading } = useSBUs();
+  const { user } = useCurrentUser();
+  const [selectedSbuId, setSelectedSbuId] = React.useState<string | null>(null);
+  const [userSbuId, setUserSbuId] = React.useState<string | null>(null);
+  
+  // Fetch the user's primary SBU when component mounts
+  useEffect(() => {
+    const fetchUserSbu = async () => {
+      if (user?.id) {
+        const { data } = await supabase
+          .from('user_sbus')
+          .select('sbu_id')
+          .eq('user_id', user.id)
+          .eq('is_primary', true)
+          .single();
+        
+        if (data?.sbu_id) {
+          setUserSbuId(data.sbu_id);
+          setSelectedSbuId(data.sbu_id);
+        }
+      }
+    };
+    
+    fetchUserSbu();
+  }, [user]);
   
   const handleSelectObjective = (objective: Objective) => {
     setSelectedObjective(objective);
   };
 
+  // Reset SBU filter when visibility changes
+  useEffect(() => {
+    if (visibilityFilter === 'department' && userSbuId) {
+      setSelectedSbuId(userSbuId);
+    }
+  }, [visibilityFilter, userSbuId]);
+
   // If user doesn't have permission to view any type of objective, default to "all"
   // to avoid empty selection
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isLoadingPermissions && !permissions.hasAnyPermission) {
       setVisibilityFilter('all');
     }
@@ -185,6 +220,32 @@ export const ObjectiveSelection = ({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Show SBU filter only when department visibility is selected */}
+        {visibilityFilter === 'department' && (
+          <div className="space-y-2">
+            <Label>Filter by Department (SBU)</Label>
+            <Select 
+              value={selectedSbuId || ''}
+              onValueChange={(value) => setSelectedSbuId(value || null)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select department" />
+              </SelectTrigger>
+              <SelectContent>
+                {sbusLoading ? (
+                  <SelectItem value="loading">Loading...</SelectItem>
+                ) : (
+                  sbus?.map(sbu => (
+                    <SelectItem key={sbu.id} value={sbu.id}>
+                      {sbu.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
       
       {selectedObjective && (
@@ -232,6 +293,7 @@ export const ObjectiveSelection = ({
           placeholder="Search for objectives..."
           visibilityFilter={visibilityFilter}
           permissions={permissions}
+          selectedSbuId={visibilityFilter === 'department' ? selectedSbuId : undefined}
         />
       </div>
     </div>
