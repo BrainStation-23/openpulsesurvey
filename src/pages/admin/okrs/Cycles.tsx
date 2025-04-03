@@ -8,7 +8,6 @@ import { format } from 'date-fns';
 import { CyclesGrid } from '@/components/okr/cycles/CyclesGrid';
 import { CycleTimeline } from '@/components/okr/cycles/CycleTimeline';
 import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 const AdminOKRCycles = () => {
   const { cycles, isLoading, error } = useOKRCycles();
@@ -167,85 +166,15 @@ const AdminOKRCycles = () => {
           </CardContent>
         </Card>
       ) : (
-        <ResizablePanelGroup direction="vertical" className="min-h-[600px]">
-          <ResizablePanel defaultSize={75}>
-            <div className="p-2">
-              {viewMode === 'timeline' ? (
-                <CycleTimeline cycles={filteredCycles} isLoading={isLoading} />
-              ) : (
-                <CyclesGrid cycles={filteredCycles} isLoading={isLoading} />
-              )}
-            </div>
-          </ResizablePanel>
-          <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={25}>
-            <div className="p-3 border-t bg-muted/20">
-              <h3 className="font-semibold mb-2">OKR Cycle Hierarchy</h3>
-              <div className="space-y-3">
-                <div className="flex items-start space-x-3">
-                  <div className="w-20 text-sm font-medium text-right">Yearly:</div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Annual company-wide objectives (12 months)</p>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {groupedCycles.yearly.slice(0, 3).map(cycle => (
-                        <Link 
-                          key={cycle.id} 
-                          to={`/admin/okrs/cycles/${cycle.id}`}
-                          className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded hover:bg-blue-200"
-                        >
-                          {cycle.name}
-                        </Link>
-                      ))}
-                      {groupedCycles.yearly.length > 3 && (
-                        <span className="text-xs px-1">+{groupedCycles.yearly.length - 3} more</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-20 text-sm font-medium text-right">Quarterly:</div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Quarterly focus areas (3 months)</p>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {groupedCycles.quarterly.slice(0, 3).map(cycle => (
-                        <Link 
-                          key={cycle.id} 
-                          to={`/admin/okrs/cycles/${cycle.id}`}
-                          className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded hover:bg-green-200"
-                        >
-                          {cycle.name}
-                        </Link>
-                      ))}
-                      {groupedCycles.quarterly.length > 3 && (
-                        <span className="text-xs px-1">+{groupedCycles.quarterly.length - 3} more</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-20 text-sm font-medium text-right">Monthly:</div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Short-term goals and execution (1 month)</p>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {groupedCycles.monthly.slice(0, 3).map(cycle => (
-                        <Link 
-                          key={cycle.id} 
-                          to={`/admin/okrs/cycles/${cycle.id}`}
-                          className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded hover:bg-amber-200"
-                        >
-                          {cycle.name}
-                        </Link>
-                      ))}
-                      {groupedCycles.monthly.length > 3 && (
-                        <span className="text-xs px-1">+{groupedCycles.monthly.length - 3} more</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+        <div className="min-h-[600px]">
+          <div className="p-2">
+            {viewMode === 'timeline' ? (
+              <CycleTimeline cycles={filteredCycles} isLoading={isLoading} />
+            ) : (
+              <CyclesGrid cycles={filteredCycles} isLoading={isLoading} />
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
