@@ -40,7 +40,7 @@ const AdminCreateOKRCycle = () => {
         <CardHeader>
           <CardTitle>New OKR Cycle</CardTitle>
           <CardDescription>
-            Define a time period for tracking and achieving your organization's objectives
+            Create a new cycle for tracking and achieving your organization's objectives
           </CardDescription>
         </CardHeader>
         <CardContent>

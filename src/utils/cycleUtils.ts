@@ -10,29 +10,34 @@ import {
   startOfMonth, 
   endOfMonth,
   differenceInDays,
+  differenceInMonths,
   isWithinInterval
 } from 'date-fns';
 
-type CycleType = 'monthly' | 'quarterly' | 'yearly';
+export type CycleType = 'monthly' | 'quarterly' | 'yearly';
 
 export const calculateCycleDates = (
   type: CycleType, 
   startDate: Date = new Date()
 ): { startDate: Date; endDate: Date } => {
-  const start = new Date(startDate);
+  let start: Date;
   let end: Date;
   
   switch (type) {
     case 'monthly':
+      start = startOfMonth(startDate);
       end = endOfMonth(start);
       break;
     case 'quarterly':
+      start = startOfQuarter(startDate);
       end = endOfQuarter(start);
       break;
     case 'yearly':
+      start = startOfYear(startDate);
       end = endOfYear(start);
       break;
     default:
+      start = new Date(startDate);
       end = addMonths(start, 3);
   }
   
@@ -77,4 +82,25 @@ export const getCycleProgress = (startDate: Date, endDate: Date): number => {
 export const isCycleActive = (startDate: Date, endDate: Date): boolean => {
   const now = new Date();
   return isWithinInterval(now, { start: startDate, end: endDate });
+};
+
+export const determineCycleType = (startDate: Date, endDate: Date): CycleType => {
+  const monthsDiff = differenceInMonths(endDate, startDate);
+  
+  if (monthsDiff >= 11) return 'yearly';
+  if (monthsDiff >= 2) return 'quarterly';
+  return 'monthly';
+};
+
+export const getCycleColor = (cycleType: CycleType): string => {
+  switch (cycleType) {
+    case 'yearly':
+      return 'blue';
+    case 'quarterly':
+      return 'green';
+    case 'monthly':
+      return 'amber';
+    default:
+      return 'gray';
+  }
 };
