@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { KeyResult } from '@/types/okr';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { KeyResultInlineForm } from './KeyResultInlineForm';
 import { useKeyResults } from '@/hooks/okr/useKeyResults';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { supabase } from '@/integrations/supabase/client';
+import { useObjectiveAccessPermission } from '@/hooks/okr/useObjectiveAccessPermission';
 
 interface KeyResultsListProps {
   objectiveId: string;
@@ -25,12 +25,19 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
   const { userId, isAdmin } = useCurrentUser();
   const { data: fetchedKeyResults, isLoading: isResultsLoading } = useKeyResults(objectiveId);
   const [canCreateKeyResults, setCanCreateKeyResults] = useState(false);
+  const { canEdit: hasEditPermission } = useObjectiveAccessPermission({ 
+    userId,
+    objectiveId
+  });
   
   const keyResults = propKeyResults || fetchedKeyResults || [];
   const isLoading = propIsLoading || isResultsLoading;
   
   // If canEdit prop is provided, use it for general editing
-  const canEdit = propCanEdit !== undefined ? propCanEdit : (isAdmin || false);
+  // Otherwise, check if user is admin OR has explicit edit permission
+  const canEdit = propCanEdit !== undefined 
+    ? propCanEdit 
+    : (isAdmin || hasEditPermission || false);
   
   // canCreateKeyResults is now separate from canEdit
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -84,7 +91,8 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
     isAdmin,
     canCreateKeyResults,
     canEdit,
-    propCanEdit
+    propCanEdit,
+    hasEditPermission
   });
 
   if (isLoading) {

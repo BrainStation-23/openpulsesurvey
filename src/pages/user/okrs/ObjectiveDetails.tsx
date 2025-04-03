@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { PermissionsList } from '@/components/okr/permissions/PermissionsList';
 import { useObjectiveStatusUpdates } from '@/hooks/okr/useObjectiveStatusUpdates';
 import { ObjectiveDetailsTab } from '@/components/okr/objectives/ObjectiveDetailsTab';
+import { useObjectiveAccessPermission } from '@/hooks/okr/useObjectiveAccessPermission';
+import { CommentsSection } from '@/components/okr/comments/CommentsSection';
 
 const UserObjectiveDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -66,7 +68,7 @@ const UserObjectiveDetails = () => {
     deleteObjective,
     isDeleting
   } = useObjective(id);
-  
+
   const { 
     objective: objectiveWithRelations 
   } = useObjectiveWithRelations(id);
@@ -91,7 +93,12 @@ const UserObjectiveDetails = () => {
   });
   
   const isOwner = objective && userId === objective.ownerId;
-  const canEdit = isOwner || isAdmin;
+  const { canEdit: hasExplicitEditPermission } = useObjectiveAccessPermission({
+    userId,
+    objectiveId: id
+  });
+  
+  const canEdit = isOwner || isAdmin || hasExplicitEditPermission;
   
   const { 
     canChangeStatus, 
@@ -181,6 +188,13 @@ const UserObjectiveDetails = () => {
     );
   }
   
+  console.log('Objective permissions:', {
+    isOwner,
+    isAdmin,
+    hasExplicitEditPermission,
+    canEdit
+  });
+  
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -262,11 +276,17 @@ const UserObjectiveDetails = () => {
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="px-6">
-            <TabsList className="grid grid-cols-4 w-[400px]">
+            <TabsList className="grid grid-cols-5 w-[500px]">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="key-results">Key Results</TabsTrigger>
               <TabsTrigger value="alignments">Alignments</TabsTrigger>
               <TabsTrigger value="permissions">Permissions</TabsTrigger>
+              <TabsTrigger value="comments">
+                <div className="flex items-center">
+                  <MessageSquare className="h-4 w-4 mr-1" />
+                  Comments
+                </div>
+              </TabsTrigger>
             </TabsList>
           </div>
           
@@ -306,6 +326,12 @@ const UserObjectiveDetails = () => {
                 objectiveId={id} 
                 canManagePermissions={canEdit}
               />
+            </CardContent>
+          </TabsContent>
+
+          <TabsContent value="comments" className="mt-0">
+            <CardContent className="pt-6">
+              {id && <CommentsSection objectiveId={id} />}
             </CardContent>
           </TabsContent>
         </Tabs>

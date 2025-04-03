@@ -40,7 +40,7 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
   const isUnderweighted = parseFloat(totalWeight) < 1;
   
   return (
-    <div className="pt-6">
+    <div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Details</h3>
