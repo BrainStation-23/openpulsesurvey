@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -50,7 +51,7 @@ import EditUserPage from "./pages/admin/users/[id]/edit";
 import MySurveysPage from "./pages/admin/my-surveys";
 import SurveyResponsePage from "./pages/admin/my-surveys/[id]";
 import SurveysPage from "./pages/admin/surveys";
-import SurveyFormPage from "./pages/admin/surveys/SurveyFormPage";
+import CreateSurveyPage from "./pages/admin/surveys/create";
 import PreviewSurveyPage from "./pages/admin/surveys/[id]/preview";
 import CampaignsPage from "./pages/admin/surveys/campaigns";
 import CampaignFormPage from "./pages/admin/surveys/campaigns/CampaignFormPage";
@@ -141,8 +142,8 @@ const App = () => (
               <Route path="my-surveys" element={<MySurveysPage />} />
               <Route path="my-surveys/:assignmentId/:instanceId" element={<SurveyResponsePage />} />
               <Route path="surveys" element={<SurveysPage />} />
-              <Route path="surveys/create" element={<SurveyFormPage />} />
-              <Route path="surveys/:id/edit" element={<SurveyFormPage />} />
+              <Route path="surveys/create" element={<CreateSurveyPage />} />
+              <Route path="surveys/:id/edit" element={<CreateSurveyPage />} />
               <Route path="surveys/:id/preview" element={<PreviewSurveyPage />} />
               <Route path="surveys/campaigns" element={<CampaignsPage />} />
               <Route path="surveys/campaigns/create" element={<CampaignFormPage />} />
