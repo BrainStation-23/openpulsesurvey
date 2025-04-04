@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form } from "@/components/ui/form";
 import { supabase } from '@/integrations/supabase/client';
-import { CreateObjectiveInput, Objective, UpdateObjectiveInput, ProgressCalculationMethod } from '@/types/okr';
+import { CreateObjectiveInput, Objective, UpdateObjectiveInput, ProgressCalculationMethod, OKRDefaultSettings } from '@/types/okr';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { ObjectiveFormFields } from './form/ObjectiveFormFields';
 import { ObjectiveVisibilityField } from './form/ObjectiveVisibilityField';
@@ -13,7 +12,6 @@ import { ObjectiveFormActions } from './form/ObjectiveFormActions';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 
-// Define the form schema
 const formSchema = z.object({
   title: z.string().min(3, { message: "Title must be at least 3 characters" }),
   description: z.string().optional(),
@@ -49,22 +47,25 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
   const [parentObjectiveOptions, setParentObjectiveOptions] = useState<{ id: string; title: string }[]>([]);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
 
-  const { data: defaultSettings } = useQuery({
+  const { data: defaultSettings } = useQuery<OKRDefaultSettings | null>({
     queryKey: ['okr_default_settings'],
     queryFn: async () => {
-      // Using any to bypass TypeScript validation
-      const { data, error } = await supabase
-        .from('okr_default_settings')
-        .select('*')
-        .limit(1)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') throw error;
-      return data || { default_progress_calculation_method: 'weighted_sum' };
+      try {
+        const { data, error } = await supabase
+          .from('okr_default_settings')
+          .select('*')
+          .limit(1)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') throw error;
+        return data as OKRDefaultSettings || { id: null, default_progress_calculation_method: 'weighted_sum' };
+      } catch (error) {
+        console.error('Error fetching default settings:', error);
+        return { id: null, default_progress_calculation_method: 'weighted_sum' } as OKRDefaultSettings;
+      }
     }
   });
 
-  // Initialize form with objective data if editing, otherwise use defaults
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -76,12 +77,11 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
       sbuId: objective?.sbuId || null,
       ownerId: objective?.ownerId || userId || '',
       progressCalculationMethod: objective?.progressCalculationMethod as ProgressCalculationMethod || 
-                               (defaultSettings?.default_progress_calculation_method as ProgressCalculationMethod) || 
+                               defaultSettings?.default_progress_calculation_method || 
                                'weighted_sum',
     },
   });
 
-  // Set selectedOwner based on form value
   useEffect(() => {
     const currentOwner = form.watch('ownerId');
     if (currentOwner) {
@@ -89,7 +89,6 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
     }
   }, [form.watch('ownerId')]);
 
-  // Fetch parent objective options when cycleId changes
   useEffect(() => {
     const cycleId = form.watch('cycleId');
     
@@ -111,7 +110,6 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
           return;
         }
         
-        // Filter out the current objective if it exists
         const filteredOptions = objective ? data.filter(item => item.id !== objective.id) : data;
         setParentObjectiveOptions(filteredOptions);
       };
@@ -120,9 +118,7 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
     }
   }, [form.watch('cycleId'), objective, hideParentObjective, toast]);
 
-  // Handle form submission
   const handleSubmit = (values: FormValues) => {
-    // Transform values to match API expectations if needed
     onSubmit({
       ...values,
       parentObjectiveId: values.parentObjectiveId || undefined

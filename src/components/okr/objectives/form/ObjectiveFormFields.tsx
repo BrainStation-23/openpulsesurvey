@@ -22,7 +22,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { UserSelector } from '@/components/okr/permissions/UserSelector';
 import { SBUSelector } from '@/components/okr/permissions/SBUSelector';
-import { ProgressCalculationMethod } from '@/types/okr';
+import { ProgressCalculationMethod, OKRDefaultSettings } from '@/types/okr';
 
 interface ObjectiveFormFieldsProps {
   form: UseFormReturn<any>;
@@ -54,7 +54,7 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
     }
   });
 
-  const { data: defaultSettings } = useQuery({
+  const { data: defaultSettings } = useQuery<OKRDefaultSettings | null>({
     queryKey: ['okr_default_settings'],
     queryFn: async () => {
       try {
@@ -65,10 +65,10 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
           .single();
         
         if (error && error.code !== 'PGRST116') throw error;
-        return data || { default_progress_calculation_method: defaultCalcMethod };
+        return data as OKRDefaultSettings || { id: null, default_progress_calculation_method: defaultCalcMethod };
       } catch (error) {
         console.error('Error fetching default settings:', error);
-        return { default_progress_calculation_method: defaultCalcMethod };
+        return { id: null, default_progress_calculation_method: defaultCalcMethod } as OKRDefaultSettings;
       }
     }
   });
@@ -210,7 +210,7 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
             <FormLabel>Progress Calculation Method</FormLabel>
             <Select 
               onValueChange={field.onChange} 
-              defaultValue={field.value || defaultSettings?.default_progress_calculation_method as ProgressCalculationMethod || 'weighted_sum'}
+              defaultValue={field.value || defaultSettings?.default_progress_calculation_method || 'weighted_sum'}
             >
               <FormControl>
                 <SelectTrigger>

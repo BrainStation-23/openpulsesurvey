@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ProgressCalculationMethod } from '@/types/okr';
+import { ProgressCalculationMethod, OKRDefaultSettings } from '@/types/okr';
 
 const formSchema = z.object({
   defaultProgressCalculationMethod: z.enum(['weighted_sum', 'weighted_avg']),
@@ -22,28 +22,32 @@ export const DefaultSettingsForm = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings, isLoading } = useQuery<OKRDefaultSettings | null>({
     queryKey: ['okr_default_settings'],
     queryFn: async () => {
-      // Using any to bypass TypeScript validation since the table definition isn't generated
-      const { data, error } = await supabase
-        .from('okr_default_settings')
-        .select('*')
-        .limit(1)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') throw error;
-      return data || { default_progress_calculation_method: 'weighted_sum', id: null };
+      try {
+        const { data, error } = await supabase
+          .from('okr_default_settings')
+          .select('*')
+          .limit(1)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') throw error;
+        return data as OKRDefaultSettings || { id: null, default_progress_calculation_method: 'weighted_sum' };
+      } catch (error) {
+        console.error('Error fetching default settings:', error);
+        return { id: null, default_progress_calculation_method: 'weighted_sum' } as OKRDefaultSettings;
+      }
     },
   });
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      defaultProgressCalculationMethod: (settings?.default_progress_calculation_method as ProgressCalculationMethod) || 'weighted_sum',
+      defaultProgressCalculationMethod: settings?.default_progress_calculation_method || 'weighted_sum',
     },
     values: {
-      defaultProgressCalculationMethod: (settings?.default_progress_calculation_method as ProgressCalculationMethod) || 'weighted_sum',
+      defaultProgressCalculationMethod: settings?.default_progress_calculation_method || 'weighted_sum',
     }
   });
   
@@ -51,7 +55,6 @@ export const DefaultSettingsForm = () => {
     mutationFn: async (values: FormValues) => {
       if (settings?.id) {
         // Update existing settings
-        // Using any to bypass TypeScript validation
         const { data, error } = await supabase
           .from('okr_default_settings')
           .update({
@@ -65,7 +68,6 @@ export const DefaultSettingsForm = () => {
         return data;
       } else {
         // Insert new settings
-        // Using any to bypass TypeScript validation
         const { data, error } = await supabase
           .from('okr_default_settings')
           .insert({
@@ -85,7 +87,7 @@ export const DefaultSettingsForm = () => {
         description: 'Default settings updated successfully',
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         variant: 'destructive',
         title: 'Error',

@@ -267,8 +267,8 @@ export const useObjective = (id: string | undefined) => {
     error,
     updateStatus,
     updateObjective,
-    deleteObjective,
     updateProgressCalculationMethod,
+    deleteObjective,
     isDeleting
   };
 };
