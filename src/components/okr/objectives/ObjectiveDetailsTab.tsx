@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -60,11 +59,24 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
   };
 
   const calculateTotalWeight = () => {
-    return keyResults.reduce((sum, kr) => sum + (kr.weight || 0), 0);
+    if (keyResults && keyResults.length > 0) {
+      return keyResults.reduce((sum, kr) => sum + (kr.weight || 0), 0);
+    }
+    
+    if (objective.alignedObjectives && objective.alignedObjectives.length > 0) {
+      const childAlignments = objective.alignedObjectives.filter(
+        alignment => alignment.sourceObjectiveId === objective.id && alignment.alignmentType === 'parent_child'
+      );
+      
+      return childAlignments.reduce((sum, alignment) => sum + (alignment.weight || 0), 0);
+    }
+    
+    return 0;
   };
 
   const isUnderweighted = () => {
-    return calculateTotalWeight() < 1.0;
+    const totalWeight = calculateTotalWeight();
+    return totalWeight > 0 && totalWeight < 1.0;
   };
 
   const getCompletedCount = (items: any[], statusField = 'status') => {
@@ -94,9 +106,7 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Left Column */}
       <div className="space-y-6">
-        {/* Progress */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
@@ -107,7 +117,6 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
           </CardContent>
         </Card>
 
-        {/* Key Stats */}
         <Card>
           <CardContent className="p-4 space-y-4">
             <div>
@@ -155,7 +164,7 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
                     {canEditObjective && (
                       <Button 
                         variant="ghost" 
-                        size="icon" 
+                        size="sm" 
                         className="h-6 w-6" 
                         onClick={() => setIsEditingMethod(true)}
                       >
@@ -187,9 +196,7 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
         </Card>
       </div>
 
-      {/* Right Column */}
       <div className="space-y-6">
-        {/* Metrics Card */}
         <Card>
           <CardContent className="p-4 space-y-4">
             <div>
@@ -222,7 +229,6 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
           </CardContent>
         </Card>
 
-        {/* Relationships Card */}
         <Card>
           <CardContent className="p-4 space-y-4">
             <h3 className="text-sm font-medium text-gray-500 mb-2">Relationships</h3>
@@ -256,4 +262,3 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
     </div>
   );
 };
-
