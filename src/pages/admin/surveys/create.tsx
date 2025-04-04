@@ -16,6 +16,8 @@ import { Survey } from './types';
 import { useQuery } from '@tanstack/react-query';
 import { SurveyBuilder as JSONSurveyBuilder } from "./components/SurveyBuilder";
 
+type SurveyStatus = "draft" | "archived" | "published";
+
 const CreateSurveyPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -81,7 +83,7 @@ const CreateSurveyPage = () => {
         description: surveyInfo.description || null,
         tags: surveyInfo.tags,
         json_data: surveyJSData,
-        status: 'draft',
+        status: 'draft' as SurveyStatus,
         created_by: userId,
         theme_settings: {
           baseTheme: 'Layered',
@@ -128,7 +130,7 @@ const CreateSurveyPage = () => {
         description: surveyInfo.description || null,
         tags: surveyInfo.tags,
         json_data: data.jsonData,
-        status: 'draft',
+        status: 'draft' as SurveyStatus,
         created_by: userId,
         theme_settings: data.themeSettings
       };
