@@ -9,12 +9,19 @@ import { Button } from '@/components/ui/button';
 import { convertToSurveyJSFormat } from '@/components/survey-builder/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 const CreateSurveyPage = () => {
   const navigate = useNavigate();
+  const { userId } = useCurrentUser();
 
   const handleSaveSurvey = async (survey: SurveyStructure) => {
     try {
+      if (!userId) {
+        toast.error('You must be logged in to create a survey');
+        return;
+      }
+
       // Convert our survey structure to SurveyJS JSON format
       const surveyJSData = convertToSurveyJSFormat(survey);
       
@@ -26,6 +33,7 @@ const CreateSurveyPage = () => {
           description: survey.description || null,
           json_data: surveyJSData,
           status: 'draft',
+          created_by: userId, // Adding the required created_by field
           theme_settings: {
             baseTheme: 'Layered',
             isDark: true,
