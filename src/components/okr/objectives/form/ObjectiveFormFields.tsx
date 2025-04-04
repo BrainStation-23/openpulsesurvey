@@ -149,7 +149,7 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {parentObjectiveOptions.map((option) => (
                     <SelectItem key={option.id} value={option.id}>
                       {option.title}
