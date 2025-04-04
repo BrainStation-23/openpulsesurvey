@@ -1,4 +1,3 @@
-
 export type OKRCycleStatus = 'active' | 'upcoming' | 'completed' | 'archived';
 
 export interface OKRCycle {
@@ -28,6 +27,7 @@ export type ObjectiveStatus = 'draft' | 'in_progress' | 'at_risk' | 'on_track' |
 export type ObjectiveVisibility = 'team' | 'organization' | 'private' | 'department';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'requested_changes';
 export type AlignmentType = 'parent_child'; // Simplified to only parent_child
+export type ProgressCalculationMethod = 'weighted_sum' | 'weighted_avg';
 
 export interface Objective {
   id: string;
@@ -41,6 +41,7 @@ export interface Objective {
   parentObjectiveId?: string;
   sbuId?: string;
   approvalStatus: ApprovalStatus;
+  progressCalculationMethod?: ProgressCalculationMethod;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -71,12 +72,14 @@ export interface CreateObjectiveInput {
   parentObjectiveId?: string;
   sbuId?: string;
   ownerId?: string;
+  progressCalculationMethod?: ProgressCalculationMethod;
 }
 
 export interface UpdateObjectiveInput extends Partial<CreateObjectiveInput> {
   status?: ObjectiveStatus;
   progress?: number;
   approvalStatus?: ApprovalStatus;
+  progressCalculationMethod?: ProgressCalculationMethod;
 }
 
 export interface CreateAlignmentInput {

@@ -1086,6 +1086,7 @@ export type Database = {
           owner_id: string
           parent_objective_id: string | null
           progress: number | null
+          progress_calculation_method: string | null
           sbu_id: string | null
           status: Database["public"]["Enums"]["objective_status"]
           title: string
@@ -1105,6 +1106,7 @@ export type Database = {
           owner_id: string
           parent_objective_id?: string | null
           progress?: number | null
+          progress_calculation_method?: string | null
           sbu_id?: string | null
           status?: Database["public"]["Enums"]["objective_status"]
           title: string
@@ -1124,6 +1126,7 @@ export type Database = {
           owner_id?: string
           parent_objective_id?: string | null
           progress?: number | null
+          progress_calculation_method?: string | null
           sbu_id?: string | null
           status?: Database["public"]["Enums"]["objective_status"]
           title?: string
@@ -1470,6 +1473,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      okr_default_settings: {
+        Row: {
+          default_progress_calculation_method: string | null
+          id: string
+        }
+        Insert: {
+          default_progress_calculation_method?: string | null
+          id?: string
+        }
+        Update: {
+          default_progress_calculation_method?: string | null
+          id?: string
+        }
+        Relationships: []
       }
       okr_history: {
         Row: {
@@ -3076,12 +3094,6 @@ export type Database = {
       }
       recalculate_all_objective_progress: {
         Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      recalculate_objective_progress: {
-        Args: {
-          objective_id_param: string
-        }
         Returns: undefined
       }
       reorder_questions: {

@@ -5,12 +5,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form } from "@/components/ui/form";
 import { supabase } from '@/integrations/supabase/client';
-import { CreateObjectiveInput, Objective, UpdateObjectiveInput } from '@/types/okr';
+import { CreateObjectiveInput, Objective, UpdateObjectiveInput, ProgressCalculationMethod } from '@/types/okr';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { ObjectiveFormFields } from './form/ObjectiveFormFields';
 import { ObjectiveVisibilityField } from './form/ObjectiveVisibilityField';
 import { ObjectiveFormActions } from './form/ObjectiveFormActions';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 
 // Define the form schema
 const formSchema = z.object({
@@ -21,6 +22,7 @@ const formSchema = z.object({
   parentObjectiveId: z.string().uuid().optional().nullable(),
   sbuId: z.string().uuid().optional().nullable(),
   ownerId: z.string().uuid(),
+  progressCalculationMethod: z.enum(['weighted_sum', 'weighted_avg']).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -47,6 +49,20 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
   const [parentObjectiveOptions, setParentObjectiveOptions] = useState<{ id: string; title: string }[]>([]);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
 
+  const { data: defaultSettings } = useQuery({
+    queryKey: ['okr_default_settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('okr_default_settings')
+        .select('*')
+        .limit(1)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      return data || { default_progress_calculation_method: 'weighted_sum' };
+    }
+  });
+
   // Initialize form with objective data if editing, otherwise use defaults
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -58,6 +74,9 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
       parentObjectiveId: objective?.parentObjectiveId || null,
       sbuId: objective?.sbuId || null,
       ownerId: objective?.ownerId || userId || '',
+      progressCalculationMethod: objective?.progressCalculationMethod as ProgressCalculationMethod || 
+                               defaultSettings?.default_progress_calculation_method as ProgressCalculationMethod || 
+                               'weighted_sum',
     },
   });
 

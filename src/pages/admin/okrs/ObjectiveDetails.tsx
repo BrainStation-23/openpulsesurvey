@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, MessageSquare, Calculator } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +8,7 @@ import { useObjective } from '@/hooks/okr/useObjective';
 import { useObjectiveWithRelations } from '@/hooks/okr/useObjectiveWithRelations';
 import { ObjectiveStatusBadge } from '@/components/okr/objectives/ObjectiveStatusBadge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { UpdateObjectiveInput } from '@/types/okr';
+import { UpdateObjectiveInput, ProgressCalculationMethod } from '@/types/okr';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +37,13 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { EditObjectiveForm } from '@/components/okr/objectives/EditObjectiveForm';
 import { KeyResultsList } from '@/components/okr/key-results/KeyResultsList';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -56,6 +62,7 @@ const AdminObjectiveDetails = () => {
   const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isSelectingMethod, setIsSelectingMethod] = useState(false);
   const { userId, isAdmin } = useCurrentUser();
   const [activeTab, setActiveTab] = useState("details");
   
@@ -361,6 +368,66 @@ const AdminObjectiveDetails = () => {
               onCancel={() => setIsEditDialogOpen(false)}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={() => setIsSelectingMethod(true)}
+        className="ml-2"
+      >
+        <Calculator className="h-4 w-4 mr-2" />
+        Set Calculation Method
+      </Button>
+
+      <Dialog open={isSelectingMethod} onOpenChange={setIsSelectingMethod}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Progress Calculation Method</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium mb-1">Current Method</h3>
+                <Badge>
+                  {objective.progressCalculationMethod === 'weighted_avg' 
+                    ? 'Weighted Average' 
+                    : 'Weighted Sum'}
+                </Badge>
+              </div>
+              
+              <Select 
+                defaultValue={objective.progressCalculationMethod || 'weighted_sum'}
+                onValueChange={(value) => handleMethodChange(value as ProgressCalculationMethod)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select calculation method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weighted_sum">
+                    Weighted Sum - Sum of (progress × weight) / Sum of weights
+                  </SelectItem>
+                  <SelectItem value="weighted_avg">
+                    Weighted Average - Average of all (progress × weight) values
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <div className="pt-2">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Weighted Sum:</strong> Gives more influence to key results with higher weights.
+                  <br />
+                  <strong>Weighted Average:</strong> Gives equal influence to all key results, but still respects weights.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setIsSelectingMethod(false)}>
+              Cancel
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
