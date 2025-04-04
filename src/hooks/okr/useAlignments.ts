@@ -1,13 +1,14 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ObjectiveAlignment, CreateAlignmentInput, AlignmentType } from '@/types/okr';
 import { useToast } from '@/hooks/use-toast';
+import { useObjectiveConstraints } from './useObjectiveConstraints';
 
 export const useAlignments = (objectiveId?: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canCreateChildAlignments } = useObjectiveConstraints(objectiveId);
 
   // Fetch all alignments for an objective
   const { 
@@ -155,6 +156,14 @@ export const useAlignments = (objectiveId?: string) => {
         const cycleCheck = await checkForCycles(data.sourceObjectiveId, data.alignedObjectiveId);
         if (cycleCheck.wouldCreateCycle) {
           throw new Error("This alignment would create a circular dependency in your objectives hierarchy.");
+        }
+      }
+      
+      // Check if we're creating a child alignment where this objective is the parent
+      if (data.alignmentType === 'parent_child' && data.sourceObjectiveId === objectiveId) {
+        // If this objective is the parent and has key results, we can't create child alignments
+        if (!canCreateChildAlignments) {
+          throw new Error("This objective has key results and cannot have child alignments.");
         }
       }
       

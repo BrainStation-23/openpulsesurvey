@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { KeyResultStatus, UpdateKeyResultInput, CreateKeyResultInput } from '@/types/okr';
@@ -12,6 +11,7 @@ import {
 } from './utils/keyResultUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useObjectiveConstraints } from './useObjectiveConstraints';
 
 /**
  * Hook providing mutations for key result operations
@@ -22,6 +22,9 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const { userId } = useCurrentUser();
   const [canCreate, setCanCreate] = useState(false);
+  
+  // Check objective constraints
+  const { canCreateKeyResults: canCreateDueToConstraints } = useObjectiveConstraints(objectiveId);
 
   // Check if user can create key results
   useEffect(() => {
@@ -172,6 +175,11 @@ export const useKeyResultMutations = (id?: string, objectiveId?: string) => {
       // Check if user has permission to create key results
       if (!canCreate) {
         throw new Error("You don't have permission to create key results");
+      }
+      
+      // Check if the objective has child alignments
+      if (!canCreateDueToConstraints) {
+        throw new Error("This objective has child alignments and cannot have key results");
       }
       
       console.log('Creating key result with permission check passed');
