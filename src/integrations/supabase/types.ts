@@ -2815,7 +2815,7 @@ export type Database = {
       }
       calculate_cascaded_objective_progress: {
         Args: {
-          p_objective_id: string
+          objective_id: string
         }
         Returns: undefined
       }

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +22,9 @@ import {
 } from "@/components/ui/select";
 import { useObjective } from '@/hooks/okr/useObjective';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ObjectiveDetailsTabProps {
   objective: ObjectiveWithRelations;
@@ -36,8 +40,11 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
   canEditObjective = false
 }) => {
   const [isEditingMethod, setIsEditingMethod] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
   const { updateProgressCalculationMethod } = useObjective(objective.id);
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const visibilityColor = {
     'private': 'bg-yellow-100 text-yellow-800',
@@ -87,9 +94,45 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
     updateProgressCalculationMethod.mutate(
       { method: value as ProgressCalculationMethod },
       {
-        onSuccess: () => setIsEditingMethod(false)
+        onSuccess: () => {
+          setIsEditingMethod(false);
+          // We don't need to manually trigger recalculation here since
+          // the useObjective hook will handle it automatically
+        }
       }
     );
+  };
+
+  const handleManualRecalculate = async () => {
+    if (!objective.id) return;
+    
+    setIsRecalculating(true);
+    try {
+      // Call the RPC function to recalculate the objective's progress
+      const { error } = await supabase.rpc('calculate_cascaded_objective_progress', { 
+        p_objective_id: objective.id 
+      });
+      
+      if (error) throw error;
+      
+      // Invalidate queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['objective', objective.id] });
+      queryClient.invalidateQueries({ queryKey: ['objectives'] });
+      
+      toast({
+        title: 'Success',
+        description: 'Progress recalculated successfully',
+      });
+    } catch (error) {
+      console.error('Error recalculating progress:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to recalculate progress',
+      });
+    } finally {
+      setIsRecalculating(false);
+    }
   };
 
   const handleNavigateToCycle = () => {
@@ -177,8 +220,14 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <Calculator className="h-3 w-3" />
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6"
+                        onClick={handleManualRecalculate}
+                        disabled={isRecalculating}
+                      >
+                        <Calculator className={`h-3 w-3 ${isRecalculating ? 'animate-spin' : ''}`} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-sm">
@@ -186,6 +235,7 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
                         <p className="font-semibold">Calculation Method Explained:</p>
                         <p><strong>Weighted Sum:</strong> Sum(progress * weight) / Sum(weight)</p>
                         <p><strong>Weighted Average:</strong> Average of (progress * weight) values</p>
+                        <p className="mt-2 text-xs text-muted-foreground italic">Click to recalculate progress</p>
                       </div>
                     </TooltipContent>
                   </Tooltip>

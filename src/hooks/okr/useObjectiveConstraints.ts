@@ -14,7 +14,7 @@ export const useObjectiveConstraints = (objectiveId?: string) => {
   
   // Fetch alignments for this objective directly without using useAlignments
   const { data: alignments, isLoading: isLoadingAlignments } = useQuery({
-    queryKey: ['objective-alignments-constraints', objectiveId],
+    queryKey: ['objective-alignments', objectiveId],
     queryFn: async () => {
       if (!objectiveId) return [];
       
