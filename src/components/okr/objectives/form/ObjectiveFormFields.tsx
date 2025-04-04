@@ -57,15 +57,19 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
   const { data: defaultSettings } = useQuery({
     queryKey: ['okr_default_settings'],
     queryFn: async () => {
-      // Using any to bypass TypeScript validation
-      const { data, error } = await supabase
-        .from('okr_default_settings')
-        .select('*')
-        .limit(1)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') throw error;
-      return data || { default_progress_calculation_method: 'weighted_sum' };
+      try {
+        const { data, error } = await supabase
+          .from('okr_default_settings')
+          .select('*')
+          .limit(1)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') throw error;
+        return data || { default_progress_calculation_method: defaultCalcMethod };
+      } catch (error) {
+        console.error('Error fetching default settings:', error);
+        return { default_progress_calculation_method: defaultCalcMethod };
+      }
     }
   });
 
@@ -166,8 +170,11 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
           <FormItem>
             <FormLabel>Business Unit</FormLabel>
             <SBUSelector 
-              selectedValue={field.value || undefined} 
-              onValueChange={field.onChange} 
+              selectedSBUs={field.value ? [field.value] : []}
+              onChange={(sbus) => {
+                // Since we need a single SBU ID, take the first one or null
+                field.onChange(sbus.length > 0 ? sbus[0] : null);
+              }}
             />
             <FormMessage />
           </FormItem>
@@ -181,11 +188,14 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
           <FormItem>
             <FormLabel>Owner</FormLabel>
             <UserSelector 
-              selectedValue={selectedOwner || undefined} 
-              onValueChange={(value) => {
-                setSelectedOwner(value as string);
-                field.onChange(value);
-              }} 
+              selectedUsers={selectedOwner ? [selectedOwner] : []}
+              onChange={(users) => {
+                const userId = typeof users === 'string' ? users : 
+                  Array.isArray(users) && users.length > 0 ? users[0] : null;
+                setSelectedOwner(userId);
+                field.onChange(userId);
+              }}
+              singleSelect={true}
             />
             <FormMessage />
           </FormItem>
