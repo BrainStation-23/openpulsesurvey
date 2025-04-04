@@ -42,7 +42,7 @@ export const useObjective = (id: string | undefined) => {
         parentObjectiveId: data.parent_objective_id,
         sbuId: data.sbu_id,
         approvalStatus: data.approval_status,
-        progressCalculationMethod: data.progress_calculation_method,
+        progressCalculationMethod: data.progress_calculation_method as ProgressCalculationMethod,
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at)
       } as Objective;

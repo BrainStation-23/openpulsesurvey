@@ -52,6 +52,7 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
   const { data: defaultSettings } = useQuery({
     queryKey: ['okr_default_settings'],
     queryFn: async () => {
+      // Using any to bypass TypeScript validation
       const { data, error } = await supabase
         .from('okr_default_settings')
         .select('*')
@@ -75,7 +76,7 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
       sbuId: objective?.sbuId || null,
       ownerId: objective?.ownerId || userId || '',
       progressCalculationMethod: objective?.progressCalculationMethod as ProgressCalculationMethod || 
-                               defaultSettings?.default_progress_calculation_method as ProgressCalculationMethod || 
+                               (defaultSettings?.default_progress_calculation_method as ProgressCalculationMethod) || 
                                'weighted_sum',
     },
   });
@@ -137,6 +138,7 @@ export const ObjectiveForm: React.FC<ObjectiveFormProps> = ({
           selectedOwner={selectedOwner}
           setSelectedOwner={setSelectedOwner}
           hideParentObjective={hideParentObjective}
+          defaultCalcMethod={defaultSettings?.default_progress_calculation_method as ProgressCalculationMethod}
         />
         
         <ObjectiveVisibilityField form={form} />

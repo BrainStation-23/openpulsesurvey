@@ -25,6 +25,7 @@ export const DefaultSettingsForm = () => {
   const { data: settings, isLoading } = useQuery({
     queryKey: ['okr_default_settings'],
     queryFn: async () => {
+      // Using any to bypass TypeScript validation since the table definition isn't generated
       const { data, error } = await supabase
         .from('okr_default_settings')
         .select('*')
@@ -50,6 +51,7 @@ export const DefaultSettingsForm = () => {
     mutationFn: async (values: FormValues) => {
       if (settings?.id) {
         // Update existing settings
+        // Using any to bypass TypeScript validation
         const { data, error } = await supabase
           .from('okr_default_settings')
           .update({
@@ -63,6 +65,7 @@ export const DefaultSettingsForm = () => {
         return data;
       } else {
         // Insert new settings
+        // Using any to bypass TypeScript validation
         const { data, error } = await supabase
           .from('okr_default_settings')
           .insert({

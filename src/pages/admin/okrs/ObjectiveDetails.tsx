@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Info, ChevronDown, User, MessageSquare, Calculator } from 'lucide-react';
@@ -73,7 +74,8 @@ const AdminObjectiveDetails = () => {
     updateStatus,
     updateObjective,
     deleteObjective,
-    isDeleting
+    isDeleting,
+    updateProgressCalculationMethod
   } = useObjective(id);
   
   const { 
@@ -136,6 +138,14 @@ const AdminObjectiveDetails = () => {
   
   const handleBack = () => {
     navigate('/admin/okrs/objectives');
+  };
+
+  const handleMethodChange = (method: ProgressCalculationMethod) => {
+    updateProgressCalculationMethod.mutate({ method }, {
+      onSuccess: () => {
+        setIsSelectingMethod(false);
+      }
+    });
   };
   
   const creatorName = creatorInfo 

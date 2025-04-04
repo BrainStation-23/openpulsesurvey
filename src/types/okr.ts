@@ -1,3 +1,4 @@
+
 export type OKRCycleStatus = 'active' | 'upcoming' | 'completed' | 'archived';
 
 export interface OKRCycle {
@@ -163,4 +164,9 @@ export interface OKRTemplate {
   is_public?: boolean;
   template_data?: any;
   objectives?: TemplateObjective[];
+}
+
+export interface OKRDefaultSettings {
+  id: string;
+  default_progress_calculation_method: ProgressCalculationMethod;
 }

@@ -6,7 +6,8 @@ import {
   FormField, 
   FormItem, 
   FormLabel, 
-  FormMessage 
+  FormMessage,
+  FormDescription 
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +22,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { UserSelector } from '@/components/okr/permissions/UserSelector';
 import { SBUSelector } from '@/components/okr/permissions/SBUSelector';
+import { ProgressCalculationMethod } from '@/types/okr';
 
 interface ObjectiveFormFieldsProps {
   form: UseFormReturn<any>;
@@ -28,6 +30,7 @@ interface ObjectiveFormFieldsProps {
   selectedOwner: string | null;
   setSelectedOwner: (id: string | null) => void;
   hideParentObjective?: boolean;
+  defaultCalcMethod?: ProgressCalculationMethod;
 }
 
 export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
@@ -35,7 +38,8 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
   parentObjectiveOptions,
   selectedOwner,
   setSelectedOwner,
-  hideParentObjective = false
+  hideParentObjective = false,
+  defaultCalcMethod = 'weighted_sum'
 }) => {
   const { data: cycles } = useQuery({
     queryKey: ['okr_cycles'],
@@ -53,6 +57,7 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
   const { data: defaultSettings } = useQuery({
     queryKey: ['okr_default_settings'],
     queryFn: async () => {
+      // Using any to bypass TypeScript validation
       const { data, error } = await supabase
         .from('okr_default_settings')
         .select('*')
@@ -161,8 +166,8 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
           <FormItem>
             <FormLabel>Business Unit</FormLabel>
             <SBUSelector 
-              value={field.value || undefined} 
-              onChange={field.onChange} 
+              selectedValue={field.value || undefined} 
+              onValueChange={field.onChange} 
             />
             <FormMessage />
           </FormItem>
@@ -176,9 +181,9 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
           <FormItem>
             <FormLabel>Owner</FormLabel>
             <UserSelector 
-              value={selectedOwner || undefined} 
-              onChange={(value) => {
-                setSelectedOwner(value);
+              selectedValue={selectedOwner || undefined} 
+              onValueChange={(value) => {
+                setSelectedOwner(value as string);
                 field.onChange(value);
               }} 
             />
@@ -195,7 +200,7 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
             <FormLabel>Progress Calculation Method</FormLabel>
             <Select 
               onValueChange={field.onChange} 
-              defaultValue={field.value || defaultSettings?.default_progress_calculation_method || 'weighted_sum'}
+              defaultValue={field.value || defaultSettings?.default_progress_calculation_method as ProgressCalculationMethod || 'weighted_sum'}
             >
               <FormControl>
                 <SelectTrigger>
@@ -207,6 +212,11 @@ export const ObjectiveFormFields: React.FC<ObjectiveFormFieldsProps> = ({
                 <SelectItem value="weighted_avg">Weighted Average</SelectItem>
               </SelectContent>
             </Select>
+            <FormDescription>
+              <span className="font-medium">Weighted Sum:</span> Total progress is calculated as (sum of weighted progress) / (sum of weights)
+              <br />
+              <span className="font-medium">Weighted Average:</span> Total progress is calculated as average of all weighted progress values
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
