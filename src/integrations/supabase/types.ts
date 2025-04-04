@@ -2815,7 +2815,7 @@ export type Database = {
       }
       calculate_cascaded_objective_progress: {
         Args: {
-          objective_id: string
+          p_objective_id: string
         }
         Returns: undefined
       }
@@ -3094,7 +3094,7 @@ export type Database = {
       }
       recalculate_all_objective_progress: {
         Args: Record<PropertyKey, never>
-        Returns: undefined
+        Returns: number
       }
       reorder_questions: {
         Args: {

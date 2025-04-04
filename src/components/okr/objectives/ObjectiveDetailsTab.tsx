@@ -6,7 +6,7 @@ import { ObjectiveStatusBadge } from './ObjectiveStatusBadge';
 import { ObjectiveWithRelations, KeyResult, ProgressCalculationMethod } from '@/types/okr';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Edit, Calculator } from 'lucide-react';
+import { Edit, Calculator, ExternalLink } from 'lucide-react';
 import { 
   Tooltip, 
   TooltipContent, 
@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useObjective } from '@/hooks/okr/useObjective';
+import { useNavigate } from 'react-router-dom';
 
 interface ObjectiveDetailsTabProps {
   objective: ObjectiveWithRelations;
@@ -37,22 +38,7 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
 }) => {
   const [isEditingMethod, setIsEditingMethod] = useState(false);
   const { updateProgressCalculationMethod } = useObjective(objective.id);
-  
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-  
-  const statusColor = {
-    'draft': 'bg-gray-100 text-gray-800',
-    'in_progress': 'bg-blue-100 text-blue-800',
-    'at_risk': 'bg-red-100 text-red-800',
-    'on_track': 'bg-green-100 text-green-800',
-    'completed': 'bg-purple-100 text-purple-800'
-  };
+  const navigate = useNavigate();
   
   const visibilityColor = {
     'private': 'bg-yellow-100 text-yellow-800',
@@ -61,23 +47,30 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
     'organization': 'bg-green-100 text-green-800'
   };
   
+  const approvalStatusColor = {
+    'pending': 'bg-yellow-100 text-yellow-800',
+    'approved': 'bg-green-100 text-green-800',
+    'rejected': 'bg-red-100 text-red-800',
+    'requested_changes': 'bg-orange-100 text-orange-800'
+  };
+  
   const methodLabel = {
     'weighted_sum': 'Weighted Sum',
     'weighted_avg': 'Weighted Average'
   };
 
-  const calculateProgress = (method: ProgressCalculationMethod, keyResults: KeyResult[]) => {
-    if (keyResults.length === 0) return 0;
-    
-    if (method === 'weighted_sum') {
-      const totalWeight = keyResults.reduce((sum, kr) => sum + (kr.weight || 1), 0);
-      const weightedSum = keyResults.reduce((sum, kr) => sum + (kr.progress * (kr.weight || 1)), 0);
-      return totalWeight > 0 ? weightedSum / totalWeight : 0;
-    } else { // weighted_avg
-      return keyResults.reduce((sum, kr) => sum + (kr.progress * (kr.weight || 1)), 0) / keyResults.length;
-    }
+  const calculateTotalWeight = () => {
+    return keyResults.reduce((sum, kr) => sum + (kr.weight || 0), 0);
   };
-  
+
+  const isUnderweighted = () => {
+    return calculateTotalWeight() < 1.0;
+  };
+
+  const getCompletedCount = (items: any[], statusField = 'status') => {
+    return items.filter(item => item[statusField] === 'completed').length;
+  };
+
   const handleMethodChange = (value: string) => {
     updateProgressCalculationMethod.mutate(
       { method: value as ProgressCalculationMethod },
@@ -86,133 +79,180 @@ export const ObjectiveDetailsTab: React.FC<ObjectiveDetailsTabProps> = ({
       }
     );
   };
+
+  const handleNavigateToCycle = () => {
+    if (objective.cycleId) {
+      navigate(`/${isAdmin ? 'admin' : 'user'}/okrs/cycles/${objective.cycleId}`);
+    }
+  };
+
+  const handleNavigateToSBU = () => {
+    if (objective.sbuId) {
+      navigate(`/${isAdmin ? 'admin' : 'user'}/okrs/sbus/${objective.sbuId}`);
+    }
+  };
   
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium mb-2">Objective Details</h3>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Left Column */}
+      <div className="space-y-6">
+        {/* Progress */}
         <Card>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-sm font-medium text-gray-500">Title</span>
-                <p className="mt-1">{objective.title}</p>
-              </div>
-              
-              <div>
-                <span className="text-sm font-medium text-gray-500">Status</span>
-                <div className="mt-1">
-                  <ObjectiveStatusBadge status={objective.status} />
-                </div>
-              </div>
-              
-              <div className="col-span-2">
-                <span className="text-sm font-medium text-gray-500">Description</span>
-                <p className="mt-1">{objective.description || 'No description provided'}</p>
-              </div>
-              
-              <div>
-                <span className="text-sm font-medium text-gray-500">Visibility</span>
-                <div className="mt-1">
-                  <Badge className={visibilityColor[objective.visibility]}>
-                    {objective.visibility.charAt(0).toUpperCase() + objective.visibility.slice(1)}
-                  </Badge>
-                </div>
-              </div>
-              
-              <div>
-                <span className="text-sm font-medium text-gray-500">Progress Calculation Method</span>
-                <div className="mt-1 flex items-center gap-2">
-                  {isEditingMethod ? (
-                    <div className="flex items-center gap-2">
-                      <Select 
-                        defaultValue={objective.progressCalculationMethod || 'weighted_sum'} 
-                        onValueChange={handleMethodChange}
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-gray-500">Progress</h3>
+              <span className="font-medium">{objective.progress.toFixed(2)}%</span>
+            </div>
+            <Progress value={objective.progress} className="h-2" />
+          </CardContent>
+        </Card>
+
+        {/* Key Stats */}
+        <Card>
+          <CardContent className="p-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-1">Visibility</h3>
+              <Badge className={visibilityColor[objective.visibility]}>
+                {objective.visibility.charAt(0).toUpperCase() + objective.visibility.slice(1)}
+              </Badge>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-1">Approval Status</h3>
+              <Badge className={approvalStatusColor[objective.approvalStatus]}>
+                {objective.approvalStatus.split('_').map(word => 
+                  word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ')}
+              </Badge>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-1">Progress Calculation Method</h3>
+              <div className="flex items-center gap-2">
+                {isEditingMethod ? (
+                  <div className="flex items-center gap-2">
+                    <Select 
+                      defaultValue={objective.progressCalculationMethod || 'weighted_sum'} 
+                      onValueChange={handleMethodChange}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="weighted_sum">Weighted Sum</SelectItem>
+                        <SelectItem value="weighted_avg">Weighted Average</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button variant="outline" size="sm" onClick={() => setIsEditingMethod(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Badge className="bg-blue-100 text-blue-800">
+                      {methodLabel[objective.progressCalculationMethod as ProgressCalculationMethod || 'weighted_sum']}
+                    </Badge>
+                    {canEditObjective && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6" 
+                        onClick={() => setIsEditingMethod(true)}
                       >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Select method" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="weighted_sum">Weighted Sum</SelectItem>
-                          <SelectItem value="weighted_avg">Weighted Average</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button variant="outline" size="sm" onClick={() => setIsEditingMethod(false)}>
-                        Cancel
+                        <Edit className="h-3 w-3" />
                       </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <Badge className="bg-blue-100 text-blue-800">
-                        {methodLabel[objective.progressCalculationMethod as ProgressCalculationMethod || 'weighted_sum']}
-                      </Badge>
-                      {canEditObjective && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6" 
-                          onClick={() => setIsEditingMethod(true)}
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </>
-                  )}
-                  
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <Calculator className="h-3 w-3" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-sm">
-                        <div className="space-y-2">
-                          <p className="font-semibold">Calculation Method Explained:</p>
-                          <p><strong>Weighted Sum:</strong> Sum(progress * weight) / Sum(weight)</p>
-                          <p><strong>Weighted Average:</strong> Average of (progress * weight) values</p>
-                          <div className="pt-2 border-t">
-                            <p className="font-semibold">Current Progress Calculation:</p>
-                            <p>
-                              Current Method: {methodLabel[objective.progressCalculationMethod as ProgressCalculationMethod || 'weighted_sum']}
-                              <br />
-                              Progress: {objective.progress.toFixed(1)}%
-                              <br />
-                              Alternate Method: {methodLabel[(objective.progressCalculationMethod === 'weighted_sum' ? 'weighted_avg' : 'weighted_sum') as ProgressCalculationMethod]}
-                              <br />
-                              Alternate Progress: {calculateProgress(
-                                objective.progressCalculationMethod === 'weighted_sum' ? 'weighted_avg' : 'weighted_sum',
-                                keyResults
-                              ).toFixed(1)}%
-                            </p>
-                          </div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
+                    )}
+                  </>
+                )}
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <Calculator className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm">
+                      <div className="space-y-2">
+                        <p className="font-semibold">Calculation Method Explained:</p>
+                        <p><strong>Weighted Sum:</strong> Sum(progress * weight) / Sum(weight)</p>
+                        <p><strong>Weighted Average:</strong> Average of (progress * weight) values</p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
-      
-      <div>
-        <h3 className="text-lg font-medium mb-2">Progress</h3>
+
+      {/* Right Column */}
+      <div className="space-y-6">
+        {/* Metrics Card */}
         <Card>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span>Overall Progress</span>
-                <span className="font-medium">{objective.progress.toFixed(1)}%</span>
+          <CardContent className="p-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-1">Key Results</h3>
+              <div className="flex items-center">
+                <span className="font-medium">{getCompletedCount(keyResults)} / {keyResults.length} completed</span>
               </div>
-              <Progress value={objective.progress} className="h-2" />
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-1">Child Objectives</h3>
+              <div className="flex items-center">
+                <span className="font-medium">
+                  {getCompletedCount(objective.childObjectives || [])} / {(objective.childObjectives || []).length} completed
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-1">Total Weight</h3>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{calculateTotalWeight().toFixed(2)}</span>
+                {isUnderweighted() && (
+                  <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200">
+                    Underweighted
+                  </Badge>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Relationships Card */}
+        <Card>
+          <CardContent className="p-4 space-y-4">
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Relationships</h3>
+
+            <div>
+              <h4 className="text-xs font-medium text-gray-500 mb-1">OKR Cycle</h4>
+              <Button 
+                variant="link" 
+                className="flex items-center p-0 h-auto text-primary"
+                onClick={handleNavigateToCycle}
+              >
+                View Cycle <ExternalLink className="ml-1 h-3 w-3" />
+              </Button>
+            </div>
+
+            {objective.sbuId && (
+              <div>
+                <h4 className="text-xs font-medium text-gray-500 mb-1">Business Unit</h4>
+                <Button 
+                  variant="link" 
+                  className="flex items-center p-0 h-auto text-primary"
+                  onClick={handleNavigateToSBU}
+                >
+                  View SBU <ExternalLink className="ml-1 h-3 w-3" />
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-      
-      {/* Additional sections for related data can be added here */}
     </div>
   );
 };
