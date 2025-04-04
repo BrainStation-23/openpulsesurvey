@@ -204,7 +204,8 @@ export const useObjective = (id: string | undefined) => {
       queryClient.invalidateQueries({ queryKey: ['objectives'] });
       
       // Trigger a recalculation of the objective's progress
-      supabase.rpc('calculate_cascaded_objective_progress', { objective_id: id })
+      // Fix the parameter name here - change objective_id to p_objective_id
+      supabase.rpc('calculate_cascaded_objective_progress', { p_objective_id: id })
         .then(() => {
           // Invalidate queries again after recalculation
           queryClient.invalidateQueries({ queryKey: ['objective', id] });
