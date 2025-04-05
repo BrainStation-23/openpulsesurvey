@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 interface ActivityLogParams {
@@ -38,17 +39,14 @@ export const createActivityLog = async ({
     const ip = ipAddress || await getClientIpAddress();
     
     try {
-      // Call the RPC function we created
-      const { data, error } = await supabase.rpc(
-        'create_activity_log',
-        {
-          p_user_id: userId,
-          p_activity_type: activityType,
-          p_description: description,
-          p_ip_address: ip,
-          p_metadata: metadata
-        }
-      );
+      // Use the properly created RPC function
+      const { data, error } = await supabase.rpc('create_activity_log', {
+        p_user_id: userId,
+        p_activity_type: activityType,
+        p_description: description,
+        p_ip_address: ip,
+        p_metadata: metadata
+      });
       
       if (error) {
         console.error('Error in create_activity_log RPC:', error);
@@ -57,25 +55,25 @@ export const createActivityLog = async ({
         const session = await supabase.auth.getSession();
         const token = session.data.session?.access_token;
         
-        const response = await fetch(
-          `${supabase.supabaseUrl}/rest/v1/user_activity_logs`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': supabase.supabaseUrl.split('//')[1].split('.')[0],
-              'Authorization': token ? `Bearer ${token}` : '',
-              'Prefer': 'return=representation'
-            },
-            body: JSON.stringify({
-              user_id: userId,
-              activity_type: activityType,
-              description: description,
-              ip_address: ip,
-              metadata: metadata
-            })
-          }
-        );
+        // Use direct URL instead of accessing protected properties
+        const apiUrl = 'https://bdnbcaiqgumzsujkbsmp.supabase.co/rest/v1/user_activity_logs';
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkbmJjYWlxZ3VtenN1amtic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA5OTI4NjEsImV4cCI6MjA1NjU2ODg2MX0.A7p4dTY3GPSOpXTnzF1FwyvHtm6TqEayCgf3ekWbBt0',
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            activity_type: activityType,
+            description: description,
+            ip_address: ip,
+            metadata: metadata
+          })
+        });
         
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
@@ -85,7 +83,8 @@ export const createActivityLog = async ({
         return result[0]?.id || null;
       }
       
-      return data;
+      // Handle the return value from the RPC function
+      return data as string;
     } catch (apiError) {
       console.error('API error in createActivityLog:', apiError);
       return null;

@@ -51,8 +51,8 @@ export const useActivityLog = ({
         : null;
       
       try {
-        // Use RPC call to safely access the database
-        let query = {};
+        // Build query parameters
+        let query: Record<string, string> = {};
         
         if (startDate) {
           query = { ...query, created_at: `gte.${startDate}` };
@@ -67,7 +67,7 @@ export const useActivityLog = ({
         // Convert query to URL params for the REST API approach
         const params = new URLSearchParams();
         for (const [key, value] of Object.entries(query)) {
-          params.append(key, value as string);
+          params.append(key, value);
         }
         
         if (searchTerm) {
@@ -77,22 +77,21 @@ export const useActivityLog = ({
         params.append('order', 'created_at.desc');
         params.append('limit', isAdminView ? '100' : '50');
         
-        // Use fetch directly with proper authorization
+        // Use fetch with proper authorization
         const session = await supabase.auth.getSession();
         const token = session.data.session?.access_token;
-        const apiUrl = `${supabase.auth.getSession().then(s => s.data.session?.access_token)}`;
         
-        const response = await fetch(
-          `${supabase.supabaseUrl}/rest/v1/user_activity_logs?${params.toString()}`,
-          {
-            headers: {
-              'apikey': supabase.supabaseUrl.split('//')[1].split('.')[0],
-              'Authorization': token ? `Bearer ${token}` : '',
-              'Content-Type': 'application/json',
-              'Prefer': 'return=representation'
-            }
+        // Get the API URL from environment or use a fixed domain based on project reference
+        const apiUrl = `https://bdnbcaiqgumzsujkbsmp.supabase.co/rest/v1/user_activity_logs?${params.toString()}`;
+        
+        const response = await fetch(apiUrl, {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkbmJjYWlxZ3VtenN1amtic21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA5OTI4NjEsImV4cCI6MjA1NjU2ODg2MX0.A7p4dTY3GPSOpXTnzF1FwyvHtm6TqEayCgf3ekWbBt0',
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
           }
-        );
+        });
 
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
@@ -109,7 +108,7 @@ export const useActivityLog = ({
           const { data: profiles } = await supabase
             .from('profiles')
             .select('id, email, first_name, last_name')
-            .in('id', userIds as string[]);
+            .in('id', userIds);
           
           // Create a lookup map
           const userMap: Record<string, any> = {};

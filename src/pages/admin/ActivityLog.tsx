@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { format } from "date-fns";
 import {
@@ -34,8 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Clock, User, Award, FileText, ShieldAlert, History, Filter, Download } from "lucide-react";
-import { useActivityLog } from "@/hooks/useActivityLog";
-import type { ActivityLog as ActivityLogType } from "@/hooks/useActivityLog";
+import { useActivityLog, ActivityLog as ActivityLogType } from "@/hooks/useActivityLog";
 
 export default function AdminActivityLog() {
   const [activeTab, setActiveTab] = useState("all");
@@ -238,7 +236,7 @@ export default function AdminActivityLog() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      activityLogs.map((log: ActivityLog) => (
+                      activityLogs.map((log: ActivityLogType) => (
                         <TableRow key={log.id}>
                           <TableCell className="font-mono text-xs">
                             {format(new Date(log.created_at), "MMM d, yyyy HH:mm:ss")}

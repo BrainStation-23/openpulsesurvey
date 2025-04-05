@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { format } from "date-fns";
 import {
@@ -33,8 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, User, Award, FileText, ShieldAlert, History } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useActivityLog } from "@/hooks/useActivityLog";
-import type { ActivityLog as ActivityLogType } from "@/hooks/useActivityLog";
+import { useActivityLog, ActivityLog as ActivityLogType } from "@/hooks/useActivityLog";
 
 export default function ActivityLog() {
   const { userId } = useCurrentUser();
