@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface ActivityLogParams {
@@ -38,58 +37,41 @@ export const createActivityLog = async ({
     // If IP address wasn't provided, try to get it
     const ip = ipAddress || await getClientIpAddress();
     
-    // Using the raw query approach to avoid typing issues
-    const query = `
-      INSERT INTO user_activity_logs (user_id, activity_type, description, ip_address, metadata)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id
-    `;
-    
-    const { data, error } = await supabase.rpc('execute_sql', {
-      query_text: query,
-      query_params: [userId, activityType, description, ip, JSON.stringify(metadata)]
-    });
-    
-    if (error) {
-      console.error('Error creating activity log using RPC:', error);
+    try {
+      // Direct REST API approach to avoid typing issues
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
       
-      // Fallback to a direct insert as text
-      try {
-        // This is a last resort approach - may not work if RLS is strict
-        const { data: rawResult } = await supabase.auth.getSession();
-        const authHeader = rawResult.session?.access_token 
-          ? { Authorization: `Bearer ${rawResult.session.access_token}` }
-          : {};
-          
-        const response = await fetch(`${supabase.supabaseUrl}/rest/v1/user_activity_logs`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabase.supabaseKey,
-            ...authHeader
-          },
-          body: JSON.stringify({
-            user_id: userId,
-            activity_type: activityType,
-            description: description,
-            ip_address: ip,
-            metadata: metadata
-          })
-        });
-        
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-        
-        const responseData = await response.json();
-        return responseData.id;
-      } catch (fallbackError) {
-        console.error('Fallback error:', fallbackError);
-        return null;
+      const apiUrl = `${supabase.auth.url}/rest/v1/user_activity_logs`;
+      const apiKey = supabase.supabaseKey as string;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': apiKey,
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          activity_type: activityType,
+          description: description,
+          ip_address: ip,
+          metadata: metadata
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
       }
+      
+      const result = await response.json();
+      return result[0]?.id || null;
+    } catch (apiError) {
+      console.error('API error in createActivityLog:', apiError);
+      return null;
     }
-    
-    return data?.results?.[0]?.id || null;
   } catch (error) {
     console.error('Error in createActivityLog:', error);
     return null;

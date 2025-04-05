@@ -1,6 +1,4 @@
-
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
   Card,
@@ -34,10 +32,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, User, Award, FileText, ShieldAlert, History } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { Button } from "@/components/ui/button";
-import { useActivityLog } from "@/hooks/useActivityLog";
+import { useActivityLog, ActivityLog } from "@/hooks/useActivityLog";
 
 export default function ActivityLog() {
   const { userId } = useCurrentUser();
@@ -132,7 +128,7 @@ export default function ActivityLog() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
-                    {activityTypes.map((type) => (
+                    {activityTypes.map((type: string) => (
                       <SelectItem key={type} value={type}>{type}</SelectItem>
                     ))}
                   </SelectContent>
@@ -182,7 +178,7 @@ export default function ActivityLog() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      activityLogs.map((log) => (
+                      activityLogs.map((log: ActivityLog) => (
                         <TableRow key={log.id}>
                           <TableCell className="font-mono text-xs">
                             {format(new Date(log.created_at), "MMM d, yyyy HH:mm:ss")}

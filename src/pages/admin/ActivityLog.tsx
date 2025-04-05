@@ -1,6 +1,4 @@
-
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
   Card,
@@ -35,8 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Clock, User, Award, FileText, ShieldAlert, History, Filter, Download } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useActivityLog } from "@/hooks/useActivityLog";
+import { useActivityLog, ActivityLog } from "@/hooks/useActivityLog";
 
 export default function AdminActivityLog() {
   const [activeTab, setActiveTab] = useState("all");
@@ -61,7 +58,6 @@ export default function AdminActivityLog() {
     isAdminView: true
   });
 
-  // Render activity badge with appropriate styling based on activity type
   const renderActivityBadge = (type: string) => {
     let variant: "default" | "secondary" | "destructive" | "outline" = "default";
     let icon = null;
@@ -89,15 +85,14 @@ export default function AdminActivityLog() {
   };
 
   const handleExportData = () => {
-    // Create CSV data from activity logs
     const headers = ["Timestamp", "User", "Activity Type", "Description", "IP Address", "Additional Data"];
     const csvRows = [
       headers.join(","),
-      ...activityLogs.map(log => {
+      ...activityLogs.map((log: ActivityLog) => {
         const timestamp = format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss");
         const user = log.user_details?.email || log.user_id;
         const activityType = log.activity_type;
-        const description = log.description.replace(/,/g, ";"); // Replace commas to avoid CSV issues
+        const description = log.description.replace(/,/g, ";");
         const ipAddress = log.ip_address;
         const additionalData = JSON.stringify(log.metadata || {}).replace(/,/g, ";");
         
@@ -105,12 +100,10 @@ export default function AdminActivityLog() {
       })
     ];
     
-    // Generate CSV file
     const csvContent = csvRows.join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     
-    // Create download link and click it
     const link = document.createElement("a");
     link.setAttribute("href", url);
     link.setAttribute("download", `activity_logs_export_${new Date().toISOString().split("T")[0]}.csv`);
@@ -177,7 +170,7 @@ export default function AdminActivityLog() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Users</SelectItem>
-                  {userList.map((user) => (
+                  {userList.map((user: any) => (
                     <SelectItem key={user.id} value={user.id}>{user.email || user.id}</SelectItem>
                   ))}
                 </SelectContent>
@@ -192,7 +185,7 @@ export default function AdminActivityLog() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  {activityTypes.map((type) => (
+                  {activityTypes.map((type: string) => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
                 </SelectContent>
@@ -243,7 +236,7 @@ export default function AdminActivityLog() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      activityLogs.map((log) => (
+                      activityLogs.map((log: ActivityLog) => (
                         <TableRow key={log.id}>
                           <TableCell className="font-mono text-xs">
                             {format(new Date(log.created_at), "MMM d, yyyy HH:mm:ss")}
@@ -264,9 +257,7 @@ export default function AdminActivityLog() {
               </div>
             </TabsContent>
             
-            {/* Additional tab contents similar to the user view but with more details */}
             <TabsContent value="auth" className="space-y-4">
-              {/* Authentication-related activities */}
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -309,9 +300,7 @@ export default function AdminActivityLog() {
               </div>
             </TabsContent>
             
-            {/* Similar tables for other tabs... */}
             <TabsContent value="surveys" className="space-y-4">
-              {/* Survey-related activities */}
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -324,7 +313,6 @@ export default function AdminActivityLog() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* Similar content to user view but with user column */}
                     {isLoading ? (
                       Array(3).fill(0).map((_, index) => (
                         <TableRow key={index}>
@@ -356,7 +344,6 @@ export default function AdminActivityLog() {
             </TabsContent>
             
             <TabsContent value="achievements" className="space-y-4">
-              {/* Achievement-related activities */}
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -369,7 +356,6 @@ export default function AdminActivityLog() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* Content similar to user view but with user column */}
                     {isLoading ? (
                       Array(3).fill(0).map((_, index) => (
                         <TableRow key={index}>
@@ -405,7 +391,6 @@ export default function AdminActivityLog() {
             </TabsContent>
             
             <TabsContent value="security" className="space-y-4">
-              {/* Security-related activities */}
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>

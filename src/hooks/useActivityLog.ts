@@ -1,7 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface ActivityLogQueryParams {
   userId?: string;
@@ -11,7 +11,7 @@ interface ActivityLogQueryParams {
   isAdminView?: boolean;
 }
 
-interface ActivityLog {
+export interface ActivityLog {
   id: string;
   user_id: string;
   activity_type: string;
@@ -54,98 +54,79 @@ export const useActivityLog = ({
       const startDate = period > 0
         ? new Date(Date.now() - period * 24 * 60 * 60 * 1000).toISOString()
         : null;
+      
+      try {
+        // Direct fetch to avoid type issues
+        const url = `${supabase.auth.url}/rest/v1/user_activity_logs`;
+        const token = (await supabase.auth.getSession()).data.session?.access_token;
         
-      // Using a raw query approach to avoid typing issues
-      let query = `
-        SELECT 
-          al.*,
-          p.email as profile_email,
-          p.first_name as profile_first_name,
-          p.last_name as profile_last_name
-        FROM 
-          user_activity_logs al
-        LEFT JOIN
-          profiles p ON al.user_id = p.id
-        WHERE 
-          1=1
-      `;
-      
-      const queryParams: any[] = [];
-      let paramCounter = 1;
-      
-      // Add date filter if needed
-      if (startDate) {
-        query += ` AND al.created_at >= $${paramCounter}`;
-        queryParams.push(startDate);
-        paramCounter++;
-      }
-      
-      // Add user filter if needed
-      if (userId) {
-        query += ` AND al.user_id = $${paramCounter}`;
-        queryParams.push(userId);
-        paramCounter++;
-      }
-      
-      // Add activity type filter if needed
-      if (activityType) {
-        query += ` AND al.activity_type = $${paramCounter}`;
-        queryParams.push(activityType);
-        paramCounter++;
-      }
-      
-      // Add search filter if needed
-      if (searchTerm) {
-        query += ` AND (al.description ILIKE $${paramCounter} OR al.activity_type ILIKE $${paramCounter})`;
-        queryParams.push(`%${searchTerm}%`);
-        paramCounter++;
-      }
-      
-      // Add ordering
-      query += ` ORDER BY al.created_at DESC`;
-      
-      // Add limit
-      query += ` LIMIT $${paramCounter}`;
-      queryParams.push(isAdminView ? 100 : 50);
-      
-      // Execute the query
-      const { data, error } = await supabase.rpc('execute_sql', {
-        query_text: query,
-        query_params: queryParams
-      });
-      
-      if (error) {
-        console.error('Error fetching activity logs:', error);
+        let queryParams = new URLSearchParams();
+        if (startDate) {
+          queryParams.append('created_at', `gte.${startDate}`);
+        }
+        if (userId) {
+          queryParams.append('user_id', `eq.${userId}`);
+        }
+        if (activityType) {
+          queryParams.append('activity_type', `eq.${activityType}`);
+        }
+        if (searchTerm) {
+          queryParams.append('or', `(description.ilike.%${searchTerm}%,activity_type.ilike.%${searchTerm}%)`);
+        }
         
-        // Fallback approach if execute_sql is not available
-        try {
-          const { data: rawData, error: rawError } = await supabase
-            .from('user_activity_logs')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(isAdminView ? 100 : 50);
-            
-          if (rawError) throw rawError;
-          return rawData.map((log: any) => ({
+        queryParams.append('order', 'created_at.desc');
+        queryParams.append('limit', isAdminView ? '100' : '50');
+        
+        const response = await fetch(`${url}?${queryParams.toString()}`, {
+          headers: {
+            'apikey': supabase.supabaseKey as string,
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        const rawLogs = await response.json();
+        
+        // If we need user details, fetch profiles for user IDs
+        if (rawLogs.length > 0) {
+          const userIds = [...new Set(rawLogs.map((log: any) => log.user_id))];
+          
+          // Fetch user profiles for these IDs
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, email, first_name, last_name')
+            .in('id', userIds);
+          
+          // Create a lookup map
+          const userMap: Record<string, any> = {};
+          if (profiles) {
+            profiles.forEach(profile => {
+              userMap[profile.id] = profile;
+            });
+          }
+          
+          // Enhance logs with user details
+          return rawLogs.map((log: any) => ({
             ...log,
-            user_details: null
+            user_details: userMap[log.user_id] ? {
+              email: userMap[log.user_id].email,
+              full_name: userMap[log.user_id].first_name && userMap[log.user_id].last_name 
+                ? `${userMap[log.user_id].first_name} ${userMap[log.user_id].last_name}`
+                : null
+            } : null
           }));
-        } catch (fallbackError) {
-          console.error('Fallback error:', fallbackError);
-          throw fallbackError;
         }
+        
+        return rawLogs;
+      } catch (error) {
+        console.error('Error fetching activity logs:', error);
+        return [];
       }
-      
-      // Format the response with user details if available
-      return (data?.results || []).map((log: any) => ({
-        ...log,
-        user_details: {
-          email: log.profile_email,
-          full_name: log.profile_first_name && log.profile_last_name 
-            ? `${log.profile_first_name} ${log.profile_last_name}`
-            : null
-        }
-      }));
     },
     enabled: isAdminView || !!userId // Only run if we're in admin view or have a user ID
   });
