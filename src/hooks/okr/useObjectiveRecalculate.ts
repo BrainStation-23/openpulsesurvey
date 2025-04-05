@@ -4,9 +4,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-/**
- * Hook for handling objective progress recalculation
- */
 export const useObjectiveRecalculate = (objectiveId?: string) => {
   const [isRecalculating, setIsRecalculating] = useState(false);
   const queryClient = useQueryClient();
@@ -17,9 +14,9 @@ export const useObjectiveRecalculate = (objectiveId?: string) => {
     
     setIsRecalculating(true);
     try {
-      // Call the RPC function to recalculate the objective's progress
+      // Use objective_id instead of p_objective_id
       const { error } = await supabase.rpc('calculate_cascaded_objective_progress', { 
-        p_objective_id: objectiveId 
+        objective_id: objectiveId 
       });
       
       if (error) throw error;
