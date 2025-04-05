@@ -38,24 +38,25 @@ export const createActivityLog = async ({
     // If IP address wasn't provided, try to get it
     const ip = ipAddress || await getClientIpAddress();
     
-    // Call the database function to create the log
-    const { data, error } = await supabase.rpc(
-      'create_activity_log',
-      {
-        p_user_id: userId,
-        p_activity_type: activityType,
-        p_description: description,
-        p_ip_address: ip,
-        p_metadata: metadata
-      }
-    );
+    // Insert directly into the table instead of using the RPC function
+    const { data, error } = await supabase
+      .from('user_activity_logs')
+      .insert({
+        user_id: userId,
+        activity_type: activityType,
+        description: description,
+        ip_address: ip,
+        metadata: metadata
+      })
+      .select('id')
+      .single();
     
     if (error) {
       console.error('Error creating activity log:', error);
       return null;
     }
     
-    return data as string;
+    return data.id as string;
   } catch (error) {
     console.error('Error in createActivityLog:', error);
     return null;

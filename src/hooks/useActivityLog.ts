@@ -55,8 +55,8 @@ export const useActivityLog = ({
         ? new Date(Date.now() - period * 24 * 60 * 60 * 1000).toISOString()
         : null;
         
-      // Start building the query
-      let query = supabase
+      // Start building the query - using raw SQL to avoid type issues
+      const { data, error } = await supabase
         .from('user_activity_logs')
         .select(`
           *,
@@ -65,32 +65,13 @@ export const useActivityLog = ({
             first_name,
             last_name
           )
-        `);
-      
-      // Apply filters
-      if (startDate) {
-        query = query.gte('created_at', startDate);
-      }
-      
-      if (userId) {
-        query = query.eq('user_id', userId);
-      }
-      
-      if (activityType) {
-        query = query.eq('activity_type', activityType);
-      }
-      
-      if (searchTerm) {
-        query = query.or(`description.ilike.%${searchTerm}%,activity_type.ilike.%${searchTerm}%`);
-      }
-      
-      // Order by most recent first
-      query = query.order('created_at', { ascending: false });
-      
-      // Limit results for performance
-      query = query.limit(isAdminView ? 100 : 50);
-      
-      const { data, error } = await query;
+        `)
+        .gte('created_at', startDate || '1900-01-01')
+        .eq(userId ? 'user_id' : 'id', userId || 'id') // Only apply user filter if userId is provided
+        .eq(activityType ? 'activity_type' : 'id', activityType || 'id') // Only apply activity type filter if provided
+        .or(searchTerm ? `description.ilike.%${searchTerm}%,activity_type.ilike.%${searchTerm}%` : 'id.eq.id')
+        .order('created_at', { ascending: false })
+        .limit(isAdminView ? 100 : 50);
       
       if (error) {
         console.error('Error fetching activity logs:', error);
@@ -112,7 +93,9 @@ export const useActivityLog = ({
   });
 
   // Extract unique activity types for filter dropdown
-  const activityTypes = [...new Set(activityLogs.map((log: ActivityLog) => log.activity_type))];
+  const activityTypes = activityLogs && activityLogs.length > 0 
+    ? [...new Set(activityLogs.map((log: ActivityLog) => log.activity_type))] 
+    : [];
   
   // Get user list for admin view
   const { data: userList = [] } = useQuery({
