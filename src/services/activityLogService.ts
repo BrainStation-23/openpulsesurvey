@@ -38,36 +38,54 @@ export const createActivityLog = async ({
     const ip = ipAddress || await getClientIpAddress();
     
     try {
-      // Direct REST API approach to avoid typing issues
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
+      // Call the RPC function we created
+      const { data, error } = await supabase.rpc(
+        'create_activity_log',
+        {
+          p_user_id: userId,
+          p_activity_type: activityType,
+          p_description: description,
+          p_ip_address: ip,
+          p_metadata: metadata
+        }
+      );
       
-      const apiUrl = `${supabase.auth.url}/rest/v1/user_activity_logs`;
-      const apiKey = supabase.supabaseKey as string;
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': apiKey,
-          'Authorization': token ? `Bearer ${token}` : '',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          activity_type: activityType,
-          description: description,
-          ip_address: ip,
-          metadata: metadata
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      if (error) {
+        console.error('Error in create_activity_log RPC:', error);
+        
+        // Fallback to direct insert if RPC fails
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        
+        const response = await fetch(
+          `${supabase.supabaseUrl}/rest/v1/user_activity_logs`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabase.supabaseUrl.split('//')[1].split('.')[0],
+              'Authorization': token ? `Bearer ${token}` : '',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify({
+              user_id: userId,
+              activity_type: activityType,
+              description: description,
+              ip_address: ip,
+              metadata: metadata
+            })
+          }
+        );
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        return result[0]?.id || null;
       }
       
-      const result = await response.json();
-      return result[0]?.id || null;
+      return data;
     } catch (apiError) {
       console.error('API error in createActivityLog:', apiError);
       return null;

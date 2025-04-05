@@ -25,11 +25,6 @@ export interface ActivityLog {
   };
 }
 
-interface User {
-  id: string;
-  email?: string;
-}
-
 export const useActivityLog = ({
   userId,
   activityType,
@@ -56,35 +51,48 @@ export const useActivityLog = ({
         : null;
       
       try {
-        // Direct fetch to avoid type issues
-        const url = `${supabase.auth.url}/rest/v1/user_activity_logs`;
-        const token = (await supabase.auth.getSession()).data.session?.access_token;
+        // Use RPC call to safely access the database
+        let query = {};
         
-        let queryParams = new URLSearchParams();
         if (startDate) {
-          queryParams.append('created_at', `gte.${startDate}`);
+          query = { ...query, created_at: `gte.${startDate}` };
         }
         if (userId) {
-          queryParams.append('user_id', `eq.${userId}`);
+          query = { ...query, user_id: `eq.${userId}` };
         }
         if (activityType) {
-          queryParams.append('activity_type', `eq.${activityType}`);
+          query = { ...query, activity_type: `eq.${activityType}` };
         }
+        
+        // Convert query to URL params for the REST API approach
+        const params = new URLSearchParams();
+        for (const [key, value] of Object.entries(query)) {
+          params.append(key, value as string);
+        }
+        
         if (searchTerm) {
-          queryParams.append('or', `(description.ilike.%${searchTerm}%,activity_type.ilike.%${searchTerm}%)`);
+          params.append('or', `(description.ilike.%${searchTerm}%,activity_type.ilike.%${searchTerm}%)`);
         }
         
-        queryParams.append('order', 'created_at.desc');
-        queryParams.append('limit', isAdminView ? '100' : '50');
+        params.append('order', 'created_at.desc');
+        params.append('limit', isAdminView ? '100' : '50');
         
-        const response = await fetch(`${url}?${queryParams.toString()}`, {
-          headers: {
-            'apikey': supabase.supabaseKey as string,
-            'Authorization': token ? `Bearer ${token}` : '',
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
+        // Use fetch directly with proper authorization
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        const apiUrl = `${supabase.auth.getSession().then(s => s.data.session?.access_token)}`;
+        
+        const response = await fetch(
+          `${supabase.supabaseUrl}/rest/v1/user_activity_logs?${params.toString()}`,
+          {
+            headers: {
+              'apikey': supabase.supabaseUrl.split('//')[1].split('.')[0],
+              'Authorization': token ? `Bearer ${token}` : '',
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            }
           }
-        });
+        );
 
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
@@ -94,13 +102,14 @@ export const useActivityLog = ({
         
         // If we need user details, fetch profiles for user IDs
         if (rawLogs.length > 0) {
+          // Get unique user IDs from logs
           const userIds = [...new Set(rawLogs.map((log: any) => log.user_id))];
           
           // Fetch user profiles for these IDs
           const { data: profiles } = await supabase
             .from('profiles')
             .select('id, email, first_name, last_name')
-            .in('id', userIds);
+            .in('id', userIds as string[]);
           
           // Create a lookup map
           const userMap: Record<string, any> = {};

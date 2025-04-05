@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { format } from "date-fns";
 import {
@@ -33,7 +34,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Clock, User, Award, FileText, ShieldAlert, History, Filter, Download } from "lucide-react";
-import { useActivityLog, ActivityLog } from "@/hooks/useActivityLog";
+import { useActivityLog } from "@/hooks/useActivityLog";
+import type { ActivityLog as ActivityLogType } from "@/hooks/useActivityLog";
 
 export default function AdminActivityLog() {
   const [activeTab, setActiveTab] = useState("all");
@@ -88,7 +90,7 @@ export default function AdminActivityLog() {
     const headers = ["Timestamp", "User", "Activity Type", "Description", "IP Address", "Additional Data"];
     const csvRows = [
       headers.join(","),
-      ...activityLogs.map((log: ActivityLog) => {
+      ...activityLogs.map((log: ActivityLogType) => {
         const timestamp = format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss");
         const user = log.user_details?.email || log.user_id;
         const activityType = log.activity_type;

@@ -33,7 +33,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, User, Award, FileText, ShieldAlert, History } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useActivityLog, ActivityLog } from "@/hooks/useActivityLog";
+import { useActivityLog } from "@/hooks/useActivityLog";
+import type { ActivityLog as ActivityLogType } from "@/hooks/useActivityLog";
 
 export default function ActivityLog() {
   const { userId } = useCurrentUser();
@@ -178,7 +179,7 @@ export default function ActivityLog() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      activityLogs.map((log: ActivityLog) => (
+                      activityLogs.map((log: ActivityLogType) => (
                         <TableRow key={log.id}>
                           <TableCell className="font-mono text-xs">
                             {format(new Date(log.created_at), "MMM d, yyyy HH:mm:ss")}
