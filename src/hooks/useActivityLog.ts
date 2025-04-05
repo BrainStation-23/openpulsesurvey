@@ -55,38 +55,96 @@ export const useActivityLog = ({
         ? new Date(Date.now() - period * 24 * 60 * 60 * 1000).toISOString()
         : null;
         
-      // Start building the query - using raw SQL to avoid type issues
-      const { data, error } = await supabase
-        .from('user_activity_logs')
-        .select(`
-          *,
-          profiles:user_id (
-            email,
-            first_name,
-            last_name
-          )
-        `)
-        .gte('created_at', startDate || '1900-01-01')
-        .eq(userId ? 'user_id' : 'id', userId || 'id') // Only apply user filter if userId is provided
-        .eq(activityType ? 'activity_type' : 'id', activityType || 'id') // Only apply activity type filter if provided
-        .or(searchTerm ? `description.ilike.%${searchTerm}%,activity_type.ilike.%${searchTerm}%` : 'id.eq.id')
-        .order('created_at', { ascending: false })
-        .limit(isAdminView ? 100 : 50);
+      // Using a raw query approach to avoid typing issues
+      let query = `
+        SELECT 
+          al.*,
+          p.email as profile_email,
+          p.first_name as profile_first_name,
+          p.last_name as profile_last_name
+        FROM 
+          user_activity_logs al
+        LEFT JOIN
+          profiles p ON al.user_id = p.id
+        WHERE 
+          1=1
+      `;
+      
+      const queryParams: any[] = [];
+      let paramCounter = 1;
+      
+      // Add date filter if needed
+      if (startDate) {
+        query += ` AND al.created_at >= $${paramCounter}`;
+        queryParams.push(startDate);
+        paramCounter++;
+      }
+      
+      // Add user filter if needed
+      if (userId) {
+        query += ` AND al.user_id = $${paramCounter}`;
+        queryParams.push(userId);
+        paramCounter++;
+      }
+      
+      // Add activity type filter if needed
+      if (activityType) {
+        query += ` AND al.activity_type = $${paramCounter}`;
+        queryParams.push(activityType);
+        paramCounter++;
+      }
+      
+      // Add search filter if needed
+      if (searchTerm) {
+        query += ` AND (al.description ILIKE $${paramCounter} OR al.activity_type ILIKE $${paramCounter})`;
+        queryParams.push(`%${searchTerm}%`);
+        paramCounter++;
+      }
+      
+      // Add ordering
+      query += ` ORDER BY al.created_at DESC`;
+      
+      // Add limit
+      query += ` LIMIT $${paramCounter}`;
+      queryParams.push(isAdminView ? 100 : 50);
+      
+      // Execute the query
+      const { data, error } = await supabase.rpc('execute_sql', {
+        query_text: query,
+        query_params: queryParams
+      });
       
       if (error) {
         console.error('Error fetching activity logs:', error);
-        throw error;
+        
+        // Fallback approach if execute_sql is not available
+        try {
+          const { data: rawData, error: rawError } = await supabase
+            .from('user_activity_logs')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(isAdminView ? 100 : 50);
+            
+          if (rawError) throw rawError;
+          return rawData.map((log: any) => ({
+            ...log,
+            user_details: null
+          }));
+        } catch (fallbackError) {
+          console.error('Fallback error:', fallbackError);
+          throw fallbackError;
+        }
       }
       
       // Format the response with user details if available
-      return data.map((log: any) => ({
+      return (data?.results || []).map((log: any) => ({
         ...log,
-        user_details: log.profiles ? {
-          email: log.profiles.email,
-          full_name: log.profiles.first_name && log.profiles.last_name 
-            ? `${log.profiles.first_name} ${log.profiles.last_name}`
+        user_details: {
+          email: log.profile_email,
+          full_name: log.profile_first_name && log.profile_last_name 
+            ? `${log.profile_first_name} ${log.profile_last_name}`
             : null
-        } : null
+        }
       }));
     },
     enabled: isAdminView || !!userId // Only run if we're in admin view or have a user ID

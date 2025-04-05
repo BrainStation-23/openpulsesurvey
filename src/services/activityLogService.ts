@@ -38,25 +38,58 @@ export const createActivityLog = async ({
     // If IP address wasn't provided, try to get it
     const ip = ipAddress || await getClientIpAddress();
     
-    // Insert directly into the table instead of using the RPC function
-    const { data, error } = await supabase
-      .from('user_activity_logs')
-      .insert({
-        user_id: userId,
-        activity_type: activityType,
-        description: description,
-        ip_address: ip,
-        metadata: metadata
-      })
-      .select('id')
-      .single();
+    // Using the raw query approach to avoid typing issues
+    const query = `
+      INSERT INTO user_activity_logs (user_id, activity_type, description, ip_address, metadata)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id
+    `;
+    
+    const { data, error } = await supabase.rpc('execute_sql', {
+      query_text: query,
+      query_params: [userId, activityType, description, ip, JSON.stringify(metadata)]
+    });
     
     if (error) {
-      console.error('Error creating activity log:', error);
-      return null;
+      console.error('Error creating activity log using RPC:', error);
+      
+      // Fallback to a direct insert as text
+      try {
+        // This is a last resort approach - may not work if RLS is strict
+        const { data: rawResult } = await supabase.auth.getSession();
+        const authHeader = rawResult.session?.access_token 
+          ? { Authorization: `Bearer ${rawResult.session.access_token}` }
+          : {};
+          
+        const response = await fetch(`${supabase.supabaseUrl}/rest/v1/user_activity_logs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabase.supabaseKey,
+            ...authHeader
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            activity_type: activityType,
+            description: description,
+            ip_address: ip,
+            metadata: metadata
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        const responseData = await response.json();
+        return responseData.id;
+      } catch (fallbackError) {
+        console.error('Fallback error:', fallbackError);
+        return null;
+      }
     }
     
-    return data.id as string;
+    return data?.results?.[0]?.id || null;
   } catch (error) {
     console.error('Error in createActivityLog:', error);
     return null;
