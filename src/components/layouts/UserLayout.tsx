@@ -7,10 +7,13 @@ import { useToast } from "@/hooks/use-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import UserHeader from "./UserHeader";
 import UserSidebar from "./UserSidebar";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { logAuthEvent } from "@/services/activityLogService";
 
 export default function UserLayout() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, userId } = useCurrentUser();
 
   useEffect(() => {
     const checkUser = async () => {
@@ -50,6 +53,11 @@ export default function UserLayout() {
 
   const handleSignOut = async () => {
     try {
+      // Log the logout event before signing out
+      if (userId) {
+        await logAuthEvent(userId, 'logout');
+      }
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       navigate('/login');

@@ -47,6 +47,11 @@ export const userNavigationItems: UserNavigationItem[] = [
         path: "/user/my-team",
       },
       {
+        title: "Activity Log",
+        icon: History,
+        path: "/user/activity-log",
+      },
+      {
         title: "Settings",
         icon: Settings2,
         path: "/user/settings",
