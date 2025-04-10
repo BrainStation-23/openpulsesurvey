@@ -39,14 +39,11 @@ export function TopPerformingSBUsChart({ campaignId, instanceId }: TopPerforming
     queryFn: async () => {
       if (!instanceId) return [];
 
-      // Fix the RPC call by providing the correct type arguments
-      const { data, error } = await supabase.rpc<SBUPerformance[], unknown>(
-        "get_campaign_sbu_performance" as any, 
-        {
-          p_campaign_id: campaignId,
-          p_instance_id: instanceId,
-        }
-      );
+      // Fix the RPC call by properly typing it
+      const { data, error } = await supabase.rpc('get_campaign_sbu_performance', {
+        p_campaign_id: campaignId,
+        p_instance_id: instanceId,
+      });
 
       if (error) {
         console.error("Error fetching SBU performance:", error);
