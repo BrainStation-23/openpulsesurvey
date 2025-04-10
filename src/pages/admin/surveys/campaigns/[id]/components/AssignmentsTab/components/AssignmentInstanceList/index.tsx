@@ -104,7 +104,8 @@ export function AssignmentInstanceList({
         pageSize 
       });
       
-      const { data, error } = await supabase.rpc<PaginatedAssignmentResponse, any>("get_paginated_campaign_assignments", {
+      // Fix: use correct type parameters for the RPC function
+      const { data, error } = await supabase.rpc("get_paginated_campaign_assignments", {
         p_campaign_id: campaignId,
         p_instance_id: selectedInstanceId || null,
         p_status: statusFilter === "all" ? null : statusFilter,
