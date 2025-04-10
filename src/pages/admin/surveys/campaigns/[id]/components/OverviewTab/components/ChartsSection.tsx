@@ -1,45 +1,52 @@
 
-import { ResponseStatusChartData } from "@/pages/admin/surveys/types/assignments";
-import { StatusDistributionChart } from "../StatusDistributionChart";
-import { ResponseRateChart } from "../ResponseRateChart";
-import { ResponseByLocationChart } from "../ResponseByLocationChart";
-import { ResponseByGenderChart } from "../ResponseByGenderChart";
-import { ResponseByEmploymentTypeChart } from "../ResponseByEmploymentTypeChart";
+import { ResponseOverTimeChart } from "./ResponseOverTimeChart";
+import { StatusDistributionChart } from "./StatusDistributionChart";
+import { SBUResponseRates } from "./SBUResponseRates";
+import { TopPerformingSBUsChart } from "./TopPerformingSBUsChart";
+import { TopPerformingManagersChart } from "./TopPerformingManagersChart";
 
-type ChartsSectionProps = {
-  statusData?: ResponseStatusChartData[];
-  responseData?: { date: string; count: number }[];
+interface ChartsSectionProps {
+  responseData: any[] | undefined;
+  statusData: any[] | undefined;
   campaignId: string;
   selectedInstanceId?: string;
-};
+}
 
 export function ChartsSection({ 
-  statusData, 
   responseData,
+  statusData,
   campaignId,
   selectedInstanceId
 }: ChartsSectionProps) {
   return (
-    <>
-      <div className="grid gap-6 md:grid-cols-2">
-        <StatusDistributionChart data={statusData} />
-        <ResponseRateChart data={responseData} />
+    <div className="space-y-6">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+        <div className="md:col-span-1">
+          <StatusDistributionChart data={statusData} />
+        </div>
+        <div className="md:col-span-2">
+          <ResponseOverTimeChart data={responseData} />
+        </div>
       </div>
       
-      <div className="grid gap-6 md:grid-cols-3">
-        <ResponseByLocationChart 
-          campaignId={campaignId} 
-          instanceId={selectedInstanceId} 
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+        <SBUResponseRates 
+          campaignId={campaignId}
+          instanceId={selectedInstanceId}
         />
-        <ResponseByGenderChart 
-          campaignId={campaignId} 
-          instanceId={selectedInstanceId} 
+        <div />
+      </div>
+
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+        <TopPerformingSBUsChart 
+          campaignId={campaignId}
+          instanceId={selectedInstanceId}
         />
-        <ResponseByEmploymentTypeChart 
-          campaignId={campaignId} 
-          instanceId={selectedInstanceId} 
+        <TopPerformingManagersChart
+          campaignId={campaignId}
+          instanceId={selectedInstanceId}
         />
       </div>
-    </>
+    </div>
   );
 }
