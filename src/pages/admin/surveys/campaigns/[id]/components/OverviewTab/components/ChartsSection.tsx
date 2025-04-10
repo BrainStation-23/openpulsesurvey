@@ -5,6 +5,8 @@ import { ResponseRateChart } from "../ResponseRateChart";
 import { ResponseByLocationChart } from "../ResponseByLocationChart";
 import { ResponseByGenderChart } from "../ResponseByGenderChart";
 import { ResponseByEmploymentTypeChart } from "../ResponseByEmploymentTypeChart";
+import { TopPerformingSBUsChart } from "./TopPerformingSBUsChart";
+import { TopPerformingManagersChart } from "./TopPerformingManagersChart";
 
 type ChartsSectionProps = {
   statusData?: ResponseStatusChartData[];
@@ -36,6 +38,17 @@ export function ChartsSection({
           instanceId={selectedInstanceId} 
         />
         <ResponseByEmploymentTypeChart 
+          campaignId={campaignId} 
+          instanceId={selectedInstanceId} 
+        />
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <TopPerformingSBUsChart 
+          campaignId={campaignId} 
+          instanceId={selectedInstanceId} 
+        />
+        <TopPerformingManagersChart 
           campaignId={campaignId} 
           instanceId={selectedInstanceId} 
         />
