@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -168,7 +167,7 @@ export const ObjectiveGraphView: React.FC<ObjectiveGraphViewProps> = ({
           {isLoading ? (
             <div className="flex items-center justify-center h-full w-full">
               <div className="text-center space-y-3">
-                <LoadingSpinner size={36} />
+                <LoadingSpinner size="lg" />
                 <p className="text-sm text-muted-foreground">Building objective hierarchy...</p>
               </div>
             </div>

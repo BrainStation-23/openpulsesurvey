@@ -39,6 +39,7 @@ export function TopPerformingSBUsChart({ campaignId, instanceId }: TopPerforming
     queryFn: async () => {
       if (!instanceId) return [];
 
+      // Changed to use any and not specify the function name as a type
       const { data, error } = await supabase.rpc("get_campaign_sbu_performance", {
         p_campaign_id: campaignId,
         p_instance_id: instanceId,

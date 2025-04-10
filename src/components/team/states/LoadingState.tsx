@@ -9,7 +9,7 @@ export const LoadingState: React.FC = () => {
       <CardContent className="p-4">
         <div className="h-[400px] border rounded-md flex items-center justify-center">
           <div className="text-center space-y-3">
-            <LoadingSpinner size={36} />
+            <LoadingSpinner size="lg" />
             <p className="text-sm text-muted-foreground">Loading team data...</p>
           </div>
         </div>

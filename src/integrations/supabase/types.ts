@@ -2958,6 +2958,17 @@ export type Database = {
           count: number
         }[]
       }
+      get_campaign_sbu_performance: {
+        Args: { p_campaign_id: string; p_instance_id: string }
+        Returns: {
+          rank: number
+          sbu_name: string
+          total_assigned: number
+          total_completed: number
+          avg_score: number
+          completion_rate: number
+        }[]
+      }
       get_instance_analysis_data: {
         Args: { p_campaign_id: string; p_instance_id: string }
         Returns: Json

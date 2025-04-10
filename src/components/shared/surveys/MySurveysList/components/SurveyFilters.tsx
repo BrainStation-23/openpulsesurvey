@@ -54,7 +54,7 @@ export default function SurveyFilters({
         )}
         {isLoading && (
           <div className="absolute right-2 top-2.5">
-            <LoadingSpinner size={16} />
+            <LoadingSpinner size="sm" />
           </div>
         )}
       </div>
