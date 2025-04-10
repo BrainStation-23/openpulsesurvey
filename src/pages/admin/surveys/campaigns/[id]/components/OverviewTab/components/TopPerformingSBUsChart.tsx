@@ -12,10 +12,10 @@ interface TopPerformingSBUsChartProps {
 }
 
 type SBUPerformance = {
-  rank: number;
+  rank: number | bigint;
   sbu_name: string;
-  total_assigned: number;
-  total_completed: number;
+  total_assigned: number | bigint;
+  total_completed: number | bigint;
   avg_score: number;
   completion_rate: number;
 };
@@ -49,7 +49,13 @@ export function TopPerformingSBUsChart({ campaignId, instanceId }: TopPerforming
         throw error;
       }
 
-      return data as SBUPerformance[];
+      // Convert bigint to number for safe display
+      return (data as SBUPerformance[]).map(sbu => ({
+        ...sbu,
+        rank: Number(sbu.rank),
+        total_assigned: Number(sbu.total_assigned),
+        total_completed: Number(sbu.total_completed)
+      }));
     },
     enabled: !!campaignId && !!instanceId,
   });
