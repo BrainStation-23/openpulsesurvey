@@ -9,8 +9,7 @@ import {
   UserCircle, 
   Users,
   Rocket,
-  BarChart,
-  History
+  BarChart
 } from "lucide-react";
 
 // Navigation item with optional children for nested navigation
