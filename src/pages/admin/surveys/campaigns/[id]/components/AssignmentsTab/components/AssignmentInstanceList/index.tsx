@@ -35,8 +35,30 @@ interface AssignmentInstanceListProps {
   selectedInstanceId?: string;
 }
 
-// Define the type for the response from our RPC function
-type PaginatedAssignment = Database["public"]["Functions"]["get_paginated_campaign_assignments"]["Returns"][0];
+// Define a more specific type for the RPC function response
+interface PaginatedAssignmentResponse {
+  id: string;
+  user_id: string;
+  campaign_id: string;
+  public_access_token: string;
+  last_reminder_sent: string | null;
+  status: string;
+  user_details: {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    user_sbus: Array<{
+      is_primary: boolean;
+      sbu: {
+        id: string;
+        name: string;
+      }
+    }>
+  };
+  response: any;
+  total_count: number;
+}
 
 export function AssignmentInstanceList({
   campaignId,
@@ -82,7 +104,7 @@ export function AssignmentInstanceList({
         pageSize 
       });
       
-      const { data, error } = await supabase.rpc<PaginatedAssignment>("get_paginated_campaign_assignments", {
+      const { data, error } = await supabase.rpc<PaginatedAssignmentResponse, any>("get_paginated_campaign_assignments", {
         p_campaign_id: campaignId,
         p_instance_id: selectedInstanceId || null,
         p_status: statusFilter === "all" ? null : statusFilter,
@@ -100,7 +122,7 @@ export function AssignmentInstanceList({
 
       // The data object includes everything we need (assignments and total count)
       if (data && Array.isArray(data) && data.length > 0) {
-        const totalCount = data[0].total_count || 0;
+        const totalCount = data[0]?.total_count || 0;
         const assignments = data.map((assignment) => ({
           ...assignment,
           status: assignment.status as ResponseStatus,
