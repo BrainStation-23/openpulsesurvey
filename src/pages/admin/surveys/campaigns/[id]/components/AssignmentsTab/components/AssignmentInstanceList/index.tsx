@@ -27,12 +27,16 @@ import { UserCell } from "./components/UserCell";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Database } from "@/integrations/supabase/types";
 
 interface AssignmentInstanceListProps {
   campaignId: string;
   surveyId?: string;
   selectedInstanceId?: string;
 }
+
+// Define the type for the response from our RPC function
+type PaginatedAssignment = Database["public"]["Functions"]["get_paginated_campaign_assignments"]["Returns"][0];
 
 export function AssignmentInstanceList({
   campaignId,
@@ -78,7 +82,7 @@ export function AssignmentInstanceList({
         pageSize 
       });
       
-      const { data, error } = await supabase.rpc("get_paginated_campaign_assignments", {
+      const { data, error } = await supabase.rpc<PaginatedAssignment>("get_paginated_campaign_assignments", {
         p_campaign_id: campaignId,
         p_instance_id: selectedInstanceId || null,
         p_status: statusFilter === "all" ? null : statusFilter,
@@ -95,9 +99,9 @@ export function AssignmentInstanceList({
       console.log("Fetched assignments:", data);
 
       // The data object includes everything we need (assignments and total count)
-      if (data && data.length > 0) {
+      if (data && Array.isArray(data) && data.length > 0) {
         const totalCount = data[0].total_count || 0;
-        const assignments = data.map((assignment: any) => ({
+        const assignments = data.map((assignment) => ({
           ...assignment,
           status: assignment.status as ResponseStatus,
           user: assignment.user_details,
