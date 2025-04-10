@@ -28,7 +28,7 @@ export function ChartsSection({
         <ResponseRateChart data={responseData} />
       </div>
       
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         <ResponseByLocationChart 
           campaignId={campaignId} 
           instanceId={selectedInstanceId} 
@@ -37,11 +37,17 @@ export function ChartsSection({
           campaignId={campaignId} 
           instanceId={selectedInstanceId} 
         />
+      </div>
+
+       <div className="grid gap-6 md:grid-cols-1">
+        
         <ResponseByEmploymentTypeChart 
           campaignId={campaignId} 
           instanceId={selectedInstanceId} 
         />
       </div>
+
+      
 
       <div className="grid gap-6 md:grid-cols-2">
         <TopPerformingSBUsChart 
