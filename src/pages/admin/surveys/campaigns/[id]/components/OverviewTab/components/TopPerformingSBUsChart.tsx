@@ -39,8 +39,8 @@ export function TopPerformingSBUsChart({ campaignId, instanceId }: TopPerforming
     queryFn: async () => {
       if (!instanceId) return [];
 
-      // Use a type cast to avoid TypeScript error with RPC function name
-      const { data, error } = await supabase.rpc<SBUPerformance[]>(
+      // Fix the RPC call by providing the correct type arguments
+      const { data, error } = await supabase.rpc<SBUPerformance[], unknown>(
         "get_campaign_sbu_performance" as any, 
         {
           p_campaign_id: campaignId,
