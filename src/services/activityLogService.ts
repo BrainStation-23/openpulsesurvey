@@ -11,16 +11,16 @@ export async function createActivityLog(
   details?: any
 ): Promise<boolean> {
   try {
-    // Use a direct database insert with explicit column names
+    // Create a plain INSERT query to avoid type issues with Supabase
     const { error } = await supabase
       .from('activity_logs')
-      .insert({
+      .insert([{
         user_id: userId,
         entity_type: entityType,
         entity_id: entityId,
         action: action,
         details: details || {}
-      });
+      }]);
     
     if (error) {
       console.error("Error creating activity log:", error);
@@ -55,7 +55,7 @@ export async function fetchActivityLogs({
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     
-    // Build the query
+    // Build the query using string literals for table name to avoid typing issues
     let query = supabase
       .from('activity_logs')
       .select('*', { count: 'exact' })
@@ -87,10 +87,11 @@ export async function fetchActivityLogs({
       return { data: [], count: 0 };
     }
     
-    // Safely convert the returned data to ActivityLogEntry[]
-    // Use type assertion with unknown first to avoid TypeScript errors
+    // Use a two-step type assertion to safely convert to ActivityLogEntry[]
+    const typedData = data as unknown as ActivityLogEntry[];
+    
     return {
-      data: (data as unknown) as ActivityLogEntry[],
+      data: typedData,
       count: count || 0
     };
   } catch (error) {

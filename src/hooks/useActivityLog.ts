@@ -36,12 +36,12 @@ export function useActivityLog(initialFilters: ActivityLogFilter = {}) {
   const totalCount = data?.count || 0;
   
   // Extract unique entity types and user IDs from logs
-  // Use correct type assertions and filters to ensure string arrays
+  // Filter out null/undefined values and explicitly type as string[]
   const entityTypes = Array.from(
     new Set(
       logs
         .map(log => log.entity_type)
-        .filter(Boolean) as string[]
+        .filter((type): type is string => !!type)
     )
   );
   
@@ -49,7 +49,7 @@ export function useActivityLog(initialFilters: ActivityLogFilter = {}) {
     new Set(
       logs
         .map(log => log.user_id)
-        .filter(Boolean) as string[]
+        .filter((id): id is string => !!id)
     )
   );
   
