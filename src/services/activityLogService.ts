@@ -11,16 +11,14 @@ export async function createActivityLog(
   details?: any
 ): Promise<boolean> {
   try {
-    // Create a plain INSERT query to avoid type issues with Supabase
-    const { error } = await supabase
-      .from('activity_logs')
-      .insert([{
-        user_id: userId,
-        entity_type: entityType,
-        entity_id: entityId,
-        action: action,
-        details: details || {}
-      }]);
+    // Use executeQuery instead of trying to access the table directly
+    const { error } = await supabase.rpc('create_activity_log_entry', {
+      p_user_id: userId,
+      p_entity_type: entityType,
+      p_entity_id: entityId,
+      p_action: action,
+      p_details: details || {}
+    });
     
     if (error) {
       console.error("Error creating activity log:", error);
@@ -34,7 +32,7 @@ export async function createActivityLog(
   }
 }
 
-// Function to fetch activity logs with proper URL construction
+// Function to fetch activity logs
 export async function fetchActivityLogs({
   page = 1,
   pageSize = 10,
@@ -51,49 +49,32 @@ export async function fetchActivityLogs({
   endDate?: Date;
 }): Promise<{ data: ActivityLogEntry[]; count: number }> {
   try {
-    // Calculate range for pagination
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-    
-    // Build the query using string literals for table name to avoid typing issues
-    let query = supabase
-      .from('activity_logs')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(from, to);
-    
-    // Apply filters if provided
-    if (entityType) {
-      query = query.eq('entity_type', entityType);
-    }
-    
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
-    
-    if (startDate) {
-      query = query.gte('created_at', startDate.toISOString());
-    }
-    
-    if (endDate) {
-      query = query.lte('created_at', endDate.toISOString());
-    }
-    
-    // Execute the query
-    const { data, error, count } = await query;
+    // Use a stored procedure to fetch the logs
+    const { data, error } = await supabase.rpc('fetch_activity_logs', {
+      p_page: page,
+      p_page_size: pageSize,
+      p_entity_type: entityType || null,
+      p_user_id: userId || null,
+      p_start_date: startDate ? startDate.toISOString() : null,
+      p_end_date: endDate ? endDate.toISOString() : null
+    });
     
     if (error) {
       console.error("Error fetching activity logs:", error);
       return { data: [], count: 0 };
     }
     
-    // Use a two-step type assertion to safely convert to ActivityLogEntry[]
-    const typedData = data as unknown as ActivityLogEntry[];
+    // Process the response which will come as an array with the first item containing
+    // our results and count
+    if (Array.isArray(data) && data.length > 0) {
+      const result = data[0] as { logs: ActivityLogEntry[], total_count: number };
+      return {
+        data: result.logs || [],
+        count: result.total_count || 0
+      };
+    }
     
-    return {
-      data: typedData,
-      count: count || 0
-    };
+    return { data: [], count: 0 };
   } catch (error) {
     console.error("Failed to fetch activity logs:", error);
     return { data: [], count: 0 };
