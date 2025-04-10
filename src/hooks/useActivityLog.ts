@@ -35,7 +35,8 @@ export function useActivityLog(initialFilters: ActivityLogFilter = {}) {
   const logs = data?.data || [];
   const totalCount = data?.count || 0;
   
-  // Type-safe filters
+  // Extract unique entity types and user IDs from logs
+  // Use correct type assertions and filters to ensure string arrays
   const entityTypes = Array.from(
     new Set(
       logs

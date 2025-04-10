@@ -11,7 +11,7 @@ export async function createActivityLog(
   details?: any
 ): Promise<boolean> {
   try {
-    // Use a direct database insert instead of RPC if the function isn't defined in types
+    // Use a direct database insert with explicit column names
     const { error } = await supabase
       .from('activity_logs')
       .insert({
@@ -87,8 +87,10 @@ export async function fetchActivityLogs({
       return { data: [], count: 0 };
     }
     
+    // Safely convert the returned data to ActivityLogEntry[]
+    // Use type assertion with unknown first to avoid TypeScript errors
     return {
-      data: data as ActivityLogEntry[],
+      data: (data as unknown) as ActivityLogEntry[],
       count: count || 0
     };
   } catch (error) {
