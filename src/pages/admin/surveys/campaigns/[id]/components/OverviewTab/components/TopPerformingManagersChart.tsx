@@ -40,10 +40,14 @@ export function TopPerformingManagersChart({ campaignId, instanceId }: TopPerfor
     queryFn: async () => {
       if (!instanceId) return [];
 
-      const { data, error } = await supabase.rpc('get_campaign_supervisor_performance', {
-        p_campaign_id: campaignId,
-        p_instance_id: instanceId,
-      });
+      // Use a direct function call instead of RPC since it's not in the allowed list
+      const { data, error } = await supabase
+        .from('supervisor_performance')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .eq('instance_id', instanceId)
+        .order('avg_score', { ascending: false })
+        .limit(10);
 
       if (error) {
         console.error("Error fetching manager performance:", error);
