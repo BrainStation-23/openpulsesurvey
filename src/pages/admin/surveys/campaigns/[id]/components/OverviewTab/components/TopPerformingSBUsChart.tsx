@@ -115,6 +115,7 @@ export function TopPerformingSBUsChart({ campaignId, instanceId }: TopPerforming
               <TableHead className="text-right">Assigned</TableHead>
               <TableHead className="text-right">Completed</TableHead>
               <TableHead className="text-right">Avg Score</TableHead>
+              <TableHead className="text-right">Completion Rate</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -131,6 +132,9 @@ export function TopPerformingSBUsChart({ campaignId, instanceId }: TopPerforming
                 <TableCell className="text-right">{sbu.total_completed}</TableCell>
                 <TableCell className="text-right font-medium">
                   {sbu.avg_score.toFixed(1)}
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {sbu.completion_rate.toFixed(1)}%
                 </TableCell>
               </TableRow>
             ))}
