@@ -15,10 +15,24 @@ export type StatusData = {
 };
 
 type StatusDistributionChartProps = {
-  data: StatusData[];
+  data: StatusData[] | undefined;
 };
 
 export function StatusDistributionChart({ data }: StatusDistributionChartProps) {
+  // If data is undefined or empty, return early with a placeholder
+  if (!data || data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Status Distribution</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[300px] flex items-center justify-center">
+          <p className="text-muted-foreground">No data available</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   // Calculate total for percentages
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
