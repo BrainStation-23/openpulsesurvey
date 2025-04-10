@@ -32,3 +32,9 @@ export type SurveyAssignment = {
     campaign_instance_id: string;
   };
 };
+
+// This type maps to what StatusDistributionChart component expects
+export type ResponseStatusChartData = {
+  name: string;
+  value: number;
+};
