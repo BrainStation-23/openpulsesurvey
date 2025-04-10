@@ -2981,6 +2981,27 @@ export type Database = {
           response: Json
         }[]
       }
+      get_paginated_campaign_assignments: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id?: string
+          p_status?: string
+          p_search_term?: string
+          p_page?: number
+          p_page_size?: number
+        }
+        Returns: {
+          id: string
+          user_id: string
+          campaign_id: string
+          public_access_token: string
+          last_reminder_sent: string
+          status: string
+          user_details: Json
+          response: Json
+          total_count: number
+        }[]
+      }
       get_pending_surveys_count: {
         Args: { p_user_id: string }
         Returns: number

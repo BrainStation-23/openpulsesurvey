@@ -78,7 +78,7 @@ export function AssignmentInstanceList({
         pageSize 
       });
       
-      const { data, error, count } = await supabase.rpc("get_paginated_campaign_assignments", {
+      const { data, error } = await supabase.rpc("get_paginated_campaign_assignments", {
         p_campaign_id: campaignId,
         p_instance_id: selectedInstanceId || null,
         p_status: statusFilter === "all" ? null : statusFilter,
@@ -94,13 +94,24 @@ export function AssignmentInstanceList({
 
       console.log("Fetched assignments:", data);
 
-      return {
-        assignments: data.map((assignment: any) => ({
+      // The data object includes everything we need (assignments and total count)
+      if (data && data.length > 0) {
+        const totalCount = data[0].total_count || 0;
+        const assignments = data.map((assignment: any) => ({
           ...assignment,
           status: assignment.status as ResponseStatus,
           user: assignment.user_details,
-        })),
-        totalCount: count || 0
+        }));
+
+        return {
+          assignments,
+          totalCount
+        };
+      }
+
+      return {
+        assignments: [],
+        totalCount: 0
       };
     },
     enabled: !!campaignId,
