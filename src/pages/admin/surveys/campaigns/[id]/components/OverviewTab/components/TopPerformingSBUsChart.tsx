@@ -54,7 +54,11 @@ export function TopPerformingSBUsChart({ campaignId, instanceId }: TopPerforming
         ...sbu,
         rank: Number(sbu.rank),
         total_assigned: Number(sbu.total_assigned),
-        total_completed: Number(sbu.total_completed)
+        total_completed: Number(sbu.total_completed),
+        // Ensure avg_score is properly converted from NUMERIC
+        avg_score: typeof sbu.avg_score === 'string' ? parseFloat(sbu.avg_score) : Number(sbu.avg_score),
+        // Ensure completion_rate is properly converted
+        completion_rate: typeof sbu.completion_rate === 'string' ? parseFloat(sbu.completion_rate) : Number(sbu.completion_rate)
       }));
     },
     enabled: !!campaignId && !!instanceId,
@@ -62,7 +66,7 @@ export function TopPerformingSBUsChart({ campaignId, instanceId }: TopPerforming
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="col-span-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-yellow-500" />
@@ -78,7 +82,7 @@ export function TopPerformingSBUsChart({ campaignId, instanceId }: TopPerforming
 
   if (!sbuPerformance || sbuPerformance.length === 0) {
     return (
-      <Card>
+      <Card className="col-span-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-yellow-500" />
@@ -95,7 +99,7 @@ export function TopPerformingSBUsChart({ campaignId, instanceId }: TopPerforming
   }
 
   return (
-    <Card>
+    <Card className="col-span-2">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Building2 className="h-5 w-5 text-yellow-500" />
