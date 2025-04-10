@@ -21,11 +21,14 @@ import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { getVisibilityLabel, getVisibilityColorClass } from './utils/visibilityUtils';
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface CreateAlignmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sourceObjectiveId: string;
+  canCreateChildAlignments?: boolean;
   onSuccess?: () => void;
 }
 
@@ -33,6 +36,7 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
   open,
   onOpenChange,
   sourceObjectiveId,
+  canCreateChildAlignments = true,
   onSuccess
 }) => {
   const { createAlignment } = useAlignments(sourceObjectiveId);
@@ -44,6 +48,13 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
   const [selectedSbuId, setSelectedSbuId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
+  // If we can't create child alignments, force the direction to 'parent' (where this objective is the child)
+  useEffect(() => {
+    if (!canCreateChildAlignments && relationDirection === 'child') {
+      setRelationDirection('parent');
+    }
+  }, [canCreateChildAlignments, relationDirection]);
+  
   const form = useForm<z.infer<typeof alignmentFormSchema>>({
     resolver: zodResolver(alignmentFormSchema),
     defaultValues: {
@@ -53,11 +64,19 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
   });
   
   const toggleRelationDirection = () => {
-    setRelationDirection(prev => prev === 'parent' ? 'child' : 'parent');
+    // Only allow toggling if child alignments are permitted
+    if (canCreateChildAlignments) {
+      setRelationDirection(prev => prev === 'parent' ? 'child' : 'parent');
+    }
   };
 
   const onSubmit = async (values: z.infer<typeof alignmentFormSchema>) => {
     if (!sourceObjectiveId || !selectedObjective) return;
+    
+    // Extra validation to ensure we don't create child alignments when not allowed
+    if (relationDirection === 'child' && !canCreateChildAlignments) {
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -122,6 +141,17 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         
+        {!canCreateChildAlignments && (
+          <div className="px-6">
+            <Alert variant="warning" className="bg-amber-50 border-amber-200">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <AlertDescription>
+                This objective has key results and can only be aligned as a child to other objectives.
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 md:grid-cols-2">
           {/* Left Column: Selection Configuration */}
           <div className="p-6 pt-2 border-r border-border flex flex-col h-full">
@@ -139,6 +169,7 @@ export const CreateAlignmentDialog: React.FC<CreateAlignmentDialogProps> = ({
               setSelectedSbuId={setSelectedSbuId}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
+              disableChildDirection={!canCreateChildAlignments}
             />
             
             {/* Selected objective preview card - moved from right column */}

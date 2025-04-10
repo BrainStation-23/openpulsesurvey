@@ -158,6 +158,45 @@ export const useAlignments = (objectiveId?: string) => {
         }
       }
       
+      // Check if we're creating a child alignment where this objective is the parent
+      if (data.alignmentType === 'parent_child' && data.sourceObjectiveId === objectiveId) {
+        // Check if this objective has key results
+        const { data: keyResults, error: krError } = await supabase
+          .from('key_results')
+          .select('id')
+          .eq('objective_id', data.sourceObjectiveId)
+          .limit(1);
+          
+        if (krError) {
+          console.error('Error checking for key results:', krError);
+          throw krError;
+        }
+        
+        if (keyResults && keyResults.length > 0) {
+          throw new Error("This objective has key results and cannot have child alignments.");
+        }
+      }
+      
+      // If we are aligning a child to a parent, check if the child has any children
+      if (data.alignmentType === 'parent_child' && data.alignedObjectiveId === objectiveId) {
+        // Check if this objective is a parent to any other objectives
+        const { data: childAlignments, error: alignError } = await supabase
+          .from('okr_alignments')
+          .select('id')
+          .eq('source_objective_id', data.alignedObjectiveId)
+          .eq('alignment_type', 'parent_child')
+          .limit(1);
+          
+        if (alignError) {
+          console.error('Error checking for child alignments:', alignError);
+          throw alignError;
+        }
+        
+        if (childAlignments && childAlignments.length > 0) {
+          throw new Error("This objective has child alignments and cannot be aligned as a child to another objective.");
+        }
+      }
+      
       const { data: newAlignment, error } = await supabase
         .from('okr_alignments')
         .insert({

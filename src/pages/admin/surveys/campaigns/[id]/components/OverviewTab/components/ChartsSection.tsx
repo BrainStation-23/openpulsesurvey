@@ -1,45 +1,62 @@
+
+import { ResponseStatusChartData } from "@/pages/admin/surveys/types/assignments";
 import { StatusDistributionChart } from "../StatusDistributionChart";
 import { ResponseRateChart } from "../ResponseRateChart";
-import { ResponseByGenderChart } from "../ResponseByGenderChart";
 import { ResponseByLocationChart } from "../ResponseByLocationChart";
+import { ResponseByGenderChart } from "../ResponseByGenderChart";
 import { ResponseByEmploymentTypeChart } from "../ResponseByEmploymentTypeChart";
-import type { StatusData } from "../StatusDistributionChart";
+import { TopPerformingSBUsChart } from "./TopPerformingSBUsChart";
+import { TopPerformingManagersChart } from "./TopPerformingManagersChart";
 
 type ChartsSectionProps = {
-  statusData: StatusData[] | undefined;
-  responseData: { date: string; count: number; }[] | undefined;
+  statusData?: ResponseStatusChartData[];
+  responseData?: { date: string; count: number }[];
   campaignId: string;
   selectedInstanceId?: string;
 };
 
 export function ChartsSection({ 
   statusData, 
-  responseData, 
-  campaignId, 
-  selectedInstanceId 
+  responseData,
+  campaignId,
+  selectedInstanceId
 }: ChartsSectionProps) {
   return (
     <>
       <div className="grid gap-6 md:grid-cols-2">
-        <StatusDistributionChart data={statusData || []} />
-        <ResponseRateChart data={responseData || []} />
+        <StatusDistributionChart data={statusData} />
+        <ResponseRateChart data={responseData} />
       </div>
-
+      
       <div className="grid gap-6 md:grid-cols-2">
-        <ResponseByGenderChart 
-          campaignId={campaignId} 
-          instanceId={selectedInstanceId}
-        />
         <ResponseByLocationChart 
           campaignId={campaignId} 
-          instanceId={selectedInstanceId}
+          instanceId={selectedInstanceId} 
+        />
+        <ResponseByGenderChart 
+          campaignId={campaignId} 
+          instanceId={selectedInstanceId} 
         />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+       <div className="grid gap-6 md:grid-cols-1">
+        
         <ResponseByEmploymentTypeChart 
           campaignId={campaignId} 
-          instanceId={selectedInstanceId}
+          instanceId={selectedInstanceId} 
+        />
+      </div>
+
+      
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <TopPerformingSBUsChart 
+          campaignId={campaignId} 
+          instanceId={selectedInstanceId} 
+        />
+        <TopPerformingManagersChart 
+          campaignId={campaignId} 
+          instanceId={selectedInstanceId} 
         />
       </div>
     </>

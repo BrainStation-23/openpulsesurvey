@@ -18,7 +18,7 @@ export default function OkrSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <LoadingSpinner size={40} />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }

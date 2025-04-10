@@ -110,7 +110,7 @@ export function SurveySelector({ value, onChange }: SurveySelectorProps) {
       {/* Survey Grid */}
       {isLoading ? (
         <div className="flex justify-center p-8">
-          <LoadingSpinner size={24} />
+          <LoadingSpinner size="md" />
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

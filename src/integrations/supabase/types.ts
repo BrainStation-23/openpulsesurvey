@@ -1086,6 +1086,7 @@ export type Database = {
           owner_id: string
           parent_objective_id: string | null
           progress: number | null
+          progress_calculation_method: string | null
           sbu_id: string | null
           status: Database["public"]["Enums"]["objective_status"]
           title: string
@@ -1105,6 +1106,7 @@ export type Database = {
           owner_id: string
           parent_objective_id?: string | null
           progress?: number | null
+          progress_calculation_method?: string | null
           sbu_id?: string | null
           status?: Database["public"]["Enums"]["objective_status"]
           title: string
@@ -1124,6 +1126,7 @@ export type Database = {
           owner_id?: string
           parent_objective_id?: string | null
           progress?: number | null
+          progress_calculation_method?: string | null
           sbu_id?: string | null
           status?: Database["public"]["Enums"]["objective_status"]
           title?: string
@@ -1470,6 +1473,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      okr_default_settings: {
+        Row: {
+          default_progress_calculation_method: string | null
+          id: string
+        }
+        Insert: {
+          default_progress_calculation_method?: string | null
+          id?: string
+        }
+        Update: {
+          default_progress_calculation_method?: string | null
+          id?: string
+        }
+        Relationships: []
       }
       okr_history: {
         Row: {
@@ -2783,10 +2801,7 @@ export type Database = {
     }
     Functions: {
       analyze_okr_progress_logs: {
-        Args: {
-          p_objective_id?: string
-          p_limit?: number
-        }
+        Args: { p_objective_id?: string; p_limit?: number }
         Returns: {
           event_time: string
           entity_id: string
@@ -2796,15 +2811,11 @@ export type Database = {
         }[]
       }
       calculate_cascaded_objective_progress: {
-        Args: {
-          objective_id: string
-        }
+        Args: { objective_id: string }
         Returns: undefined
       }
       calculate_instance_completion_rate: {
-        Args: {
-          instance_id: string
-        }
+        Args: { instance_id: string }
         Returns: number
       }
       calculate_key_result_progress: {
@@ -2818,9 +2829,7 @@ export type Database = {
         Returns: number
       }
       calculate_objective_progress_for_single_objective: {
-        Args: {
-          objective_id: string
-        }
+        Args: { objective_id: string }
         Returns: undefined
       }
       calculate_progress: {
@@ -2834,28 +2843,19 @@ export type Database = {
         Returns: number
       }
       can_create_alignment: {
-        Args: {
-          p_user_id: string
-        }
+        Args: { p_user_id: string }
         Returns: boolean
       }
       can_create_alignment_by_visibility: {
-        Args: {
-          p_user_id: string
-          p_visibility: string
-        }
+        Args: { p_user_id: string; p_visibility: string }
         Returns: boolean
       }
       can_create_key_result: {
-        Args: {
-          p_user_id: string
-        }
+        Args: { p_user_id: string }
         Returns: boolean
       }
       can_create_objective: {
-        Args: {
-          p_user_id: string
-        }
+        Args: { p_user_id: string }
         Returns: boolean
       }
       can_create_objective_alignment: {
@@ -2867,23 +2867,15 @@ export type Database = {
         Returns: boolean
       }
       can_create_objective_by_visibility: {
-        Args: {
-          p_user_id: string
-          p_visibility: string
-        }
+        Args: { p_user_id: string; p_visibility: string }
         Returns: boolean
       }
       check_and_award_achievements: {
-        Args: {
-          p_user_id: string
-        }
+        Args: { p_user_id: string }
         Returns: undefined
       }
       check_objective_owner_permission: {
-        Args: {
-          p_user_id: string
-          p_objective_id: string
-        }
+        Args: { p_user_id: string; p_objective_id: string }
         Returns: boolean
       }
       check_okr_create_permission: {
@@ -2903,35 +2895,23 @@ export type Database = {
         Returns: boolean
       }
       check_user_board_access: {
-        Args: {
-          p_user_id: string
-          p_board_id: string
-          p_access_type: string
-        }
+        Args: { p_user_id: string; p_board_id: string; p_access_type: string }
         Returns: boolean
       }
       cleanup_campaign_cron_jobs: {
-        Args: {
-          p_campaign_id: string
-        }
+        Args: { p_campaign_id: string }
         Returns: undefined
       }
       decrement_vote_count: {
-        Args: {
-          issue_id: string
-        }
+        Args: { issue_id: string }
         Returns: undefined
       }
       delete_auth_user_complete: {
-        Args: {
-          in_user_id: string
-        }
+        Args: { in_user_id: string }
         Returns: Database["public"]["CompositeTypes"]["user_deletion_result"]
       }
       delete_survey_assignment: {
-        Args: {
-          p_assignment_id: string
-        }
+        Args: { p_assignment_id: string }
         Returns: Json
       }
       fix_all_instance_completion_rates: {
@@ -2951,24 +2931,15 @@ export type Database = {
         Returns: string
       }
       get_assignment_instance_status: {
-        Args: {
-          p_assignment_id: string
-          p_instance_id: string
-        }
+        Args: { p_assignment_id: string; p_instance_id: string }
         Returns: Database["public"]["Enums"]["assignment_status"]
       }
       get_campaign_analysis_data: {
-        Args: {
-          p_campaign_id: string
-          p_instance_id: string
-        }
+        Args: { p_campaign_id: string; p_instance_id: string }
         Returns: Json
       }
       get_campaign_assignments: {
-        Args: {
-          p_campaign_id: string
-          p_instance_id: string
-        }
+        Args: { p_campaign_id: string; p_instance_id: string }
         Returns: {
           id: string
           user_id: string
@@ -2981,33 +2952,45 @@ export type Database = {
         }[]
       }
       get_campaign_instance_status_distribution: {
-        Args: {
-          p_campaign_id: string
-          p_instance_id: string
-        }
+        Args: { p_campaign_id: string; p_instance_id: string }
         Returns: {
           status: string
           count: number
         }[]
       }
+      get_campaign_sbu_performance: {
+        Args: { p_campaign_id: string; p_instance_id: string }
+        Returns: {
+          rank: number
+          sbu_name: string
+          total_assigned: number
+          total_completed: number
+          avg_score: number
+          completion_rate: number
+        }[]
+      }
+      get_campaign_supervisor_performance: {
+        Args: { p_campaign_id: string; p_instance_id: string }
+        Returns: {
+          rank: number
+          supervisor_name: string
+          sbu_name: string
+          total_assigned: number
+          total_completed: number
+          avg_score: number
+          completion_rate: number
+        }[]
+      }
       get_instance_analysis_data: {
-        Args: {
-          p_campaign_id: string
-          p_instance_id: string
-        }
+        Args: { p_campaign_id: string; p_instance_id: string }
         Returns: Json
       }
       get_instance_assignment_status: {
-        Args: {
-          p_assignment_id: string
-          p_instance_id: string
-        }
+        Args: { p_assignment_id: string; p_instance_id: string }
         Returns: string
       }
       get_my_survey_assignments: {
-        Args: {
-          p_user_id: string
-        }
+        Args: { p_user_id: string }
         Returns: {
           id: string
           survey_id: string
@@ -3021,17 +3004,33 @@ export type Database = {
           response: Json
         }[]
       }
-      get_pending_surveys_count: {
+      get_paginated_campaign_assignments: {
         Args: {
-          p_user_id: string
+          p_campaign_id: string
+          p_instance_id?: string
+          p_status?: string
+          p_search_term?: string
+          p_page?: number
+          p_page_size?: number
         }
+        Returns: {
+          id: string
+          user_id: string
+          campaign_id: string
+          public_access_token: string
+          last_reminder_sent: string
+          status: string
+          user_details: Json
+          response: Json
+          total_count: number
+        }[]
+      }
+      get_pending_surveys_count: {
+        Args: { p_user_id: string }
         Returns: number
       }
       get_survey_responses_for_export: {
-        Args: {
-          p_campaign_id: string
-          p_instance_id: string
-        }
+        Args: { p_campaign_id: string; p_instance_id: string }
         Returns: {
           primary_sbu: string
           primary_manager: string
@@ -3041,33 +3040,23 @@ export type Database = {
         }[]
       }
       handle_campaign_end: {
-        Args: {
-          p_campaign_id: string
-        }
+        Args: { p_campaign_id: string }
         Returns: undefined
       }
       handle_instance_activation: {
-        Args: {
-          p_campaign_id: string
-        }
+        Args: { p_campaign_id: string }
         Returns: undefined
       }
       handle_instance_due_time: {
-        Args: {
-          p_campaign_id: string
-        }
+        Args: { p_campaign_id: string }
         Returns: undefined
       }
       increment_vote_count: {
-        Args: {
-          issue_id: string
-        }
+        Args: { issue_id: string }
         Returns: undefined
       }
       is_admin: {
-        Args: {
-          user_uid: string
-        }
+        Args: { user_uid: string }
         Returns: boolean
       }
       recalculate_all_cascaded_objective_progress: {
@@ -3076,13 +3065,7 @@ export type Database = {
       }
       recalculate_all_objective_progress: {
         Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      recalculate_objective_progress: {
-        Args: {
-          objective_id_param: string
-        }
-        Returns: undefined
+        Returns: number
       }
       reorder_questions: {
         Args: {
@@ -3095,15 +3078,11 @@ export type Database = {
         Returns: boolean
       }
       schedule_campaign_cron_job: {
-        Args: {
-          p_campaign_id: string
-        }
+        Args: { p_campaign_id: string }
         Returns: undefined
       }
       schedule_campaign_jobs: {
-        Args: {
-          p_campaign_id: string
-        }
+        Args: { p_campaign_id: string }
         Returns: undefined
       }
       search_live_sessions: {
@@ -3139,21 +3118,15 @@ export type Database = {
         }
         Returns: Json
       }
-      search_users:
-        | {
-            Args: {
+      search_users: {
+        Args:
+          | {
               search_text: string
               page_number: number
               page_size: number
               sbu_filter?: string
             }
-            Returns: {
-              profile: Json
-              total_count: number
-            }[]
-          }
-        | {
-            Args: {
+          | {
               search_text: string
               page_number: number
               page_size: number
@@ -3164,11 +3137,11 @@ export type Database = {
               employee_role_filter?: string
               employee_type_filter?: string
             }
-            Returns: {
-              profile: Json
-              total_count: number
-            }[]
-          }
+        Returns: {
+          profile: Json
+          total_count: number
+        }[]
+      }
     }
     Enums: {
       achievement_category:
@@ -3254,27 +3227,29 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -3282,20 +3257,22 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -3303,20 +3280,22 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -3324,21 +3303,23 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database
@@ -3347,6 +3328,94 @@ export type CompositeTypes<
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
   ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      achievement_category: [
+        "survey_completion",
+        "response_rate",
+        "streak",
+        "quality",
+        "special_event",
+      ],
+      achievement_condition_type: [
+        "survey_count",
+        "response_rate",
+        "streak_days",
+        "response_quality",
+        "event_participation",
+      ],
+      achievement_status: ["active", "inactive"],
+      achievement_type: [
+        "survey_completion",
+        "response_rate",
+        "streak",
+        "campaign_completion",
+      ],
+      approval_status: ["pending", "approved", "rejected", "requested_changes"],
+      assignment_status: ["pending", "completed", "expired"],
+      campaign_status: ["draft", "active", "completed", "archived"],
+      check_in_status: ["on_track", "at_risk", "behind"],
+      config_status: ["active", "inactive"],
+      contact_message_status: ["pending", "sent", "error", "partially_sent"],
+      cron_job_type: [
+        "instance_activation",
+        "instance_due_time",
+        "campaign_end",
+      ],
+      email_provider: ["resend"],
+      employee_role_status: ["active", "inactive"],
+      employee_type_status: ["active", "inactive"],
+      employment_type_status: ["active", "inactive"],
+      gender_type: ["male", "female", "other"],
+      grading_criteria_status: ["active", "inactive"],
+      instance_status: ["upcoming", "active", "completed"],
+      issue_board_status: ["active", "disabled"],
+      issue_status: ["open", "closed"],
+      kr_status: [
+        "not_started",
+        "in_progress",
+        "at_risk",
+        "on_track",
+        "completed",
+        "abandoned",
+      ],
+      level_status: ["active", "inactive"],
+      objective_status: [
+        "draft",
+        "in_progress",
+        "at_risk",
+        "on_track",
+        "completed",
+      ],
+      okr_cycle_status: ["active", "upcoming", "completed", "archived"],
+      okr_visibility: ["private", "team", "department", "organization"],
+      profile_status: ["active", "disabled"],
+      prompt_category: [
+        "general_analysis",
+        "demographic_insights",
+        "response_patterns",
+        "improvement_suggestions",
+        "action_items",
+      ],
+      prompt_status: ["active", "inactive"],
+      recurring_frequency: [
+        "one_time",
+        "daily",
+        "weekly",
+        "monthly",
+        "quarterly",
+        "yearly",
+      ],
+      response_status: ["assigned", "in_progress", "submitted", "expired"],
+      scenario_status: ["active", "inactive", "draft"],
+      session_status: ["initial", "active", "paused", "ended"],
+      survey_status: ["draft", "published", "archived"],
+      user_role: ["admin", "user"],
+    },
+  },
+} as const

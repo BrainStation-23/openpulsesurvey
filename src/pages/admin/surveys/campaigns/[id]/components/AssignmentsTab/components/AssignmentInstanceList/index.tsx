@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Send } from "lucide-react";
+import { Search, Send } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -25,11 +25,39 @@ import { TableHeader } from "./components/TableHeader";
 import { AssignmentActions } from "./components/AssignmentActions";
 import { UserCell } from "./components/UserCell";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Database } from "@/integrations/supabase/types";
 
 interface AssignmentInstanceListProps {
   campaignId: string;
   surveyId?: string;
   selectedInstanceId?: string;
+}
+
+// Define a more specific type for the RPC function response
+interface PaginatedAssignmentResponse {
+  id: string;
+  user_id: string;
+  campaign_id: string;
+  public_access_token: string;
+  last_reminder_sent: string | null;
+  status: string;
+  user_details: {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    user_sbus: Array<{
+      is_primary: boolean;
+      sbu: {
+        id: string;
+        name: string;
+      }
+    }>
+  };
+  response: any;
+  total_count: number;
 }
 
 export function AssignmentInstanceList({
@@ -39,6 +67,9 @@ export function AssignmentInstanceList({
 }: AssignmentInstanceListProps) {
   const [selectedAssignments, setSelectedAssignments] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(20);
   const queryClient = useQueryClient();
 
   const REMINDER_COOLDOWN_HOURS = 24;
@@ -57,13 +88,30 @@ export function AssignmentInstanceList({
     return nextAvailable.toLocaleString();
   };
 
-  const { data: assignments, isLoading } = useQuery({
-    queryKey: ["campaign-assignments", campaignId, selectedInstanceId],
+  const { 
+    data: assignmentsData, 
+    isLoading,
+    isFetching 
+  } = useQuery({
+    queryKey: ["campaign-assignments", campaignId, selectedInstanceId, statusFilter, searchTerm, currentPage, pageSize],
     queryFn: async () => {
-      console.log("Fetching assignments with params:", { campaignId, selectedInstanceId });
-      const { data, error } = await supabase.rpc("get_campaign_assignments", {
+      console.log("Fetching assignments with params:", { 
+        campaignId, 
+        selectedInstanceId, 
+        statusFilter, 
+        searchTerm, 
+        currentPage, 
+        pageSize 
+      });
+      
+      // Fix: use correct type parameters for the RPC function
+      const { data, error } = await supabase.rpc("get_paginated_campaign_assignments", {
         p_campaign_id: campaignId,
         p_instance_id: selectedInstanceId || null,
+        p_status: statusFilter === "all" ? null : statusFilter,
+        p_search_term: searchTerm || null,
+        p_page: currentPage,
+        p_page_size: pageSize
       });
 
       if (error) {
@@ -73,14 +121,32 @@ export function AssignmentInstanceList({
 
       console.log("Fetched assignments:", data);
 
-      return data.map((assignment: any) => ({
-        ...assignment,
-        status: assignment.status as ResponseStatus,
-        user: assignment.user_details,
-      }));
+      // The data object includes everything we need (assignments and total count)
+      if (data && Array.isArray(data) && data.length > 0) {
+        const totalCount = data[0]?.total_count || 0;
+        const assignments = data.map((assignment) => ({
+          ...assignment,
+          status: assignment.status as ResponseStatus,
+          user: assignment.user_details,
+        }));
+
+        return {
+          assignments,
+          totalCount
+        };
+      }
+
+      return {
+        assignments: [],
+        totalCount: 0
+      };
     },
     enabled: !!campaignId,
   });
+
+  const assignments = assignmentsData?.assignments || [];
+  const totalCount = assignmentsData?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   const sendReminderMutation = useMutation({
     mutationFn: async ({ instanceId, campaignId, assignmentIds }: { instanceId?: string; campaignId: string; assignmentIds: string[] }) => {
@@ -105,14 +171,21 @@ export function AssignmentInstanceList({
     },
   });
 
-  const filteredAssignments = (assignments || []).filter((assignment) =>
-    statusFilter === "all" ? true : assignment.status === statusFilter
-  );
-
   const eligibleAssignmentsCount = selectedAssignments.filter((id) => {
     const assignment = assignments?.find((a) => a.id === id);
     return assignment && canSendReminder(assignment.last_reminder_sent);
   }).length;
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setSelectedAssignments([]);
+  };
+
+  const handlePageSizeChange = (size: string) => {
+    setPageSize(parseInt(size));
+    setCurrentPage(1);
+    setSelectedAssignments([]);
+  };
 
   const columns = [
     {
@@ -121,7 +194,7 @@ export function AssignmentInstanceList({
         <TableHeader
           table={table}
           onSelectAll={(value) =>
-            setSelectedAssignments(value ? filteredAssignments.map((a) => a.id) : [])
+            setSelectedAssignments(value ? assignments.map((a) => a.id) : [])
           }
         />
       ),
@@ -196,53 +269,142 @@ export function AssignmentInstanceList({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row gap-2">
+          <div className="flex items-center gap-2">
+            {selectedAssignments.length > 0 && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          sendReminderMutation.mutate({
+                            campaignId,
+                            instanceId: selectedInstanceId,
+                            assignmentIds: selectedAssignments,
+                          })
+                        }
+                        disabled={sendReminderMutation.isPending || eligibleAssignmentsCount === 0}
+                      >
+                        <Send className="mr-2 h-4 w-4" />
+                        Send Reminder ({eligibleAssignmentsCount}/{selectedAssignments.length})
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {eligibleAssignmentsCount === 0
+                      ? "No selected assignments are eligible for reminders at this time"
+                      : `${eligibleAssignmentsCount} out of ${selectedAssignments.length} selected assignments can receive reminders`}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="assigned">Assigned</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="submitted">Submitted</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="relative flex items-center">
+            <Search className="absolute left-2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 w-full max-w-xs"
+            />
+          </div>
+        </div>
         <div className="flex items-center gap-2">
-          {selectedAssignments.length > 0 && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        sendReminderMutation.mutate({
-                          campaignId,
-                          instanceId: selectedInstanceId,
-                          assignmentIds: selectedAssignments,
-                        })
-                      }
-                      disabled={sendReminderMutation.isPending || eligibleAssignmentsCount === 0}
-                    >
-                      <Send className="mr-2 h-4 w-4" />
-                      Send Reminder ({eligibleAssignmentsCount}/{selectedAssignments.length})
-                    </Button>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {eligibleAssignmentsCount === 0
-                    ? "No selected assignments are eligible for reminders at this time"
-                    : `${eligibleAssignmentsCount} out of ${selectedAssignments.length} selected assignments can receive reminders`}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+          <Select 
+            value={pageSize.toString()} 
+            onValueChange={handlePageSizeChange}
+          >
+            <SelectTrigger className="w-[100px]">
+              <SelectValue placeholder="Page size" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="assigned">Assigned</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="submitted">Submitted</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
             </SelectContent>
           </Select>
+          {surveyId && <AssignCampaignUsers surveyId={surveyId} campaignId={campaignId} />}
         </div>
-        {surveyId && <AssignCampaignUsers surveyId={surveyId} campaignId={campaignId} />}
       </div>
 
-      <DataTable columns={columns} data={filteredAssignments} isLoading={isLoading} />
+      <DataTable 
+        columns={columns} 
+        data={assignments} 
+        isLoading={isLoading || isFetching} 
+      />
+      
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-4">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+              
+              {[...Array(totalPages)].map((_, index) => {
+                const page = index + 1;
+                // Show first, last, current, and pages around current
+                if (
+                  page === 1 || 
+                  page === totalPages || 
+                  (page >= currentPage - 1 && page <= currentPage + 1)
+                ) {
+                  return (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(page)}
+                        isActive={page === currentPage}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                } else if (
+                  (page === 2 && currentPage > 3) || 
+                  (page === totalPages - 1 && currentPage < totalPages - 2)
+                ) {
+                  return (
+                    <PaginationItem key={page}>
+                      <span className="flex h-9 items-center justify-center">...</span>
+                    </PaginationItem>
+                  );
+                }
+                return null;
+              })}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+      
+      <div className="text-sm text-muted-foreground text-center">
+        Showing {assignments.length} of {totalCount} assignments
+      </div>
     </div>
   );
 }

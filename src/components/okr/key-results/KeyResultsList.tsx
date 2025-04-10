@@ -1,13 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { KeyResult } from '@/types/okr';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, AlertCircle } from 'lucide-react';
 import { KeyResultItem } from './KeyResultItem';
 import { KeyResultInlineForm } from './KeyResultInlineForm';
 import { useKeyResults } from '@/hooks/okr/useKeyResults';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { supabase } from '@/integrations/supabase/client';
 import { useObjectiveAccessPermission } from '@/hooks/okr/useObjectiveAccessPermission';
+import { useObjectiveConstraints } from '@/hooks/okr/useObjectiveConstraints';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface KeyResultsListProps {
   objectiveId: string;
@@ -30,8 +33,15 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
     objectiveId
   });
   
+  // Check objective constraints
+  const { 
+    hasChildAlignments, 
+    canCreateKeyResults: canCreateDueToConstraints,
+    isLoading: isLoadingConstraints 
+  } = useObjectiveConstraints(objectiveId);
+  
   const keyResults = propKeyResults || fetchedKeyResults || [];
-  const isLoading = propIsLoading || isResultsLoading;
+  const isLoading = propIsLoading || isResultsLoading || isLoadingConstraints;
   
   // If canEdit prop is provided, use it for general editing
   // Otherwise, check if user is admin OR has explicit edit permission
@@ -85,14 +95,20 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
     ? keyResults.find(kr => kr.id === editingId)
     : undefined;
 
+  // Determine if key results can be created based on both permissions and constraints
+  const canCreateKeyResultsFinal = canCreateKeyResults && canCreateDueToConstraints;
+
   // Debug logging
   console.log('KeyResultsList permissions:', {
     userId,
     isAdmin,
     canCreateKeyResults,
+    canCreateDueToConstraints,
+    canCreateKeyResultsFinal,
     canEdit,
     propCanEdit,
-    hasEditPermission
+    hasEditPermission,
+    hasChildAlignments
   });
 
   if (isLoading) {
@@ -101,6 +117,15 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
 
   return (
     <div className="space-y-4">
+      {hasChildAlignments && (
+        <Alert variant="warning" className="bg-amber-50 border-amber-200">
+          <AlertCircle className="h-4 w-4 text-amber-500" />
+          <AlertDescription>
+            This objective has child alignments, so you cannot add key results to it.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {isAddingNew && (
         <KeyResultInlineForm
           objectiveId={objectiveId}
@@ -112,7 +137,7 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
       {keyResults.length === 0 && !isAddingNew ? (
         <div className="py-8 text-center text-muted-foreground">
           No key results defined yet.
-          {(canEdit || canCreateKeyResults) && (
+          {(canEdit || canCreateKeyResultsFinal) && !hasChildAlignments && (
             <div className="mt-2">
               <Button onClick={handleAddNewClick}>
                 <Plus className="h-4 w-4 mr-1" /> Add Key Result
@@ -141,7 +166,7 @@ export const KeyResultsList: React.FC<KeyResultsListProps> = ({
             </React.Fragment>
           ))}
           
-          {(canEdit || canCreateKeyResults) && !isAddingNew && !editingId && (
+          {(canEdit || canCreateKeyResultsFinal) && !isAddingNew && !editingId && !hasChildAlignments && (
             <div className="mt-4">
               <Button onClick={handleAddNewClick}>
                 <Plus className="h-4 w-4 mr-1" /> Add Key Result
