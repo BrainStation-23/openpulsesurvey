@@ -417,6 +417,51 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          available_variables: Json | null
+          category: Database["public"]["Enums"]["email_template_category"]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          html_content: string
+          id: string
+          name: string
+          plain_text_content: string | null
+          status: Database["public"]["Enums"]["email_template_status"]
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          available_variables?: Json | null
+          category?: Database["public"]["Enums"]["email_template_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          html_content: string
+          id?: string
+          name: string
+          plain_text_content?: string | null
+          status?: Database["public"]["Enums"]["email_template_status"]
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          available_variables?: Json | null
+          category?: Database["public"]["Enums"]["email_template_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          html_content?: string
+          id?: string
+          name?: string
+          plain_text_content?: string | null
+          status?: Database["public"]["Enums"]["email_template_status"]
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employee_roles: {
         Row: {
           color_code: string | null
@@ -2187,6 +2232,78 @@ export type Database = {
           },
         ]
       }
+      template_variable_associations: {
+        Row: {
+          created_at: string
+          id: string
+          template_id: string
+          variable_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          template_id: string
+          variable_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          template_id?: string
+          variable_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_variable_associations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_variable_associations_variable_id_fkey"
+            columns: ["variable_id"]
+            isOneToOne: false
+            referencedRelation: "template_variables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_variables: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          default_value: string | null
+          description: string | null
+          id: string
+          name: string
+          sample_value: string | null
+          updated_at: string
+          variable_type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          default_value?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          sample_value?: string | null
+          updated_at?: string
+          variable_type?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          default_value?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          sample_value?: string | null
+          updated_at?: string
+          variable_type?: string
+        }
+        Relationships: []
+      }
       user_achievements: {
         Row: {
           achievement_id: string
@@ -3173,6 +3290,16 @@ export type Database = {
         | "instance_due_time"
         | "campaign_end"
       email_provider: "resend"
+      email_template_category:
+        | "notification"
+        | "welcome"
+        | "reminder"
+        | "survey"
+        | "report"
+        | "password_reset"
+        | "invitation"
+        | "other"
+      email_template_status: "active" | "inactive" | "draft"
       employee_role_status: "active" | "inactive"
       employee_type_status: "active" | "inactive"
       employment_type_status: "active" | "inactive"
@@ -3368,6 +3495,17 @@ export const Constants = {
         "campaign_end",
       ],
       email_provider: ["resend"],
+      email_template_category: [
+        "notification",
+        "welcome",
+        "reminder",
+        "survey",
+        "report",
+        "password_reset",
+        "invitation",
+        "other",
+      ],
+      email_template_status: ["active", "inactive", "draft"],
       employee_role_status: ["active", "inactive"],
       employee_type_status: ["active", "inactive"],
       employment_type_status: ["active", "inactive"],

@@ -1,3 +1,4 @@
+
 import { 
   LayoutDashboard, 
   Settings, 
@@ -157,6 +158,18 @@ export const navigationItems: NavigationItem[] = [
         title: "Email",
         icon: Mail,
         path: "/admin/config/email",
+        children: [
+          {
+            title: "Templates",
+            icon: FileText,
+            path: "/admin/config/email/templates",
+          },
+          {
+            title: "Settings",
+            icon: Settings,
+            path: "/admin/config/email/settings",
+          },
+        ]
       },
       {
         title: "Location",
