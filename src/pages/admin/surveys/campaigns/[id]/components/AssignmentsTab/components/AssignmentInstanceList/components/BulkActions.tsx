@@ -7,6 +7,8 @@ import {
   TooltipTrigger,
   Tooltip,
 } from "@/components/ui/tooltip";
+import { useState } from "react";
+import { NotificationDialog } from "./NotificationDialog";
 
 interface BulkActionsProps {
   selectedAssignments: string[];
@@ -21,6 +23,7 @@ interface BulkActionsProps {
   };
   campaignId: string;
   selectedInstanceId?: string;
+  isAnonymous?: boolean;
 }
 
 export function BulkActions({
@@ -30,8 +33,21 @@ export function BulkActions({
   sendAssignmentNotificationMutation,
   campaignId,
   selectedInstanceId,
+  isAnonymous = false,
 }: BulkActionsProps) {
+  const [isNotificationDialogOpen, setIsNotificationDialogOpen] = useState(false);
+  
   if (selectedAssignments.length === 0) return null;
+  
+  const handleSendNotification = (customMessage: string) => {
+    sendAssignmentNotificationMutation.mutate({
+      campaignId,
+      instanceId: selectedInstanceId,
+      assignmentIds: selectedAssignments,
+      customMessage: customMessage.trim() || undefined,
+    });
+    setIsNotificationDialogOpen(false);
+  };
   
   return (
     <div className="flex gap-2">
@@ -65,18 +81,21 @@ export function BulkActions({
 
       <Button
         size="sm"
-        onClick={() =>
-          sendAssignmentNotificationMutation.mutate({
-            campaignId,
-            instanceId: selectedInstanceId,
-            assignmentIds: selectedAssignments,
-          })
-        }
+        onClick={() => setIsNotificationDialogOpen(true)}
         disabled={sendAssignmentNotificationMutation.isPending || selectedAssignments.length === 0}
       >
         <Mail className="mr-2 h-4 w-4" />
         Send Assignment Notification ({selectedAssignments.length})
       </Button>
+      
+      <NotificationDialog
+        isOpen={isNotificationDialogOpen}
+        selectedCount={selectedAssignments.length}
+        onClose={() => setIsNotificationDialogOpen(false)}
+        onSend={handleSendNotification}
+        isSending={sendAssignmentNotificationMutation.isPending}
+        isAnonymous={isAnonymous}
+      />
     </div>
   );
 }

@@ -11,6 +11,8 @@ import { BulkActions } from "./components/BulkActions";
 import { PageSizeSelector } from "./components/PageSizeSelector";
 import { PaginationControls } from "./components/PaginationControls";
 import { useAssignmentData } from "./hooks/useAssignmentData";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AssignmentInstanceListProps {
   campaignId: string;
@@ -45,6 +47,23 @@ export function AssignmentInstanceList({
     handlePageChange,
     handlePageSizeChange
   } = useAssignmentData({ campaignId, selectedInstanceId });
+
+  // Query to get the campaign's anonymity status
+  const { data: campaignData } = useQuery({
+    queryKey: ["campaign-anonymity", campaignId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("survey_campaigns")
+        .select("anonymous")
+        .eq("id", campaignId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const isAnonymous = campaignData?.anonymous || false;
 
   const columns = [
     {
@@ -120,6 +139,7 @@ export function AssignmentInstanceList({
           selectedInstanceId={selectedInstanceId}
           canSendReminder={canSendReminder}
           getNextReminderTime={getNextReminderTime}
+          isAnonymous={isAnonymous}
         />
       ),
     },
@@ -137,6 +157,7 @@ export function AssignmentInstanceList({
               sendAssignmentNotificationMutation={sendAssignmentNotificationMutation}
               campaignId={campaignId}
               selectedInstanceId={selectedInstanceId}
+              isAnonymous={isAnonymous}
             />
             <AssignmentFilters
               statusFilter={statusFilter}
