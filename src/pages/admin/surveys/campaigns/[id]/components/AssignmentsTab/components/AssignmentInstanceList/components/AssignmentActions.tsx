@@ -1,4 +1,3 @@
-
 import { SurveyAssignment } from "@/pages/admin/surveys/types/assignments";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +16,7 @@ import { Copy, MoreHorizontal, Send, Trash2, Mail } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { NotificationDialog } from "./NotificationDialog";
 
 interface AssignmentActionsProps {
@@ -57,6 +56,7 @@ export function AssignmentActions({
   const queryClient = useQueryClient();
   const canSend = canSendReminder(assignment.last_reminder_sent);
   const [isNotificationDialogOpen, setIsNotificationDialogOpen] = useState(false);
+  const dropdownMenuRef = useRef<HTMLButtonElement>(null);
 
   const copyPublicLinkMutation = useMutation({
     mutationFn: async (assignment: SurveyAssignment) => {
@@ -173,6 +173,16 @@ export function AssignmentActions({
     },
   });
 
+  const handleOpenNotificationDialog = () => {
+    if (dropdownMenuRef.current) {
+      dropdownMenuRef.current.click();
+    }
+    
+    setTimeout(() => {
+      setIsNotificationDialogOpen(true);
+    }, 50);
+  };
+
   const handleSendNotification = (customMessage: string) => {
     sendAssignmentNotificationMutation.mutate(customMessage.trim() || undefined);
     setIsNotificationDialogOpen(false);
@@ -182,7 +192,7 @@ export function AssignmentActions({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
+          <Button ref={dropdownMenuRef} variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">Open menu</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
@@ -193,7 +203,7 @@ export function AssignmentActions({
             Copy Survey Link
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => setIsNotificationDialogOpen(true)}
+            onClick={handleOpenNotificationDialog}
             disabled={assignment.status === "submitted" || !selectedInstanceId}
           >
             <Mail className="mr-2 h-4 w-4" />
