@@ -14,7 +14,20 @@ export type SurveyAssignment = {
   updated_at: string;
   public_access_token: string;
   last_reminder_sent: string | null;
-  user: {
+  user?: {
+    id: string;
+    email: string;
+    first_name: string | null;
+    last_name: string | null;
+    user_sbus?: {
+      is_primary: boolean;
+      sbu: {
+        id: string;
+        name: string;
+      };
+    }[];
+  };
+  user_details?: {
     id: string;
     email: string;
     first_name: string | null;
