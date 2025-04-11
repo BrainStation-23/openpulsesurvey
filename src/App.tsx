@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -85,12 +84,6 @@ import AdminAllObjectives from "./pages/admin/okrs/Objectives";
 import AdminObjectiveDetails from "./pages/admin/okrs/ObjectiveDetails";
 import OkrSettingsPage from "./pages/admin/okrs/OkrSettings";
 import OkrHistory from "./pages/admin/okrs/History";
-
-// Import email template pages
-import React from "react";
-const EmailTemplates = React.lazy(() => import("./pages/admin/config/email/templates"));
-const EmailTemplateEditPage = React.lazy(() => import("./pages/admin/config/email/templates/[id]"));
-const CreateTemplatePage = React.lazy(() => import("./pages/admin/config/email/templates/new"));
 
 const queryClient = new QueryClient();
 
@@ -179,21 +172,6 @@ const App = () => (
                 <Route path="sbus" element={<SBUsConfig />} />
                 <Route path="sbus/:id" element={<SBUDetails />} />
                 <Route path="email" element={<EmailConfig />} />
-                <Route path="email/templates" element={
-                  <React.Suspense fallback={<div>Loading...</div>}>
-                    <EmailTemplates />
-                  </React.Suspense>
-                } />
-                <Route path="email/templates/new" element={
-                  <React.Suspense fallback={<div>Loading...</div>}>
-                    <CreateTemplatePage />
-                  </React.Suspense>
-                } />
-                <Route path="email/templates/:id" element={
-                  <React.Suspense fallback={<div>Loading...</div>}>
-                    <EmailTemplateEditPage />
-                  </React.Suspense>
-                } />
                 <Route path="level" element={<LevelConfig />} />
                 <Route path="location" element={<LocationConfig />} />
                 <Route path="employment-type" element={<EmploymentTypeConfig />} />

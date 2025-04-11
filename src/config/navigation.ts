@@ -28,10 +28,7 @@ import {
   LineChart,
   FormInput,
   PanelTop,
-  History,
-  MessageSquare,
-  Template,
-  Mail as EmailIcon
+  History
 } from "lucide-react";
 
 // Navigation item with optional children for nested navigation
@@ -160,18 +157,6 @@ export const navigationItems: NavigationItem[] = [
         title: "Email",
         icon: Mail,
         path: "/admin/config/email",
-        children: [
-          {
-            title: "Settings",
-            icon: Sliders,
-            path: "/admin/config/email",
-          },
-          {
-            title: "Templates",
-            icon: Template,
-            path: "/admin/config/email/templates",
-          }
-        ]
       },
       {
         title: "Location",
