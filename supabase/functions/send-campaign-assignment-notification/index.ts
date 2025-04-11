@@ -11,7 +11,7 @@ const corsHeaders = {
 interface NotificationRequest {
   assignmentIds: string[];
   campaignId: string;
-  instanceId?: string;
+  instanceId: string;
   frontendUrl: string;
   customMessage?: string; // Optional parameter for custom message
 }
@@ -201,13 +201,13 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Failed to fetch instance details: ${instanceError?.message || "Not found"}`);
     }
 
-    // Fetch assignments with user details
+    // Fetch assignments with user details - specifying the relationship to resolve ambiguity
     const { data: assignments, error: assignmentsError } = await supabase
       .from('survey_assignments')
       .select(`
         id,
         public_access_token,
-        user:profiles(
+        user:profiles!survey_assignments_user_id_fkey(
           email,
           first_name,
           last_name

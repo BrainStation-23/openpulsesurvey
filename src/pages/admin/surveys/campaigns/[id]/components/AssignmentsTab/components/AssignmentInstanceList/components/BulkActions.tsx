@@ -45,6 +45,7 @@ export function BulkActions({
       return;
     }
     
+    // Make sure we're passing both campaignId and instanceId
     sendAssignmentNotificationMutation.mutate({
       campaignId,
       instanceId: selectedInstanceId,
