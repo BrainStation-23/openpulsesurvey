@@ -2259,50 +2259,7 @@ export type Database = {
             referencedRelation: "email_templates"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "template_variable_associations_variable_id_fkey"
-            columns: ["variable_id"]
-            isOneToOne: false
-            referencedRelation: "template_variables"
-            referencedColumns: ["id"]
-          },
         ]
-      }
-      template_variables: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          default_value: string | null
-          description: string | null
-          id: string
-          name: string
-          sample_value: string | null
-          updated_at: string
-          variable_type: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          default_value?: string | null
-          description?: string | null
-          id?: string
-          name: string
-          sample_value?: string | null
-          updated_at?: string
-          variable_type?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          default_value?: string | null
-          description?: string | null
-          id?: string
-          name?: string
-          sample_value?: string | null
-          updated_at?: string
-          variable_type?: string
-        }
-        Relationships: []
       }
       user_achievements: {
         Row: {
