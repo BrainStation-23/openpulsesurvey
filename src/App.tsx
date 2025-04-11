@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -172,6 +173,8 @@ const App = () => (
                 <Route path="sbus" element={<SBUsConfig />} />
                 <Route path="sbus/:id" element={<SBUDetails />} />
                 <Route path="email" element={<EmailConfig />} />
+                <Route path="email/templates" element={<React.lazy(() => import("./pages/admin/config/email/templates"))}>} />
+                <Route path="email/templates/:id" element={<React.lazy(() => import("./pages/admin/config/email/templates/[id]"))}>} />
                 <Route path="level" element={<LevelConfig />} />
                 <Route path="location" element={<LocationConfig />} />
                 <Route path="employment-type" element={<EmploymentTypeConfig />} />

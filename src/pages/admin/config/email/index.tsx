@@ -1,4 +1,6 @@
+
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,14 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mail, Server, ExternalLink } from "lucide-react";
+import { Mail, Server, ExternalLink, Template } from "lucide-react";
 import {
   Alert,
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function EmailConfig() {
+  const navigate = useNavigate();
   const [isTestingEmail, setIsTestingEmail] = useState(false);
   const queryClient = useQueryClient();
 
@@ -107,107 +111,183 @@ export default function EmailConfig() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Email Configuration</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Email Configuration</h1>
+        <Button 
+          variant="outline"
+          onClick={() => navigate("/admin/config/email/templates")}
+        >
+          <Template className="mr-2 h-4 w-4" />
+          Manage Email Templates
+        </Button>
+      </div>
 
-      <Alert>
-        <AlertTitle>Setting up Resend Email Provider</AlertTitle>
-        <AlertDescription className="mt-4 space-y-4">
-          <p>Follow these steps to configure email sending with Resend:</p>
-          <ol className="list-decimal list-inside space-y-2">
-            <li>Sign up for a Resend account at <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">resend.com</a></li>
-            <li>Add and verify your domain at <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">resend.com/domains</a></li>
-            <li>Generate an API key at <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">resend.com/api-keys</a></li>
-            <li>Click the "Set API Key" button below to open Supabase settings</li>
-            <li>Add your API key with the name <code className="bg-muted px-1 py-0.5 rounded">RESEND_API_KEY</code></li>
-          </ol>
-        </AlertDescription>
-      </Alert>
+      <Tabs defaultValue="settings">
+        <TabsList className="mb-4">
+          <TabsTrigger value="settings">Email Settings</TabsTrigger>
+          <TabsTrigger value="usage">Usage Examples</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="settings">
+          <Alert>
+            <AlertTitle>Setting up Resend Email Provider</AlertTitle>
+            <AlertDescription className="mt-4 space-y-4">
+              <p>Follow these steps to configure email sending with Resend:</p>
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Sign up for a Resend account at <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">resend.com</a></li>
+                <li>Add and verify your domain at <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">resend.com/domains</a></li>
+                <li>Generate an API key at <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">resend.com/api-keys</a></li>
+                <li>Click the "Set API Key" button below to open Supabase settings</li>
+                <li>Add your API key with the name <code className="bg-muted px-1 py-0.5 rounded">RESEND_API_KEY</code></li>
+              </ol>
+            </AlertDescription>
+          </Alert>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Email Settings</CardTitle>
-          <CardDescription>
-            Configure your email settings for sending notifications.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Email Provider</Label>
-              <div className="flex gap-4 items-start">
-                <div className="flex-1">
-                  <Select defaultValue="resend" disabled={false}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select provider" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="resend">Resend</SelectItem>
-                      <SelectItem value="sendgrid" disabled>
-                        <div className="flex items-center">
-                          <Mail className="mr-2 h-4 w-4" />
-                          SendGrid (Coming Soon)
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="smtp" disabled>
-                        <div className="flex items-center">
-                          <Server className="mr-2 h-4 w-4" />
-                          SMTP (Coming Soon)
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+          <Card>
+            <CardHeader>
+              <CardTitle>Email Settings</CardTitle>
+              <CardDescription>
+                Configure your email settings for sending notifications.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Email Provider</Label>
+                  <div className="flex gap-4 items-start">
+                    <div className="flex-1">
+                      <Select defaultValue="resend" disabled={false}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="resend">Resend</SelectItem>
+                          <SelectItem value="sendgrid" disabled>
+                            <div className="flex items-center">
+                              <Mail className="mr-2 h-4 w-4" />
+                              SendGrid (Coming Soon)
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="smtp" disabled>
+                            <div className="flex items-center">
+                              <Server className="mr-2 h-4 w-4" />
+                              SMTP (Coming Soon)
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => window.open("https://supabase.com/dashboard/project/iqpgjxbqoeioqlfzosvu/settings/functions", "_blank")}
+                      className="whitespace-nowrap"
+                    >
+                      Set API Key
+                      <ExternalLink className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => window.open("https://supabase.com/dashboard/project/iqpgjxbqoeioqlfzosvu/settings/functions", "_blank")}
-                  className="whitespace-nowrap"
-                >
-                  Set API Key
-                  <ExternalLink className="ml-2 h-4 w-4" />
+
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="from_email">From Email</Label>
+                    <Input
+                      id="from_email"
+                      name="from_email"
+                      type="email"
+                      defaultValue={emailConfig?.from_email}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="from_name">From Name</Label>
+                    <Input
+                      id="from_name"
+                      name="from_name"
+                      defaultValue={emailConfig?.from_name}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={testEmail}
+                    disabled={isTestingEmail || !emailConfig?.from_email}
+                  >
+                    {isTestingEmail ? "Testing..." : "Test Email"}
+                  </Button>
+                  <Button type="submit" disabled={updateConfig.isPending}>
+                    {updateConfig.isPending ? "Saving..." : "Save Configuration"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="usage">
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Using Email Templates</CardTitle>
+              <CardDescription>
+                Send personalized emails with rich content using our email templates system
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p>
+                  The email templates system allows you to create, edit, and manage HTML email templates 
+                  with variable placeholders. Templates can be used for:
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>User notifications and alerts</li>
+                  <li>Marketing campaigns</li>
+                  <li>Survey invitations</li>
+                  <li>System notifications</li>
+                  <li>Transactional emails</li>
+                </ul>
+                
+                <div className="mt-4">
+                  <h3 className="text-lg font-medium mb-2">Example usage with variables:</h3>
+                  <pre className="p-4 rounded-md bg-muted overflow-auto text-sm">
+                    {`// Client-side code example
+const sendWelcomeEmail = async (user) => {
+  const { data, error } = await supabase.functions.invoke("send-email", {
+    body: {
+      templateId: "welcome-template-id",
+      recipient: user.email,
+      variables: {
+        user_first_name: user.firstName,
+        user_email: user.email,
+        activation_link: \`https://example.com/activate?token=\${user.token}\`
+      }
+    }
+  });
+  
+  if (error) {
+    console.error("Error sending email:", error);
+    return { success: false, error };
+  }
+  
+  return { success: true, data };
+};`}
+                  </pre>
+                </div>
+                
+                <Button variant="outline" onClick={() => navigate("/admin/config/email/templates")}>
+                  <Template className="mr-2 h-4 w-4" />
+                  Manage Email Templates
                 </Button>
               </div>
-            </div>
-
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="from_email">From Email</Label>
-                <Input
-                  id="from_email"
-                  name="from_email"
-                  type="email"
-                  defaultValue={emailConfig?.from_email}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="from_name">From Name</Label>
-                <Input
-                  id="from_name"
-                  name="from_name"
-                  defaultValue={emailConfig?.from_name}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="flex space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={testEmail}
-                disabled={isTestingEmail || !emailConfig?.from_email}
-              >
-                {isTestingEmail ? "Testing..." : "Test Email"}
-              </Button>
-              <Button type="submit" disabled={updateConfig.isPending}>
-                {updateConfig.isPending ? "Saving..." : "Save Configuration"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
