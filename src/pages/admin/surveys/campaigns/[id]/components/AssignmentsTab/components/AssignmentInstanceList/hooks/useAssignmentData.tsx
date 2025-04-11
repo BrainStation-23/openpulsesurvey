@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,7 +52,13 @@ export function useAssignmentData({ campaignId, selectedInstanceId }: UseAssignm
       });
 
       if (error) throw error;
-      return data;
+      
+      // Map the data to ensure user field exists for backward compatibility
+      return data.map((assignment: any) => ({
+        ...assignment,
+        // If user_details exists but user doesn't, copy user_details to user
+        user: assignment.user || assignment.user_details
+      }));
     },
   });
 

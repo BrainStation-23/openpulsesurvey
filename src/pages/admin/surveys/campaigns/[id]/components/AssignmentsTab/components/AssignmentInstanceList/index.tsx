@@ -1,4 +1,3 @@
-
 import { SurveyAssignment } from "@/pages/admin/surveys/types/assignments";
 import { AssignCampaignUsers } from "../AssignCampaignUsers";
 import { DataTable } from "@/components/ui/data-table";
@@ -91,16 +90,19 @@ export function AssignmentInstanceList({
     {
       accessorKey: "user",
       header: "User",
-      cell: ({ row }: any) => <UserCell assignment={row.original} />,
+      cell: ({ row }: any) => {
+        return <UserCell assignment={row.original} />;
+      },
     },
     {
       accessorKey: "sbu",
       header: "SBU",
       cell: ({ row }: any) => {
-        const user = row.original.user;
-        // Add null check for user and user_sbus
-        if (!user || !user.user_sbus) return "N/A";
-        const primarySbu = user.user_sbus.find((sbu: any) => sbu.is_primary)?.sbu.name;
+        const userData = row.original.user || row.original.user_details;
+        
+        if (!userData || !userData.user_sbus) return "N/A";
+        
+        const primarySbu = userData.user_sbus.find((sbu: any) => sbu.is_primary)?.sbu.name;
         return primarySbu || "N/A";
       },
     },
@@ -195,7 +197,6 @@ export function AssignmentInstanceList({
   );
 }
 
-// Import used components 
 import {
   TooltipProvider,
   TooltipContent,
