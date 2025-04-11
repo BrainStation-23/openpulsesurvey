@@ -32,8 +32,8 @@ export async function sendEmail(recipientEmail, variables) {
   let subject = template.subject;
   
   // Replace each variable with its value
-  Object.entries(variables).forEach(([variableName, value]) => {
-    const regex = new RegExp(\`{{${variableName}}}\`, 'g');
+  Object.entries(variables).forEach(([key, value]) => {
+    const regex = new RegExp(\`{{${key}}}\`, 'g');
     htmlContent = htmlContent.replace(regex, String(value));
     subject = subject.replace(regex, String(value));
   });

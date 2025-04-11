@@ -99,7 +99,7 @@ export default function EmailConfigPage() {
               <div className="space-y-2">
                 <h3 className="font-medium">2. Define Variables</h3>
                 <p className="text-sm text-muted-foreground">
-                  Use variables like {{user_first_name}} that will be replaced with actual values when sending emails.
+                  Use variables like {"{{{user_first_name}}}"} that will be replaced with actual values when sending emails.
                 </p>
               </div>
               
