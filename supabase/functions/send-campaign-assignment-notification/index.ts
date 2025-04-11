@@ -13,7 +13,7 @@ interface NotificationRequest {
   campaignId: string;
   instanceId?: string;
   frontendUrl: string;
-  customMessage?: string; // New optional parameter for custom message
+  customMessage?: string; // Optional parameter for custom message
 }
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -47,7 +47,7 @@ async function processBatch(assignments: any[], emailConfig: any, instance: any,
     .from('survey_campaigns')
     .select('anonymous')
     .eq('id', assignments[0]?.survey?.campaign_id)
-    .single();
+    .maybeSingle();
 
   if (campaignError) {
     console.error('Error fetching campaign data:', campaignError);
@@ -192,7 +192,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Failed to fetch instance details');
     }
 
-    // Fetch assignments with user details
+    // Fetch assignments with user details - Fixed Query
     const { data: assignments, error: assignmentsError } = await supabase
       .from('survey_assignments')
       .select(`
