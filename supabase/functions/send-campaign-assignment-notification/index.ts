@@ -46,7 +46,7 @@ async function processBatch(assignments: any[], emailConfig: any, instance: any,
   const { data: campaignData, error: campaignError } = await supabase
     .from('survey_campaigns')
     .select('anonymous')
-    .eq('id', assignments[0]?.survey?.campaign_id)
+    .eq('id', assignments[0]?.survey_id)
     .maybeSingle();
 
   if (campaignError) {
@@ -207,7 +207,8 @@ const handler = async (req: Request): Promise<Response> => {
           name,
           description,
           campaign_id
-        )
+        ),
+        survey_id
       `)
       .in('id', assignmentIds);
 
