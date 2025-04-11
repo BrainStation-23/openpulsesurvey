@@ -17,6 +17,8 @@ import { Copy, MoreHorizontal, Send, Trash2, Mail } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useState } from "react";
+import { NotificationDialog } from "./NotificationDialog";
 
 interface AssignmentActionsProps {
   assignment: SurveyAssignment;
@@ -24,6 +26,7 @@ interface AssignmentActionsProps {
   selectedInstanceId?: string;
   canSendReminder: (lastReminderSent: string | null) => boolean;
   getNextReminderTime: (lastReminderSent: string) => string;
+  isAnonymous?: boolean;
 }
 
 interface DeleteAssignmentResponse {
@@ -49,9 +52,11 @@ export function AssignmentActions({
   selectedInstanceId,
   canSendReminder,
   getNextReminderTime,
+  isAnonymous = false,
 }: AssignmentActionsProps) {
   const queryClient = useQueryClient();
   const canSend = canSendReminder(assignment.last_reminder_sent);
+  const [isNotificationDialogOpen, setIsNotificationDialogOpen] = useState(false);
 
   const copyPublicLinkMutation = useMutation({
     mutationFn: async (assignment: SurveyAssignment) => {
@@ -68,6 +73,10 @@ export function AssignmentActions({
 
   const sendReminderMutation = useMutation({
     mutationFn: async () => {
+      if (!selectedInstanceId) {
+        throw new Error("No instance selected");
+      }
+
       console.log("Sending reminder for assignment:", {
         assignmentIds: [assignment.id],
         campaignId,
@@ -99,19 +108,25 @@ export function AssignmentActions({
   });
 
   const sendAssignmentNotificationMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (customMessage?: string) => {
+      if (!selectedInstanceId) {
+        throw new Error("No instance selected");
+      }
+
       console.log("Sending assignment notification for assignment:", {
         assignmentIds: [assignment.id],
         campaignId,
         instanceId: selectedInstanceId, 
+        hasCustomMessage: !!customMessage,
       });
 
-      const { error } = await supabase.functions.invoke("send-campaign-assignment-notification", {
+      const { data, error } = await supabase.functions.invoke("send-campaign-assignment-notification", {
         body: {
           assignmentIds: [assignment.id],
           campaignId,
           instanceId: selectedInstanceId,
           frontendUrl: window.location.origin,
+          customMessage,
         },
       });
 
@@ -119,8 +134,11 @@ export function AssignmentActions({
         console.error("Error sending assignment notification:", error);
         throw error;
       }
+
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Assignment notification response:", data);
       toast.success("Assignment notification sent successfully");
       queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
     },
@@ -155,57 +173,75 @@ export function AssignmentActions({
     },
   });
 
+  const handleSendNotification = (customMessage: string) => {
+    sendAssignmentNotificationMutation.mutate(customMessage.trim() || undefined);
+    setIsNotificationDialogOpen(false);
+  };
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 p-0">
-          <span className="sr-only">Open menu</span>
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => copyPublicLinkMutation.mutate(assignment)}>
-          <Copy className="mr-2 h-4 w-4" />
-          Copy Survey Link
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => sendAssignmentNotificationMutation.mutate()}
-          disabled={assignment.status === "submitted"}
-        >
-          <Mail className="mr-2 h-4 w-4" />
-          Send Assignment Notification
-        </DropdownMenuItem>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div>
-                <DropdownMenuItem
-                  onClick={() => sendReminderMutation.mutate()}
-                  disabled={!canSend || assignment.status === "submitted"}
-                  className="relative"
-                >
-                  <Send className="mr-2 h-4 w-4" />
-                  Send Reminder
-                </DropdownMenuItem>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              {assignment.status === "submitted"
-                ? "Cannot send reminder for submitted surveys"
-                : !canSend
-                ? `Next reminder can be sent after ${getNextReminderTime(assignment.last_reminder_sent)}`
-                : "Send a reminder email"}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <DropdownMenuItem 
-          onClick={() => deleteAssignmentMutation.mutate()}
-          className="text-destructive focus:text-destructive"
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Delete Assignment
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">Open menu</span>
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => copyPublicLinkMutation.mutate(assignment)}>
+            <Copy className="mr-2 h-4 w-4" />
+            Copy Survey Link
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setIsNotificationDialogOpen(true)}
+            disabled={assignment.status === "submitted" || !selectedInstanceId}
+          >
+            <Mail className="mr-2 h-4 w-4" />
+            Send Assignment Notification
+          </DropdownMenuItem>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <DropdownMenuItem
+                    onClick={() => sendReminderMutation.mutate()}
+                    disabled={!canSend || assignment.status === "submitted" || !selectedInstanceId}
+                    className="relative"
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    Send Reminder
+                  </DropdownMenuItem>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                {assignment.status === "submitted"
+                  ? "Cannot send reminder for submitted surveys"
+                  : !selectedInstanceId
+                  ? "Select an instance to send reminders"
+                  : !canSend
+                  ? `Next reminder can be sent after ${getNextReminderTime(assignment.last_reminder_sent)}`
+                  : "Send a reminder email"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <DropdownMenuItem 
+            onClick={() => deleteAssignmentMutation.mutate()}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete Assignment
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <NotificationDialog
+        isOpen={isNotificationDialogOpen}
+        selectedCount={1}
+        onClose={() => setIsNotificationDialogOpen(false)}
+        onSend={handleSendNotification}
+        isSending={sendAssignmentNotificationMutation.isPending}
+        isAnonymous={isAnonymous}
+      />
+    </>
   );
 }

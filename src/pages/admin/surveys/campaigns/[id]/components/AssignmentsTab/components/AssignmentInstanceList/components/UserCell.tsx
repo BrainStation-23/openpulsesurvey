@@ -15,17 +15,23 @@ interface UserCellProps {
 }
 
 export function UserCell({ assignment }: UserCellProps) {
-  const user = assignment.user;
+  // Check for user data in both user and user_details fields
+  const userData = assignment?.user || assignment?.user_details;
+  
+  if (!userData) {
+    return <div className="text-sm text-muted-foreground">User data unavailable</div>;
+  }
+  
   return (
     <div className="flex items-center gap-2">
       <div>
         <div className="font-medium flex items-center gap-2">
-          {user.first_name} {user.last_name}
+          {userData.first_name || ''} {userData.last_name || ''}
           <Badge className={cn("text-xs", statusStyles[assignment.status])}>
             {assignment.status.replace(/_/g, " ")}
           </Badge>
         </div>
-        <div className="text-sm text-muted-foreground">{user.email}</div>
+        <div className="text-sm text-muted-foreground">{userData.email}</div>
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { SurveyAssignment } from "@/pages/admin/surveys/types/assignments";
 import { AssignCampaignUsers } from "../AssignCampaignUsers";
 import { DataTable } from "@/components/ui/data-table";
@@ -11,6 +10,8 @@ import { BulkActions } from "./components/BulkActions";
 import { PageSizeSelector } from "./components/PageSizeSelector";
 import { PaginationControls } from "./components/PaginationControls";
 import { useAssignmentData } from "./hooks/useAssignmentData";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AssignmentInstanceListProps {
   campaignId: string;
@@ -46,6 +47,23 @@ export function AssignmentInstanceList({
     handlePageSizeChange
   } = useAssignmentData({ campaignId, selectedInstanceId });
 
+  // Query to get the campaign's anonymity status
+  const { data: campaignData } = useQuery({
+    queryKey: ["campaign-anonymity", campaignId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("survey_campaigns")
+        .select("anonymous")
+        .eq("id", campaignId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const isAnonymous = campaignData?.anonymous || false;
+
   const columns = [
     {
       id: "select",
@@ -72,14 +90,19 @@ export function AssignmentInstanceList({
     {
       accessorKey: "user",
       header: "User",
-      cell: ({ row }: any) => <UserCell assignment={row.original} />,
+      cell: ({ row }: any) => {
+        return <UserCell assignment={row.original} />;
+      },
     },
     {
       accessorKey: "sbu",
       header: "SBU",
       cell: ({ row }: any) => {
-        const user = row.original.user;
-        const primarySbu = user.user_sbus?.find((sbu: any) => sbu.is_primary)?.sbu.name;
+        const userData = row.original.user || row.original.user_details;
+        
+        if (!userData || !userData.user_sbus) return "N/A";
+        
+        const primarySbu = userData.user_sbus.find((sbu: any) => sbu.is_primary)?.sbu.name;
         return primarySbu || "N/A";
       },
     },
@@ -120,6 +143,7 @@ export function AssignmentInstanceList({
           selectedInstanceId={selectedInstanceId}
           canSendReminder={canSendReminder}
           getNextReminderTime={getNextReminderTime}
+          isAnonymous={isAnonymous}
         />
       ),
     },
@@ -137,6 +161,7 @@ export function AssignmentInstanceList({
               sendAssignmentNotificationMutation={sendAssignmentNotificationMutation}
               campaignId={campaignId}
               selectedInstanceId={selectedInstanceId}
+              isAnonymous={isAnonymous}
             />
             <AssignmentFilters
               statusFilter={statusFilter}
@@ -172,7 +197,6 @@ export function AssignmentInstanceList({
   );
 }
 
-// Import used components 
 import {
   TooltipProvider,
   TooltipContent,

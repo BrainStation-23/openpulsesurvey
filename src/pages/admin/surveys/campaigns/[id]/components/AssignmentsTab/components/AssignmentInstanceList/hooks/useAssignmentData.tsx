@@ -1,9 +1,7 @@
-
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { SurveyAssignment } from "@/pages/admin/surveys/types/assignments";
 
 interface UseAssignmentDataProps {
   campaignId: string;
@@ -11,89 +9,109 @@ interface UseAssignmentDataProps {
 }
 
 export function useAssignmentData({ campaignId, selectedInstanceId }: UseAssignmentDataProps) {
-  const [selectedAssignments, setSelectedAssignments] = useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(20);
   const queryClient = useQueryClient();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedAssignments, setSelectedAssignments] = useState<string[]>([]);
 
-  const REMINDER_COOLDOWN_HOURS = 24;
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchTerm, pageSize]);
 
-  const canSendReminder = (lastReminderSent: string | null) => {
-    if (!lastReminderSent) return true;
-    const lastSent = new Date(lastReminderSent);
-    const now = new Date();
-    const hoursSinceLastReminder = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60);
-    return hoursSinceLastReminder >= REMINDER_COOLDOWN_HOURS;
-  };
+  // Clear selected assignments when campaign or instance changes
+  useEffect(() => {
+    setSelectedAssignments([]);
+  }, [campaignId, selectedInstanceId]);
 
-  const getNextReminderTime = (lastReminderSent: string) => {
-    const lastSent = new Date(lastReminderSent);
-    const nextAvailable = new Date(lastSent.getTime() + REMINDER_COOLDOWN_HOURS * 60 * 60 * 1000);
-    return nextAvailable.toLocaleString();
-  };
-
-  const { 
-    data: assignmentsData, 
+  // Fetch assignments with pagination and filters
+  const {
+    data: assignmentsData,
     isLoading,
-    isFetching 
+    isFetching,
   } = useQuery({
-    queryKey: ["campaign-assignments", campaignId, selectedInstanceId, statusFilter, searchTerm, currentPage, pageSize],
+    queryKey: [
+      "campaign-assignments",
+      campaignId,
+      selectedInstanceId,
+      currentPage,
+      pageSize,
+      statusFilter,
+      searchTerm,
+    ],
     queryFn: async () => {
-      console.log("Fetching assignments with params:", { 
-        campaignId, 
-        selectedInstanceId, 
-        statusFilter, 
-        searchTerm, 
-        currentPage, 
-        pageSize 
-      });
-      
       const { data, error } = await supabase.rpc("get_paginated_campaign_assignments", {
         p_campaign_id: campaignId,
-        p_instance_id: selectedInstanceId || null,
-        p_status: statusFilter === "all" ? null : statusFilter,
+        p_instance_id: selectedInstanceId,
+        p_status: statusFilter,
         p_search_term: searchTerm || null,
         p_page: currentPage,
-        p_page_size: pageSize
+        p_page_size: pageSize,
       });
 
-      if (error) {
-        console.error("Error fetching assignments:", error);
-        throw error;
-      }
-
-      console.log("Fetched assignments:", data);
-
-      if (data && Array.isArray(data) && data.length > 0) {
-        const totalCount = data[0]?.total_count || 0;
-        const assignments = data.map((assignment) => ({
-          ...assignment,
-          status: assignment.status,
-          user: assignment.user_details,
-        }));
-
-        return {
-          assignments,
-          totalCount
-        };
-      }
-
-      return {
-        assignments: [],
-        totalCount: 0
-      };
+      if (error) throw error;
+      
+      // Map the data to ensure user field exists for backward compatibility
+      return data.map((assignment: any) => ({
+        ...assignment,
+        // If user_details exists but user doesn't, copy user_details to user
+        user: assignment.user || assignment.user_details
+      }));
     },
-    enabled: !!campaignId,
   });
 
-  const assignments = assignmentsData?.assignments || [];
-  const totalCount = assignmentsData?.totalCount || 0;
+  // Helper function to determine if a reminder can be sent
+  const canSendReminder = (lastReminderSent: string | null) => {
+    if (!lastReminderSent) return true;
+
+    const lastSentDate = new Date(lastReminderSent);
+    const currentDate = new Date();
+    
+    // Calculate if 12 hours have passed since last reminder
+    const hoursSinceLastReminder = (currentDate.getTime() - lastSentDate.getTime()) / (1000 * 60 * 60);
+    return hoursSinceLastReminder >= 12;
+  };
+
+  // Helper function to format next available reminder time
+  const getNextReminderTime = (lastReminderSent: string) => {
+    if (!lastReminderSent) return "now";
+
+    const lastSentDate = new Date(lastReminderSent);
+    const nextAvailableTime = new Date(lastSentDate.getTime() + 12 * 60 * 60 * 1000);
+    
+    return nextAvailableTime.toLocaleString();
+  };
+
+  // Calculate how many selected assignments are eligible for reminders
+  const eligibleAssignmentsCount = useMemo(() => {
+    if (!assignmentsData) return 0;
+    
+    return assignmentsData
+      .filter(a => selectedAssignments.includes(a.id))
+      .filter(a => a.status !== "submitted" && canSendReminder(a.last_reminder_sent))
+      .length;
+  }, [assignmentsData, selectedAssignments, canSendReminder]);
+
+  // Extract assignments and pagination info
+  const assignments = assignmentsData || [];
+  const totalCount = assignments[0]?.total_count || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
 
+  // Send reminder mutation
   const sendReminderMutation = useMutation({
-    mutationFn: async ({ instanceId, campaignId, assignmentIds }: { instanceId?: string; campaignId: string; assignmentIds: string[] }) => {
+    mutationFn: async ({ assignmentIds, campaignId, instanceId }: { 
+      assignmentIds: string[]; 
+      campaignId: string; 
+      instanceId?: string; 
+    }) => {
+      console.log("Sending reminders for assignments:", {
+        assignmentIds,
+        campaignId,
+        instanceId,
+      });
+
       const { error } = await supabase.functions.invoke("send-campaign-instance-reminder", {
         body: {
           assignmentIds,
@@ -102,7 +120,11 @@ export function useAssignmentData({ campaignId, selectedInstanceId }: UseAssignm
           frontendUrl: window.location.origin,
         },
       });
-      if (error) throw error;
+
+      if (error) {
+        console.error("Error sending reminders:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Reminders sent successfully");
@@ -115,17 +137,35 @@ export function useAssignmentData({ campaignId, selectedInstanceId }: UseAssignm
     },
   });
 
+  // Send assignment notification mutation
   const sendAssignmentNotificationMutation = useMutation({
-    mutationFn: async ({ instanceId, campaignId, assignmentIds }: { instanceId?: string; campaignId: string; assignmentIds: string[] }) => {
+    mutationFn: async ({ assignmentIds, campaignId, instanceId, customMessage }: { 
+      assignmentIds: string[]; 
+      campaignId: string; 
+      instanceId?: string;
+      customMessage?: string;
+    }) => {
+      console.log("Sending assignment notifications:", {
+        assignmentIds,
+        campaignId,
+        instanceId,
+        hasCustomMessage: !!customMessage,
+      });
+
       const { error } = await supabase.functions.invoke("send-campaign-assignment-notification", {
         body: {
           assignmentIds,
           campaignId,
           instanceId,
           frontendUrl: window.location.origin,
+          customMessage,
         },
       });
-      if (error) throw error;
+
+      if (error) {
+        console.error("Error sending assignment notifications:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Assignment notifications sent successfully");
@@ -138,20 +178,14 @@ export function useAssignmentData({ campaignId, selectedInstanceId }: UseAssignm
     },
   });
 
-  const eligibleAssignmentsCount = selectedAssignments.filter((id) => {
-    const assignment = assignments?.find((a) => a.id === id);
-    return assignment && canSendReminder(assignment.last_reminder_sent);
-  }).length;
-
+  // Page change handler
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    setSelectedAssignments([]);
   };
 
+  // Page size change handler
   const handlePageSizeChange = (size: string) => {
     setPageSize(parseInt(size));
-    setCurrentPage(1);
-    setSelectedAssignments([]);
   };
 
   return {
@@ -174,6 +208,6 @@ export function useAssignmentData({ campaignId, selectedInstanceId }: UseAssignm
     setSearchTerm,
     setSelectedAssignments,
     handlePageChange,
-    handlePageSizeChange
+    handlePageSizeChange,
   };
 }

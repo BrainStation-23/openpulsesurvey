@@ -11,8 +11,9 @@ const corsHeaders = {
 interface NotificationRequest {
   assignmentIds: string[];
   campaignId: string;
-  instanceId?: string;
+  instanceId: string;
   frontendUrl: string;
+  customMessage?: string; // Optional parameter for custom message
 }
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -33,13 +34,27 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-async function processBatch(assignments: any[], emailConfig: any, instance: any, frontendUrl: string) {
+async function processBatch(assignments: any[], emailConfig: any, instance: any, frontendUrl: string, campaignId: string, customMessage?: string) {
   const BATCH_SIZE = 2; // Process 2 emails at a time (Resend's limit)
   const DELAY_BETWEEN_BATCHES = 1100; // Wait 1.1 seconds between batches
   
   let successCount = 0;
   let failureCount = 0;
   let skippedCount = 0;
+
+  // Get campaign information (for anonymity status)
+  const { data: campaignData, error: campaignError } = await supabase
+    .from('survey_campaigns')
+    .select('anonymous')
+    .eq('id', campaignId)
+    .maybeSingle();
+
+  if (campaignError) {
+    console.error('Error fetching campaign data:', campaignError);
+    throw new Error(`Failed to fetch campaign data: ${campaignError.message}`);
+  }
+
+  const isAnonymous = campaignData?.anonymous || false;
 
   for (let i = 0; i < assignments.length; i += BATCH_SIZE) {
     const batch = assignments.slice(i, i + BATCH_SIZE);
@@ -59,6 +74,16 @@ async function processBatch(assignments: any[], emailConfig: any, instance: any,
 
           console.log("Sending assignment notification to:", assignment.user.email);
 
+          // Generate anonymity message based on campaign setting
+          const anonymityMessage = isAnonymous
+            ? '<div style="background-color: #ebf8ee; border-left: 4px solid #10b981; padding: 1rem; margin: 1rem 0;"><p style="font-weight: bold; margin: 0;">Anonymous Survey</p><p style="margin: 0.5rem 0;">Your responses will remain anonymous and cannot be traced back to you individually.</p></div>'
+            : '<div style="background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 1rem; margin: 1rem 0;"><p style="font-weight: bold; margin: 0;">Non-Anonymous Survey</p><p style="margin: 0.5rem 0;">Please note that your responses are not anonymous and can be linked to your identity.</p></div>';
+
+          // Add custom message if provided
+          const customMessageHtml = customMessage 
+            ? `<div style="background-color: #f8f9fa; border-left: 4px solid #6366f1; padding: 1rem; margin: 1rem 0;"><p style="margin: 0.5rem 0;"><strong>Message from administrator:</strong></p><p style="margin: 0.5rem 0;">${customMessage}</p></div>`
+            : '';
+
           const response = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
@@ -73,6 +98,11 @@ async function processBatch(assignments: any[], emailConfig: any, instance: any,
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                   <h2>Hello ${recipientName},</h2>
                   <p>You have been assigned a new survey: <strong>${assignment.survey.name}</strong></p>
+                  
+                  ${anonymityMessage}
+                  
+                  ${customMessageHtml}
+                  
                   <div style="background-color: #f8f9fa; border-left: 4px solid #2563eb; padding: 1rem; margin: 1rem 0;">
                     <p style="margin: 0.5rem 0;"><strong>Survey Period:</strong></p>
                     <p style="margin: 0.5rem 0;">Starts: ${startDate}</p>
@@ -128,12 +158,25 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { assignmentIds, campaignId, instanceId, frontendUrl }: NotificationRequest = await req.json();
+    const { assignmentIds, campaignId, instanceId, frontendUrl, customMessage }: NotificationRequest = await req.json();
 
-    console.log('Processing assignment notification request:', { assignmentIds, campaignId, instanceId });
+    console.log('Processing assignment notification request:', { 
+      assignmentIds, 
+      campaignId, 
+      instanceId, 
+      hasCustomMessage: !!customMessage 
+    });
 
     if (!assignmentIds || !Array.isArray(assignmentIds) || assignmentIds.length === 0) {
       throw new Error('Invalid assignment IDs provided');
+    }
+
+    if (!campaignId) {
+      throw new Error('Campaign ID is required');
+    }
+
+    if (!instanceId) {
+      throw new Error('Instance ID is required');
     }
 
     // Get email configuration
@@ -155,34 +198,39 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (instanceError || !instance) {
-      throw new Error('Failed to fetch instance details');
+      throw new Error(`Failed to fetch instance details: ${instanceError?.message || "Not found"}`);
     }
 
-    // Fetch assignments with user details
+    // Fetch assignments with user details - specifying the relationship to resolve ambiguity
     const { data: assignments, error: assignmentsError } = await supabase
       .from('survey_assignments')
       .select(`
         id,
         public_access_token,
-        user:profiles!survey_assignments_user_id_fkey (
+        user:profiles!survey_assignments_user_id_fkey(
           email,
           first_name,
           last_name
         ),
-        survey:surveys (
+        survey:surveys(
+          id,
           name,
           description
         )
       `)
       .in('id', assignmentIds);
 
-    if (assignmentsError) {
+    if (assignmentsError || !assignments) {
       console.error('Error fetching assignments:', assignmentsError);
-      throw new Error('Failed to fetch assignments');
+      throw new Error(`Failed to fetch assignments: ${assignmentsError?.message || "Unknown error"}`);
+    }
+    
+    if (assignments.length === 0) {
+      throw new Error('No assignments found for the provided IDs');
     }
 
     // Process assignments in batches
-    const results = await processBatch(assignments, emailConfig, instance, frontendUrl);
+    const results = await processBatch(assignments, emailConfig, instance, frontendUrl, campaignId, customMessage);
 
     console.log('Assignment notification results:', results);
 
