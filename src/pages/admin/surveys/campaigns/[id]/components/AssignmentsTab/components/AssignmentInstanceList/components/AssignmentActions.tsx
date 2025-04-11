@@ -73,6 +73,10 @@ export function AssignmentActions({
 
   const sendReminderMutation = useMutation({
     mutationFn: async () => {
+      if (!selectedInstanceId) {
+        throw new Error("No instance selected");
+      }
+
       console.log("Sending reminder for assignment:", {
         assignmentIds: [assignment.id],
         campaignId,
@@ -105,6 +109,10 @@ export function AssignmentActions({
 
   const sendAssignmentNotificationMutation = useMutation({
     mutationFn: async (customMessage?: string) => {
+      if (!selectedInstanceId) {
+        throw new Error("No instance selected");
+      }
+
       console.log("Sending assignment notification for assignment:", {
         assignmentIds: [assignment.id],
         campaignId,
@@ -112,7 +120,7 @@ export function AssignmentActions({
         hasCustomMessage: !!customMessage,
       });
 
-      const { error } = await supabase.functions.invoke("send-campaign-assignment-notification", {
+      const { data, error } = await supabase.functions.invoke("send-campaign-assignment-notification", {
         body: {
           assignmentIds: [assignment.id],
           campaignId,
@@ -126,8 +134,11 @@ export function AssignmentActions({
         console.error("Error sending assignment notification:", error);
         throw error;
       }
+
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Assignment notification response:", data);
       toast.success("Assignment notification sent successfully");
       queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
     },
@@ -183,7 +194,7 @@ export function AssignmentActions({
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => setIsNotificationDialogOpen(true)}
-            disabled={assignment.status === "submitted"}
+            disabled={assignment.status === "submitted" || !selectedInstanceId}
           >
             <Mail className="mr-2 h-4 w-4" />
             Send Assignment Notification
@@ -194,7 +205,7 @@ export function AssignmentActions({
                 <div>
                   <DropdownMenuItem
                     onClick={() => sendReminderMutation.mutate()}
-                    disabled={!canSend || assignment.status === "submitted"}
+                    disabled={!canSend || assignment.status === "submitted" || !selectedInstanceId}
                     className="relative"
                   >
                     <Send className="mr-2 h-4 w-4" />
@@ -205,6 +216,8 @@ export function AssignmentActions({
               <TooltipContent>
                 {assignment.status === "submitted"
                   ? "Cannot send reminder for submitted surveys"
+                  : !selectedInstanceId
+                  ? "Select an instance to send reminders"
                   : !canSend
                   ? `Next reminder can be sent after ${getNextReminderTime(assignment.last_reminder_sent)}`
                   : "Send a reminder email"}

@@ -34,7 +34,7 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-async function processBatch(assignments: any[], emailConfig: any, instance: any, frontendUrl: string, customMessage?: string) {
+async function processBatch(assignments: any[], emailConfig: any, instance: any, frontendUrl: string, campaignId: string, customMessage?: string) {
   const BATCH_SIZE = 2; // Process 2 emails at a time (Resend's limit)
   const DELAY_BETWEEN_BATCHES = 1100; // Wait 1.1 seconds between batches
   
@@ -46,11 +46,12 @@ async function processBatch(assignments: any[], emailConfig: any, instance: any,
   const { data: campaignData, error: campaignError } = await supabase
     .from('survey_campaigns')
     .select('anonymous')
-    .eq('id', assignments[0]?.survey_id)
+    .eq('id', campaignId)
     .maybeSingle();
 
   if (campaignError) {
     console.error('Error fetching campaign data:', campaignError);
+    throw new Error(`Failed to fetch campaign data: ${campaignError.message}`);
   }
 
   const isAnonymous = campaignData?.anonymous || false;
@@ -170,6 +171,14 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Invalid assignment IDs provided');
     }
 
+    if (!campaignId) {
+      throw new Error('Campaign ID is required');
+    }
+
+    if (!instanceId) {
+      throw new Error('Instance ID is required');
+    }
+
     // Get email configuration
     const { data: emailConfig, error: emailConfigError } = await supabase
       .from('email_config')
@@ -189,36 +198,39 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (instanceError || !instance) {
-      throw new Error('Failed to fetch instance details');
+      throw new Error(`Failed to fetch instance details: ${instanceError?.message || "Not found"}`);
     }
 
-    // Fetch assignments with user details - Fixed Query
+    // Fetch assignments with user details
     const { data: assignments, error: assignmentsError } = await supabase
       .from('survey_assignments')
       .select(`
         id,
         public_access_token,
-        user:profiles!survey_assignments_user_id_fkey (
+        user:profiles(
           email,
           first_name,
           last_name
         ),
-        survey:surveys (
+        survey:surveys(
+          id,
           name,
-          description,
-          campaign_id
-        ),
-        survey_id
+          description
+        )
       `)
       .in('id', assignmentIds);
 
-    if (assignmentsError) {
+    if (assignmentsError || !assignments) {
       console.error('Error fetching assignments:', assignmentsError);
-      throw new Error('Failed to fetch assignments');
+      throw new Error(`Failed to fetch assignments: ${assignmentsError?.message || "Unknown error"}`);
+    }
+    
+    if (assignments.length === 0) {
+      throw new Error('No assignments found for the provided IDs');
     }
 
     // Process assignments in batches
-    const results = await processBatch(assignments, emailConfig, instance, frontendUrl, customMessage);
+    const results = await processBatch(assignments, emailConfig, instance, frontendUrl, campaignId, customMessage);
 
     console.log('Assignment notification results:', results);
 

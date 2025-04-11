@@ -40,6 +40,11 @@ export function BulkActions({
   if (selectedAssignments.length === 0) return null;
   
   const handleSendNotification = (customMessage: string) => {
+    if (!selectedInstanceId) {
+      console.error("No instance selected");
+      return;
+    }
+    
     sendAssignmentNotificationMutation.mutate({
       campaignId,
       instanceId: selectedInstanceId,
@@ -64,7 +69,7 @@ export function BulkActions({
                     assignmentIds: selectedAssignments,
                   })
                 }
-                disabled={sendReminderMutation.isPending || eligibleAssignmentsCount === 0}
+                disabled={sendReminderMutation.isPending || eligibleAssignmentsCount === 0 || !selectedInstanceId}
               >
                 <Send className="mr-2 h-4 w-4" />
                 Send Reminder ({eligibleAssignmentsCount}/{selectedAssignments.length})
@@ -72,7 +77,9 @@ export function BulkActions({
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            {eligibleAssignmentsCount === 0
+            {!selectedInstanceId 
+              ? "Please select an instance first"
+              : eligibleAssignmentsCount === 0
               ? "No selected assignments are eligible for reminders at this time"
               : `${eligibleAssignmentsCount} out of ${selectedAssignments.length} selected assignments can receive reminders`}
           </TooltipContent>
@@ -82,7 +89,7 @@ export function BulkActions({
       <Button
         size="sm"
         onClick={() => setIsNotificationDialogOpen(true)}
-        disabled={sendAssignmentNotificationMutation.isPending || selectedAssignments.length === 0}
+        disabled={sendAssignmentNotificationMutation.isPending || selectedAssignments.length === 0 || !selectedInstanceId}
       >
         <Mail className="mr-2 h-4 w-4" />
         Send Assignment Notification ({selectedAssignments.length})
