@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Send } from "lucide-react";
+import { Search, Send, Mail } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -171,6 +171,29 @@ export function AssignmentInstanceList({
     },
   });
 
+  const sendAssignmentNotificationMutation = useMutation({
+    mutationFn: async ({ instanceId, campaignId, assignmentIds }: { instanceId?: string; campaignId: string; assignmentIds: string[] }) => {
+      const { error } = await supabase.functions.invoke("send-campaign-assignment-notification", {
+        body: {
+          assignmentIds,
+          campaignId,
+          instanceId,
+          frontendUrl: window.location.origin,
+        },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Assignment notifications sent successfully");
+      queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
+      setSelectedAssignments([]);
+    },
+    onError: (error) => {
+      console.error("Error sending assignment notifications:", error);
+      toast.error("Failed to send assignment notifications");
+    },
+  });
+
   const eligibleAssignmentsCount = selectedAssignments.filter((id) => {
     const assignment = assignments?.find((a) => a.id === id);
     return assignment && canSendReminder(assignment.last_reminder_sent);
@@ -272,33 +295,50 @@ export function AssignmentInstanceList({
         <div className="flex flex-col md:flex-row gap-2">
           <div className="flex items-center gap-2">
             {selectedAssignments.length > 0 && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          sendReminderMutation.mutate({
-                            campaignId,
-                            instanceId: selectedInstanceId,
-                            assignmentIds: selectedAssignments,
-                          })
-                        }
-                        disabled={sendReminderMutation.isPending || eligibleAssignmentsCount === 0}
-                      >
-                        <Send className="mr-2 h-4 w-4" />
-                        Send Reminder ({eligibleAssignmentsCount}/{selectedAssignments.length})
-                      </Button>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {eligibleAssignmentsCount === 0
-                      ? "No selected assignments are eligible for reminders at this time"
-                      : `${eligibleAssignmentsCount} out of ${selectedAssignments.length} selected assignments can receive reminders`}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <div className="flex gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            sendReminderMutation.mutate({
+                              campaignId,
+                              instanceId: selectedInstanceId,
+                              assignmentIds: selectedAssignments,
+                            })
+                          }
+                          disabled={sendReminderMutation.isPending || eligibleAssignmentsCount === 0}
+                        >
+                          <Send className="mr-2 h-4 w-4" />
+                          Send Reminder ({eligibleAssignmentsCount}/{selectedAssignments.length})
+                        </Button>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {eligibleAssignmentsCount === 0
+                        ? "No selected assignments are eligible for reminders at this time"
+                        : `${eligibleAssignmentsCount} out of ${selectedAssignments.length} selected assignments can receive reminders`}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    sendAssignmentNotificationMutation.mutate({
+                      campaignId,
+                      instanceId: selectedInstanceId,
+                      assignmentIds: selectedAssignments,
+                    })
+                  }
+                  disabled={sendAssignmentNotificationMutation.isPending || selectedAssignments.length === 0}
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Send Assignment Notification ({selectedAssignments.length})
+                </Button>
+              </div>
             )}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px]">
