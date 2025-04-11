@@ -15,12 +15,18 @@ interface UserCellProps {
 }
 
 export function UserCell({ assignment }: UserCellProps) {
+  // Add null check for user object
+  if (!assignment?.user) {
+    return <div className="text-sm text-muted-foreground">User data unavailable</div>;
+  }
+
   const user = assignment.user;
+  
   return (
     <div className="flex items-center gap-2">
       <div>
         <div className="font-medium flex items-center gap-2">
-          {user.first_name} {user.last_name}
+          {user.first_name || ''} {user.last_name || ''}
           <Badge className={cn("text-xs", statusStyles[assignment.status])}>
             {assignment.status.replace(/_/g, " ")}
           </Badge>

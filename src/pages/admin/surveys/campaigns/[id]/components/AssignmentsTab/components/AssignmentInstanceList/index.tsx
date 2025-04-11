@@ -98,7 +98,9 @@ export function AssignmentInstanceList({
       header: "SBU",
       cell: ({ row }: any) => {
         const user = row.original.user;
-        const primarySbu = user.user_sbus?.find((sbu: any) => sbu.is_primary)?.sbu.name;
+        // Add null check for user and user_sbus
+        if (!user || !user.user_sbus) return "N/A";
+        const primarySbu = user.user_sbus.find((sbu: any) => sbu.is_primary)?.sbu.name;
         return primarySbu || "N/A";
       },
     },
