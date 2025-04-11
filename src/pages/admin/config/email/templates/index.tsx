@@ -28,7 +28,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
@@ -51,12 +50,12 @@ export default function EmailTemplatesPage() {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from("email_templates")
+        .from("email_templates" as any)
         .select("*")
         .order("name");
 
       if (error) throw error;
-      setTemplates(data || []);
+      setTemplates((data || []) as unknown as EmailTemplate[]);
     } catch (error: any) {
       console.error("Error fetching templates:", error);
       toast({
@@ -72,7 +71,7 @@ export default function EmailTemplatesPage() {
   const handleStatusChange = async (template: EmailTemplate, newStatus: EmailTemplateStatus) => {
     try {
       const { error } = await supabase
-        .from("email_templates")
+        .from("email_templates" as any)
         .update({ status: newStatus })
         .eq("id", template.id);
 
@@ -101,7 +100,7 @@ export default function EmailTemplatesPage() {
     
     try {
       const { error } = await supabase
-        .from("email_templates")
+        .from("email_templates" as any)
         .delete()
         .eq("id", templateToDelete.id);
 
@@ -128,7 +127,7 @@ export default function EmailTemplatesPage() {
   const duplicateTemplate = async (template: EmailTemplate) => {
     try {
       const { data, error } = await supabase
-        .from("email_templates")
+        .from("email_templates" as any)
         .insert({
           name: `${template.name} (Copy)`,
           description: template.description,
@@ -144,7 +143,8 @@ export default function EmailTemplatesPage() {
       if (error) throw error;
 
       if (data && data[0]) {
-        setTemplates([...templates, data[0]]);
+        const newTemplate = data[0] as unknown as EmailTemplate;
+        setTemplates([...templates, newTemplate]);
         toast({
           title: "Template duplicated",
           description: `Created a copy of ${template.name}`,

@@ -24,7 +24,7 @@ export default function EditEmailTemplatePage() {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from("email_templates")
+        .from("email_templates" as any)
         .select("id")
         .eq("id", templateId)
         .single();

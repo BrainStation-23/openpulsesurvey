@@ -77,8 +77,9 @@ export default function TemplateForm({ templateId }: TemplateFormProps) {
   const fetchTemplate = async (id: string) => {
     try {
       setIsLoading(true);
+      // Using 'from' with a type assertion to fix the TypeScript error
       const { data, error } = await supabase
-        .from("email_templates")
+        .from('email_templates' as any)
         .select("*")
         .eq("id", id)
         .single();
@@ -86,16 +87,18 @@ export default function TemplateForm({ templateId }: TemplateFormProps) {
       if (error) throw error;
       
       if (data) {
-        setTemplate(data);
+        // Using type assertion to ensure TypeScript knows this is an EmailTemplate
+        const templateData = data as unknown as EmailTemplate;
+        setTemplate(templateData);
         form.reset({
-          name: data.name,
-          description: data.description || "",
-          subject: data.subject,
-          html_content: data.html_content,
-          plain_text_content: data.plain_text_content || "",
-          category: data.category,
-          status: data.status,
-          available_variables: data.available_variables,
+          name: templateData.name,
+          description: templateData.description || "",
+          subject: templateData.subject,
+          html_content: templateData.html_content,
+          plain_text_content: templateData.plain_text_content || "",
+          category: templateData.category,
+          status: templateData.status,
+          available_variables: templateData.available_variables,
         });
       }
     } catch (error: any) {
@@ -112,13 +115,15 @@ export default function TemplateForm({ templateId }: TemplateFormProps) {
 
   const fetchVariables = async () => {
     try {
+      // Using 'from' with a type assertion to fix the TypeScript error
       const { data, error } = await supabase
-        .from("template_variables")
+        .from('template_variables' as any)
         .select("*")
         .order("name");
 
       if (error) throw error;
-      setVariables(data || []);
+      // Using type assertion to ensure TypeScript knows these are TemplateVariables
+      setVariables((data || []) as unknown as TemplateVariable[]);
     } catch (error: any) {
       console.error("Error fetching variables:", error);
       toast({
@@ -136,7 +141,7 @@ export default function TemplateForm({ templateId }: TemplateFormProps) {
       if (templateId) {
         // Update existing template
         const { error } = await supabase
-          .from("email_templates")
+          .from('email_templates' as any)
           .update({
             name: values.name,
             description: values.description,
@@ -158,7 +163,7 @@ export default function TemplateForm({ templateId }: TemplateFormProps) {
       } else {
         // Create new template
         const { data, error } = await supabase
-          .from("email_templates")
+          .from('email_templates' as any)
           .insert({
             name: values.name,
             description: values.description,
@@ -297,7 +302,7 @@ export default function TemplateForm({ templateId }: TemplateFormProps) {
                 />
               </FormControl>
               <FormDescription>
-                The subject line for the email. You can use variables like {{variable_name}}
+                The subject line for the email. You can use variables like {"{{variable_name}}"}
               </FormDescription>
               <FormMessage />
             </FormItem>
