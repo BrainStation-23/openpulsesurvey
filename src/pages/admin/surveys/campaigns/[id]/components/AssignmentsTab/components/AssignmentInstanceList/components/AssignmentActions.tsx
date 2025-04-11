@@ -1,3 +1,4 @@
+
 import { SurveyAssignment } from "@/pages/admin/surveys/types/assignments";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +13,7 @@ import {
   TooltipTrigger,
   Tooltip,
 } from "@/components/ui/tooltip";
-import { Copy, MoreHorizontal, Send, Trash2 } from "lucide-react";
+import { Copy, MoreHorizontal, Send, Trash2, Mail } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -97,6 +98,38 @@ export function AssignmentActions({
     },
   });
 
+  const sendAssignmentNotificationMutation = useMutation({
+    mutationFn: async () => {
+      console.log("Sending assignment notification for assignment:", {
+        assignmentIds: [assignment.id],
+        campaignId,
+        instanceId: selectedInstanceId, 
+      });
+
+      const { error } = await supabase.functions.invoke("send-campaign-assignment-notification", {
+        body: {
+          assignmentIds: [assignment.id],
+          campaignId,
+          instanceId: selectedInstanceId,
+          frontendUrl: window.location.origin,
+        },
+      });
+
+      if (error) {
+        console.error("Error sending assignment notification:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Assignment notification sent successfully");
+      queryClient.invalidateQueries({ queryKey: ["campaign-assignments"] });
+    },
+    onError: (error) => {
+      console.error("Error sending assignment notification:", error);
+      toast.error("Failed to send assignment notification");
+    },
+  });
+
   const deleteAssignmentMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('delete_survey_assignment', { 
@@ -134,6 +167,13 @@ export function AssignmentActions({
         <DropdownMenuItem onClick={() => copyPublicLinkMutation.mutate(assignment)}>
           <Copy className="mr-2 h-4 w-4" />
           Copy Survey Link
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => sendAssignmentNotificationMutation.mutate()}
+          disabled={assignment.status === "submitted"}
+        >
+          <Mail className="mr-2 h-4 w-4" />
+          Send Assignment Notification
         </DropdownMenuItem>
         <TooltipProvider>
           <Tooltip>
