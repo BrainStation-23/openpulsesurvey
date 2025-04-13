@@ -37,4 +37,5 @@ export interface ConfigFormProps {
   onSubmit: (values: { name: string; color_code?: string }) => void;
   initialValues?: { name: string; color_code?: string } | null;
   submitLabel: string;
+  showPromptField?: boolean;
 }
