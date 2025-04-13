@@ -1,4 +1,3 @@
-
 import { HeatMapChart } from "../../../ReportsTab/charts/HeatMapChart";
 import { NpsChart } from "../../../ReportsTab/charts/NpsChart";
 

@@ -1,128 +1,197 @@
 
-import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HeatMapChart } from "../../charts/HeatMapChart";
+import { NpsChart } from "../../charts/NpsChart";
+import type { ProcessedResponse } from "../../hooks/useResponseProcessing";
 import { ComparisonDimension } from "../../types/comparison";
-import { ProcessedResponse } from "../../hooks/useResponseProcessing";
-import { ComparisonView } from "../../../PresentationView/slides/QuestionSlide/ComparisonView";
-import { supabase } from "@/integrations/supabase/client";
-import { useParams } from "react-router-dom";
 
 interface NpsComparisonProps {
   responses: ProcessedResponse[];
   questionName: string;
   dimension: ComparisonDimension;
   isNps: boolean;
+  layout?: 'grid' | 'vertical';
 }
 
-export function NpsComparison({ responses, questionName, dimension, isNps }: NpsComparisonProps) {
-  const { id: campaignId } = useParams<{ id: string }>();
-  const [comparisonData, setComparisonData] = useState<any[]>([]);
-  const [dimensionTitle, setDimensionTitle] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+interface HeatMapData {
+  dimension: string;
+  unsatisfied: number;
+  neutral: number;
+  satisfied: number;
+  total: number;
+}
 
-  useEffect(() => {
-    async function fetchComparisonData() {
-      if (!campaignId) return;
-      
-      setLoading(true);
-      setError(null);
-      
-      try {
-        let data;
-        
-        if (dimension === "supervisor") {
-          // Call our new RPC function for supervisor satisfaction
-          const { data: supervisorData, error: supervisorError } = await supabase
-            .rpc('get_supervisor_satisfaction', {
-              p_campaign_id: campaignId,
-              p_instance_id: null, // If you want to filter by instance, replace with instance ID
-              p_question_name: questionName
-            });
-            
-          if (supervisorError) throw supervisorError;
-          data = supervisorData;
-          setDimensionTitle("Supervisor Satisfaction");
-        } else {
-          // Call existing RPC functions for other dimensions
-          let rpcFunction = "";
-          
-          switch (dimension) {
-            case "gender":
-              rpcFunction = "get_gender_comparison_data";
-              setDimensionTitle("Gender Comparison");
-              break;
-            case "sbu":
-              rpcFunction = "get_sbu_comparison_data";
-              setDimensionTitle("Department Comparison");
-              break;
-            case "location":
-              rpcFunction = "get_location_comparison_data";
-              setDimensionTitle("Location Comparison");
-              break;
-            case "employment_type":
-              rpcFunction = "get_employment_type_comparison_data";
-              setDimensionTitle("Employment Type Comparison");
-              break;
-            case "level":
-              rpcFunction = "get_level_comparison_data";
-              setDimensionTitle("Level Comparison");
-              break;
-            case "employee_type":
-              rpcFunction = "get_employee_type_comparison_data";
-              setDimensionTitle("Employee Type Comparison");
-              break;
-            case "employee_role":
-              rpcFunction = "get_employee_role_comparison_data";
-              setDimensionTitle("Employee Role Comparison");
-              break;
-            default:
-              setDimensionTitle("");
-              break;
-          }
-          
-          if (rpcFunction) {
-            const { data: dimensionData, error: dimensionError } = await supabase
-              .rpc(rpcFunction as any, {
-                p_campaign_id: campaignId,
-                p_instance_id: null, // If you want to filter by instance, replace with instance ID
-                p_question_name: questionName
-              });
-              
-            if (dimensionError) throw dimensionError;
-            
-            // Transform data for NPS or regular satisfaction
-            if (isNps) {
-              data = Array.isArray(dimensionData) ? dimensionData.map((item: any) => ({
-                dimension: item.dimension,
-                detractors: item.detractors,
-                passives: item.passives,
-                promoters: item.promoters
-              })) : [];
-            } else {
-              data = dimensionData;
-            }
-          }
+interface NpsData {
+  dimension: string;
+  ratings: { rating: number; count: number; }[];
+}
+
+export function NpsComparison({
+  responses,
+  questionName,
+  dimension,
+  isNps,
+  layout = 'vertical'
+}: NpsComparisonProps) {
+  const getDimensionTitle = (dim: string) => {
+    const titles: Record<string, string> = {
+      sbu: "By Department",
+      gender: "By Gender",
+      location: "By Location",
+      employment_type: "By Employment Type",
+      level: "By Level",
+      employee_type: "By Employee Type",
+      employee_role: "By Employee Role"
+    };
+    return titles[dim] || dim;
+  };
+
+  const processResponses = () => {
+    if (isNps) {
+      const dimensionData = new Map<string, number[]>();
+
+      responses.forEach((response) => {
+        const questionData = response.answers[questionName];
+        if (!questionData || typeof questionData.answer !== "number") return;
+
+        const answer = questionData.answer;
+        let dimensionValue = "Unknown";
+
+        switch (dimension) {
+          case "sbu":
+            dimensionValue = response.respondent.sbu?.name || "Unknown";
+            break;
+          case "gender":
+            dimensionValue = response.respondent.gender || "Unknown";
+            break;
+          case "location":
+            dimensionValue = response.respondent.location?.name || "Unknown";
+            break;
+          case "employment_type":
+            dimensionValue = response.respondent.employment_type?.name || "Unknown";
+            break;
+          case "level":
+            dimensionValue = response.respondent.level?.name || "Unknown";
+            break;
+          case "employee_type":
+            dimensionValue = response.respondent.employee_type?.name || "Unknown";
+            break;
+          case "employee_role":
+            dimensionValue = response.respondent.employee_role?.name || "Unknown";
+            break;
         }
-        
-        setComparisonData(data || []);
-      } catch (err) {
-        console.error("Error fetching comparison data:", err);
-        setError("Failed to load comparison data");
-      } finally {
-        setLoading(false);
-      }
+
+        if (!dimensionData.has(dimensionValue)) {
+          dimensionData.set(dimensionValue, new Array(11).fill(0));
+        }
+
+        const ratings = dimensionData.get(dimensionValue)!;
+        if (answer >= 0 && answer <= 10) {
+          ratings[answer]++;
+        }
+      });
+
+      return Array.from(dimensionData.entries()).map(([dimension, ratings]) => ({
+        dimension,
+        ratings: ratings.map((count, rating) => ({ rating, count }))
+      })) as NpsData[];
     }
-    
-    fetchComparisonData();
-  }, [campaignId, dimension, questionName, isNps]);
 
-  if (loading) {
-    return <div className="text-center p-4">Loading comparison data...</div>;
+    const dimensionData = new Map<string, HeatMapData>();
+
+    responses.forEach((response) => {
+      const questionData = response.answers[questionName];
+      if (!questionData || typeof questionData.answer !== "number") return;
+
+      const answer = questionData.answer;
+      let dimensionValue = "Unknown";
+
+      switch (dimension) {
+        case "sbu":
+          dimensionValue = response.respondent.sbu?.name || "Unknown";
+          break;
+        case "gender":
+          dimensionValue = response.respondent.gender || "Unknown";
+          break;
+        case "location":
+          dimensionValue = response.respondent.location?.name || "Unknown";
+          break;
+        case "employment_type":
+          dimensionValue = response.respondent.employment_type?.name || "Unknown";
+          break;
+        case "level":
+          dimensionValue = response.respondent.level?.name || "Unknown";
+          break;
+        case "employee_type":
+          dimensionValue = response.respondent.employee_type?.name || "Unknown";
+          break;
+        case "employee_role":
+          dimensionValue = response.respondent.employee_role?.name || "Unknown";
+          break;
+      }
+
+      if (!dimensionData.has(dimensionValue)) {
+        dimensionData.set(dimensionValue, {
+          dimension: dimensionValue,
+          unsatisfied: 0,
+          neutral: 0,
+          satisfied: 0,
+          total: 0
+        });
+      }
+
+      const group = dimensionData.get(dimensionValue)!;
+      group.total += 1;
+
+      if (answer <= 3) {
+        group.unsatisfied += 1;
+      } else if (answer === 4) {
+        group.neutral += 1;
+      } else {
+        group.satisfied += 1;
+      }
+    });
+
+    return Array.from(dimensionData.values());
+  };
+
+  const data = processResponses();
+  
+  if (data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>No data available</CardTitle>
+        </CardHeader>
+      </Card>
+    );
   }
 
-  if (error) {
-    return <div className="text-center text-red-500 p-4">{error}</div>;
+  if (isNps) {
+    return (
+      <div className={layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-4'}>
+        {(data as NpsData[]).map((groupData) => (
+          <Card key={groupData.dimension}>
+            <CardHeader>
+              <CardTitle className="text-lg">{groupData.dimension}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <NpsChart data={groupData.ratings} />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
   }
 
-  return <ComparisonView data={comparisonData} isNps={isNps} dimensionTitle={dimensionTitle} />;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{getDimensionTitle(dimension)}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <HeatMapChart data={data as HeatMapData[]} />
+      </CardContent>
+    </Card>
+  );
 }
