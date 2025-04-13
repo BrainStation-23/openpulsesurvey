@@ -1,9 +1,9 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
 import { NpsChart } from "../../charts/NpsChart";
 import type { ProcessedResponse } from "../../hooks/useResponseProcessing";
 import { ComparisonDimension } from "../../types/comparison";
-import { supabase } from "@/integrations/supabase/client";
 
 interface NpsComparisonProps {
   responses: ProcessedResponse[];
@@ -41,39 +41,12 @@ export function NpsComparison({
       employment_type: "By Employment Type",
       level: "By Level",
       employee_type: "By Employee Type",
-      employee_role: "By Employee Role",
-      supervisor: "By Supervisor"
+      employee_role: "By Employee Role"
     };
     return titles[dim] || dim;
   };
 
-  const processResponses = async () => {
-    if (dimension === 'supervisor') {
-      try {
-        const { data, error } = await supabase.rpc('get_supervisor_satisfaction', {
-          p_campaign_id: responses[0]?.respondent?.campaign_id,
-          p_instance_id: responses[0]?.submitted_at ? responses[0].submitted_at : null,
-          p_question_name: questionName
-        });
-
-        if (error) {
-          console.error('Error fetching supervisor satisfaction:', error);
-          return [];
-        }
-
-        return data.map((row: any) => ({
-          dimension: row.dimension,
-          total: row.total,
-          detractors: row.unsatisfied,
-          passives: row.neutral,
-          promoters: row.satisfied
-        }));
-      } catch (error) {
-        console.error('Error in supervisor satisfaction RPC:', error);
-        return [];
-      }
-    }
-
+  const processResponses = () => {
     if (isNps) {
       const dimensionData = new Map<string, number[]>();
 
