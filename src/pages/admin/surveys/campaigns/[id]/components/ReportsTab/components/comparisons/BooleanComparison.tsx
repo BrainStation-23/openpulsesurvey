@@ -1,102 +1,115 @@
 
-import { Card } from "@/components/ui/card";
-import { ProcessedResponse } from "../../hooks/useResponseProcessing";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import { ComparisonDimension } from "../../types/comparison";
-import { GroupedBarChart } from "../../charts/GroupedBarChart";
 
 interface BooleanComparisonProps {
-  responses: ProcessedResponse[];
-  questionName: string;
+  data: any[];
   dimension: ComparisonDimension;
-  layout?: 'grid' | 'vertical';
+  layout?: "vertical" | "grid";
 }
 
-export function BooleanComparison({
-  responses,
-  questionName,
+export function BooleanComparison({ 
+  data, 
   dimension,
-  layout = 'vertical'
+  layout = "vertical" 
 }: BooleanComparisonProps) {
-  const processData = () => {
-    const groupedData: Record<string, { Yes: number; No: number }> = {};
+  if (!data || data.length === 0) {
+    return <div className="text-center py-8 text-muted-foreground">No comparison data available</div>;
+  }
 
-    responses.forEach((response) => {
-      const answer = response.answers[questionName]?.answer;
-      let groupKey = "Unknown";
+  // Format the data for the chart
+  const chartData = data.map((group) => ({
+    name: group.dimension,
+    Yes: group.yes_count,
+    No: group.no_count,
+    yesPercentage: group.total > 0 ? (group.yes_count / group.total) * 100 : 0,
+  })).sort((a, b) => b.yesPercentage - a.yesPercentage);
 
-      // Get the group key based on the dimension
-      switch (dimension) {
-        case "sbu":
-          groupKey = response.respondent.sbu?.name || "No SBU";
-          break;
-        case "gender":
-          groupKey = response.respondent.gender || "Not Specified";
-          break;
-        case "location":
-          groupKey = response.respondent.location?.name || "No Location";
-          break;
-        case "employment_type":
-          groupKey = response.respondent.employment_type?.name || "Not Specified";
-          break;
-        case "level":
-          groupKey = response.respondent.level?.name || "Not Specified";
-          break;
-        case "employee_type":
-          groupKey = response.respondent.employee_type?.name || "Not Specified";
-          break;
-        case "employee_role":
-          groupKey = response.respondent.employee_role?.name || "Not Specified";
-          break;
-      }
-
-      if (!groupedData[groupKey]) {
-        groupedData[groupKey] = { Yes: 0, No: 0 };
-      }
-
-      if (answer === true) {
-        groupedData[groupKey].Yes++;
-      } else if (answer === false) {
-        groupedData[groupKey].No++;
-      }
-    });
-
-    return Object.entries(groupedData).map(([name, data]) => ({
-      name,
-      ...data
-    }));
-  };
-
-  const data = processData();
-  const keys = ["Yes", "No"];
-  const colors = ["#22c55e", "#ef4444"]; // Green for Yes, Red for No
-
-  if (data.length === 0) {
+  if (layout === "grid") {
     return (
-      <div className="text-center text-muted-foreground p-4">
-        No comparison data available
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              layout="vertical"
+              margin={{ top: 20, right: 30, left: 70, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" />
+              <YAxis
+                dataKey="name"
+                type="category"
+                width={60}
+                tick={{ fontSize: 12 }}
+              />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="Yes" stackId="a" fill="#4CAF50" />
+              <Bar dataKey="No" stackId="a" fill="#F44336" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              layout="vertical"
+              margin={{ top: 20, right: 30, left: 70, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" unit="%" domain={[0, 100]} />
+              <YAxis
+                dataKey="name"
+                type="category"
+                width={60}
+                tick={{ fontSize: 12 }}
+              />
+              <Tooltip formatter={(value) => [`${value.toFixed(1)}%`, "Yes"]} />
+              <Bar
+                dataKey="yesPercentage"
+                fill="#4CAF50"
+                name="Yes %"
+                radius={[0, 4, 4, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={
-      layout === 'grid' 
-        ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' 
-        : 'space-y-4'
-    }>
-      {data.map((groupData) => (
-        <Card key={groupData.name} className="p-4">
-          <h3 className="mb-4 text-lg font-semibold">{groupData.name}</h3>
-          <div className="aspect-[2/1]">
-            <GroupedBarChart 
-              data={[groupData]} 
-              keys={keys} 
-              colors={colors}
-              height={150}
-            />
-          </div>
-        </Card>
-      ))}
+    <div className="h-96">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={chartData}
+          layout="vertical"
+          margin={{ top: 20, right: 30, left: 70, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis type="number" />
+          <YAxis
+            dataKey="name"
+            type="category"
+            width={60}
+            tick={{ fontSize: 12 }}
+          />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="Yes" stackId="a" fill="#4CAF50" />
+          <Bar dataKey="No" stackId="a" fill="#F44336" />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
