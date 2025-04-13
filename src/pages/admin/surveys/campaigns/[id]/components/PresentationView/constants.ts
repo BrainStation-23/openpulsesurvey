@@ -8,5 +8,6 @@ export const COMPARISON_DIMENSIONS: ComparisonDimension[] = [
   'employment_type',
   'level',
   'employee_type',
-  'employee_role'
+  'employee_role',
+  'supervisor'
 ];

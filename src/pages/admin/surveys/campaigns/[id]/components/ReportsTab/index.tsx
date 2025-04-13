@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResponseProcessing } from "./hooks/useResponseProcessing";
 import { BooleanCharts } from "./charts/BooleanCharts";
@@ -186,6 +187,8 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
                       questionName={question.name}
                       dimension={currentDimension}
                       isNps={isNpsQuestion}
+                      campaignId={campaignId}
+                      instanceId={instanceId}
                     />
                   )}
                   {(question.type === "text" || question.type === "comment") && (

@@ -12,6 +12,7 @@ import { usePresentationResponses } from "../../hooks/usePresentationResponses";
 import { ComparisonLayout } from "../../components/ComparisonLayout";
 import { BooleanComparison } from "../../../ReportsTab/components/comparisons/BooleanComparison";
 import { TextComparison } from "../../../ReportsTab/components/comparisons/TextComparison";
+import { NpsComparison } from "../../../ReportsTab/components/comparisons/NpsComparison";
 import { BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
 
 interface QuestionSlideProps extends SlideProps {
@@ -49,6 +50,7 @@ const QuestionSlideComponent = ({
       level: "Response Distribution by Level",
       employee_type: "Response Distribution by Employee Type",
       employee_role: "Response Distribution by Employee Role",
+      supervisor: "Response Distribution by Supervisor",
       none: "No Comparison"
     };
     return titles[dim] || "";
@@ -97,11 +99,23 @@ const QuestionSlideComponent = ({
             />
           )}
           {questionType === "rating" && (
-            <ComparisonView 
-              data={processedData}
-              isNps={isNps}
-              dimensionTitle={getDimensionTitle(slideType)}
-            />
+            slideType === "supervisor" ? (
+              <NpsComparison
+                responses={data.responses}
+                questionName={questionName}
+                dimension={slideType}
+                isNps={isNps}
+                layout="grid"
+                campaignId={campaign.id}
+                instanceId={campaign.instance?.id}
+              />
+            ) : (
+              <ComparisonView 
+                data={processedData}
+                isNps={isNps}
+                dimensionTitle={getDimensionTitle(slideType)}
+              />
+            )
           )}
         </ComparisonLayout>
       )}

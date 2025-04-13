@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 
 interface HeatMapData {
@@ -31,11 +32,15 @@ export function HeatMapChart({ data = [], title }: HeatMapChartProps) {
     // Convert to hex
     const hexOpacity = Math.round(opacity * 255).toString(16).padStart(2, '0');
     return hexOpacity;
-};
-
+  };
 
   const getPercentage = (value: number, total: number) => {
     return total > 0 ? Math.round((value / total) * 100) : 0;
+  };
+
+  const needsAttention = (row: HeatMapData) => {
+    const unsatisfiedPercentage = getPercentage(row.unsatisfied, row.total);
+    return unsatisfiedPercentage > 50;
   };
 
   return (
@@ -55,8 +60,18 @@ export function HeatMapChart({ data = [], title }: HeatMapChartProps) {
           </thead>
           <tbody>
             {data.map((row) => (
-              <tr key={row.dimension}>
-                <td className="p-2 font-medium">{row.dimension}</td>
+              <tr 
+                key={row.dimension} 
+                className={needsAttention(row) ? "bg-red-50" : ""}
+              >
+                <td className={`p-2 font-medium ${needsAttention(row) ? "text-red-600" : ""}`}>
+                  {row.dimension}
+                  {needsAttention(row) && (
+                    <span className="ml-2 text-xs font-normal text-red-500 whitespace-nowrap">
+                      (Needs Attention)
+                    </span>
+                  )}
+                </td>
                 <td className="p-2">
                   <div
                     className="w-full h-10 flex items-center justify-center text-sm"

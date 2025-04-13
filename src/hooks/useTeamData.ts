@@ -1,124 +1,204 @@
 
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useCurrentUser } from "./useCurrentUser";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useCurrentUser } from './useCurrentUser';
 
-export type TeamMember = {
+export interface Level {
+  id: string;
+  name: string;
+  color_code?: string;
+  rank: number;
+}
+
+export interface TeamMember {
   id: string;
   firstName: string;
   lastName: string;
-  profileImageUrl?: string;
-  designation?: string;
   email: string;
+  designation?: string;
+  profileImageUrl?: string;
   isLoggedInUser: boolean;
-};
+  level?: Level;
+}
 
-export type Supervisor = {
+export interface Supervisor {
   id: string;
   firstName: string;
   lastName: string;
-  profileImageUrl?: string;
-  designation?: string;
   email: string;
-};
+  designation?: string;
+  profileImageUrl?: string;
+  level?: Level;
+}
 
-export type TeamData = {
+export interface TeamData {
   supervisor: Supervisor | null;
   teamMembers: TeamMember[];
-};
+}
 
-export function useTeamData() {
-  const { userId } = useCurrentUser();
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["teamData", userId],
-    queryFn: async () => {
-      if (!userId) {
-        throw new Error("User not authenticated");
+export const useTeamData = () => {
+  const { user } = useCurrentUser();
+  
+  const {
+    data: teamData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['team-data', user?.id],
+    queryFn: async (): Promise<TeamData> => {
+      if (!user?.id) {
+        throw new Error('User not authenticated');
       }
-
-      // Step 1: Fetch the user's primary supervisor
+      
+      // Fetch the user's primary supervisor
       const { data: supervisorData, error: supervisorError } = await supabase
-        .from("user_supervisors")
+        .from('user_supervisors')
         .select(`
-          supervisor_id,
-          is_primary,
           supervisor:profiles!user_supervisors_supervisor_id_fkey (
             id,
             first_name,
             last_name,
-            profile_image_url,
+            email,
             designation,
-            email
+            profile_image_url,
+            level:levels (
+              id,
+              name,
+              color_code,
+              rank
+            )
           )
         `)
-        .eq("user_id", userId)
-        .eq("is_primary", true)
+        .eq('user_id', user.id)
+        .eq('is_primary', true)
         .single();
-
-      if (supervisorError && supervisorError.code !== "PGRST116") {
+      
+      if (supervisorError && supervisorError.code !== 'PGRST116') {
         throw supervisorError;
       }
-
-      const supervisor = supervisorData?.supervisor 
-        ? {
-            id: supervisorData.supervisor.id,
-            firstName: supervisorData.supervisor.first_name || "",
-            lastName: supervisorData.supervisor.last_name || "",
-            profileImageUrl: supervisorData.supervisor.profile_image_url,
-            designation: supervisorData.supervisor.designation,
-            email: supervisorData.supervisor.email
-          }
-        : null;
-
-      // Step 2: If there's a supervisor, fetch all users who have the same supervisor
+      
+      let supervisor: Supervisor | null = null;
+      
+      if (supervisorData?.supervisor) {
+        supervisor = {
+          id: supervisorData.supervisor.id,
+          firstName: supervisorData.supervisor.first_name,
+          lastName: supervisorData.supervisor.last_name,
+          email: supervisorData.supervisor.email,
+          designation: supervisorData.supervisor.designation,
+          profileImageUrl: supervisorData.supervisor.profile_image_url,
+          level: supervisorData.supervisor.level ? {
+            id: supervisorData.supervisor.level.id,
+            name: supervisorData.supervisor.level.name,
+            color_code: supervisorData.supervisor.level.color_code,
+            rank: supervisorData.supervisor.level.rank || 0
+          } : undefined
+        };
+      }
+      
+      // If we have a supervisor, fetch all users who also have this supervisor
       let teamMembers: TeamMember[] = [];
       
       if (supervisor) {
         const { data: teammatesData, error: teammatesError } = await supabase
-          .from("user_supervisors")
+          .from('user_supervisors')
           .select(`
-            user_id,
-            is_primary,
             user:profiles!user_supervisors_user_id_fkey (
               id,
               first_name,
               last_name,
-              profile_image_url,
+              email,
               designation,
-              email
+              profile_image_url,
+              level:levels (
+                id,
+                name,
+                color_code,
+                rank
+              )
             )
           `)
-          .eq("supervisor_id", supervisor.id)
-          .eq("is_primary", true);
-
+          .eq('supervisor_id', supervisor.id)
+          .eq('is_primary', true);
+        
         if (teammatesError) {
           throw teammatesError;
         }
-
-        teamMembers = (teammatesData || []).map(item => ({
-          id: item.user.id,
-          firstName: item.user.first_name || "",
-          lastName: item.user.last_name || "",
-          profileImageUrl: item.user.profile_image_url,
-          designation: item.user.designation,
-          email: item.user.email,
-          isLoggedInUser: item.user.id === userId
-        }));
+        
+        if (teammatesData) {
+          teamMembers = teammatesData
+            .filter(item => item.user && item.user.id !== user.id) // Exclude the current user
+            .map(item => ({
+              id: item.user.id,
+              firstName: item.user.first_name,
+              lastName: item.user.last_name,
+              email: item.user.email,
+              designation: item.user.designation,
+              profileImageUrl: item.user.profile_image_url,
+              isLoggedInUser: false,
+              level: item.user.level ? {
+                id: item.user.level.id,
+                name: item.user.level.name,
+                color_code: item.user.level.color_code,
+                rank: item.user.level.rank || 999
+              } : undefined
+            }));
+        }
+        
+        // Add current user to team members
+        const { data: currentUserData, error: currentUserError } = await supabase
+          .from('profiles')
+          .select(`
+            id, 
+            first_name, 
+            last_name, 
+            email,
+            designation,
+            profile_image_url,
+            level:levels (
+              id,
+              name,
+              color_code,
+              rank
+            )
+          `)
+          .eq('id', user.id)
+          .single();
+        
+        if (currentUserError) {
+          throw currentUserError;
+        }
+        
+        if (currentUserData) {
+          teamMembers.push({
+            id: currentUserData.id,
+            firstName: currentUserData.first_name,
+            lastName: currentUserData.last_name,
+            email: currentUserData.email,
+            designation: currentUserData.designation,
+            profileImageUrl: currentUserData.profile_image_url,
+            isLoggedInUser: true,
+            level: currentUserData.level ? {
+              id: currentUserData.level.id,
+              name: currentUserData.level.name,
+              color_code: currentUserData.level.color_code,
+              rank: currentUserData.level.rank || 999
+            } : undefined
+          });
+        }
       }
-
+      
       return {
         supervisor,
         teamMembers
-      } as TeamData;
+      };
     },
-    enabled: !!userId,
+    enabled: !!user?.id,
   });
-
+  
   return {
-    teamData: data,
+    teamData,
     isLoading,
     error
   };
-}
+};
