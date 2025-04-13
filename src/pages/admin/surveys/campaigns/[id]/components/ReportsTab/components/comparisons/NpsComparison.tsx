@@ -1,124 +1,197 @@
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HeatMapChart } from "../../charts/HeatMapChart";
+import { NpsChart } from "../../charts/NpsChart";
+import type { ProcessedResponse } from "../../hooks/useResponseProcessing";
 import { ComparisonDimension } from "../../types/comparison";
 
 interface NpsComparisonProps {
-  data: any[];
+  responses: ProcessedResponse[];
+  questionName: string;
   dimension: ComparisonDimension;
   isNps: boolean;
+  layout?: 'grid' | 'vertical';
 }
 
-export function NpsComparison({ data, dimension, isNps }: NpsComparisonProps) {
-  if (!data || data.length === 0) {
-    return <div className="text-center py-8 text-muted-foreground">No comparison data available</div>;
+interface HeatMapData {
+  dimension: string;
+  unsatisfied: number;
+  neutral: number;
+  satisfied: number;
+  total: number;
+}
+
+interface NpsData {
+  dimension: string;
+  ratings: { rating: number; count: number; }[];
+}
+
+export function NpsComparison({
+  responses,
+  questionName,
+  dimension,
+  isNps,
+  layout = 'vertical'
+}: NpsComparisonProps) {
+  const getDimensionTitle = (dim: string) => {
+    const titles: Record<string, string> = {
+      sbu: "By Department",
+      gender: "By Gender",
+      location: "By Location",
+      employment_type: "By Employment Type",
+      level: "By Level",
+      employee_type: "By Employee Type",
+      employee_role: "By Employee Role"
+    };
+    return titles[dim] || dim;
+  };
+
+  const processResponses = () => {
+    if (isNps) {
+      const dimensionData = new Map<string, number[]>();
+
+      responses.forEach((response) => {
+        const questionData = response.answers[questionName];
+        if (!questionData || typeof questionData.answer !== "number") return;
+
+        const answer = questionData.answer;
+        let dimensionValue = "Unknown";
+
+        switch (dimension) {
+          case "sbu":
+            dimensionValue = response.respondent.sbu?.name || "Unknown";
+            break;
+          case "gender":
+            dimensionValue = response.respondent.gender || "Unknown";
+            break;
+          case "location":
+            dimensionValue = response.respondent.location?.name || "Unknown";
+            break;
+          case "employment_type":
+            dimensionValue = response.respondent.employment_type?.name || "Unknown";
+            break;
+          case "level":
+            dimensionValue = response.respondent.level?.name || "Unknown";
+            break;
+          case "employee_type":
+            dimensionValue = response.respondent.employee_type?.name || "Unknown";
+            break;
+          case "employee_role":
+            dimensionValue = response.respondent.employee_role?.name || "Unknown";
+            break;
+        }
+
+        if (!dimensionData.has(dimensionValue)) {
+          dimensionData.set(dimensionValue, new Array(11).fill(0));
+        }
+
+        const ratings = dimensionData.get(dimensionValue)!;
+        if (answer >= 0 && answer <= 10) {
+          ratings[answer]++;
+        }
+      });
+
+      return Array.from(dimensionData.entries()).map(([dimension, ratings]) => ({
+        dimension,
+        ratings: ratings.map((count, rating) => ({ rating, count }))
+      })) as NpsData[];
+    }
+
+    const dimensionData = new Map<string, HeatMapData>();
+
+    responses.forEach((response) => {
+      const questionData = response.answers[questionName];
+      if (!questionData || typeof questionData.answer !== "number") return;
+
+      const answer = questionData.answer;
+      let dimensionValue = "Unknown";
+
+      switch (dimension) {
+        case "sbu":
+          dimensionValue = response.respondent.sbu?.name || "Unknown";
+          break;
+        case "gender":
+          dimensionValue = response.respondent.gender || "Unknown";
+          break;
+        case "location":
+          dimensionValue = response.respondent.location?.name || "Unknown";
+          break;
+        case "employment_type":
+          dimensionValue = response.respondent.employment_type?.name || "Unknown";
+          break;
+        case "level":
+          dimensionValue = response.respondent.level?.name || "Unknown";
+          break;
+        case "employee_type":
+          dimensionValue = response.respondent.employee_type?.name || "Unknown";
+          break;
+        case "employee_role":
+          dimensionValue = response.respondent.employee_role?.name || "Unknown";
+          break;
+      }
+
+      if (!dimensionData.has(dimensionValue)) {
+        dimensionData.set(dimensionValue, {
+          dimension: dimensionValue,
+          unsatisfied: 0,
+          neutral: 0,
+          satisfied: 0,
+          total: 0
+        });
+      }
+
+      const group = dimensionData.get(dimensionValue)!;
+      group.total += 1;
+
+      if (answer <= 3) {
+        group.unsatisfied += 1;
+      } else if (answer === 4) {
+        group.neutral += 1;
+      } else {
+        group.satisfied += 1;
+      }
+    });
+
+    return Array.from(dimensionData.values());
+  };
+
+  const data = processResponses();
+  
+  if (data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>No data available</CardTitle>
+        </CardHeader>
+      </Card>
+    );
   }
 
-  // Format the data for the chart
-  let chartData;
-  
   if (isNps) {
-    chartData = data.map((group) => {
-      const npsScore = group.total > 0 
-        ? ((group.promoters - group.detractors) / group.total) * 100 
-        : 0;
-        
-      return {
-        name: group.dimension,
-        Detractors: group.detractors,
-        Passives: group.passives,
-        Promoters: group.promoters,
-        NPS: parseFloat(npsScore.toFixed(1))
-      };
-    }).sort((a, b) => b.NPS - a.NPS);
-  } else {
-    chartData = data.map((group) => {
-      const satScore = group.total > 0 
-        ? ((group.satisfied - group.unsatisfied) / group.total) * 100 
-        : 0;
-        
-      return {
-        name: group.dimension,
-        Unsatisfied: group.unsatisfied,
-        Neutral: group.neutral,
-        Satisfied: group.satisfied,
-        "Satisfaction Score": parseFloat(satScore.toFixed(1))
-      };
-    }).sort((a, b) => b["Satisfaction Score"] - a["Satisfaction Score"]);
+    return (
+      <div className={layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-4'}>
+        {(data as NpsData[]).map((groupData) => (
+          <Card key={groupData.dimension}>
+            <CardHeader>
+              <CardTitle className="text-lg">{groupData.dimension}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <NpsChart data={groupData.ratings} />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="h-96">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{ top: 20, right: 30, left: 70, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" />
-            <YAxis
-              dataKey="name"
-              type="category"
-              width={60}
-              tick={{ fontSize: 12 }}
-            />
-            <Tooltip />
-            <Legend />
-            {isNps ? (
-              <>
-                <Bar dataKey="Detractors" stackId="a" fill="#F44336" />
-                <Bar dataKey="Passives" stackId="a" fill="#FFC107" />
-                <Bar dataKey="Promoters" stackId="a" fill="#4CAF50" />
-              </>
-            ) : (
-              <>
-                <Bar dataKey="Unsatisfied" stackId="a" fill="#F44336" />
-                <Bar dataKey="Neutral" stackId="a" fill="#FFC107" />
-                <Bar dataKey="Satisfied" stackId="a" fill="#4CAF50" />
-              </>
-            )}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      
-      <div className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{ top: 20, right: 30, left: 70, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              type="number" 
-              domain={[-100, 100]} 
-              tickFormatter={(value) => `${value}%`} 
-            />
-            <YAxis
-              dataKey="name"
-              type="category"
-              width={60}
-              tick={{ fontSize: 12 }}
-            />
-            <Tooltip formatter={(value) => [`${value}%`, isNps ? "NPS Score" : "Satisfaction Score"]} />
-            <Bar
-              dataKey={isNps ? "NPS" : "Satisfaction Score"}
-              fill={isNps ? "#673AB7" : "#2196F3"}
-              radius={[0, 4, 4, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>{getDimensionTitle(dimension)}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <HeatMapChart data={data as HeatMapData[]} />
+      </CardContent>
+    </Card>
   );
 }

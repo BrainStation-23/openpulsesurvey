@@ -6,7 +6,7 @@ interface ProcessedAnswer {
   question: string;
   answer: any;
   questionType: string;
-  rateCount?: number;
+  rateCount?: number;  // Added this property
 }
 
 export interface ProcessedResponse {
@@ -56,75 +56,137 @@ interface ProcessedData {
   responses: ProcessedResponse[];
 }
 
-interface SurveyResponse {
-  campaign: {
-    survey: {
-      json_data: {
-        pages: {
-          elements: {
-            name: string;
-            title: string;
-            type: string;
-            rateMax?: number;
-          }[]
-        }[]
-      }
-    }
-  };
-  responses: any[];
-}
-
 export function useResponseProcessing(campaignId: string, instanceId?: string) {
   return useQuery<ProcessedData>({
     queryKey: ["campaign-report", campaignId, instanceId],
     queryFn: async () => {
-      // Use fetch directly to call our RPC function
-      const { data, error } = await supabase
-        .from('survey_responses')
+      // First get the survey details and its questions
+      const { data: campaign } = await supabase
+        .from("survey_campaigns")
         .select(`
-          campaign:campaign_id(
-            survey:survey_id(json_data)
-          ),
-          response_data,
-          id,
-          user_id,
-          submitted_at
+          survey:surveys (
+            id,
+            name,
+            json_data
+          )
         `)
-        .eq('campaign_id', campaignId)
-        .eq('campaign_instance_id', instanceId || null);
-      
-      if (error) throw error;
-      
-      // Process the raw data into the expected format
-      const surveyData = data?.[0]?.campaign?.survey?.json_data || { pages: [] };
-      const responses = data || [];
-      
-      // Extract survey questions
+        .eq("id", campaignId)
+        .single();
+
+      if (!campaign?.survey) {
+        throw new Error("Survey not found");
+      }
+
+      const surveyData = typeof campaign.survey.json_data === 'string' 
+        ? JSON.parse(campaign.survey.json_data)
+        : campaign.survey.json_data;
+
       const surveyQuestions = surveyData.pages?.flatMap(
         (page: any) => page.elements || []
       ) || [];
 
-      if (!responses || responses.length === 0) {
+      // Build the query for responses with extended user metadata
+      let query = supabase
+        .from("survey_responses")
+        .select(`
+          id,
+          response_data,
+          submitted_at,
+          user:profiles!survey_responses_user_id_fkey (
+            first_name,
+            last_name,
+            email,
+            gender,
+            location:locations (
+              id,
+              name
+            ),
+            employment_type:employment_types (
+              id,
+              name
+            ),
+            level:levels (
+              id,
+              name
+            ),
+            employee_type:employee_types (
+              id,
+              name
+            ),
+            employee_role:employee_roles (
+              id,
+              name
+            ),
+            user_sbus:user_sbus (
+              is_primary,
+              sbu:sbus (
+                id,
+                name
+              )
+            )
+          )
+        `);
+
+      // If instanceId is provided, filter by it
+      if (instanceId) {
+        query = query.eq("campaign_instance_id", instanceId);
+      }
+
+      const { data: responses } = await query;
+
+      if (!responses) {
         return {
-          questions: surveyQuestions.map((q: any) => ({
-            name: q.name,
-            title: q.title,
-            type: q.type,
-            rateCount: q.rateCount,
-          })),
+          questions: surveyQuestions,
           responses: [],
         };
       }
 
-      // Process responses (simplified for this fix)
-      const processedResponses: ProcessedResponse[] = [];
-      
+      // Process each response
+      const processedResponses: ProcessedResponse[] = responses.map((response) => {
+        const answers: Record<string, ProcessedAnswer> = {};
+
+        // Map each question to its answer
+        surveyQuestions.forEach((question: any) => {
+          const answer = response.response_data[question.name];
+          answers[question.name] = {
+            question: question.title,
+            answer: answer,
+            questionType: question.type,
+            rateCount: question.rateCount // Add rateCount to the processed answer
+          };
+        });
+
+        // Find primary SBU
+        const primarySbu = response.user.user_sbus?.find(
+          (us: any) => us.is_primary && us.sbu
+        );
+
+        return {
+          id: response.id,
+          respondent: {
+            name: `${response.user.first_name || ""} ${
+              response.user.last_name || ""
+            }`.trim(),
+            email: response.user.email,
+            gender: response.user.gender,
+            location: response.user.location,
+            sbu: primarySbu?.sbu || null,
+            employment_type: response.user.employment_type,
+            level: response.user.level,
+            employee_type: response.user.employee_type,
+            employee_role: response.user.employee_role,
+          },
+          submitted_at: response.submitted_at,
+          answers,
+        };
+      });
+
       return {
         questions: surveyQuestions.map((q: any) => ({
           name: q.name,
           title: q.title,
           type: q.type,
-          rateCount: q.rateMax === 10 ? 10 : q.rateMax || 5,
+          rateCount: q.rateCount,
         })),
         responses: processedResponses,
       };

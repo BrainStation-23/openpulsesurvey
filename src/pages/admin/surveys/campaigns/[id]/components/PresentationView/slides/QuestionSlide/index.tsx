@@ -13,7 +13,6 @@ import { ComparisonLayout } from "../../components/ComparisonLayout";
 import { BooleanComparison } from "../../../ReportsTab/components/comparisons/BooleanComparison";
 import { TextComparison } from "../../../ReportsTab/components/comparisons/TextComparison";
 import { BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
-import { useComparisonData } from "../../../ReportsTab/hooks/useComparisonData";
 
 interface QuestionSlideProps extends SlideProps {
   questionName: string;
@@ -35,14 +34,6 @@ const QuestionSlideComponent = ({
   const processedData = useQuestionData(data, questionName, questionType, slideType);
   const question = data?.questions.find(q => q.name === questionName);
   const isNps = question?.type === 'rating' && question?.rateCount === 10;
-
-  // Get comparison data if we're showing a comparison slide
-  const { data: comparisonData } = useComparisonData({
-    campaignId: campaign.id,
-    instanceId: campaign.instance?.id,
-    questionName,
-    dimension: slideType !== 'main' ? slideType : 'none'
-  });
 
   // Don't render anything if the slide is not active
   if (!isActive) {
@@ -89,16 +80,18 @@ const QuestionSlideComponent = ({
         </div>
       ) : (
         <ComparisonLayout title={getDimensionTitle(slideType)}>
-          {questionType === "boolean" && comparisonData && (
+          {questionType === "boolean" && (
             <BooleanComparison 
-              data={comparisonData}
+              responses={data.responses} 
+              questionName={questionName}
               dimension={slideType}
               layout="grid"
             />
           )}
-          {(questionType === "text" || questionType === "comment") && comparisonData && (
+          {(questionType === "text" || questionType === "comment") && (
             <TextComparison
-              data={comparisonData}
+              responses={data.responses}
+              questionName={questionName}
               dimension={slideType}
               layout="grid"
             />
