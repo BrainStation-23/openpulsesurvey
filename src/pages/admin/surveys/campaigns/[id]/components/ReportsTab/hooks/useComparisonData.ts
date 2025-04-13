@@ -60,23 +60,17 @@ export function useComparisonData(
           return [];
       }
       
-      // Fix 1: Properly type the RPC call with the correct generic parameters
-      const { data, error } = await supabase.rpc<ComparisonDataItem[], { 
-        p_campaign_id: string;
-        p_instance_id: string | null;
-        p_question_name: string;
-      }>(
-        functionName,
-        {
+      // Fix: Use the correct generic types for the RPC call
+      const { data, error } = await supabase
+        .rpc(functionName, {
           p_campaign_id: params.campaignId,
           p_instance_id: params.instanceId || null,
           p_question_name: params.questionName
-        }
-      );
+        });
 
       if (error) throw error;
       
-      // Fix 2: Ensure data is an array before trying to map it
+      // Ensure data is an array before trying to map it
       if (!data || !Array.isArray(data)) return [];
       
       // Transform the raw data to match our expected interface
