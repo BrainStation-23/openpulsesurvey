@@ -93,9 +93,10 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
       // Get all supervisors with at least 4 direct reports
       const { data: supervisorsWithManyReports } = await supabase
         .from("user_supervisors")
-        .select('supervisor_id, count(*)')
-        .group('supervisor_id')
-        .having('count(*) >= 4');
+        .select('supervisor_id')
+        .count('user_id', { alias: 'count' })
+        .groupBy('supervisor_id')
+        .gte('count', 4);
 
       const supervisorIds = supervisorsWithManyReports?.map(
         (item) => item.supervisor_id
