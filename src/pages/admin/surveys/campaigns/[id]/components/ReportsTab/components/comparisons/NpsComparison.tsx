@@ -82,7 +82,7 @@ export function NpsComparison({ responses, questionName, dimension, isNps }: Nps
           
           if (rpcFunction) {
             const { data: dimensionData, error: dimensionError } = await supabase
-              .rpc(rpcFunction, {
+              .rpc(rpcFunction as any, {
                 p_campaign_id: campaignId,
                 p_instance_id: null, // If you want to filter by instance, replace with instance ID
                 p_question_name: questionName
@@ -92,12 +92,12 @@ export function NpsComparison({ responses, questionName, dimension, isNps }: Nps
             
             // Transform data for NPS or regular satisfaction
             if (isNps) {
-              data = dimensionData.map((item: any) => ({
+              data = Array.isArray(dimensionData) ? dimensionData.map((item: any) => ({
                 dimension: item.dimension,
                 detractors: item.detractors,
                 passives: item.passives,
                 promoters: item.promoters
-              }));
+              })) : [];
             } else {
               data = dimensionData;
             }
