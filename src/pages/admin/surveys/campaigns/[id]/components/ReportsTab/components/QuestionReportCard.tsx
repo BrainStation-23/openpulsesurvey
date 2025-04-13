@@ -99,7 +99,7 @@ export function QuestionReportCard({
       case "text":
       case "comment": {
         // Use the processed word cloud data from the hook
-        return textAnalysisData || [];
+        return Array.isArray(textAnalysisData) ? textAnalysisData : [];
       }
 
       default:
@@ -155,7 +155,7 @@ export function QuestionReportCard({
           </>
         )}
 
-        {comparisonDimension !== "none" && (
+        {comparisonDimension !== "none" && Array.isArray(comparisonData) && (
           <>
             {question.type === "boolean" && (
               <BooleanComparison

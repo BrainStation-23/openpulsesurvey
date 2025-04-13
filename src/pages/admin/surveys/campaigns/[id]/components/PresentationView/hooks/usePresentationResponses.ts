@@ -8,17 +8,50 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
   const { data: rawData, ...rest } = useQuery({
     queryKey: ["presentation-responses", campaignId, instanceId],
     queryFn: async () => {
-      // Use the RPC function instead of direct queries
-      const { data, error } = await supabase.rpc(
-        'get_survey_responses',
-        { 
-          p_campaign_id: campaignId,
-          p_instance_id: instanceId || null
-        }
-      );
+      // Use direct database calls instead of RPC
+      const { data: surveyData, error: surveyError } = await supabase
+        .from('survey_campaigns')
+        .select(`
+          id, 
+          survey:survey_id(id, name, json_data)
+        `)
+        .eq('id', campaignId)
+        .single();
       
-      if (error) throw error;
-      return data;
+      if (surveyError) throw surveyError;
+      
+      const { data: responses, error: responsesError } = await supabase
+        .from('survey_responses')
+        .select(`
+          id,
+          response_data,
+          submitted_at,
+          user:user_id(
+            id,
+            email,
+            first_name,
+            last_name,
+            gender,
+            location:location_id(id, name),
+            employment_type:employment_type_id(id, name),
+            level:level_id(id, name),
+            employee_type:employee_type_id(id, name),
+            employee_role:employee_role_id(id, name),
+            user_sbus(
+              is_primary,
+              sbu:sbu_id(id, name)
+            )
+          )
+        `)
+        .eq('campaign_id', campaignId)
+        .eq(instanceId ? 'campaign_instance_id' : 'id', instanceId || '');
+      
+      if (responsesError) throw responsesError;
+      
+      return {
+        campaign: surveyData,
+        responses: responses
+      };
     },
   });
 
@@ -28,7 +61,7 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
     const { campaign, responses } = rawData;
     
     // Safely access survey questions with fallback
-    const surveyData = campaign.survey.json_data;
+    const surveyData = campaign?.survey?.json_data;
     const surveyQuestions = (surveyData?.pages || []).flatMap(
       (page: any) => page.elements || []
     ).map((q: any) => ({
@@ -61,7 +94,7 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
       });
 
       // Find primary SBU with null checks
-      const userData = response.user_data;
+      const userData = response.user;
       const primarySbu = userData?.user_sbus?.find(
         (us: any) => us.is_primary && us.sbu
       );

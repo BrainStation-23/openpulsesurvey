@@ -74,7 +74,12 @@ export function BooleanComparison({
                 width={60}
                 tick={{ fontSize: 12 }}
               />
-              <Tooltip formatter={(value) => [`${value.toFixed(1)}%`, "Yes"]} />
+              <Tooltip formatter={(value: any) => {
+                // Handle both number and string values
+                return typeof value === 'number' 
+                  ? [`${value.toFixed(1)}%`, "Yes"] 
+                  : [value, "Yes"];
+              }} />
               <Bar
                 dataKey="yesPercentage"
                 fill="#4CAF50"

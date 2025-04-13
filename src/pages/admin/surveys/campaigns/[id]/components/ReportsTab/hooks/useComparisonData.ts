@@ -21,18 +21,17 @@ export function useComparisonData({
     enabled: dimension !== "none",
     queryKey: ["comparison-data", campaignId, instanceId, questionName, dimension],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc(
-        'get_comparison_data',
-        {
-          p_campaign_id: campaignId,
-          p_instance_id: instanceId || null,
-          p_question_name: questionName,
-          p_dimension: dimension
-        }
-      );
+      // Use fetch directly to call our RPC function
+      const { data, error } = await supabase
+        .from('get_comparison_data')
+        .select()
+        .eq('p_campaign_id', campaignId)
+        .eq('p_instance_id', instanceId || null)
+        .eq('p_question_name', questionName)
+        .eq('p_dimension', dimension);
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
 }

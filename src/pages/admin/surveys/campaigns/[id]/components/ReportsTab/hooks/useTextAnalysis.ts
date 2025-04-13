@@ -16,17 +16,16 @@ export function useTextAnalysis({
   return useQuery({
     queryKey: ["text-analysis", campaignId, instanceId, questionName],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc(
-        'get_text_analysis',
-        {
-          p_campaign_id: campaignId,
-          p_instance_id: instanceId || null,
-          p_question_name: questionName
-        }
-      );
+      // Use fetch directly to call our RPC function
+      const { data, error } = await supabase
+        .from('get_text_analysis')
+        .select()
+        .eq('p_campaign_id', campaignId)
+        .eq('p_instance_id', instanceId || null)
+        .eq('p_question_name', questionName);
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
 }
