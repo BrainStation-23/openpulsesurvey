@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ComparisonDataItem } from '../../types/rpc';
 import { useComparisonData } from '../../hooks/useComparisonData';
@@ -12,6 +13,9 @@ interface BooleanComparisonProps {
   dimension?: string;
   // Optional layout customization
   layout?: 'default' | 'grid';
+  // Added questionType and isNps to match other comparison components
+  questionType?: string;
+  isNps?: boolean;
 }
 
 export const BooleanComparison: React.FC<BooleanComparisonProps> = ({ 
@@ -19,7 +23,9 @@ export const BooleanComparison: React.FC<BooleanComparisonProps> = ({
   responses,
   questionName,
   dimension,
-  layout = 'default'
+  layout = 'default',
+  questionType = 'boolean', // Default to 'boolean' type
+  isNps = false
 }) => {
   // If direct data is provided, use it
   // Otherwise, fetch data using the comparison hook
@@ -28,7 +34,9 @@ export const BooleanComparison: React.FC<BooleanComparisonProps> = ({
       ? { 
           campaignId: responses[0]?.id.split('-')[0] || '', 
           questionName, 
-          dimension: dimension as any 
+          dimension: dimension as any,
+          questionType, // Pass questionType to the hook
+          isNps // Pass isNps flag to the hook
         } 
       : null
   );

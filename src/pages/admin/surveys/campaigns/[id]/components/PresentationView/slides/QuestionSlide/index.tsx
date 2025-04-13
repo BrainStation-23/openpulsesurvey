@@ -87,6 +87,8 @@ const QuestionSlideComponent = ({
               questionName={questionName}
               dimension={slideType}
               layout="grid"
+              questionType={questionType}
+              isNps={false}
             />
           )}
           {(questionType === "text" || questionType === "comment") && data?.responses && (
@@ -95,6 +97,7 @@ const QuestionSlideComponent = ({
               questionName={questionName}
               dimension={slideType}
               layout="grid"
+              questionType={questionType}
             />
           )}
           {questionType === "rating" && isNps && (
@@ -104,6 +107,7 @@ const QuestionSlideComponent = ({
               dimension={slideType}
               isNps={true}
               layout="grid"
+              questionType={questionType}
             />
           )}
           {questionType === "rating" && !isNps && (

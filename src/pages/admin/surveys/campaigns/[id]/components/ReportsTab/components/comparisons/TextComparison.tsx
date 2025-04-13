@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ComparisonDataItem } from '../../types/rpc';
 import { useComparisonData } from '../../hooks/useComparisonData';
@@ -12,14 +13,17 @@ interface TextComparisonProps {
   dimension?: string;
   // Optional layout customization
   layout?: 'default' | 'grid';
+  // Added questionType for consistency with other comparison components
+  questionType?: string;
 }
 
-export const TextComparison: React.FC<TextComparisonProps> = ({
+export const TextComparison: React.FC<TextComparisonProps> = ({ 
   data: providedData,
   responses,
   questionName,
   dimension,
-  layout = 'default'
+  layout = 'default',
+  questionType = 'text'
 }) => {
   // If direct data is provided, use it
   // Otherwise, fetch data using the comparison hook
@@ -28,7 +32,8 @@ export const TextComparison: React.FC<TextComparisonProps> = ({
       ? { 
           campaignId: responses[0]?.id.split('-')[0] || '', 
           questionName, 
-          dimension: dimension as any 
+          dimension: dimension as any,
+          questionType
         } 
       : null
   );
@@ -46,7 +51,7 @@ export const TextComparison: React.FC<TextComparisonProps> = ({
           {dimension.text_samples && dimension.text_samples.length > 0 && (
             <div>
               <h4 className="text-md font-semibold mt-2">Text Samples:</h4>
-              <ul className="space-y-2">
+              <ul>
                 {dimension.text_samples.map((sample, index) => (
                   <li key={index} className="list-disc ml-5">
                     {sample}
