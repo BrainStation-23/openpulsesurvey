@@ -830,6 +830,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          rank: number | null
           status: Database["public"]["Enums"]["config_status"] | null
           updated_at: string
         }
@@ -838,6 +839,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          rank?: number | null
           status?: Database["public"]["Enums"]["config_status"] | null
           updated_at?: string
         }
@@ -846,6 +848,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          rank?: number | null
           status?: Database["public"]["Enums"]["config_status"] | null
           updated_at?: string
         }
