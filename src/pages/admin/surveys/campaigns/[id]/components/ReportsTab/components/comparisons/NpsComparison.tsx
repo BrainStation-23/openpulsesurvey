@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
@@ -15,6 +14,8 @@ interface NpsComparisonProps {
   dimension: ComparisonDimension;
   isNps: boolean;
   layout?: 'grid' | 'vertical';
+  campaignId?: string;
+  instanceId?: string;
 }
 
 interface HeatMapData {
@@ -35,7 +36,9 @@ export function NpsComparison({
   questionName,
   dimension,
   isNps,
-  layout = 'vertical'
+  layout = 'vertical',
+  campaignId,
+  instanceId
 }: NpsComparisonProps) {
   const [data, setData] = useState<HeatMapData[] | NpsData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,32 +58,13 @@ export function NpsComparison({
     return titles[dim] || dim;
   };
 
-  // Extract campaign ID from the first response
-  const getCampaignId = () => {
-    if (responses && responses.length > 0) {
-      return responses[0].campaign_id;
-    }
-    return null;
-  };
-
-  // Extract instance ID from the first response
-  const getInstanceId = () => {
-    if (responses && responses.length > 0) {
-      return responses[0].campaign_instance_id;
-    }
-    return null;
-  };
-
   const fetchSupervisorData = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      const campaignId = getCampaignId();
-      const instanceId = getInstanceId();
-      
       if (!campaignId || !instanceId) {
-        throw new Error("Campaign or instance ID not found");
+        throw new Error("Campaign or instance ID not provided");
       }
       
       const { data: supervisorData, error: rpcError } = await supabase.rpc(
