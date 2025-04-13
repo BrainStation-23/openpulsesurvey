@@ -49,6 +49,7 @@ const QuestionSlideComponent = ({
       level: "Response Distribution by Level",
       employee_type: "Response Distribution by Employee Type",
       employee_role: "Response Distribution by Employee Role",
+      supervisor: "Response Distribution by Primary Supervisor",
       none: "No Comparison"
     };
     return titles[dim] || "";

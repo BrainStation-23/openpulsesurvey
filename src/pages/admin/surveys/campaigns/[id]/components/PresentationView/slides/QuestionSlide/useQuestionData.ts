@@ -139,6 +139,13 @@ function processComparisonData(
       case "employee_role":
         dimensionValue = response.respondent.employee_role?.name || "Unknown";
         break;
+      case "supervisor":
+        dimensionValue = response.respondent.supervisor?.name || "Unknown";
+        // Skip if supervisor doesn't have enough reports
+        if (response.respondent.supervisor && response.respondent.supervisor.reportCount < 4) {
+          return;
+        }
+        break;
     }
 
     if (!dimensionData.has(dimensionValue)) {
