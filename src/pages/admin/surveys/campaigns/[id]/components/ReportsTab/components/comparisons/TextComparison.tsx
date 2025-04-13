@@ -2,7 +2,6 @@
 import { Card } from "@/components/ui/card";
 import { ProcessedResponse } from "../../hooks/useResponseProcessing";
 import { ComparisonDimension } from "../../types/comparison";
-import { WordCloud } from "../../charts/WordCloud";
 
 interface TextComparisonProps {
   responses: ProcessedResponse[];
@@ -18,12 +17,15 @@ export function TextComparison({
   layout = 'vertical'
 }: TextComparisonProps) {
   const processData = () => {
-    const groupedData: Record<string, Record<string, number>> = {};
+    const groupedData: Record<string, string[]> = {};
 
     responses.forEach((response) => {
       const answer = response.answers[questionName]?.answer;
+      if (typeof answer !== 'string' || answer.trim() === '') return;
+      
       let groupKey = "Unknown";
 
+      // Get the group key based on the dimension
       switch (dimension) {
         case "sbu":
           groupKey = response.respondent.sbu?.name || "No SBU";
@@ -46,47 +48,29 @@ export function TextComparison({
         case "employee_role":
           groupKey = response.respondent.employee_role?.name || "Not Specified";
           break;
-        default:
-          groupKey = "All Responses";
       }
 
       if (!groupedData[groupKey]) {
-        groupedData[groupKey] = {};
+        groupedData[groupKey] = [];
       }
 
-      if (typeof answer === "string") {
-        const words = answer
-          .toLowerCase()
-          .replace(/[^\w\s]/g, "")
-          .split(/\s+/)
-          .filter((word) => word.length > 2);
-
-        words.forEach((word) => {
-          groupedData[groupKey][word] = (groupedData[groupKey][word] || 0) + 1;
-        });
-      }
+      groupedData[groupKey].push(answer);
     });
 
-    return Object.entries(groupedData)
-      .filter(([_, wordFreq]) => Object.keys(wordFreq).length > 0)
-      .map(([group, wordFreq]) => ({
-        group,
-        words: Object.entries(wordFreq)
-          .map(([text, value]) => ({ text, value }))
-          .sort((a, b) => b.value - a.value)
-          .slice(0, 30),
-      }));
+    return Object.entries(groupedData).map(([name, answers]) => ({
+      name,
+      answers,
+      count: answers.length
+    }));
   };
 
-  const groupedWords = processData();
+  const data = processData();
 
-  if (groupedWords.length === 0) {
+  if (data.length === 0) {
     return (
-      <Card className="p-6">
-        <div className="text-center text-muted-foreground">
-          No text responses available for comparison
-        </div>
-      </Card>
+      <div className="text-center text-muted-foreground p-4">
+        No comparison data available
+      </div>
     );
   }
 
@@ -96,18 +80,26 @@ export function TextComparison({
         ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' 
         : 'space-y-4'
     }>
-      {groupedWords.map(({ group, words }) => (
-        <Card key={group} className="p-6">
-          <h3 className="mb-4 text-lg font-semibold">{group}</h3>
-          {words.length > 0 ? (
-            <div className="h-[280px]">
-              <WordCloud words={words} />
-            </div>
-          ) : (
-            <div className="text-center text-muted-foreground">
-              No responses in this group
-            </div>
-          )}
+      {data.map((groupData) => (
+        <Card key={groupData.name} className="p-4">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-lg font-semibold">{groupData.name}</h3>
+            <span className="text-sm text-muted-foreground">
+              {groupData.count} responses
+            </span>
+          </div>
+          <div className="max-h-60 overflow-y-auto space-y-2">
+            {groupData.answers.slice(0, 5).map((answer, index) => (
+              <div key={index} className="p-2 bg-muted rounded-md text-sm">
+                {answer}
+              </div>
+            ))}
+            {groupData.answers.length > 5 && (
+              <div className="text-sm text-muted-foreground text-center">
+                +{groupData.answers.length - 5} more responses
+              </div>
+            )}
+          </div>
         </Card>
       ))}
     </div>

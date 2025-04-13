@@ -95,6 +95,16 @@ export function BooleanComparison({
               height={150}
             />
           </div>
+          <div className="mt-2 text-sm text-muted-foreground grid grid-cols-2 gap-2">
+            <div className="flex items-center">
+              <span className="w-3 h-3 mr-1 rounded-full bg-[#22c55e]"></span>
+              <span>Yes: {groupData.Yes} ({(groupData.Yes / (groupData.Yes + groupData.No) * 100).toFixed(0)}%)</span>
+            </div>
+            <div className="flex items-center">
+              <span className="w-3 h-3 mr-1 rounded-full bg-[#ef4444]"></span>
+              <span>No: {groupData.No} ({(groupData.No / (groupData.Yes + groupData.No) * 100).toFixed(0)}%)</span>
+            </div>
+          </div>
         </Card>
       ))}
     </div>

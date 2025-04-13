@@ -1,19 +1,20 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { SurveyResponsesResult } from "../types/rpc";
 
 interface ProcessedAnswer {
   question: string;
   answer: any;
   questionType: string;
-  rateCount?: number;  // Added this property
+  rateCount?: number;
 }
 
 export interface ProcessedResponse {
   id: string;
   respondent: {
     name: string;
-    email: string;
+    email: string | null;
     gender: string | null;
     location: {
       id: string;
@@ -60,79 +61,35 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
   return useQuery<ProcessedData>({
     queryKey: ["campaign-report", campaignId, instanceId],
     queryFn: async () => {
-      // First get the survey details and its questions
-      const { data: campaign } = await supabase
-        .from("survey_campaigns")
-        .select(`
-          survey:surveys (
-            id,
-            name,
-            json_data
-          )
-        `)
-        .eq("id", campaignId)
-        .single();
+      const { data, error } = await supabase
+        .rpc('get_survey_responses', {
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId || null
+        });
 
+      if (error) throw error;
+      
+      const result = data as SurveyResponsesResult;
+      const { campaign, responses } = result;
+      
       if (!campaign?.survey) {
         throw new Error("Survey not found");
       }
 
-      const surveyData = typeof campaign.survey.json_data === 'string' 
+      // Parse survey data if needed
+      const surveyData = typeof campaign.survey.json_data === 'string'
         ? JSON.parse(campaign.survey.json_data)
         : campaign.survey.json_data;
 
-      const surveyQuestions = surveyData.pages?.flatMap(
+      // Extract questions from survey data
+      const surveyQuestions = (surveyData.pages || []).flatMap(
         (page: any) => page.elements || []
-      ) || [];
-
-      // Build the query for responses with extended user metadata
-      let query = supabase
-        .from("survey_responses")
-        .select(`
-          id,
-          response_data,
-          submitted_at,
-          user:profiles!survey_responses_user_id_fkey (
-            first_name,
-            last_name,
-            email,
-            gender,
-            location:locations (
-              id,
-              name
-            ),
-            employment_type:employment_types (
-              id,
-              name
-            ),
-            level:levels (
-              id,
-              name
-            ),
-            employee_type:employee_types (
-              id,
-              name
-            ),
-            employee_role:employee_roles (
-              id,
-              name
-            ),
-            user_sbus:user_sbus (
-              is_primary,
-              sbu:sbus (
-                id,
-                name
-              )
-            )
-          )
-        `);
-
-      // If instanceId is provided, filter by it
-      if (instanceId) {
-        query = query.eq("campaign_instance_id", instanceId);
-      }
-
-      const { data: responses } = await query;
+      ).map((q: any) => ({
+        name: q.name,
+        title: q.title,
+        type: q.type,
+        rateCount: q.rateMax === 10 ? 10 : q.rateMax || 5,
+      }));
 
       if (!responses) {
         return {
@@ -157,24 +114,24 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
         });
 
         // Find primary SBU
-        const primarySbu = response.user.user_sbus?.find(
+        const primarySbu = response.user_data?.user_sbus?.find(
           (us: any) => us.is_primary && us.sbu
         );
 
         return {
           id: response.id,
           respondent: {
-            name: `${response.user.first_name || ""} ${
-              response.user.last_name || ""
+            name: `${response.user_data?.first_name || ""} ${
+              response.user_data?.last_name || ""
             }`.trim(),
-            email: response.user.email,
-            gender: response.user.gender,
-            location: response.user.location,
+            email: response.user_data?.email,
+            gender: response.user_data?.gender,
+            location: response.user_data?.location,
             sbu: primarySbu?.sbu || null,
-            employment_type: response.user.employment_type,
-            level: response.user.level,
-            employee_type: response.user.employee_type,
-            employee_role: response.user.employee_role,
+            employment_type: response.user_data?.employment_type,
+            level: response.user_data?.level,
+            employee_type: response.user_data?.employee_type,
+            employee_role: response.user_data?.employee_role,
           },
           submitted_at: response.submitted_at,
           answers,
@@ -182,12 +139,7 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
       });
 
       return {
-        questions: surveyQuestions.map((q: any) => ({
-          name: q.name,
-          title: q.title,
-          type: q.type,
-          rateCount: q.rateCount,
-        })),
+        questions: surveyQuestions,
         responses: processedResponses,
       };
     },
