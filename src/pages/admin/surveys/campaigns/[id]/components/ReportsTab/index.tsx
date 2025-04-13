@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResponseProcessing } from "./hooks/useResponseProcessing";
 import { BooleanCharts } from "./charts/BooleanCharts";
@@ -10,6 +11,7 @@ import { TextComparison } from "./components/comparisons/TextComparison";
 import { useState } from "react";
 import { ComparisonDimension } from "./types/comparison";
 import { SatisfactionDonutChart } from "./charts/SatisfactionDonutChart";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ReportsTabProps {
   campaignId: string;
@@ -30,7 +32,7 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
     return <div>No data available</div>;
   }
 
-  const handleComparisonChange = (questionName: string, dimension: ComparisonDimension) => {
+  const handleComparisonChange = async (questionName: string, dimension: ComparisonDimension) => {
     setComparisonDimensions((prev) => ({
       ...prev,
       [questionName]: dimension,
