@@ -71,8 +71,11 @@ export function useComparisonData(
 
       if (error) throw error;
       
+      // Check if data exists before mapping
+      if (!data) return [];
+      
       // Transform the raw data to match our expected interface
-      return (data || []).map(item => ({
+      return data.map(item => ({
         dimension: item.dimension,
         yes_count: item.yes_count,
         no_count: item.no_count,
