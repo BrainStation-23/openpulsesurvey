@@ -23,11 +23,13 @@ export function ConfigPage<T extends ConfigItem>({
   onUpdate,
   onDelete,
   onToggleStatus,
+  onReorder,
+  draggable = false,
 }: ConfigPageProps<T>) {
   const [selectedItem, setSelectedItem] = useState<T | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const handleSubmit = (values: { name: string }) => {
+  const handleSubmit = (values: { name: string; color_code?: string }) => {
     if (selectedItem) {
       onUpdate(selectedItem.id, values);
     } else {
@@ -35,6 +37,12 @@ export function ConfigPage<T extends ConfigItem>({
     }
     setIsDialogOpen(false);
     setSelectedItem(null);
+  };
+
+  const handleReorder = (reorderedItems: T[]) => {
+    if (onReorder) {
+      onReorder(reorderedItems);
+    }
   };
 
   return (
@@ -74,6 +82,8 @@ export function ConfigPage<T extends ConfigItem>({
         isLoading={isLoading}
         sortOrder={sortOrder}
         onSort={onSort}
+        onReorder={handleReorder}
+        draggable={draggable}
       />
     </div>
   );

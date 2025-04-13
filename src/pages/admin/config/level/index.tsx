@@ -15,7 +15,7 @@ export default function LevelConfig() {
       const { data, error } = await supabase
         .from('levels')
         .select('*')
-        .order('name', { ascending: sortOrder === 'asc' });
+        .order('rank', { ascending: sortOrder === 'asc' });
       
       if (error) throw error;
       return data;
@@ -24,9 +24,23 @@ export default function LevelConfig() {
 
   const createMutation = useMutation({
     mutationFn: async (values: { name: string; color_code?: string }) => {
+      // Get the highest rank value to place new item at the end
+      const { data: maxRankResult } = await supabase
+        .from('levels')
+        .select('rank')
+        .order('rank', { ascending: false })
+        .limit(1);
+      
+      const maxRank = maxRankResult && maxRankResult.length > 0 ? maxRankResult[0].rank || 0 : 0;
+      const newRank = maxRank + 1;
+      
       const { data, error } = await supabase
         .from('levels')
-        .insert([{ name: values.name, color_code: values.color_code }])
+        .insert([{ 
+          name: values.name, 
+          color_code: values.color_code,
+          rank: newRank 
+        }])
         .select()
         .single();
       
@@ -102,6 +116,35 @@ export default function LevelConfig() {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (reorderedItems: any[]) => {
+      // Update each item with its new rank
+      const updates = reorderedItems.map((item, index) => ({
+        id: item.id,
+        rank: index + 1
+      }));
+      
+      // Execute each update in a transaction
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('levels')
+          .update({ rank: update.rank })
+          .eq('id', update.id);
+        
+        if (error) throw error;
+      }
+      
+      return updates;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['levels'] });
+      toast.success("Levels reordered successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to reorder levels");
+    },
+  });
+
   const handleSort = () => {
     setSortOrder(current => current === 'asc' ? 'desc' : 'asc');
   };
@@ -117,6 +160,8 @@ export default function LevelConfig() {
       onUpdate={(id, values) => updateMutation.mutate({ id, ...values })}
       onDelete={deleteMutation.mutate}
       onToggleStatus={(id, newStatus) => toggleStatusMutation.mutate({ id, newStatus })}
+      onReorder={reorderMutation.mutate}
+      draggable={true}
     />
   );
 }
