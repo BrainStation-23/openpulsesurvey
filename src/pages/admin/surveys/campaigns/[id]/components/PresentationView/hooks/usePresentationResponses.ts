@@ -35,18 +35,6 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
         surveyData = { pages: [] };
       }
 
-      // Get all supervisors with at least 4 direct reports
-      const { data: supervisorsWithManyReports } = await supabase
-        .from("user_supervisors")
-        .select('supervisor_id')
-        .select('count(*)', { count: 'exact' })
-        .groupBy('supervisor_id')
-        .gte('count', 4);
-
-      const supervisorIds = supervisorsWithManyReports?.map(
-        (item) => item.supervisor_id
-      ) || [];
-
       // Build the query for responses with extended user metadata
       let query = supabase
         .from("survey_responses")
@@ -85,14 +73,6 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
                 id,
                 name
               )
-            ),
-            supervisor:user_supervisors (
-              is_primary,
-              supervisor_profile:profiles!user_supervisors_supervisor_id_fkey (
-                id,
-                first_name,
-                last_name
-              )
             )
           )
         `);
@@ -103,14 +83,14 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
       }
 
       const { data: responses } = await query;
-      return { responses, surveyData, supervisorIds };
+      return { responses, surveyData };
     },
   });
 
   const processedData = useMemo(() => {
     if (!rawData) return null;
     
-    const { responses, surveyData, supervisorIds } = rawData;
+    const { responses, surveyData } = rawData;
     
     // Safely access survey questions with fallback
     const surveyQuestions = (surveyData?.pages || []).flatMap(
@@ -149,27 +129,6 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
         (us: any) => us.is_primary && us.sbu
       );
 
-      // Find primary supervisor
-      const primarySupervisor = response.user?.supervisor?.find(
-        (s: any) => s.is_primary && s.supervisor_profile
-      );
-
-      let supervisor = null;
-      if (primarySupervisor && supervisorIds.includes(primarySupervisor.supervisor_profile.id)) {
-        // Find report count for this supervisor
-        const supervisorData = supervisorIds.find(
-          (s) => s === primarySupervisor.supervisor_profile.id
-        );
-        
-        supervisor = {
-          id: primarySupervisor.supervisor_profile.id,
-          name: `${primarySupervisor.supervisor_profile.first_name || ""} ${
-            primarySupervisor.supervisor_profile.last_name || ""
-          }`.trim(),
-          reportCount: supervisorData?.count || 0
-        };
-      }
-
       return {
         id: response.id,
         respondent: {
@@ -184,7 +143,6 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
           level: response.user?.level,
           employee_type: response.user?.employee_type,
           employee_role: response.user?.employee_role,
-          supervisor
         },
         submitted_at: response.submitted_at,
         answers,

@@ -39,11 +39,6 @@ export interface ProcessedResponse {
       id: string;
       name: string;
     } | null;
-    supervisor: {
-      id: string;
-      name: string;
-      reportCount: number;
-    } | null;
   };
   submitted_at: string;
   answers: Record<string, ProcessedAnswer>;
@@ -90,18 +85,6 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
         (page: any) => page.elements || []
       ) || [];
 
-      // Get all supervisors with at least 4 direct reports
-      const { data: supervisorsWithManyReports } = await supabase
-        .from("user_supervisors")
-        .select('supervisor_id')
-        .count('user_id', { alias: 'count' })
-        .groupBy('supervisor_id')
-        .gte('count', 4);
-
-      const supervisorIds = supervisorsWithManyReports?.map(
-        (item) => item.supervisor_id
-      ) || [];
-
       // Build the query for responses with extended user metadata
       let query = supabase
         .from("survey_responses")
@@ -140,14 +123,6 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
                 id,
                 name
               )
-            ),
-            supervisor:user_supervisors!user_supervisors_user_id_fkey (
-              is_primary,
-              supervisor_profile:profiles!user_supervisors_supervisor_id_fkey (
-                id,
-                first_name,
-                last_name
-              )
             )
           )
         `);
@@ -177,7 +152,7 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             question: question.title,
             answer: answer,
             questionType: question.type,
-            rateCount: question.rateCount
+            rateCount: question.rateCount // Add rateCount to the processed answer
           };
         });
 
@@ -185,27 +160,6 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
         const primarySbu = response.user.user_sbus?.find(
           (us: any) => us.is_primary && us.sbu
         );
-
-        // Find primary supervisor
-        const primarySupervisor = response.user.supervisor?.find(
-          (s: any) => s.is_primary && s.supervisor_profile
-        );
-
-        let supervisor = null;
-        if (primarySupervisor && supervisorIds.includes(primarySupervisor.supervisor_profile.id)) {
-          // Find report count for this supervisor
-          const supervisorData = supervisorsWithManyReports?.find(
-            (s) => s.supervisor_id === primarySupervisor.supervisor_profile.id
-          );
-          
-          supervisor = {
-            id: primarySupervisor.supervisor_profile.id,
-            name: `${primarySupervisor.supervisor_profile.first_name || ""} ${
-              primarySupervisor.supervisor_profile.last_name || ""
-            }`.trim(),
-            reportCount: supervisorData?.count || 0
-          };
-        }
 
         return {
           id: response.id,
@@ -221,7 +175,6 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             level: response.user.level,
             employee_type: response.user.employee_type,
             employee_role: response.user.employee_role,
-            supervisor
           },
           submitted_at: response.submitted_at,
           answers,
