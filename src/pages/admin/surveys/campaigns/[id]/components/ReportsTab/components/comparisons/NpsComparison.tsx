@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
 import { NpsChart } from "../../charts/NpsChart";
@@ -11,6 +10,7 @@ interface NpsComparisonProps {
   dimension: ComparisonDimension;
   isNps: boolean;
   layout?: 'grid' | 'vertical';
+  questionType?: string;
 }
 
 interface HeatMapData {
@@ -31,7 +31,8 @@ export function NpsComparison({
   questionName,
   dimension,
   isNps,
-  layout = 'vertical'
+  layout = 'vertical',
+  questionType = 'rating'
 }: NpsComparisonProps) {
   const getDimensionTitle = (dim: string) => {
     const titles: Record<string, string> = {
