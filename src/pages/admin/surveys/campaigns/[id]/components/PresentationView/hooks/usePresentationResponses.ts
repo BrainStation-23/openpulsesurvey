@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProcessedData, ProcessedResponse, Question } from "../types/responses";
-import { SurveyResponsesResult } from "../../../ReportsTab/types/rpc";
+// Import the SurveyResponsesResult type from our new location
+import { SurveyResponsesResult } from "../../ReportsTab/types/rpc";
 
 export function usePresentationResponses(campaignId: string, instanceId?: string) {
   const { data: rawData, ...rest } = useQuery({
@@ -16,7 +17,7 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
         });
 
       if (error) throw error;
-      return data as SurveyResponsesResult;
+      return (data as unknown) as SurveyResponsesResult;
     },
   });
 

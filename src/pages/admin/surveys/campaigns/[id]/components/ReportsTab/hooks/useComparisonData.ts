@@ -4,19 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { ComparisonDimension } from "../types/comparison";
 import { ComparisonDataItem } from "../types/rpc";
 
-interface ComparisonData {
-  dimension: string;
-  yes_count: number;
-  no_count: number;
-  avg_rating: number;
-  detractors: number;
-  passives: number;
-  promoters: number;
-  text_response_count: number;
-  total: number;
-  text_samples: string[];
-}
-
 export function useComparisonData(
   campaignId: string,
   instanceId: string | undefined,
@@ -41,7 +28,9 @@ export function useComparisonData(
       );
 
       if (error) throw error;
-      return data as ComparisonDataItem[];
+      
+      // Cast the data to the correct type using type assertion
+      return (data as unknown) as ComparisonDataItem[];
     },
     enabled: dimension !== 'none',
   });

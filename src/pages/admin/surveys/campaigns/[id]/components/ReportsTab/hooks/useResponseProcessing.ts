@@ -69,7 +69,8 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
 
       if (error) throw error;
       
-      const result = data as SurveyResponsesResult;
+      // Cast data to the correct type
+      const result = (data as unknown) as SurveyResponsesResult;
       const { campaign, responses } = result;
       
       if (!campaign?.survey) {
