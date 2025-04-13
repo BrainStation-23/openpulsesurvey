@@ -9,6 +9,8 @@ type ComparisonParams = {
   instanceId?: string; 
   questionName: string;
   dimension: ComparisonDimension;
+  questionType?: string;
+  isNps?: boolean;
 }
 
 // Define allowed RPC function names for type safety
@@ -25,7 +27,15 @@ export function useComparisonData(
   params: ComparisonParams | null
 ) {
   return useQuery<ComparisonDataItem[]>({
-    queryKey: params ? ["comparison", params.campaignId, params.instanceId, params.questionName, params.dimension] : [],
+    queryKey: params ? [
+      "comparison", 
+      params.campaignId, 
+      params.instanceId, 
+      params.questionName, 
+      params.dimension,
+      params.questionType,
+      params.isNps
+    ] : [],
     queryFn: async () => {
       if (!params || params.dimension === 'none') {
         return [];
@@ -60,13 +70,17 @@ export function useComparisonData(
           return [];
       }
       
-      // Fix: Use the correct generic types for the RPC call
+      // Create RPC parameters including question type information
+      const rpcParams = {
+        p_campaign_id: params.campaignId,
+        p_instance_id: params.instanceId || null,
+        p_question_name: params.questionName,
+        p_question_type: params.questionType || 'unknown',
+        p_is_nps: params.isNps || false
+      };
+      
       const { data, error } = await supabase
-        .rpc(functionName, {
-          p_campaign_id: params.campaignId,
-          p_instance_id: params.instanceId || null,
-          p_question_name: params.questionName
-        });
+        .rpc(functionName, rpcParams);
 
       if (error) throw error;
       
@@ -76,15 +90,15 @@ export function useComparisonData(
       // Transform the raw data to match our expected interface
       return data.map(item => ({
         dimension: item.dimension,
-        yes_count: item.yes_count,
-        no_count: item.no_count,
+        yes_count: item.yes_count || 0,
+        no_count: item.no_count || 0,
         avg_rating: item.avg_rating,
         detractors: item.detractors,
         passives: item.passives,
         promoters: item.promoters,
-        text_response_count: item.text_response_count,
-        total: item.total,
-        text_samples: item.text_samples
+        text_response_count: item.text_response_count || 0,
+        total: item.total || 0,
+        text_samples: item.text_samples || []
       }));
     },
     enabled: !!params && params.dimension !== 'none',

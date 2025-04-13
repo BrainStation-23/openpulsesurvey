@@ -5,12 +5,16 @@ interface RatingInputProps {
   value: string;
   onChange: (value: string) => void;
   isDisabled: boolean;
+  rateCount?: number;
 }
 
-export function RatingInput({ value, onChange, isDisabled }: RatingInputProps) {
+export function RatingInput({ value, onChange, isDisabled, rateCount = 5 }: RatingInputProps) {
+  // Create an array of numbers from 1 to rateCount
+  const ratings = Array.from({ length: rateCount }, (_, i) => i + 1);
+  
   return (
     <div className="flex gap-2 justify-center flex-wrap">
-      {[1, 2, 3, 4, 5].map((number) => (
+      {ratings.map((number) => (
         <Button
           key={number}
           onClick={() => onChange(number.toString())}
