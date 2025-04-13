@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
@@ -117,6 +116,8 @@ function processComparisonData(
     if (typeof answer !== 'number') return;
 
     let dimensionValue = "Unknown";
+    let skipResponse = false;
+    
     switch (dimension) {
       case "sbu":
         dimensionValue = response.respondent.sbu?.name || "Unknown";
@@ -140,13 +141,19 @@ function processComparisonData(
         dimensionValue = response.respondent.employee_role?.name || "Unknown";
         break;
       case "supervisor":
-        dimensionValue = response.respondent.supervisor?.name || "Unknown";
-        // Skip if supervisor doesn't have enough reports
-        if (response.respondent.supervisor && response.respondent.supervisor.reportCount < 4) {
-          return;
+        if (response.respondent.supervisor) {
+          dimensionValue = response.respondent.supervisor.name || "Unknown";
+          // Skip if supervisor doesn't have enough reports
+          if (response.respondent.supervisor.reportCount < 4) {
+            skipResponse = true;
+          }
+        } else {
+          skipResponse = true;
         }
         break;
     }
+
+    if (skipResponse) return;
 
     if (!dimensionData.has(dimensionValue)) {
       dimensionData.set(dimensionValue, isNps ? {
