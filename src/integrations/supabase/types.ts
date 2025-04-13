@@ -2991,7 +2991,18 @@ export type Database = {
           p_question_name: string
           p_dimension: string
         }
-        Returns: Json
+        Returns: {
+          dimension: string
+          yes_count: number
+          no_count: number
+          avg_rating: number
+          detractors: number
+          passives: number
+          promoters: number
+          text_response_count: number
+          total: number
+          text_samples: string[]
+        }[]
       }
       get_instance_analysis_data: {
         Args: { p_campaign_id: string; p_instance_id: string }

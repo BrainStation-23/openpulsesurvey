@@ -33,8 +33,19 @@ export function useComparisonData(
 
       if (error) throw error;
       
-      // Cast the data to the correct type using type assertion
-      return (data as unknown) as ComparisonDataItem[];
+      // Transform the raw data to match our expected interface
+      return (data || []).map(item => ({
+        dimension: item.dimension,
+        yes_count: item.yes_count,
+        no_count: item.no_count,
+        avg_rating: item.avg_rating,
+        detractors: item.detractors,
+        passives: item.passives,
+        promoters: item.promoters,
+        text_response_count: item.text_response_count,
+        total: item.total,
+        text_samples: item.text_samples
+      }));
     },
     enabled: !!params && params.dimension !== 'none',
   });
