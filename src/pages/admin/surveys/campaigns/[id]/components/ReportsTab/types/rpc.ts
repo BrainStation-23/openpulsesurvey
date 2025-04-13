@@ -1,11 +1,41 @@
 
+import { Json } from "@/types/database";
+
+export interface TextAnalysisItem {
+  text: string;
+  value: number;
+}
+
+export interface ComparisonDataItem {
+  dimension: string;
+  yes_count: number;
+  no_count: number;
+  avg_rating: number | null;
+  detractors?: number;
+  passives?: number;
+  promoters?: number;
+  text_response_count: number;
+  total: number;
+  text_samples: string[];
+}
+
 export interface SurveyResponsesResult {
   campaign: {
     survey: {
       id: string;
       name: string;
-      json_data: any;
-    }
+      json_data: {
+        pages: Array<{
+          elements: Array<{
+            name: string;
+            title: string;
+            type: string;
+            rateCount?: number;
+            rateMax?: number;
+          }>;
+        }>;
+      };
+    };
   };
   responses: Array<{
     id: string;
@@ -27,22 +57,4 @@ export interface SurveyResponsesResult {
       }> | null;
     };
   }>;
-}
-
-export interface ComparisonDataItem {
-  dimension: string;
-  yes_count: number;
-  no_count: number;
-  avg_rating: number;
-  detractors: number;
-  passives: number;
-  promoters: number;
-  text_response_count: number;
-  total: number;
-  text_samples: string[];
-}
-
-export interface TextAnalysisItem {
-  text: string;
-  value: number;
 }

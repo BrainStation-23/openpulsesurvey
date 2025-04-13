@@ -1,13 +1,42 @@
 import React from 'react';
 import { ComparisonDataItem } from '../../types/rpc';
+import { useComparisonData } from '../../hooks/useComparisonData';
+import { ProcessedResponse } from '../../hooks/useResponseProcessing';
 
 interface BooleanComparisonProps {
-  data: ComparisonDataItem[];
+  // Accept either direct data or params to fetch data
+  data?: ComparisonDataItem[];
+  // For when component needs to fetch its own data
+  responses?: ProcessedResponse[];
+  questionName?: string;
+  dimension?: string;
+  // Optional layout customization
+  layout?: 'default' | 'grid';
 }
 
-export const BooleanComparison: React.FC<BooleanComparisonProps> = ({ data }) => {
+export const BooleanComparison: React.FC<BooleanComparisonProps> = ({ 
+  data: providedData,
+  responses,
+  questionName,
+  dimension,
+  layout = 'default'
+}) => {
+  // If direct data is provided, use it
+  // Otherwise, fetch data using the comparison hook
+  const { data: fetchedData } = useComparisonData(
+    responses && questionName && dimension 
+      ? { 
+          campaignId: responses[0]?.id.split('-')[0] || '', 
+          questionName, 
+          dimension: dimension as any 
+        } 
+      : null
+  );
+
+  const data = providedData || fetchedData || [];
+
   return (
-    <div>
+    <div className={layout === 'grid' ? 'grid grid-cols-2 gap-6' : ''}>
       {data.map((dimension) => (
         <div key={dimension.dimension} className="mb-4">
           <h3 className="text-lg font-semibold">{dimension.dimension}</h3>

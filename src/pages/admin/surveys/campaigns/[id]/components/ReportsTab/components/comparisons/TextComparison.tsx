@@ -1,107 +1,62 @@
-
-import { Card } from "@/components/ui/card";
-import { ProcessedResponse } from "../../hooks/useResponseProcessing";
-import { ComparisonDimension } from "../../types/comparison";
+import React from 'react';
+import { ComparisonDataItem } from '../../types/rpc';
+import { useComparisonData } from '../../hooks/useComparisonData';
+import { ProcessedResponse } from '../../hooks/useResponseProcessing';
 
 interface TextComparisonProps {
-  responses: ProcessedResponse[];
-  questionName: string;
-  dimension: ComparisonDimension;
-  layout?: 'grid' | 'vertical';
+  // Accept either direct data or params to fetch data
+  data?: ComparisonDataItem[];
+  // For when component needs to fetch its own data
+  responses?: ProcessedResponse[];
+  questionName?: string;
+  dimension?: string;
+  // Optional layout customization
+  layout?: 'default' | 'grid';
 }
 
-export function TextComparison({
+export const TextComparison: React.FC<TextComparisonProps> = ({
+  data: providedData,
   responses,
   questionName,
   dimension,
-  layout = 'vertical'
-}: TextComparisonProps) {
-  const processData = () => {
-    const groupedData: Record<string, string[]> = {};
+  layout = 'default'
+}) => {
+  // If direct data is provided, use it
+  // Otherwise, fetch data using the comparison hook
+  const { data: fetchedData } = useComparisonData(
+    responses && questionName && dimension 
+      ? { 
+          campaignId: responses[0]?.id.split('-')[0] || '', 
+          questionName, 
+          dimension: dimension as any 
+        } 
+      : null
+  );
 
-    responses.forEach((response) => {
-      const answer = response.answers[questionName]?.answer;
-      if (typeof answer !== 'string' || answer.trim() === '') return;
-      
-      let groupKey = "Unknown";
-
-      // Get the group key based on the dimension
-      switch (dimension) {
-        case "sbu":
-          groupKey = response.respondent.sbu?.name || "No SBU";
-          break;
-        case "gender":
-          groupKey = response.respondent.gender || "Not Specified";
-          break;
-        case "location":
-          groupKey = response.respondent.location?.name || "No Location";
-          break;
-        case "employment_type":
-          groupKey = response.respondent.employment_type?.name || "Not Specified";
-          break;
-        case "level":
-          groupKey = response.respondent.level?.name || "Not Specified";
-          break;
-        case "employee_type":
-          groupKey = response.respondent.employee_type?.name || "Not Specified";
-          break;
-        case "employee_role":
-          groupKey = response.respondent.employee_role?.name || "Not Specified";
-          break;
-      }
-
-      if (!groupedData[groupKey]) {
-        groupedData[groupKey] = [];
-      }
-
-      groupedData[groupKey].push(answer);
-    });
-
-    return Object.entries(groupedData).map(([name, answers]) => ({
-      name,
-      answers,
-      count: answers.length
-    }));
-  };
-
-  const data = processData();
-
-  if (data.length === 0) {
-    return (
-      <div className="text-center text-muted-foreground p-4">
-        No comparison data available
-      </div>
-    );
-  }
+  const data = providedData || fetchedData || [];
 
   return (
-    <div className={
-      layout === 'grid' 
-        ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' 
-        : 'space-y-4'
-    }>
-      {data.map((groupData) => (
-        <Card key={groupData.name} className="p-4">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-semibold">{groupData.name}</h3>
-            <span className="text-sm text-muted-foreground">
-              {groupData.count} responses
-            </span>
+    <div className={layout === 'grid' ? 'grid grid-cols-2 gap-6' : ''}>
+      {data.map((dimension) => (
+        <div key={dimension.dimension} className="mb-4">
+          <h3 className="text-lg font-semibold">{dimension.dimension}</h3>
+          <div>
+            <p>Text Response Count: {dimension.text_response_count}</p>
           </div>
-          <div className="max-h-60 overflow-y-auto space-y-2">
-            {groupData.answers.slice(0, 5).map((answer, index) => (
-              <div key={index} className="p-2 bg-muted rounded-md text-sm">
-                {answer}
-              </div>
-            ))}
-            {groupData.answers.length > 5 && (
-              <div className="text-sm text-muted-foreground text-center">
-                +{groupData.answers.length - 5} more responses
-              </div>
-            )}
-          </div>
-        </Card>
+          {dimension.text_samples && dimension.text_samples.length > 0 && (
+            <div>
+              <h4 className="text-md font-semibold mt-2">Text Samples:</h4>
+              <ul className="space-y-2">
+                {dimension.text_samples.map((sample, index) => (
+                  <li key={index} className="list-disc ml-5">
+                    {sample}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       ))}
     </div>
   );
-}
+};
