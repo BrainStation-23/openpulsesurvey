@@ -22,7 +22,7 @@ export function ResponseInput({ question, value, onChange, isDisabled }: Respons
           value={value} 
           onChange={onChange} 
           isDisabled={isDisabled}
-          rateCount={question.question_data.rateMax || 5}
+          rateCount={question.question_data.rateMax || question.question_data.rateCount || 5}
         />
       );
     case 'multiple_choice':
