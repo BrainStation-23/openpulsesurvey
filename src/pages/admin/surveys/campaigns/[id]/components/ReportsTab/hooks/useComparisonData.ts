@@ -21,13 +21,41 @@ export function useComparisonData(
         return [];
       }
       
+      // Select the appropriate function based on the dimension
+      let functionName: string;
+      
+      switch (params.dimension) {
+        case 'gender':
+          functionName = 'get_gender_comparison_data';
+          break;
+        case 'sbu':
+          functionName = 'get_sbu_comparison_data';
+          break;
+        case 'location':
+          functionName = 'get_location_comparison_data';
+          break;
+        case 'employment_type':
+          functionName = 'get_employment_type_comparison_data';
+          break;
+        case 'level':
+          functionName = 'get_level_comparison_data';
+          break;
+        case 'employee_type':
+          functionName = 'get_employee_type_comparison_data';
+          break;
+        case 'employee_role':
+          functionName = 'get_employee_role_comparison_data';
+          break;
+        default:
+          return [];
+      }
+      
       const { data, error } = await supabase.rpc(
-        'get_comparison_data',
+        functionName,
         {
           p_campaign_id: params.campaignId,
           p_instance_id: params.instanceId || null,
-          p_question_name: params.questionName,
-          p_dimension: params.dimension
+          p_question_name: params.questionName
         }
       );
 
