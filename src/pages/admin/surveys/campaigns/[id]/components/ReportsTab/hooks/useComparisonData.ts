@@ -11,6 +11,16 @@ type ComparisonParams = {
   dimension: ComparisonDimension;
 }
 
+// Define allowed RPC function names for type safety
+type ComparisonRpcFunction = 
+  | "get_gender_comparison_data"
+  | "get_sbu_comparison_data"
+  | "get_location_comparison_data"
+  | "get_employment_type_comparison_data"
+  | "get_level_comparison_data"
+  | "get_employee_type_comparison_data"
+  | "get_employee_role_comparison_data";
+
 export function useComparisonData(
   params: ComparisonParams | null
 ) {
@@ -21,36 +31,36 @@ export function useComparisonData(
         return [];
       }
       
-      // Select the appropriate function based on the dimension
-      let functionName: string;
+      // Map dimension to the appropriate RPC function
+      let functionName: ComparisonRpcFunction;
       
       switch (params.dimension) {
         case 'gender':
-          functionName = 'get_gender_comparison_data';
+          functionName = "get_gender_comparison_data";
           break;
         case 'sbu':
-          functionName = 'get_sbu_comparison_data';
+          functionName = "get_sbu_comparison_data";
           break;
         case 'location':
-          functionName = 'get_location_comparison_data';
+          functionName = "get_location_comparison_data";
           break;
         case 'employment_type':
-          functionName = 'get_employment_type_comparison_data';
+          functionName = "get_employment_type_comparison_data";
           break;
         case 'level':
-          functionName = 'get_level_comparison_data';
+          functionName = "get_level_comparison_data";
           break;
         case 'employee_type':
-          functionName = 'get_employee_type_comparison_data';
+          functionName = "get_employee_type_comparison_data";
           break;
         case 'employee_role':
-          functionName = 'get_employee_role_comparison_data';
+          functionName = "get_employee_role_comparison_data";
           break;
         default:
           return [];
       }
       
-      const { data, error } = await supabase.rpc(
+      const { data, error } = await supabase.rpc<ComparisonDataItem[]>(
         functionName,
         {
           p_campaign_id: params.campaignId,

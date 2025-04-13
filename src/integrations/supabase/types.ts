@@ -2984,12 +2984,68 @@ export type Database = {
           completion_rate: number
         }[]
       }
-      get_comparison_data: {
+      get_employee_role_comparison_data: {
         Args: {
           p_campaign_id: string
           p_instance_id: string
           p_question_name: string
-          p_dimension: string
+        }
+        Returns: {
+          dimension: string
+          yes_count: number
+          no_count: number
+          avg_rating: number
+          detractors: number
+          passives: number
+          promoters: number
+          text_response_count: number
+          total: number
+          text_samples: string[]
+        }[]
+      }
+      get_employee_type_comparison_data: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+        }
+        Returns: {
+          dimension: string
+          yes_count: number
+          no_count: number
+          avg_rating: number
+          detractors: number
+          passives: number
+          promoters: number
+          text_response_count: number
+          total: number
+          text_samples: string[]
+        }[]
+      }
+      get_employment_type_comparison_data: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+        }
+        Returns: {
+          dimension: string
+          yes_count: number
+          no_count: number
+          avg_rating: number
+          detractors: number
+          passives: number
+          promoters: number
+          text_response_count: number
+          total: number
+          text_samples: string[]
+        }[]
+      }
+      get_gender_comparison_data: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
         }
         Returns: {
           dimension: string
@@ -3011,6 +3067,44 @@ export type Database = {
       get_instance_assignment_status: {
         Args: { p_assignment_id: string; p_instance_id: string }
         Returns: string
+      }
+      get_level_comparison_data: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+        }
+        Returns: {
+          dimension: string
+          yes_count: number
+          no_count: number
+          avg_rating: number
+          detractors: number
+          passives: number
+          promoters: number
+          text_response_count: number
+          total: number
+          text_samples: string[]
+        }[]
+      }
+      get_location_comparison_data: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+        }
+        Returns: {
+          dimension: string
+          yes_count: number
+          no_count: number
+          avg_rating: number
+          detractors: number
+          passives: number
+          promoters: number
+          text_response_count: number
+          total: number
+          text_samples: string[]
+        }[]
       }
       get_my_survey_assignments: {
         Args: { p_user_id: string }
@@ -3051,6 +3145,25 @@ export type Database = {
       get_pending_surveys_count: {
         Args: { p_user_id: string }
         Returns: number
+      }
+      get_sbu_comparison_data: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+        }
+        Returns: {
+          dimension: string
+          yes_count: number
+          no_count: number
+          avg_rating: number
+          detractors: number
+          passives: number
+          promoters: number
+          text_response_count: number
+          total: number
+          text_samples: string[]
+        }[]
       }
       get_survey_responses: {
         Args: { p_campaign_id: string; p_instance_id?: string }
