@@ -13,7 +13,6 @@ import { ComparisonLayout } from "../../components/ComparisonLayout";
 import { BooleanComparison } from "../../../ReportsTab/components/comparisons/BooleanComparison";
 import { TextComparison } from "../../../ReportsTab/components/comparisons/TextComparison";
 import { BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
-import { NpsComparison } from "../../../ReportsTab/components/comparisons/NpsComparison";
 
 interface QuestionSlideProps extends SlideProps {
   questionName: string;
@@ -81,41 +80,27 @@ const QuestionSlideComponent = ({
         </div>
       ) : (
         <ComparisonLayout title={getDimensionTitle(slideType)}>
-          {questionType === "boolean" && data?.responses && (
+          {questionType === "boolean" && (
             <BooleanComparison 
               responses={data.responses} 
               questionName={questionName}
               dimension={slideType}
               layout="grid"
-              questionType={questionType}
-              isNps={false}
             />
           )}
-          {(questionType === "text" || questionType === "comment") && data?.responses && (
+          {(questionType === "text" || questionType === "comment") && (
             <TextComparison
               responses={data.responses}
               questionName={questionName}
               dimension={slideType}
               layout="grid"
-              questionType={questionType}
             />
           )}
-          {questionType === "rating" && isNps && (
-            <NpsComparison
-              responses={data?.responses || []}
-              questionName={questionName}
-              dimension={slideType}
-              isNps={true}
-              layout="grid"
-              questionType={questionType}
-            />
-          )}
-          {questionType === "rating" && !isNps && (
+          {questionType === "rating" && (
             <ComparisonView 
               data={processedData}
               isNps={isNps}
               dimensionTitle={getDimensionTitle(slideType)}
-              questionType={questionType}
             />
           )}
         </ComparisonLayout>

@@ -1,86 +1,102 @@
 
-import React from 'react';
-import { ComparisonDataItem } from '../../types/rpc';
-import { useComparisonData } from '../../hooks/useComparisonData';
-import { ProcessedResponse } from '../../hooks/useResponseProcessing';
+import { Card } from "@/components/ui/card";
+import { ProcessedResponse } from "../../hooks/useResponseProcessing";
+import { ComparisonDimension } from "../../types/comparison";
+import { GroupedBarChart } from "../../charts/GroupedBarChart";
 
 interface BooleanComparisonProps {
-  // Accept either direct data or params to fetch data
-  data?: ComparisonDataItem[];
-  // For when component needs to fetch its own data
-  responses?: ProcessedResponse[];
-  questionName?: string;
-  dimension?: string;
-  // Optional layout customization
-  layout?: 'default' | 'grid';
-  // Added questionType and isNps to match other comparison components
-  questionType?: string;
-  isNps?: boolean;
+  responses: ProcessedResponse[];
+  questionName: string;
+  dimension: ComparisonDimension;
+  layout?: 'grid' | 'vertical';
 }
 
-export const BooleanComparison: React.FC<BooleanComparisonProps> = ({ 
-  data: providedData,
+export function BooleanComparison({
   responses,
   questionName,
   dimension,
-  layout = 'default',
-  questionType = 'boolean', // Default to 'boolean' type
-  isNps = false
-}) => {
-  // If direct data is provided, use it
-  // Otherwise, fetch data using the comparison hook
-  const { data: fetchedData } = useComparisonData(
-    responses && questionName && dimension 
-      ? { 
-          campaignId: responses[0]?.id.split('-')[0] || '', 
-          questionName, 
-          dimension: dimension as any,
-          questionType, // Pass questionType to the hook
-          isNps // Pass isNps flag to the hook
-        } 
-      : null
-  );
+  layout = 'vertical'
+}: BooleanComparisonProps) {
+  const processData = () => {
+    const groupedData: Record<string, { Yes: number; No: number }> = {};
 
-  const data = providedData || fetchedData || [];
+    responses.forEach((response) => {
+      const answer = response.answers[questionName]?.answer;
+      let groupKey = "Unknown";
+
+      // Get the group key based on the dimension
+      switch (dimension) {
+        case "sbu":
+          groupKey = response.respondent.sbu?.name || "No SBU";
+          break;
+        case "gender":
+          groupKey = response.respondent.gender || "Not Specified";
+          break;
+        case "location":
+          groupKey = response.respondent.location?.name || "No Location";
+          break;
+        case "employment_type":
+          groupKey = response.respondent.employment_type?.name || "Not Specified";
+          break;
+        case "level":
+          groupKey = response.respondent.level?.name || "Not Specified";
+          break;
+        case "employee_type":
+          groupKey = response.respondent.employee_type?.name || "Not Specified";
+          break;
+        case "employee_role":
+          groupKey = response.respondent.employee_role?.name || "Not Specified";
+          break;
+      }
+
+      if (!groupedData[groupKey]) {
+        groupedData[groupKey] = { Yes: 0, No: 0 };
+      }
+
+      if (answer === true) {
+        groupedData[groupKey].Yes++;
+      } else if (answer === false) {
+        groupedData[groupKey].No++;
+      }
+    });
+
+    return Object.entries(groupedData).map(([name, data]) => ({
+      name,
+      ...data
+    }));
+  };
+
+  const data = processData();
+  const keys = ["Yes", "No"];
+  const colors = ["#22c55e", "#ef4444"]; // Green for Yes, Red for No
+
+  if (data.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground p-4">
+        No comparison data available
+      </div>
+    );
+  }
 
   return (
-    <div className={layout === 'grid' ? 'grid grid-cols-2 gap-6' : ''}>
-      {data.map((dimension) => (
-        <div key={dimension.dimension} className="mb-4">
-          <h3 className="text-lg font-semibold">{dimension.dimension}</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <p>Yes: {dimension.yes_count}</p>
-            </div>
-            <div>
-              <p>No: {dimension.no_count}</p>
-            </div>
-            <div>
-              <p>
-                Avg Rating:{' '}
-                {dimension.avg_rating !== null && typeof dimension.avg_rating === 'number'
-                  ? dimension.avg_rating.toFixed(1)
-                  : 'N/A'}
-              </p>
-            </div>
+    <div className={
+      layout === 'grid' 
+        ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' 
+        : 'space-y-4'
+    }>
+      {data.map((groupData) => (
+        <Card key={groupData.name} className="p-4">
+          <h3 className="mb-4 text-lg font-semibold">{groupData.name}</h3>
+          <div className="aspect-[2/1]">
+            <GroupedBarChart 
+              data={[groupData]} 
+              keys={keys} 
+              colors={colors}
+              height={150}
+            />
           </div>
-          <div>
-            <p>Text Response Count: {dimension.text_response_count}</p>
-          </div>
-          {dimension.text_samples && dimension.text_samples.length > 0 && (
-            <div>
-              <h4 className="text-md font-semibold mt-2">Text Samples:</h4>
-              <ul>
-                {dimension.text_samples.map((sample, index) => (
-                  <li key={index} className="list-disc ml-5">
-                    {sample}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+        </Card>
       ))}
     </div>
   );
-};
+}

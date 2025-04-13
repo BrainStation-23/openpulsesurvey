@@ -17,14 +17,7 @@ export function ResponseInput({ question, value, onChange, isDisabled }: Respons
     case 'boolean':
       return <BooleanInput value={value} onChange={onChange} isDisabled={isDisabled} />;
     case 'rating':
-      return (
-        <RatingInput 
-          value={value} 
-          onChange={onChange} 
-          isDisabled={isDisabled}
-          rateCount={question.question_data.rateMax || question.question_data.rateCount || 5}
-        />
-      );
+      return <RatingInput value={value} onChange={onChange} isDisabled={isDisabled} />;
     case 'multiple_choice':
       if (!question.question_data.choices) return null;
       return (

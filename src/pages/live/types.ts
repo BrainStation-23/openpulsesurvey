@@ -6,8 +6,6 @@ export interface ActiveQuestion {
     title: string;
     type: string;
     choices?: { text: string; value: string; }[];
-    rateMax?: number;
-    rateCount?: number;
   };
   session_id: string;
   status: string;
