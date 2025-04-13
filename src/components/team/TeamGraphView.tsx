@@ -97,10 +97,10 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
   return (
     <Card className="shadow-sm">
       <CardContent className="p-4">
-        <div className="text-sm font-medium text-muted-foreground mb-3">Team Hierarchy</div>
+        <div className="text-sm font-medium text-muted-foreground mb-3">Team Hierarchy by Level</div>
         <div 
           ref={graphRef}
-          className={`${isFullScreen ? 'h-screen w-full fixed inset-0 z-50 bg-background' : 'h-[400px]'} border rounded-md overflow-hidden relative`}
+          className={`${isFullScreen ? 'h-screen w-full fixed inset-0 z-50 bg-background' : 'h-[500px]'} border rounded-md overflow-hidden relative`}
         >
           <FullScreenToggle 
             isFullScreen={isFullScreen} 
@@ -135,4 +135,4 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
       </CardContent>
     </Card>
   );
-};
+}
