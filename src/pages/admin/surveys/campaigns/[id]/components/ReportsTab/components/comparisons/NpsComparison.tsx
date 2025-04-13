@@ -1,9 +1,13 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
 import { NpsChart } from "../../charts/NpsChart";
 import type { ProcessedResponse } from "../../hooks/useResponseProcessing";
 import { ComparisonDimension } from "../../types/comparison";
+import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface NpsComparisonProps {
   responses: ProcessedResponse[];
@@ -33,6 +37,10 @@ export function NpsComparison({
   isNps,
   layout = 'vertical'
 }: NpsComparisonProps) {
+  const [data, setData] = useState<HeatMapData[] | NpsData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
   const getDimensionTitle = (dim: string) => {
     const titles: Record<string, string> = {
       sbu: "By Department",
@@ -41,9 +49,65 @@ export function NpsComparison({
       employment_type: "By Employment Type",
       level: "By Level",
       employee_type: "By Employee Type",
-      employee_role: "By Employee Role"
+      employee_role: "By Employee Role",
+      supervisor: "By Supervisor"
     };
     return titles[dim] || dim;
+  };
+
+  // Extract campaign ID from the first response
+  const getCampaignId = () => {
+    if (responses && responses.length > 0) {
+      return responses[0].campaign_id;
+    }
+    return null;
+  };
+
+  // Extract instance ID from the first response
+  const getInstanceId = () => {
+    if (responses && responses.length > 0) {
+      return responses[0].campaign_instance_id;
+    }
+    return null;
+  };
+
+  const fetchSupervisorData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const campaignId = getCampaignId();
+      const instanceId = getInstanceId();
+      
+      if (!campaignId || !instanceId) {
+        throw new Error("Campaign or instance ID not found");
+      }
+      
+      const { data: supervisorData, error: rpcError } = await supabase.rpc(
+        'get_supervisor_satisfaction',
+        {
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId,
+          p_question_name: questionName
+        }
+      );
+      
+      if (rpcError) throw rpcError;
+      
+      return supervisorData.map((item: any) => ({
+        dimension: item.dimension,
+        unsatisfied: item.unsatisfied,
+        neutral: item.neutral,
+        satisfied: item.satisfied,
+        total: item.total
+      }));
+    } catch (err) {
+      console.error("Error fetching supervisor data:", err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch supervisor data'));
+      return [];
+    } finally {
+      setLoading(false);
+    }
   };
 
   const processResponses = () => {
@@ -155,7 +219,38 @@ export function NpsComparison({
     return Array.from(dimensionData.values());
   };
 
-  const data = processResponses();
+  useEffect(() => {
+    const loadData = async () => {
+      if (dimension === "supervisor") {
+        const supervisorData = await fetchSupervisorData();
+        setData(supervisorData);
+      } else {
+        setData(processResponses());
+      }
+    };
+
+    loadData();
+  }, [dimension, questionName, responses]);
+  
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Loading comparison data...</CardTitle>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error loading data</AlertTitle>
+        <AlertDescription>{error.message}</AlertDescription>
+      </Alert>
+    );
+  }
   
   if (data.length === 0) {
     return (
@@ -167,7 +262,7 @@ export function NpsComparison({
     );
   }
 
-  if (isNps) {
+  if (isNps && dimension !== "supervisor") {
     return (
       <div className={layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-4'}>
         {(data as NpsData[]).map((groupData) => (

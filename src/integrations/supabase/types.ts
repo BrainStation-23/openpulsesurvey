@@ -3032,6 +3032,24 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      get_supervisor_satisfaction: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+        }
+        Returns: {
+          dimension: string
+          unsatisfied: number
+          neutral: number
+          satisfied: number
+          total: number
+        }[]
+      }
+      get_survey_responses: {
+        Args: { p_campaign_id: string; p_instance_id?: string }
+        Returns: Json
+      }
       get_survey_responses_for_export: {
         Args: { p_campaign_id: string; p_instance_id: string }
         Returns: {
@@ -3041,6 +3059,14 @@ export type Database = {
           response_data: Json
           submitted_at: string
         }[]
+      }
+      get_text_analysis: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+        }
+        Returns: Json
       }
       handle_campaign_end: {
         Args: { p_campaign_id: string }
