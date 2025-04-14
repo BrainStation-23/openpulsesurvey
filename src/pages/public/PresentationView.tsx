@@ -1,10 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
-import { CampaignTitleSlide } from "../admin/surveys/campaigns/[id]/components/PresentationView/slides/TitleSlide";
+import { TitleSlide } from "../admin/surveys/campaigns/[id]/components/PresentationView/slides/TitleSlide";
 import { ResponseDistributionSlide } from "../admin/surveys/campaigns/[id]/components/PresentationView/slides/ResponseDistributionSlide";
 import { ResponseTrendsSlide } from "../admin/surveys/campaigns/[id]/components/PresentationView/slides/ResponseTrendsSlide";
 import { PresentationLayout } from "../admin/surveys/campaigns/[id]/components/PresentationView/components/PresentationLayout";
@@ -182,7 +181,7 @@ export default function PublicPresentationView() {
         campaign={campaign}
       />
       
-      <CampaignTitleSlide campaign={campaign} isActive={currentSlide === 0} />
+      <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
       <ResponseDistributionSlide 
         campaignId={campaign.id} 
         instanceId={campaign.instance?.id} 

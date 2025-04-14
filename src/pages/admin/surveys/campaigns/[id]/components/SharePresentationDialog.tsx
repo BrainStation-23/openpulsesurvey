@@ -62,6 +62,7 @@ export function SharePresentationDialog({
           title: title || null,
           description: description || null,
           expires_at: hasExpiry && expiryDate ? expiryDate.toISOString() : null,
+          created_by: (await supabase.auth.getUser()).data.user?.id
         })
         .select("access_token")
         .single();
