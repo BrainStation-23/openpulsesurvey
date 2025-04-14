@@ -1,12 +1,10 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface SurveyQuestion {
   name: string;
   title: string;
   type: string;
-  rateMax?: number;
-  rateCount?: number; // Added this for rating questions
+  rateMax?: number; // Added this for rating questions
 }
 
 export interface SurveyPage {

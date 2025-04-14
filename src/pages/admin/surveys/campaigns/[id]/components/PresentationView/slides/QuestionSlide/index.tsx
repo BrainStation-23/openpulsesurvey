@@ -35,15 +35,9 @@ const QuestionSlideComponent = ({
   const processedData = useQuestionData(data, questionName, questionType, slideType);
   const question = data?.questions.find(q => q.name === questionName);
   const isNps = question?.type === 'rating' && question?.rateCount === 10;
-  const isSatisfaction = question?.type === 'rating' && question?.rateCount === 5;
 
   // Don't render anything if the slide is not active
   if (!isActive) {
-    return null;
-  }
-
-  // Don't render supervisor comparison for non-satisfaction questions
-  if (slideType === 'supervisor' && !isSatisfaction) {
     return null;
   }
 

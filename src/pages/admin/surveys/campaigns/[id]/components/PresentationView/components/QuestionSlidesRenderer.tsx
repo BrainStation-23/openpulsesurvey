@@ -2,7 +2,6 @@
 import { CampaignData } from "../types";
 import { QuestionSlide } from "../slides/QuestionSlide";
 import { COMPARISON_DIMENSIONS } from "../constants";
-import { ComparisonDimension } from "../types/comparison";
 
 interface QuestionSlidesRendererProps {
   campaign: CampaignData;
@@ -16,9 +15,6 @@ export function QuestionSlidesRenderer({ campaign, currentSlide }: QuestionSlide
 
   return surveyQuestions.map((question, index) => {
     const baseSlideIndex = 3 + (index * (1 + COMPARISON_DIMENSIONS.length));
-    // Check for rating type and look for rateMax or rateCount to determine if it's a satisfaction question
-    const isSatisfactionQuestion = question.type === 'rating' && 
-      ((question.rateCount === 5) || (question.rateMax === 5));
     
     const slides = [(
       <QuestionSlide
@@ -33,11 +29,6 @@ export function QuestionSlidesRenderer({ campaign, currentSlide }: QuestionSlide
     )];
 
     COMPARISON_DIMENSIONS.forEach((dimension, dimIndex) => {
-      // Skip supervisor dimension for non-satisfaction questions
-      if (dimension === 'supervisor' && !isSatisfactionQuestion) {
-        return;
-      }
-      
       slides.push(
         <QuestionSlide
           key={`${question.name}-${dimension}`}

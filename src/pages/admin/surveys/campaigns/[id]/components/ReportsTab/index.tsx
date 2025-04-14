@@ -1,124 +1,209 @@
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { usePresentationResponses } from "../PresentationView/hooks/usePresentationResponses";
-import { CampaignData } from "../PresentationView/types";
-import { BooleanComparison } from "./components/comparisons/BooleanComparison";
-import { TextComparison } from "./components/comparisons/TextComparison";
-import { NpsComparison } from "./components/comparisons/NpsComparison";
+import { useResponseProcessing } from "./hooks/useResponseProcessing";
+import { BooleanCharts } from "./charts/BooleanCharts";
+import { NpsChart } from "./charts/NpsChart";
+import { WordCloud } from "./charts/WordCloud";
 import { ComparisonSelector } from "./components/ComparisonSelector";
-import { ComparisonDimension } from "../PresentationView/types/comparison";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { BooleanComparison } from "./components/comparisons/BooleanComparison";
+import { NpsComparison } from "./components/comparisons/NpsComparison";
+import { TextComparison } from "./components/comparisons/TextComparison";
+import { useState } from "react";
+import { ComparisonDimension } from "./types/comparison";
+import { SatisfactionDonutChart } from "./charts/SatisfactionDonutChart";
 
 interface ReportsTabProps {
-  campaign: CampaignData;
+  campaignId: string;
   instanceId?: string;
 }
 
-export function ReportsTab({ campaign, instanceId }: ReportsTabProps) {
-  const [selectedComparisonDimension, setSelectedComparisonDimension] = useState<ComparisonDimension>("none");
-  const [activeTab, setActiveTab] = useState("overview");
-  
-  const { data: responseData, isLoading } = usePresentationResponses(campaign.id, instanceId);
+export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
+  const { data, isLoading } = useResponseProcessing(campaignId, instanceId);
+  const [comparisonDimensions, setComparisonDimensions] = useState<
+    Record<string, ComparisonDimension>
+  >({});
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-  
-  if (!responseData) {
-    return (
-      <div className="p-4 text-center">
-        <p className="text-muted-foreground">No response data available for this campaign.</p>
-      </div>
-    );
+    return <div>Loading...</div>;
   }
 
-  const surveyQuestions = (campaign?.survey.json_data.pages || [])
-    .flatMap((page) => page.elements || [])
-    .filter((question) => !["html", "panel"].includes(question.type || ""));
+  if (!data || !data.questions || !data.responses) {
+    return <div>No data available</div>;
+  }
+
+  const handleComparisonChange = (questionName: string, dimension: ComparisonDimension) => {
+    setComparisonDimensions((prev) => ({
+      ...prev,
+      [questionName]: dimension,
+    }));
+  };
+
+  const calculateMedian = (ratings: number[]) => {
+    const sorted = [...ratings].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    
+    if (sorted.length % 2 === 0) {
+      return (sorted[middle - 1] + sorted[middle]) / 2;
+    }
+    return sorted[middle];
+  };
+
+  const processAnswersForQuestion = (questionName: string, type: string, question: any) => {
+    const answers = data.responses.map(
+      (response) => response.answers[questionName]?.answer
+    );
+
+    switch (type) {
+      case "boolean":
+        return {
+          yes: answers.filter((a) => a === true).length,
+          no: answers.filter((a) => a === false).length,
+        };
+
+      case "rating":
+      case "nps": {
+        const isNps = question.rateCount === 10;
+        
+        if (isNps) {
+          const ratingCounts = new Array(11).fill(0);
+          answers.forEach((rating) => {
+            if (typeof rating === "number" && rating >= 0 && rating <= 10) {
+              ratingCounts[rating]++;
+            }
+          });
+          return ratingCounts.map((count, rating) => ({ rating, count }));
+        } else {
+          const validAnswers = answers.filter(
+            (rating) => typeof rating === "number" && rating >= 1 && rating <= 5
+          );
+          
+          return {
+            unsatisfied: validAnswers.filter((r) => r <= 2).length,
+            neutral: validAnswers.filter((r) => r === 3).length,
+            satisfied: validAnswers.filter((r) => r >= 4).length,
+            total: validAnswers.length,
+            median: calculateMedian(validAnswers)
+          };
+        }
+      }
+
+      case "text":
+      case "comment": {
+        const wordFrequency: Record<string, number> = {};
+        answers.forEach((answer) => {
+          if (typeof answer === "string") {
+            const words = answer
+              .toLowerCase()
+              .replace(/[^\w\s]/g, "")
+              .split(/\s+/)
+              .filter((word) => word.length > 2);
+
+            words.forEach((word) => {
+              wordFrequency[word] = (wordFrequency[word] || 0) + 1;
+            });
+          }
+        });
+
+        return Object.entries(wordFrequency)
+          .map(([text, value]) => ({ text, value }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 50);
+      }
+
+      default:
+        throw new Error(`Unsupported question type: ${type}`);
+    }
+  };
 
   return (
-    <div className="space-y-6 p-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Survey Responses Analysis</h2>
-        <ComparisonSelector 
-          value={selectedComparisonDimension} 
-          onChange={setSelectedComparisonDimension} 
-        />
-      </div>
+    <div className="grid gap-6">
+      {data.questions.map((question) => {
+        const currentDimension = comparisonDimensions[question.name] || "none";
+        const processedData = processAnswersForQuestion(
+          question.name,
+          question.type,
+          question
+        );
+        const isNpsQuestion = question.type === "rating" && question.rateCount === 10;
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          {surveyQuestions.map((question) => (
-            <TabsTrigger key={question.name} value={question.name}>
-              {question.title}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        <TabsContent value="overview">
-          <Card>
-            <CardHeader>
-              <CardTitle>Survey Overview</CardTitle>
+        return (
+          <Card key={question.name} className="w-full overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle>{question.title}</CardTitle>
+              <ComparisonSelector
+                value={currentDimension}
+                onChange={(dimension) =>
+                  handleComparisonChange(question.name, dimension)
+                }
+              />
             </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Select a question tab above to view detailed responses and analyses for each question.
-              </p>
+            <CardContent className="space-y-4">
+              {currentDimension === "none" && (
+                <>
+                  {question.type === "boolean" && (
+                    <BooleanCharts
+                      data={processedData as { yes: number; no: number }}
+                    />
+                  )}
+                  {(question.type === "nps" || question.type === "rating") && (
+                    <>
+                      {isNpsQuestion ? (
+                        <NpsChart
+                          data={processedData as { rating: number; count: number }[]}
+                        />
+                      ) : (
+                        <SatisfactionDonutChart
+                          data={processedData as { 
+                            unsatisfied: number;
+                            neutral: number;
+                            satisfied: number;
+                            total: number;
+                            median: number;
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
+                  {(question.type === "text" || question.type === "comment") && (
+                    <WordCloud
+                      words={processedData as { text: string; value: number }[]}
+                    />
+                  )}
+                </>
+              )}
+
+              {currentDimension !== "none" && (
+                <>
+                  {question.type === "boolean" && (
+                    <BooleanComparison
+                      responses={data.responses}
+                      questionName={question.name}
+                      dimension={currentDimension}
+                    />
+                  )}
+                  {(question.type === "nps" || question.type === "rating") && (
+                    <NpsComparison
+                      responses={data.responses}
+                      questionName={question.name}
+                      dimension={currentDimension}
+                      isNps={isNpsQuestion}
+                      campaignId={campaignId}
+                      instanceId={instanceId}
+                    />
+                  )}
+                  {(question.type === "text" || question.type === "comment") && (
+                    <TextComparison
+                      responses={data.responses}
+                      questionName={question.name}
+                      dimension={currentDimension}
+                    />
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {surveyQuestions.map((question) => (
-          <TabsContent key={question.name} value={question.name}>
-            <Card>
-              <CardHeader>
-                <CardTitle>{question.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-end mb-4">
-                  <ComparisonSelector 
-                    value={selectedComparisonDimension} 
-                    onChange={setSelectedComparisonDimension} 
-                    questionType={question.type}
-                    rateCount={question.rateCount}
-                  />
-                </div>
-                {question.type === "boolean" && responseData && (
-                  <BooleanComparison
-                    responses={responseData.responses}
-                    questionName={question.name}
-                    dimension={selectedComparisonDimension}
-                  />
-                )}
-                {(question.type === "text" || question.type === "comment") && responseData && (
-                  <TextComparison
-                    responses={responseData.responses}
-                    questionName={question.name}
-                    dimension={selectedComparisonDimension}
-                  />
-                )}
-                {question.type === "rating" && responseData && (
-                  <NpsComparison
-                    responses={responseData.responses}
-                    questionName={question.name}
-                    dimension={selectedComparisonDimension}
-                    isNps={question.rateCount === 10}
-                    campaignId={campaign.id}
-                    instanceId={instanceId}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
+        );
+      })}
     </div>
   );
 }
