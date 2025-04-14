@@ -1,6 +1,7 @@
 
 import { SlideProps } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types";
-import { CampaignData, ProcessedData } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types";
+import { CampaignData } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types";
+import { ProcessedData } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types/responses";
 import { PresentationLayout } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/components/PresentationLayout";
 import { PresentationControls } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/components/PresentationControls";
 import { TitleSlide } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/slides/TitleSlide";
