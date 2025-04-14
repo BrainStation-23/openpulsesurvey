@@ -1872,6 +1872,81 @@ export type Database = {
           },
         ]
       }
+      shared_presentations: {
+        Row: {
+          access_token: string
+          campaign_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          expires_at: string | null
+          id: string
+          instance_id: string | null
+          is_active: boolean
+          title: string | null
+        }
+        Insert: {
+          access_token?: string
+          campaign_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          instance_id?: string | null
+          is_active?: boolean
+          title?: string | null
+        }
+        Update: {
+          access_token?: string
+          campaign_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          instance_id?: string | null
+          is_active?: boolean
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_presentations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_presentations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
+          {
+            foreignKeyName: "shared_presentations_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_presentations_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["instance_id"]
+          },
+          {
+            foreignKeyName: "shared_presentations_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_survey_deadlines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       survey_assignments: {
         Row: {
           campaign_id: string | null
