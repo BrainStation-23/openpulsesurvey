@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Response } from "./types";
 import { ResponsesList } from "./ResponsesList";
@@ -9,6 +10,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { useResponsesData } from "./hooks/useResponsesData";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { PageSizeSelector } from "../AssignmentsTab/components/AssignmentInstanceList/components/PageSizeSelector";
+import { ResponseDetails } from "./ResponseDetails";
+import { RPCResponseItem } from "./types";
 
 interface ResponsesTabProps {
   campaignId: string;
@@ -18,6 +21,7 @@ interface ResponsesTabProps {
 export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedResponse, setSelectedResponse] = useState<RPCResponseItem | null>(null);
 
   const {
     responses,
@@ -53,6 +57,14 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
         setIsExporting(false);
       }
     }
+  };
+
+  const handleResponseView = (response: RPCResponseItem) => {
+    setSelectedResponse(response);
+  };
+
+  const handleCloseResponseDetails = () => {
+    setSelectedResponse(null);
   };
 
   if (isLoading && !isFetching) {
@@ -95,6 +107,7 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
       <ResponsesList 
         responses={responses} 
         isLoading={isLoading || isFetching} 
+        onViewResponse={handleResponseView}
       />
       
       {totalPages > 1 && (
@@ -147,6 +160,11 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
           </Pagination>
         </div>
       )}
+
+      <ResponseDetails 
+        response={selectedResponse} 
+        onClose={handleCloseResponseDetails} 
+      />
     </div>
   );
 }

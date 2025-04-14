@@ -2,12 +2,15 @@
 import { RPCResponseItem } from "./types";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Eye } from "lucide-react";
 
 interface ResponseGroupProps {
   responses: RPCResponseItem[];
+  onViewResponse: (response: RPCResponseItem) => void;
 }
 
-export function ResponseGroup({ responses }: ResponseGroupProps) {
+export function ResponseGroup({ responses, onViewResponse }: ResponseGroupProps) {
   return (
     <div className="space-y-4">
       {responses.map((response) => (
@@ -39,19 +42,31 @@ export function ResponseGroup({ responses }: ResponseGroupProps) {
                 )}
               </div>
               
-              <div className="text-right">
-                <span className={`px-2 py-1 rounded-full text-xs 
-                  ${response.status === 'submitted' ? 'bg-green-100 text-green-800' : 
-                   response.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
-                   'bg-gray-100 text-gray-800'}`}>
-                  {response.status}
-                </span>
+              <div className="flex items-center space-x-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={() => onViewResponse(response)}
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  View
+                </Button>
                 
-                {response.submitted_at && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Submitted {formatDistanceToNow(new Date(response.submitted_at), { addSuffix: true })}
-                  </p>
-                )}
+                <div className="text-right">
+                  <span className={`px-2 py-1 rounded-full text-xs 
+                    ${response.status === 'submitted' ? 'bg-green-100 text-green-800' : 
+                     response.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
+                     'bg-gray-100 text-gray-800'}`}>
+                    {response.status}
+                  </span>
+                  
+                  {response.submitted_at && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Submitted {formatDistanceToNow(new Date(response.submitted_at), { addSuffix: true })}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>

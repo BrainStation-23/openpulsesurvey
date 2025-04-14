@@ -6,9 +6,10 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 interface ResponsesListProps {
   responses: RPCResponseItem[];
   isLoading?: boolean;
+  onViewResponse: (response: RPCResponseItem) => void;
 }
 
-export function ResponsesList({ responses, isLoading = false }: ResponsesListProps) {
+export function ResponsesList({ responses, isLoading = false, onViewResponse }: ResponsesListProps) {
   if (isLoading) {
     return (
       <div className="w-full h-48 flex items-center justify-center">
@@ -25,5 +26,5 @@ export function ResponsesList({ responses, isLoading = false }: ResponsesListPro
     );
   }
 
-  return <ResponseGroup responses={responses} />;
+  return <ResponseGroup responses={responses} onViewResponse={onViewResponse} />;
 }
