@@ -73,14 +73,6 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
                 id,
                 name
               )
-            ),
-            user_supervisors:user_supervisors!profiles_id_fkey (
-              is_primary,
-              supervisor:profiles!user_supervisors_supervisor_id_fkey (
-                id,
-                first_name,
-                last_name
-              )
             )
           )
         `);
@@ -91,14 +83,29 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
       }
 
       const { data: responses } = await query;
-      return { responses, surveyData };
+
+      // Fetch supervisor information separately to avoid ambiguous relationships
+      const { data: supervisorData } = await supabase
+        .from("user_supervisors")
+        .select(`
+          user_id,
+          is_primary,
+          supervisor:profiles!user_supervisors_supervisor_id_fkey (
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .in('user_id', responses?.map(r => r.user.id) || []);
+
+      return { responses, surveyData, supervisorData };
     },
   });
 
   const processedData = useMemo(() => {
     if (!rawData) return null;
     
-    const { responses, surveyData } = rawData;
+    const { responses, surveyData, supervisorData } = rawData;
     
     // Safely access survey questions with fallback
     const surveyQuestions = (surveyData?.pages || []).flatMap(
@@ -115,6 +122,16 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
         questions: surveyQuestions,
         responses: [],
       };
+    }
+
+    // Create a lookup map for supervisor data
+    const supervisorMap = new Map();
+    if (supervisorData) {
+      supervisorData.forEach(item => {
+        if (item.is_primary && item.supervisor) {
+          supervisorMap.set(item.user_id, item.supervisor);
+        }
+      });
     }
 
     // Process each response
@@ -136,19 +153,10 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
       const primarySbu = response.user?.user_sbus?.find(
         (us: any) => us.is_primary && us.sbu
       );
-
-      // Find primary supervisor with null checks
-      const primarySupervisor = response.user?.user_supervisors?.find(
-        (us: any) => us.is_primary && us.supervisor
-      );
       
-      // Get supervisor information
-      const supervisor = primarySupervisor?.supervisor ? {
-        id: primarySupervisor.supervisor.id,
-        first_name: primarySupervisor.supervisor.first_name || '',
-        last_name: primarySupervisor.supervisor.last_name || ''
-      } : null;
-
+      // Get supervisor from the map
+      const supervisor = supervisorMap.get(response.user.id);
+      
       return {
         id: response.id,
         respondent: {
@@ -163,7 +171,7 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
           level: response.user?.level,
           employee_type: response.user?.employee_type,
           employee_role: response.user?.employee_role,
-          supervisor: supervisor
+          supervisor: supervisor || null
         },
         submitted_at: response.submitted_at,
         answers,
