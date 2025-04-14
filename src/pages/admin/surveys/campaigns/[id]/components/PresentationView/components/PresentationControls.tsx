@@ -7,6 +7,7 @@ import { CampaignData } from "../types";
 import { usePresentationResponses } from "../hooks/usePresentationResponses";
 import { useToast } from "@/hooks/use-toast";
 import { usePdfExport } from "../hooks/usePdfExport";
+import { SharePresentationModal } from "./SharePresentationModal";
 
 interface PresentationControlsProps {
   onBack: () => void;
@@ -76,6 +77,11 @@ export function PresentationControls({
         </Button>
 
         <div className="flex items-center gap-2 ml-auto">
+          <SharePresentationModal 
+            campaignId={campaign.id} 
+            instanceId={campaign.instance?.id} 
+          />
+          
           <Button
             variant="ghost"
             size="icon"
@@ -112,7 +118,7 @@ export function PresentationControls({
           </Button>
 
           <span className="text-sm font-medium text-black">
-            {currentSlide} / {totalSlides}
+            {currentSlide + 1} / {totalSlides}
           </span>
 
           <Button

@@ -22,12 +22,11 @@ import ThankYouPage from "./pages/public/ThankYou";
 import LiveEntryPage from "./pages/live/LiveEntryPage";
 import PublicLiveSession from "./pages/live/PublicLiveSession";
 import JoinLiveSession from "./pages/live/JoinLiveSession";
+import Presentation from "./pages/public/Presentation";
 
-// Common pages
 import ProfilePage from "./pages/common/Profile";
 import MyTeamPage from "./pages/common/MyTeam";
 
-// User pages
 import UserDashboard from "./pages/user/Dashboard";
 import UserSettings from "./pages/user/Settings";
 import UserMySurveys from "./pages/user/my-surveys";
@@ -36,12 +35,10 @@ import UserAchievementsPage from "./pages/user/achievements";
 import UserIssueBoards from "./pages/user/issue-boards";
 import UserIssueBoardView from "./pages/user/issue-boards/[id]";
 
-// OKR User pages
 import UserOKRDashboard from "./pages/user/okrs/Dashboard";
 import UserObjectives from "./pages/user/okrs/Objectives";
 import UserObjectiveDetails from "./pages/user/okrs/ObjectiveDetails";
 
-// Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminConfig from "./pages/admin/Config";
 import AdminSettings from "./pages/admin/Settings";
@@ -75,7 +72,6 @@ import AchievementFormPage from "./pages/admin/achievements/AchievementFormPage"
 import CreateIssueBoard from "./pages/admin/surveys/issue-boards/CreateIssueBoard";
 import EditIssueBoard from "./pages/admin/surveys/issue-boards/EditIssueBoard";
 
-// OKR Admin pages
 import AdminOKRDashboard from "./pages/admin/okrs/Dashboard";
 import AdminOKRCycles from "./pages/admin/okrs/Cycles";
 import AdminCreateOKRCycle from "./pages/admin/okrs/CreateCycle";
@@ -112,6 +108,7 @@ const App = () => (
             
             <Route path="/public/survey/:token" element={<PublicSurveyPage />} />
             <Route path="/public/survey/:token/thank-you" element={<ThankYouPage />} />
+            <Route path="/presentation/:token" element={<Presentation />} />
             
             <Route path="/user" element={<UserLayout />}>
               <Route index element={<Navigate to="/user/dashboard" replace />} />
@@ -124,7 +121,6 @@ const App = () => (
               <Route path="achievements" element={<UserAchievementsPage />} />
               <Route path="issue-boards" element={<UserIssueBoards />} />
               <Route path="issue-boards/:id" element={<UserIssueBoardView />} />
-              {/* User OKR Routes */}
               <Route path="okrs" element={<Navigate to="/user/okrs/dashboard" replace />} />
               <Route path="okrs/dashboard" element={<UserOKRDashboard />} />
               <Route path="okrs/objectives" element={<UserObjectives />} />
@@ -156,7 +152,6 @@ const App = () => (
               <Route path="surveys/issue-boards/:id" element={<EditIssueBoard />} />
               <Route path="surveys/issue-boards/:id/view" element={<AdminIssueBoardView />} />
               
-              {/* Admin OKR Routes */}
               <Route path="okrs" element={<Navigate to="/admin/okrs/dashboard" replace />} />
               <Route path="okrs/dashboard" element={<AdminOKRDashboard />} />
               <Route path="okrs/cycles" element={<AdminOKRCycles />} />
