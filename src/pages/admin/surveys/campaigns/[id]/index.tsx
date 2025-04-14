@@ -12,12 +12,13 @@ import { InstanceSelector } from "./components/InstanceSelector";
 import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
 import { InstanceCompareTab } from "./components/InstanceCompareTab";
 import { useState } from "react";
+import { CampaignData, SurveyJsonData } from "./components/PresentationView/types";
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>();
 
-  const { data: campaign, isLoading: isLoadingCampaign } = useQuery({
+  const { data: campaignData, isLoading: isLoadingCampaign } = useQuery({
     queryKey: ["campaign", id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -35,7 +36,8 @@ export default function CampaignDetailsPage() {
             starts_at,
             ends_at,
             period_number,
-            status
+            status,
+            completion_rate
           )
         `)
         .eq("id", id)
@@ -50,9 +52,28 @@ export default function CampaignDetailsPage() {
     return <div>Loading...</div>;
   }
 
-  if (!campaign) {
+  if (!campaignData) {
     return <div>Campaign not found</div>;
   }
+
+  // Transform the campaign data to match CampaignData type
+  const campaign: CampaignData = {
+    id: campaignData.id,
+    name: campaignData.name,
+    description: campaignData.description,
+    starts_at: campaignData.starts_at,
+    ends_at: campaignData.ends_at,
+    completion_rate: campaignData.completion_rate || 0,
+    survey: {
+      id: campaignData.survey.id,
+      name: campaignData.survey.name,
+      description: campaignData.survey.description,
+      json_data: campaignData.survey.json_data as SurveyJsonData
+    },
+    instance: selectedInstanceId 
+      ? campaignData.instances.find(i => i.id === selectedInstanceId) 
+      : undefined
+  };
 
   return (
     <div className="container max-w-7xl mx-auto py-6 space-y-6">
@@ -71,7 +92,7 @@ export default function CampaignDetailsPage() {
         />
       </div>
 
-      <CampaignTabs isAnonymous={campaign.anonymous} status={campaign.status}>
+      <CampaignTabs isAnonymous={campaignData.anonymous} status={campaignData.status}>
         <TabPanel value="overview">
           <OverviewTab 
             campaignId={campaign.id} 
@@ -82,7 +103,7 @@ export default function CampaignDetailsPage() {
         <TabPanel value="assignments">
           <AssignmentsTab
             campaignId={campaign.id}
-            surveyId={campaign.survey_id}
+            surveyId={campaignData.survey_id}
             selectedInstanceId={selectedInstanceId}
           />
         </TabPanel>

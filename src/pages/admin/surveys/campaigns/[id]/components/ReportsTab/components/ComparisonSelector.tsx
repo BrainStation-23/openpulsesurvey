@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ComparisonDimension } from "../types/comparison";
+import { ComparisonDimension } from "../../PresentationView/types/comparison";
 import { 
   Building2, 
   Users, 
