@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Copy, ExternalLink, Share2, CopyCheck, Loader2 } from "lucide-react";
+import { CalendarIcon, Copy, ExternalLink, Share2, CopyCheck } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,53 +45,12 @@ export function SharePresentationDialog({
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   // Get base URL for sharing
   const baseUrl = window.location.origin;
   const shareUrl = accessToken 
     ? `${baseUrl}/presentations/${accessToken}` 
     : null;
-
-  // Check for existing link when dialog opens
-  useEffect(() => {
-    if (isOpen) {
-      checkExistingLink();
-    }
-  }, [isOpen]);
-
-  const checkExistingLink = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("shared_presentations")
-        .select("*")
-        .eq("campaign_id", campaignId)
-        .eq(instanceId ? "instance_id" : "instance_id", instanceId || null)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error && error.code !== "PGRST116") { // PGRST116 is "no rows returned" error
-        throw error;
-      }
-
-      if (data) {
-        setAccessToken(data.access_token);
-        setTitle(data.title || "");
-        setDescription(data.description || "");
-        if (data.expires_at) {
-          setHasExpiry(true);
-          setExpiryDate(new Date(data.expires_at));
-        }
-      }
-    } catch (error) {
-      console.error("Error checking for existing link:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleCreateShareLink = async () => {
     setIsCreating(true);
@@ -176,11 +135,7 @@ export function SharePresentationDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {isLoading ? (
-          <div className="py-8 flex justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : !accessToken ? (
+        {!accessToken ? (
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="title">Title (Optional)</Label>
@@ -274,6 +229,9 @@ export function SharePresentationDialog({
             </Button>
           ) : (
             <div className="flex space-x-2">
+              <Button variant="outline" onClick={resetForm}>
+                Create Another
+              </Button>
               <Button onClick={openPresentation}>
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Open Presentation
