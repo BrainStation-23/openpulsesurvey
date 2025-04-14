@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CampaignData } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types";
@@ -31,12 +30,8 @@ export function useSharedPresentation(token: string) {
         throw new Error('This presentation link has expired');
       }
 
-      // Construct the instance part of the query properly
-      const instanceFilter = presentation.instance_id 
-        ? `instance:campaign_instances!id.eq.${presentation.instance_id}` 
-        : 'instance:null';
-
-      // Fetch the campaign data with proper SQL syntax
+      // Fetch the campaign data with proper query structure - keep select() clean
+      // and use correct filtering methods separately
       const { data: campaign, error: campaignError } = await supabase
         .from('survey_campaigns')
         .select(`
@@ -52,18 +47,32 @@ export function useSharedPresentation(token: string) {
             description,
             json_data
           ),
-          ${instanceFilter}
+          instance:campaign_instances(*)
         `)
-        .eq('id', presentation.campaign_id)
-        .single();
-
-      if (campaignError || !campaign) {
+        .eq('id', presentation.campaign_id);
+      
+      // Handle campaign data errors properly
+      if (campaignError) {
+        throw new Error(`Failed to load campaign data: ${campaignError.message}`);
+      }
+      
+      if (!campaign || campaign.length === 0) {
         throw new Error('Campaign not found');
+      }
+
+      // Process the returned data
+      const campaignData = campaign[0];
+      
+      // Filter instance data if needed
+      if (presentation.instance_id && campaignData.instance) {
+        campaignData.instance = Array.isArray(campaignData.instance) 
+          ? campaignData.instance.filter(i => i.id === presentation.instance_id) 
+          : [];
       }
 
       return {
         presentation,
-        campaign,
+        campaign: campaignData,
         instance_id: presentation.instance_id
       };
     },
