@@ -43,6 +43,7 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
           response_data,
           submitted_at,
           user:profiles!survey_responses_user_id_fkey (
+            id,
             first_name,
             last_name,
             email,
