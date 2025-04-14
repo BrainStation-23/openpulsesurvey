@@ -6,7 +6,7 @@ interface ProcessedAnswer {
   question: string;
   answer: any;
   questionType: string;
-  rateCount?: number;
+  rateCount?: number;  // Added this property
 }
 
 export interface ProcessedResponse {
@@ -38,11 +38,6 @@ export interface ProcessedResponse {
     employee_role: {
       id: string;
       name: string;
-    } | null;
-    supervisor: {
-      id: string;
-      first_name: string;
-      last_name: string;
     } | null;
   };
   submitted_at: string;
@@ -122,13 +117,6 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
               id,
               name
             ),
-            supervisor:user_supervisors (
-              supervisor:profiles (
-                id, 
-                first_name,
-                last_name
-              )
-            ),
             user_sbus:user_sbus (
               is_primary,
               sbu:sbus (
@@ -164,7 +152,7 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             question: question.title,
             answer: answer,
             questionType: question.type,
-            rateCount: question.rateCount
+            rateCount: question.rateCount // Add rateCount to the processed answer
           };
         });
 
@@ -172,19 +160,6 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
         const primarySbu = response.user.user_sbus?.find(
           (us: any) => us.is_primary && us.sbu
         );
-
-        // Handle supervisor data safely
-        let supervisorData = null;
-        if (response.user.supervisor?.[0]?.supervisor) {
-          const s = response.user.supervisor[0].supervisor;
-          if (s && typeof s === 'object' && 'id' in s) {
-            supervisorData = {
-              id: s.id,
-              first_name: s.first_name || '',
-              last_name: s.last_name || ''
-            };
-          }
-        }
 
         return {
           id: response.id,
@@ -200,7 +175,6 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             level: response.user.level,
             employee_type: response.user.employee_type,
             employee_role: response.user.employee_role,
-            supervisor: supervisorData
           },
           submitted_at: response.submitted_at,
           answers,

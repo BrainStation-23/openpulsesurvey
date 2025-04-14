@@ -67,13 +67,6 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
               id,
               name
             ),
-            supervisor:user_supervisors (
-              supervisor:profiles (
-                id,
-                first_name,
-                last_name
-              )
-            ),
             user_sbus:user_sbus (
               is_primary,
               sbu:sbus (
@@ -136,19 +129,6 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
         (us: any) => us.is_primary && us.sbu
       );
 
-      // Handle supervisor data safely
-      let supervisorData = null;
-      if (response.user?.supervisor?.[0]?.supervisor) {
-        const s = response.user.supervisor[0].supervisor;
-        if (s && typeof s === 'object' && 'id' in s) {
-          supervisorData = {
-            id: s.id,
-            first_name: s.first_name || '',
-            last_name: s.last_name || ''
-          };
-        }
-      }
-
       return {
         id: response.id,
         respondent: {
@@ -163,7 +143,6 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
           level: response.user?.level,
           employee_type: response.user?.employee_type,
           employee_role: response.user?.employee_role,
-          supervisor: supervisorData
         },
         submitted_at: response.submitted_at,
         answers,

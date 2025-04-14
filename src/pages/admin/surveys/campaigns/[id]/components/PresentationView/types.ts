@@ -1,12 +1,10 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface SurveyQuestion {
   name: string;
   title: string;
   type: string;
-  rateMax?: number;
-  rateCount?: number;
+  rateMax?: number; // Added this for rating questions
 }
 
 export interface SurveyPage {
@@ -32,8 +30,6 @@ export interface CampaignData {
   ends_at: string | null;
   completion_rate: number;
   survey: SurveyData;
-  status?: string;
-  created_at?: string;
   instance?: {
     id: string;
     period_number: number;

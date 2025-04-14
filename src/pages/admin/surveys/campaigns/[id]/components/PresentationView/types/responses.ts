@@ -64,11 +64,6 @@ export interface ProcessedResponse {
       id: string;
       name: string;
     } | null;
-    supervisor: {
-      id: string;
-      first_name: string;
-      last_name: string;
-    } | null;
   };
   submitted_at: string;
   answers: Record<string, {

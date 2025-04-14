@@ -107,8 +107,7 @@ export const createQuestionSlides = async (
     await addQuestionChart(mainSlide, question, processedData);
 
     // Create comparison slides
-    // Added 'supervisor' to the dimension list
-    for (const dimension of ["sbu", "gender", "location", "employment_type", "level", "employee_type", "employee_role", "supervisor"]) {
+    for (const dimension of ["sbu", "gender", "location", "employment_type", "level", "employee_type", "employee_role"]) {
       const comparisonSlide = pptx.addSlide();
       Object.assign(comparisonSlide, slideMasters.CHART);
 
