@@ -31,9 +31,8 @@ export function useSharedPresentation(token: string) {
         throw new Error('This presentation link has expired');
       }
 
-      // Fetch the campaign data with proper query structure - keep select() clean
-      // and use correct filtering methods separately
-      const { data: campaign, error: campaignError } = await supabase
+      // Fetch the campaign data
+      const { data: campaignData, error: campaignError } = await supabase
         .from('survey_campaigns')
         .select(`
           id,
@@ -47,44 +46,48 @@ export function useSharedPresentation(token: string) {
             name,
             description,
             json_data
-          ),
-          instance:campaign_instances(*)
+          )
         `)
-        .eq('id', presentation.campaign_id);
+        .eq('id', presentation.campaign_id)
+        .single();
       
-      // Handle campaign data errors properly
-      if (campaignError) {
-        throw new Error(`Failed to load campaign data: ${campaignError.message}`);
-      }
-      
-      if (!campaign || campaign.length === 0) {
-        throw new Error('Campaign not found');
+      if (campaignError || !campaignData) {
+        throw new Error('Failed to load campaign data');
       }
 
-      // Process the returned data
-      const campaignData = campaign[0];
-      
-      // Ensure json_data is properly processed as an object not a string
+      // Parse json_data if it's a string
       if (typeof campaignData.survey.json_data === 'string') {
         try {
           campaignData.survey.json_data = JSON.parse(campaignData.survey.json_data);
         } catch (e) {
           console.error('Error parsing survey JSON data:', e);
-          // Provide a default empty structure that matches SurveyJsonData
           campaignData.survey.json_data = { pages: [] };
         }
       }
-      
-      // Filter instance data if needed
-      if (presentation.instance_id && campaignData.instance) {
-        campaignData.instance = Array.isArray(campaignData.instance) 
-          ? campaignData.instance.filter(i => i.id === presentation.instance_id) 
-          : [];
+
+      // If there's an instance_id, fetch the instance data separately
+      let instanceData = null;
+      if (presentation.instance_id) {
+        const { data: instance, error: instanceError } = await supabase
+          .from('campaign_instances')
+          .select('id, period_number, starts_at, ends_at, status, completion_rate')
+          .eq('id', presentation.instance_id)
+          .single();
+
+        if (!instanceError && instance) {
+          instanceData = instance;
+        }
       }
+
+      // Construct the final campaign data with proper typing
+      const campaign: CampaignData = {
+        ...campaignData,
+        instance: instanceData
+      };
 
       return {
         presentation,
-        campaign: campaignData as CampaignData, // Type assertion after fixing the data
+        campaign,
         instance_id: presentation.instance_id
       };
     },
