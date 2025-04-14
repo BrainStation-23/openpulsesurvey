@@ -32,6 +32,10 @@ export function SharePresentationModal({ campaignId, instanceId }: SharePresenta
     setIsLoading(true);
 
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+      
       // Generate a random access token
       const accessToken = crypto.randomUUID();
       
@@ -43,7 +47,8 @@ export function SharePresentationModal({ campaignId, instanceId }: SharePresenta
           instance_id: instanceId || null,
           access_token: accessToken,
           expires_at: showExpiryDate ? expiryDate?.toISOString() : null,
-          is_active: true
+          is_active: true,
+          created_by: user.id  // Add the created_by field with current user's ID
         })
         .select()
         .single();
