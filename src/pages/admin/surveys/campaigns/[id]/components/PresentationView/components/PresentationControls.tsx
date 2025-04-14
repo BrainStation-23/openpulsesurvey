@@ -1,12 +1,12 @@
-
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Maximize, Minimize, Loader } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Maximize, Minimize, Loader, Share2 } from "lucide-react";
 import { exportToPptx } from "../utils/pptxExport";
 import { CampaignData } from "../types";
 import { usePresentationResponses } from "../hooks/usePresentationResponses";
 import { useToast } from "@/hooks/use-toast";
 import { usePdfExport } from "../hooks/usePdfExport";
+import { SharePresentationDialog } from "../../SharePresentationDialog";
 
 interface PresentationControlsProps {
   onBack: () => void;
@@ -76,6 +76,13 @@ export function PresentationControls({
         </Button>
 
         <div className="flex items-center gap-2 ml-auto">
+          {window.location.pathname.includes('/admin/') && (
+            <SharePresentationDialog
+              campaignId={campaign.id}
+              instanceId={campaign.instance?.id}
+            />
+          )}
+
           <Button
             variant="ghost"
             size="icon"
