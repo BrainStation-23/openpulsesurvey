@@ -54,6 +54,21 @@ export interface RPCResponseItem {
     email: string;
     first_name?: string;
     last_name?: string;
+    user_sbus?: Array<{
+      sbu: {
+        id: string;
+        name: string;
+      };
+      is_primary: boolean;
+    }>;
+    user_supervisors?: Array<{
+      supervisor: {
+        id: string;
+        first_name?: string;
+        last_name?: string;
+      };
+      is_primary: boolean;
+    }>;
   };
   campaign_anonymous: boolean;
   primary_sbu_name?: string;

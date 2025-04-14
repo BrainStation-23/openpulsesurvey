@@ -57,13 +57,13 @@ export function ResponseDetails({ response, onClose }: ResponseDetailsProps) {
         
   // Get primary SBU
   const primarySBU = response.primary_sbu_name || 
-    ('user' in response && response.user.user_sbus
+    ('user' in response && response.user && response.user.user_sbus
       ? response.user.user_sbus.find(us => us.is_primary)?.sbu.name || "N/A"
       : "N/A");
     
   // Get primary supervisor
   const primarySupervisor = response.primary_supervisor_name || 
-    ('user' in response && response.user.user_supervisors
+    ('user' in response && response.user && response.user.user_supervisors
       ? (() => {
           const supervisor = response.user.user_supervisors.find(us => us.is_primary)?.supervisor;
           return supervisor?.first_name && supervisor?.last_name 
