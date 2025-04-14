@@ -1,25 +1,25 @@
 
-export type SortOption = "date" | "name";
-export type SortDirection = "asc" | "desc";
-
-export type FilterOptions = {
-  search: string;
-  sortBy: SortOption;
-  sortDirection: SortDirection;
-};
-
 export interface Response {
   id: string;
-  status: "assigned" | "in_progress" | "submitted" | "expired";
+  status: string;
   created_at: string;
   updated_at: string;
-  submitted_at: string | null;
+  submitted_at: string;
   response_data: Record<string, any>;
-  campaign_instance_id: string | null;
+  campaign_instance_id: string;
+  assignment: {
+    id: string;
+    campaign_id: string;
+    campaign: {
+      id: string;
+      name: string;
+      anonymous: boolean;
+    };
+  };
   user: {
     id: string;
-    first_name: string | null;
-    last_name: string | null;
+    first_name: string;
+    last_name: string;
     email: string;
     user_sbus: {
       is_primary: boolean;
@@ -32,19 +32,18 @@ export interface Response {
       is_primary: boolean;
       supervisor: {
         id: string;
-        first_name: string | null;
-        last_name: string | null;
+        first_name: string;
+        last_name: string;
         email: string;
       };
     }[];
   };
-  assignment: {
-    id: string;
-    campaign_id: string;
-    campaign: {
-      id: string;
-      name: string;
-      anonymous: boolean;
-    };
-  };
+  total_count?: number;
+}
+
+export interface FilterOptions {
+  search: string;
+  sortBy: "date" | "name";
+  sortDirection: "asc" | "desc";
+  // Additional filters can be added here in the future
 }

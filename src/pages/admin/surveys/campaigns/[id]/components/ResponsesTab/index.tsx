@@ -1,14 +1,15 @@
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Response, FilterOptions } from "./types";
+import { Response } from "./types";
 import { ResponsesList } from "./ResponsesList";
 import { ResponsesFilters } from "./ResponsesFilters";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { exportResponses } from "./utils/export";
 import { useToast } from "@/components/ui/use-toast";
+import { useResponsesData } from "./hooks/useResponsesData";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { PageSizeSelector } from "../AssignmentsTab/components/AssignmentInstanceList/components/PageSizeSelector";
 
 interface ResponsesTabProps {
   campaignId: string;
@@ -18,72 +19,23 @@ interface ResponsesTabProps {
 export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
-  const [filters, setFilters] = useState<FilterOptions>({
-    search: "",
-    sortBy: "date",
-    sortDirection: "desc",
-  });
 
-  const { data: responses, isLoading } = useQuery({
-    queryKey: ["responses", campaignId, instanceId, filters],
-    queryFn: async () => {
-      // If no instanceId is provided, return empty array
-      if (!instanceId) return [];
-
-      const query = supabase
-        .from("survey_responses")
-        .select(`
-          id,
-          status,
-          created_at,
-          updated_at,
-          submitted_at,
-          response_data,
-          campaign_instance_id,
-          assignment:survey_assignments!inner(
-            id,
-            campaign_id,
-            campaign:survey_campaigns!survey_assignments_campaign_id_fkey(
-              id,
-              name,
-              anonymous
-            )
-          ),
-          user:profiles!inner(
-            id,
-            first_name,
-            last_name,
-            email,
-            user_sbus(
-              is_primary,
-              sbu:sbus(
-                id,
-                name
-              )
-            ),
-            user_supervisors!user_supervisors_user_id_fkey(
-              is_primary,
-              supervisor:profiles!user_supervisors_supervisor_id_fkey(
-                id,
-                first_name,
-                last_name,
-                email
-              )
-            )
-          )`)
-        .eq('assignment.campaign_id', campaignId)
-        .eq('campaign_instance_id', instanceId)
-        .order('created_at', { ascending: filters.sortDirection === "asc" });
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      return data as Response[];
-    },
-  });
+  const {
+    responses,
+    totalCount,
+    isLoading,
+    isFetching,
+    currentPage,
+    pageSize,
+    totalPages,
+    filters,
+    setFilters,
+    handlePageChange,
+    handlePageSizeChange
+  } = useResponsesData({ campaignId, instanceId });
 
   const handleExport = async () => {
-    if (responses) {
+    if (responses.length) {
       try {
         setIsExporting(true);
         await exportResponses(responses);
@@ -104,7 +56,7 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !isFetching) {
     return (
       <div className="space-y-4">
         <div className="h-12 w-full animate-pulse bg-muted rounded" />
@@ -125,17 +77,78 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <ResponsesFilters filters={filters} onFiltersChange={setFilters} />
-        <Button 
-          variant="outline" 
-          onClick={handleExport} 
-          disabled={!responses?.length || isExporting}
-        >
-          <Download className="h-4 w-4 mr-2" />
-          {isExporting ? "Exporting..." : "Export"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <PageSizeSelector
+            pageSize={pageSize}
+            onPageSizeChange={handlePageSizeChange}
+          />
+          <Button 
+            variant="outline" 
+            onClick={handleExport} 
+            disabled={!responses.length || isExporting}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {isExporting ? "Exporting..." : "Export"}
+          </Button>
+        </div>
       </div>
 
-      <ResponsesList responses={responses || []} />
+      <ResponsesList 
+        responses={responses} 
+        isLoading={isLoading || isFetching} 
+      />
+      
+      {totalPages > 1 && (
+        <div className="flex justify-between items-center mt-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {responses.length} of {totalCount} responses
+          </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+              
+              {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                // Logic to show pages around current page
+                let pageNum = i + 1;
+                if (totalPages > 5) {
+                  if (currentPage > 3) {
+                    pageNum = i + currentPage - 2;
+                  }
+                  if (currentPage > totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  }
+                }
+                
+                if (pageNum <= totalPages) {
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        isActive={pageNum === currentPage}
+                        onClick={() => handlePageChange(pageNum)}
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                }
+                return null;
+              })}
+
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
     </div>
   );
 }
