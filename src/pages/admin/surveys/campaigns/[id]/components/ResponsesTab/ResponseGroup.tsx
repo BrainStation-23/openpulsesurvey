@@ -1,94 +1,77 @@
-import { useState } from "react";
-import { format } from "date-fns";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
+import { RPCResponseItem } from "./types";
+import { Card, CardContent } from "@/components/ui/card";
+import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { FileText } from "lucide-react";
-import { ResponseDetails } from "./ResponseDetails";
-import type { Response } from "./types";
+import { Eye } from "lucide-react";
 
 interface ResponseGroupProps {
-  responses: Response[];
+  responses: RPCResponseItem[];
+  onViewResponse: (response: RPCResponseItem) => void;
 }
 
-export function ResponseGroup({ responses }: ResponseGroupProps) {
-  const [selectedResponse, setSelectedResponse] = useState<Response | null>(null);
-
-  const getPrimarySBU = (response: Response) => {
-    const primarySBU = response.user.user_sbus.find(us => us.is_primary);
-    return primarySBU?.sbu.name || "N/A";
-  };
-
-  const getPrimarySupervisor = (response: Response) => {
-  const primarySupervisor = response.user.user_supervisors.find(us => us.is_primary);
-  if (!primarySupervisor) return "N/A";
-  
-  const { first_name, last_name } = primarySupervisor.supervisor;
-  const fullName = [first_name, last_name]
-    .filter(name => name && name.trim()) // Filter out empty or whitespace-only strings
-    .join(" ")
-    .trim();
-    
-  return fullName || "N/A";
-};
-
-
-  const getRespondentName = (response: Response) => {
-    if (response.assignment.campaign.anonymous) {
-      return "Anonymous";
-    }
-    return response.user.first_name && response.user.last_name
-      ? `${response.user.first_name} ${response.user.last_name}`
-      : response.user.email;
-  };
-
+export function ResponseGroup({ responses, onViewResponse }: ResponseGroupProps) {
   return (
-    <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Respondent</TableHead>
-            <TableHead>Primary SBU</TableHead>
-            <TableHead>Primary Manager</TableHead>
-            <TableHead>Submitted At</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {responses.map((response) => (
-            <TableRow key={response.id}>
-              <TableCell>{getRespondentName(response)}</TableCell>
-              <TableCell>{getPrimarySBU(response)}</TableCell>
-              <TableCell>{getPrimarySupervisor(response)}</TableCell>
-              <TableCell>
-                {response.submitted_at
-                  ? format(new Date(response.submitted_at), "PPp")
-                  : "Not submitted"}
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedResponse(response)}
+    <div className="space-y-4">
+      {responses.map((response) => (
+        <Card key={response.id} className="overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-start">
+              <div>
+                {response.campaign_anonymous ? (
+                  <h3 className="font-medium">Anonymous</h3>
+                ) : (
+                  <>
+                    <h3 className="font-medium">
+                      {response.user?.first_name} {response.user?.last_name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{response.user?.email}</p>
+                  </>
+                )}
+                
+                {response.primary_sbu_name && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <span className="font-medium">SBU:</span> {response.primary_sbu_name}
+                  </p>
+                )}
+                
+                {response.primary_supervisor_name && (
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium">Manager:</span> {response.primary_supervisor_name}
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={() => onViewResponse(response)}
                 >
-                  <FileText className="h-4 w-4" />
+                  <Eye className="h-4 w-4 mr-1" />
+                  View
                 </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      <ResponseDetails
-        response={selectedResponse}
-        onClose={() => setSelectedResponse(null)}
-      />
-    </>
+                
+                <div className="text-right">
+                  <span className={`px-2 py-1 rounded-full text-xs 
+                    ${response.status === 'submitted' ? 'bg-green-100 text-green-800' : 
+                     response.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
+                     'bg-gray-100 text-gray-800'}`}>
+                    {response.status}
+                  </span>
+                  
+                  {response.submitted_at && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Submitted {formatDistanceToNow(new Date(response.submitted_at), { addSuffix: true })}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }

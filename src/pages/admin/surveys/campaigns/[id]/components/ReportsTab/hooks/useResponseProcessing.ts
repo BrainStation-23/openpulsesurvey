@@ -6,7 +6,7 @@ interface ProcessedAnswer {
   question: string;
   answer: any;
   questionType: string;
-  rateCount?: number;  // Added this property
+  rateCount?: number;
 }
 
 export interface ProcessedResponse {
@@ -38,6 +38,11 @@ export interface ProcessedResponse {
     employee_role: {
       id: string;
       name: string;
+    } | null;
+    supervisor: {
+      id: string;
+      first_name: string;
+      last_name: string;
     } | null;
   };
   submitted_at: string;
@@ -93,6 +98,7 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
           response_data,
           submitted_at,
           user:profiles!survey_responses_user_id_fkey (
+            id,
             first_name,
             last_name,
             email,
@@ -134,11 +140,35 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
 
       const { data: responses } = await query;
 
+      // Fetch supervisor information separately
+      const { data: supervisorData } = await supabase
+        .from("user_supervisors")
+        .select(`
+          user_id,
+          is_primary,
+          supervisor:profiles!user_supervisors_supervisor_id_fkey (
+            id, 
+            first_name, 
+            last_name
+          )
+        `)
+        .in('user_id', responses?.map(r => r.user.id) || []);
+
       if (!responses) {
         return {
           questions: surveyQuestions,
           responses: [],
         };
+      }
+
+      // Create a lookup map for supervisor data
+      const supervisorMap = new Map();
+      if (supervisorData) {
+        supervisorData.forEach(item => {
+          if (item.is_primary && item.supervisor) {
+            supervisorMap.set(item.user_id, item.supervisor);
+          }
+        });
       }
 
       // Process each response
@@ -152,7 +182,7 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             question: question.title,
             answer: answer,
             questionType: question.type,
-            rateCount: question.rateCount // Add rateCount to the processed answer
+            rateCount: question.rateCount
           };
         });
 
@@ -160,6 +190,9 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
         const primarySbu = response.user.user_sbus?.find(
           (us: any) => us.is_primary && us.sbu
         );
+        
+        // Get supervisor from the map
+        const supervisor = supervisorMap.get(response.user.id);
 
         return {
           id: response.id,
@@ -175,6 +208,7 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             level: response.user.level,
             employee_type: response.user.employee_type,
             employee_role: response.user.employee_role,
+            supervisor: supervisor || null
           },
           submitted_at: response.submitted_at,
           answers,
