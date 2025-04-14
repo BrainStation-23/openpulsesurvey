@@ -38,7 +38,9 @@ export function useSharedPresentation(token: string) {
           id,
           name,
           description,
-          created_at,
+          starts_at,
+          ends_at,
+          completion_rate,
           survey:survey_id (
             id,
             name,
