@@ -39,6 +39,11 @@ export interface ProcessedResponse {
       id: string;
       name: string;
     } | null;
+    supervisor: {
+      id: string;
+      first_name: string;
+      last_name: string;
+    } | null;
   };
   submitted_at: string;
   answers: Record<string, ProcessedAnswer>;
@@ -161,6 +166,14 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
           (us: any) => us.is_primary && us.sbu
         );
 
+        // Get supervisor information with null checks
+        const s = response.user?.supervisor;
+        const supervisor = s ? {
+          id: s.id || '',
+          first_name: s.first_name || '',
+          last_name: s.last_name || ''
+        } : null;
+
         return {
           id: response.id,
           respondent: {
@@ -175,6 +188,7 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             level: response.user.level,
             employee_type: response.user.employee_type,
             employee_role: response.user.employee_role,
+            supervisor: supervisor
           },
           submitted_at: response.submitted_at,
           answers,
