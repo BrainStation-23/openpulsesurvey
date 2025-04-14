@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { CampaignData } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types";
 import { SharedPresentation } from "@/types/shared-presentations";
 

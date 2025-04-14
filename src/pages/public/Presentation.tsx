@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -13,7 +12,7 @@ import { useSharedPresentation } from "./hooks/useSharedPresentation";
 import { PublicPresentationControls } from "./components/PublicPresentationControls";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { Loader } from "@/components/ui/loader";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function Presentation() {
   const { token } = useParams();
@@ -79,7 +78,7 @@ export default function Presentation() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader className="w-8 h-8" />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
