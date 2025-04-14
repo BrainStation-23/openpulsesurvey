@@ -48,6 +48,52 @@ export interface FilterOptions {
   // Additional filters can be added here in the future
 }
 
+// Define the RPC response structure matching what the database returns
+export interface RPCResponseItem {
+  id: string;
+  assignment_id: string;
+  user_id: string;
+  campaign_instance_id: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  submitted_at: string | null;
+  status: string;
+  response_data: Record<string, any>;
+  state_data: Record<string, any> | null;
+  user: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+    user_sbus: {
+      is_primary: boolean;
+      sbu: {
+        id: string;
+        name: string;
+      };
+    }[] | null;
+    user_supervisors: {
+      is_primary: boolean;
+      supervisor: {
+        id: string;
+        first_name: string | null;
+        last_name: string | null;
+        email: string;
+      };
+    }[] | null;
+  };
+  assignment: {
+    id: string;
+    campaign_id: string;
+    campaign: {
+      id: string;
+      name: string;
+      anonymous: boolean;
+    };
+  };
+  total_count: number;
+}
+
 // Define the database RPC function type
 export type GetPaginatedCampaignResponsesFunction = (
   args: {
@@ -59,4 +105,4 @@ export type GetPaginatedCampaignResponsesFunction = (
     p_sort_by: string;
     p_sort_direction: string;
   }
-) => Response[];
+) => RPCResponseItem[];

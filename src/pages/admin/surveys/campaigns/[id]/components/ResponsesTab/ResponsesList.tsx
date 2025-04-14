@@ -1,10 +1,10 @@
 
-import { Response } from "./types";
+import { RPCResponseItem } from "./types";
 import { ResponseGroup } from "./ResponseGroup";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface ResponsesListProps {
-  responses: Response[];
+  responses: RPCResponseItem[];
   isLoading?: boolean;
 }
 
