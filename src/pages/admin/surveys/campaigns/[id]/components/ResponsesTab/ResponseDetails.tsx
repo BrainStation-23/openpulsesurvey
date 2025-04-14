@@ -1,3 +1,4 @@
+
 import {
   Sheet,
   SheetContent,
@@ -32,17 +33,27 @@ export function ResponseDetails({ response, onClose }: ResponseDetailsProps) {
     return value;
   };
 
-  const getPrimarySBU = (response: Response) => {
-    const primarySBU = response.user.user_sbus.find(us => us.is_primary);
-    return primarySBU?.sbu.name || "N/A";
-  };
-
-  const getPrimarySupervisor = (response: Response) => {
-    const primarySupervisor = response.user.user_supervisors.find(us => us.is_primary);
-    if (!primarySupervisor) return "N/A";
-    const { first_name, last_name } = primarySupervisor.supervisor;
-    return first_name && last_name ? `${first_name} ${last_name}` : "N/A";
-  };
+  if (!response) return null;
+  
+  const isAnonymous = response.assignment?.campaign?.anonymous;
+  const respondentName = isAnonymous 
+    ? "Anonymous" 
+    : (response.user.first_name && response.user.last_name 
+        ? `${response.user.first_name} ${response.user.last_name}` 
+        : response.user.email);
+        
+  // Get primary SBU from response
+  const primarySBU = response.primary_sbu_name || 
+    (response.user.user_sbus?.find(us => us.is_primary)?.sbu.name || "N/A");
+    
+  // Get primary supervisor from response
+  const primarySupervisor = response.primary_supervisor_name || 
+    (() => {
+      const supervisor = response.user.user_supervisors?.find(us => us.is_primary)?.supervisor;
+      return supervisor?.first_name && supervisor?.last_name 
+        ? `${supervisor.first_name} ${supervisor.last_name}` 
+        : "N/A";
+    })();
 
   return (
     <Sheet open={!!response} onOpenChange={(open) => !open && onClose()}>
@@ -51,63 +62,55 @@ export function ResponseDetails({ response, onClose }: ResponseDetailsProps) {
           <SheetTitle>Response Details</SheetTitle>
         </SheetHeader>
 
-        {response && (
-          <div className="mt-6 space-y-6">
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Respondent
-              </h3>
-              <p>
-                {response.assignment.campaign.anonymous
-                  ? "Anonymous"
-                  : response.user.first_name && response.user.last_name
-                  ? `${response.user.first_name} ${response.user.last_name}`
-                  : response.user.email}
-              </p>
-            </div>
+        <div className="mt-6 space-y-6">
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Respondent
+            </h3>
+            <p>{respondentName}</p>
+          </div>
 
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Primary SBU
-              </h3>
-              <p>{getPrimarySBU(response)}</p>
-            </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Primary SBU
+            </h3>
+            <p>{primarySBU}</p>
+          </div>
 
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Primary Manager
-              </h3>
-              <p>{getPrimarySupervisor(response)}</p>
-            </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Primary Manager
+            </h3>
+            <p>{primarySupervisor}</p>
+          </div>
 
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Submitted At
-              </h3>
-              <p>
-                {response.submitted_at
-                  ? format(new Date(response.submitted_at), "PPp")
-                  : "Not submitted"}
-              </p>
-            </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Submitted At
+            </h3>
+            <p>
+              {response.submitted_at
+                ? format(new Date(response.submitted_at), "PPp")
+                : "Not submitted"}
+            </p>
+          </div>
 
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Responses
-              </h3>
-              <div className="border rounded-lg divide-y">
-                {Object.entries(response.response_data).map(([question, answer]) => (
-                  <div key={question} className="p-4">
-                    <div className="font-medium mb-2">{question}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {formatAnswer(answer)}
-                    </div>
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Responses
+            </h3>
+            <div className="border rounded-lg divide-y">
+              {Object.entries(response.response_data).map(([question, answer]) => (
+                <div key={question} className="p-4">
+                  <div className="font-medium mb-2">{question}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {formatAnswer(answer)}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
-        )}
+        </div>
       </SheetContent>
     </Sheet>
   );

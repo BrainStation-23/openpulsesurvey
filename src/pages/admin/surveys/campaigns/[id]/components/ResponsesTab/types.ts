@@ -39,6 +39,8 @@ export interface Response {
     }[];
   };
   total_count?: number;
+  primary_sbu_name?: string;
+  primary_supervisor_name?: string;
 }
 
 export interface FilterOptions {
@@ -61,6 +63,9 @@ export interface RPCResponseItem {
   response_data: Record<string, any>;
   state_data: Record<string, any> | null;
   total_count: number;
+  campaign_anonymous: boolean;
+  primary_sbu_name: string | null;
+  primary_supervisor_name: string | null;
   user: {
     id: string;
     first_name: string | null;

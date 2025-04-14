@@ -15,15 +15,26 @@ export function ResponseGroup({ responses }: ResponseGroupProps) {
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="font-medium">
-                  {response.user?.first_name} {response.user?.last_name}
-                </h3>
-                <p className="text-sm text-muted-foreground">{response.user?.email}</p>
+                {response.campaign_anonymous ? (
+                  <h3 className="font-medium">Anonymous</h3>
+                ) : (
+                  <>
+                    <h3 className="font-medium">
+                      {response.user?.first_name} {response.user?.last_name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{response.user?.email}</p>
+                  </>
+                )}
                 
-                {response.user?.user_sbus && response.user.user_sbus.length > 0 && (
+                {response.primary_sbu_name && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    {response.user.user_sbus.find(sbu => sbu.is_primary)?.sbu.name || 
-                     response.user.user_sbus[0].sbu.name}
+                    <span className="font-medium">SBU:</span> {response.primary_sbu_name}
+                  </p>
+                )}
+                
+                {response.primary_supervisor_name && (
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium">Manager:</span> {response.primary_supervisor_name}
                   </p>
                 )}
               </div>
