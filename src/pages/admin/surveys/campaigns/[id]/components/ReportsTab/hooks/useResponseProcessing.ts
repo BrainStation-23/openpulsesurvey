@@ -129,9 +129,9 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
                 name
               )
             ),
-            user_supervisors:user_supervisors (
+            user_supervisors:user_supervisors!profiles_id_fkey (
               is_primary,
-              supervisor:profiles (
+              supervisor:profiles!user_supervisors_supervisor_id_fkey (
                 id, 
                 first_name, 
                 last_name
