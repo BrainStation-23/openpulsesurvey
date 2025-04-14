@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -16,10 +17,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { SharePresentationDialog } from "./SharePresentationDialog";
 
 interface CampaignHeaderProps {
-  campaign: any;
+  campaign: {
+    id: string;
+    name: string;
+    description: string | null;
+    status: string;
+    created_at: string;
+    starts_at: string;
+    ends_at: string;
+  } | undefined;
   isLoading: boolean;
   selectedInstanceId?: string;
 }
@@ -33,6 +41,7 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
   const [editedDescription, setEditedDescription] = useState("");
   const [editedStatus, setEditedStatus] = useState("");
 
+  // Update local state when campaign data changes
   useEffect(() => {
     if (campaign) {
       setEditedName(campaign.name);
@@ -116,8 +125,8 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
   if (!campaign) return null;
 
   return (
-    <div className="flex flex-col space-y-2 md:flex-row md:justify-between md:space-y-0">
-      <div>
+    <div className="space-y-4">
+      <div className="flex justify-between items-start">
         <div className="space-y-2 flex-1">
           {isEditing ? (
             <div className="space-y-2">
@@ -206,13 +215,6 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
       <div className="flex gap-4 text-sm text-muted-foreground">
         <span>Starts: {formatDate(campaign.starts_at)}</span>
         <span>Ends: {formatDate(campaign.ends_at)}</span>
-      </div>
-
-      <div>
-        <SharePresentationDialog 
-          campaignId={campaign.id}
-          instanceId={selectedInstanceId}
-        />
       </div>
     </div>
   );
