@@ -67,6 +67,13 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
               id,
               name
             ),
+            supervisor:user_supervisors (
+              supervisor:profiles (
+                id,
+                first_name,
+                last_name
+              )
+            ),
             user_sbus:user_sbus (
               is_primary,
               sbu:sbus (
@@ -129,6 +136,9 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
         (us: any) => us.is_primary && us.sbu
       );
 
+      // Find primary supervisor with null checks
+      const primarySupervisor = response.user?.supervisor?.[0]?.supervisor || null;
+
       return {
         id: response.id,
         respondent: {
@@ -143,6 +153,7 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
           level: response.user?.level,
           employee_type: response.user?.employee_type,
           employee_role: response.user?.employee_role,
+          supervisor: primarySupervisor
         },
         submitted_at: response.submitted_at,
         answers,

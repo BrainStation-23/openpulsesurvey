@@ -122,10 +122,12 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
               id,
               name
             ),
-            supervisor:profiles (
-              id, 
-              first_name,
-              last_name
+            supervisor:user_supervisors (
+              supervisor:profiles (
+                id, 
+                first_name,
+                last_name
+              )
             ),
             user_sbus:user_sbus (
               is_primary,
@@ -162,7 +164,7 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             question: question.title,
             answer: answer,
             questionType: question.type,
-            rateCount: question.rateCount // Add rateCount to the processed answer
+            rateCount: question.rateCount
           };
         });
 
@@ -170,6 +172,9 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
         const primarySbu = response.user.user_sbus?.find(
           (us: any) => us.is_primary && us.sbu
         );
+
+        // Find primary supervisor
+        const primarySupervisor = response.user.supervisor?.[0]?.supervisor || null;
 
         return {
           id: response.id,
@@ -185,7 +190,7 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             level: response.user.level,
             employee_type: response.user.employee_type,
             employee_role: response.user.employee_role,
-            supervisor: response.user.supervisor,
+            supervisor: primarySupervisor
           },
           submitted_at: response.submitted_at,
           answers,
