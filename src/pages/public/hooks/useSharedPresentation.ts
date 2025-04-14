@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CampaignData } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types";
 import { SharedPresentation } from "@/types/shared-presentations";
+import { SurveyJsonData } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types";
 
 interface SharedPresentationData {
   presentation: SharedPresentation;
@@ -55,18 +56,30 @@ export function useSharedPresentation(token: string) {
         throw new Error('Failed to load campaign data');
       }
 
-      // Parse json_data if it's a string
-      if (typeof campaignData.survey.json_data === 'string') {
-        try {
-          campaignData.survey.json_data = JSON.parse(campaignData.survey.json_data);
-        } catch (e) {
-          console.error('Error parsing survey JSON data:', e);
-          campaignData.survey.json_data = { pages: [] };
+      // Create a properly typed campaign object
+      const campaign: CampaignData = {
+        ...campaignData,
+        survey: {
+          ...campaignData.survey,
+          // Ensure json_data is properly parsed and typed
+          json_data: typeof campaignData.survey.json_data === 'string'
+            ? JSON.parse(campaignData.survey.json_data) as SurveyJsonData
+            : campaignData.survey.json_data as SurveyJsonData
+        },
+        instance: null // Will be populated if there's an instance_id
+      };
+
+      // Handle parsing errors
+      try {
+        if (typeof campaignData.survey.json_data === 'string') {
+          campaign.survey.json_data = JSON.parse(campaignData.survey.json_data) as SurveyJsonData;
         }
+      } catch (e) {
+        console.error('Error parsing survey JSON data:', e);
+        campaign.survey.json_data = { pages: [] };
       }
 
       // If there's an instance_id, fetch the instance data separately
-      let instanceData = null;
       if (presentation.instance_id) {
         const { data: instance, error: instanceError } = await supabase
           .from('campaign_instances')
@@ -75,15 +88,9 @@ export function useSharedPresentation(token: string) {
           .single();
 
         if (!instanceError && instance) {
-          instanceData = instance;
+          campaign.instance = instance;
         }
       }
-
-      // Construct the final campaign data with proper typing
-      const campaign: CampaignData = {
-        ...campaignData,
-        instance: instanceData
-      };
 
       return {
         presentation,
