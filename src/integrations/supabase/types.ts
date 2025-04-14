@@ -3050,6 +3050,9 @@ export type Database = {
           response_data: Json
           state_data: Json
           total_count: number
+          campaign_anonymous: boolean
+          primary_sbu_name: string
+          primary_supervisor_name: string
         }[]
       }
       get_pending_surveys_count: {
