@@ -64,7 +64,7 @@ export interface ProcessedResponse {
       id: string;
       name: string;
     } | null;
-    supervisor?: {
+    supervisor: {
       id: string;
       first_name: string;
       last_name: string;

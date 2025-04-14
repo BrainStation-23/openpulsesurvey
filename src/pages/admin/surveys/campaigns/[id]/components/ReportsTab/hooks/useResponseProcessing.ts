@@ -6,7 +6,7 @@ interface ProcessedAnswer {
   question: string;
   answer: any;
   questionType: string;
-  rateCount?: number;  // Added this property
+  rateCount?: number;
 }
 
 export interface ProcessedResponse {
@@ -128,6 +128,14 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
                 id,
                 name
               )
+            ),
+            user_supervisors:user_supervisors (
+              is_primary,
+              supervisor:profiles (
+                id, 
+                first_name, 
+                last_name
+              )
             )
           )
         `);
@@ -157,7 +165,7 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             question: question.title,
             answer: answer,
             questionType: question.type,
-            rateCount: question.rateCount // Add rateCount to the processed answer
+            rateCount: question.rateCount
           };
         });
 
@@ -165,13 +173,17 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
         const primarySbu = response.user.user_sbus?.find(
           (us: any) => us.is_primary && us.sbu
         );
-
-        // Get supervisor information with null checks
-        const s = response.user?.supervisor;
-        const supervisor = s ? {
-          id: s.id || '',
-          first_name: s.first_name || '',
-          last_name: s.last_name || ''
+        
+        // Find primary supervisor with null checks
+        const primarySupervisor = response.user.user_supervisors?.find(
+          (us: any) => us.is_primary && us.supervisor
+        );
+        
+        // Get supervisor information
+        const supervisor = primarySupervisor?.supervisor ? {
+          id: primarySupervisor.supervisor.id,
+          first_name: primarySupervisor.supervisor.first_name || '',
+          last_name: primarySupervisor.supervisor.last_name || ''
         } : null;
 
         return {

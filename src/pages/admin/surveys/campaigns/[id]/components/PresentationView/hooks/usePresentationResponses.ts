@@ -73,6 +73,14 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
                 id,
                 name
               )
+            ),
+            user_supervisors:user_supervisors (
+              is_primary,
+              supervisor:profiles (
+                id,
+                first_name,
+                last_name
+              )
             )
           )
         `);
@@ -129,12 +137,16 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
         (us: any) => us.is_primary && us.sbu
       );
 
-      // Get supervisor information with null checks
-      const s = response.user?.supervisor;
-      const supervisor = s ? {
-        id: s.id || '',
-        first_name: s.first_name || '',
-        last_name: s.last_name || ''
+      // Find primary supervisor with null checks
+      const primarySupervisor = response.user?.user_supervisors?.find(
+        (us: any) => us.is_primary && us.supervisor
+      );
+      
+      // Get supervisor information
+      const supervisor = primarySupervisor?.supervisor ? {
+        id: primarySupervisor.supervisor.id,
+        first_name: primarySupervisor.supervisor.first_name || '',
+        last_name: primarySupervisor.supervisor.last_name || ''
       } : null;
 
       return {
