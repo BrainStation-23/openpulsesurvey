@@ -3,13 +3,12 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePresentationResponses } from "../PresentationView/hooks/usePresentationResponses";
-import { useResponseProcessing } from "./hooks/useResponseProcessing";
 import { CampaignData } from "../PresentationView/types";
 import { BooleanComparison } from "./components/comparisons/BooleanComparison";
 import { TextComparison } from "./components/comparisons/TextComparison";
 import { NpsComparison } from "./components/comparisons/NpsComparison";
 import { ComparisonSelector } from "./components/ComparisonSelector";
-import { ComparisonDimension } from "./types/comparison";
+import { ComparisonDimension } from "../PresentationView/types/comparison";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface ReportsTabProps {
@@ -22,11 +21,6 @@ export function ReportsTab({ campaign, instanceId }: ReportsTabProps) {
   const [activeTab, setActiveTab] = useState("overview");
   
   const { data: responseData, isLoading } = usePresentationResponses(campaign.id, instanceId);
-  const { aggregatedResponses, questionsMap } = useResponseProcessing(responseData);
-
-  const surveyQuestions = (campaign?.survey.json_data.pages || [])
-    .flatMap((page) => page.elements || [])
-    .filter((question) => !["html", "panel"].includes(question.type || ""));
 
   if (isLoading) {
     return (
@@ -36,6 +30,18 @@ export function ReportsTab({ campaign, instanceId }: ReportsTabProps) {
     );
   }
   
+  if (!responseData) {
+    return (
+      <div className="p-4 text-center">
+        <p className="text-muted-foreground">No response data available for this campaign.</p>
+      </div>
+    );
+  }
+
+  const surveyQuestions = (campaign?.survey.json_data.pages || [])
+    .flatMap((page) => page.elements || [])
+    .filter((question) => !["html", "panel"].includes(question.type || ""));
+
   return (
     <div className="space-y-6 p-4">
       <div className="flex justify-between items-center">
@@ -84,23 +90,23 @@ export function ReportsTab({ campaign, instanceId }: ReportsTabProps) {
                     rateCount={question.rateCount}
                   />
                 </div>
-                {question.type === "boolean" && aggregatedResponses && (
+                {question.type === "boolean" && responseData && (
                   <BooleanComparison
-                    responses={aggregatedResponses}
+                    responses={responseData.responses}
                     questionName={question.name}
                     dimension={selectedComparisonDimension}
                   />
                 )}
-                {(question.type === "text" || question.type === "comment") && aggregatedResponses && (
+                {(question.type === "text" || question.type === "comment") && responseData && (
                   <TextComparison
-                    responses={aggregatedResponses}
+                    responses={responseData.responses}
                     questionName={question.name}
                     dimension={selectedComparisonDimension}
                   />
                 )}
-                {question.type === "rating" && aggregatedResponses && (
+                {question.type === "rating" && responseData && (
                   <NpsComparison
-                    responses={aggregatedResponses}
+                    responses={responseData.responses}
                     questionName={question.name}
                     dimension={selectedComparisonDimension}
                     isNps={question.rateCount === 10}

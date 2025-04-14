@@ -16,7 +16,9 @@ export function QuestionSlidesRenderer({ campaign, currentSlide }: QuestionSlide
 
   return surveyQuestions.map((question, index) => {
     const baseSlideIndex = 3 + (index * (1 + COMPARISON_DIMENSIONS.length));
-    const isSatisfactionQuestion = question.type === 'rating' && question.rateCount === 5;
+    // Check for rating type and look for rateMax or rateCount to determine if it's a satisfaction question
+    const isSatisfactionQuestion = question.type === 'rating' && 
+      ((question.rateCount === 5) || (question.rateMax === 5));
     
     const slides = [(
       <QuestionSlide
