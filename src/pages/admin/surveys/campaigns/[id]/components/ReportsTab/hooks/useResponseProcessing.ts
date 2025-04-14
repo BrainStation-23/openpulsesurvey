@@ -173,8 +173,18 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
           (us: any) => us.is_primary && us.sbu
         );
 
-        // Find primary supervisor
-        const primarySupervisor = response.user.supervisor?.[0]?.supervisor || null;
+        // Handle supervisor data safely
+        let supervisorData = null;
+        if (response.user.supervisor?.[0]?.supervisor) {
+          const s = response.user.supervisor[0].supervisor;
+          if (s && typeof s === 'object' && 'id' in s) {
+            supervisorData = {
+              id: s.id,
+              first_name: s.first_name || '',
+              last_name: s.last_name || ''
+            };
+          }
+        }
 
         return {
           id: response.id,
@@ -190,7 +200,7 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             level: response.user.level,
             employee_type: response.user.employee_type,
             employee_role: response.user.employee_role,
-            supervisor: primarySupervisor
+            supervisor: supervisorData
           },
           submitted_at: response.submitted_at,
           answers,
