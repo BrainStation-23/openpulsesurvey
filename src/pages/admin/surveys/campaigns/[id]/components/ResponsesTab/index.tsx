@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Response } from "./types";
 import { ResponsesList } from "./ResponsesList";
@@ -35,10 +34,10 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
   } = useResponsesData({ campaignId, instanceId });
 
   const handleExport = async () => {
-    if (responses.length) {
+    if (responses.length && instanceId) {
       try {
         setIsExporting(true);
-        await exportResponses(responses);
+        await exportResponses(responses, campaignId, instanceId);
         toast({
           title: "Export successful",
           description: "Your survey responses have been exported to CSV.",
@@ -85,7 +84,7 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
           <Button 
             variant="outline" 
             onClick={handleExport} 
-            disabled={!responses.length || isExporting}
+            disabled={!responses.length || isExporting || !instanceId}
           >
             <Download className="h-4 w-4 mr-2" />
             {isExporting ? "Exporting..." : "Export"}
@@ -113,7 +112,6 @@ export function ResponsesTab({ campaignId, instanceId }: ResponsesTabProps) {
               </PaginationItem>
               
               {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                // Logic to show pages around current page
                 let pageNum = i + 1;
                 if (totalPages > 5) {
                   if (currentPage > 3) {

@@ -1,13 +1,10 @@
 
-import { Response } from "../types";
+import { Response, RPCResponseItem } from "../types";
 import { supabase } from "@/integrations/supabase/client";
 import { unparse } from "papaparse";
 
-export async function exportResponses(responses: Response[]) {
+export async function exportResponses(responses: Response[] | RPCResponseItem[], campaignId: string, instanceId: string) {
   if (!responses.length) return;
-
-  const campaignId = responses[0].assignment.campaign_id;
-  const instanceId = responses[0].campaign_instance_id;
 
   // Get the formatted data from our database function
   const { data: exportData, error } = await supabase
