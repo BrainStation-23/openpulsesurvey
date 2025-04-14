@@ -31,7 +31,12 @@ export function useSharedPresentation(token: string) {
         throw new Error('This presentation link has expired');
       }
 
-      // Fetch the campaign data
+      // Construct the instance part of the query properly
+      const instanceFilter = presentation.instance_id 
+        ? `instance:campaign_instances!id.eq.${presentation.instance_id}` 
+        : 'instance:null';
+
+      // Fetch the campaign data with proper SQL syntax
       const { data: campaign, error: campaignError } = await supabase
         .from('survey_campaigns')
         .select(`
@@ -47,7 +52,7 @@ export function useSharedPresentation(token: string) {
             description,
             json_data
           ),
-          instance:${presentation.instance_id ? `'${presentation.instance_id}'` : 'null'}
+          ${instanceFilter}
         `)
         .eq('id', presentation.campaign_id)
         .single();
