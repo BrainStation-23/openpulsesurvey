@@ -22,7 +22,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Copy, ExternalLink, Share2, CopyCheck } from "lucide-react";
+import { CalendarIcon, Copy, ExternalLink, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +44,6 @@ export function SharePresentationDialog({
   const [hasExpiry, setHasExpiry] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
 
   // Get base URL for sharing
   const baseUrl = window.location.origin;
@@ -90,14 +89,10 @@ export function SharePresentationDialog({
   const copyLinkToClipboard = () => {
     if (shareUrl) {
       navigator.clipboard.writeText(shareUrl);
-      setLinkCopied(true);
       toast({
         title: "Link copied",
         description: "Presentation link copied to clipboard",
       });
-
-      // Reset link copied state after 2 seconds
-      setTimeout(() => setLinkCopied(false), 2000);
     }
   };
 
@@ -113,7 +108,6 @@ export function SharePresentationDialog({
     setExpiryDate(undefined);
     setHasExpiry(false);
     setAccessToken(null);
-    setLinkCopied(false);
   };
 
   return (
@@ -208,11 +202,7 @@ export function SharePresentationDialog({
                   onClick={copyLinkToClipboard}
                   className="ml-2"
                 >
-                  {linkCopied ? (
-                    <CopyCheck className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
+                  <Copy className="h-4 w-4" />
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground">
