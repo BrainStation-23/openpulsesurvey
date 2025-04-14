@@ -6,10 +6,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { format } from "date-fns";
-import type { Response } from "./types";
+import type { Response, RPCResponseItem } from "./types";
 
 interface ResponseDetailsProps {
-  response: Response | null;
+  response: Response | RPCResponseItem | null;
   onClose: () => void;
 }
 
@@ -35,25 +35,42 @@ export function ResponseDetails({ response, onClose }: ResponseDetailsProps) {
 
   if (!response) return null;
   
-  const isAnonymous = response.assignment?.campaign?.anonymous;
-  const respondentName = isAnonymous 
-    ? "Anonymous" 
-    : (response.user.first_name && response.user.last_name 
+  // Determine if the response is anonymous
+  const isAnonymous = 'assignment' in response && response.assignment?.campaign?.anonymous 
+    ? response.assignment.campaign.anonymous 
+    : ('campaign_anonymous' in response ? response.campaign_anonymous : false);
+
+  // Get respondent information
+  let respondentName = "Anonymous";
+  if (!isAnonymous) {
+    if ('user' in response && response.user) {
+      respondentName = response.user.first_name && response.user.last_name 
         ? `${response.user.first_name} ${response.user.last_name}` 
-        : response.user.email);
+        : response.user.email;
+    } else if ('user_id' in response) {
+      // For RPCResponseItem with user property
+      respondentName = response.user?.first_name && response.user?.last_name 
+        ? `${response.user.first_name} ${response.user.last_name}` 
+        : (response.user?.email || "Unknown User");
+    }
+  }
         
-  // Get primary SBU from response
+  // Get primary SBU
   const primarySBU = response.primary_sbu_name || 
-    (response.user.user_sbus?.find(us => us.is_primary)?.sbu.name || "N/A");
+    ('user' in response && response.user.user_sbus
+      ? response.user.user_sbus.find(us => us.is_primary)?.sbu.name || "N/A"
+      : "N/A");
     
-  // Get primary supervisor from response
+  // Get primary supervisor
   const primarySupervisor = response.primary_supervisor_name || 
-    (() => {
-      const supervisor = response.user.user_supervisors?.find(us => us.is_primary)?.supervisor;
-      return supervisor?.first_name && supervisor?.last_name 
-        ? `${supervisor.first_name} ${supervisor.last_name}` 
-        : "N/A";
-    })();
+    ('user' in response && response.user.user_supervisors
+      ? (() => {
+          const supervisor = response.user.user_supervisors.find(us => us.is_primary)?.supervisor;
+          return supervisor?.first_name && supervisor?.last_name 
+            ? `${supervisor.first_name} ${supervisor.last_name}` 
+            : "N/A";
+        })()
+      : "N/A");
 
   return (
     <Sheet open={!!response} onOpenChange={(open) => !open && onClose()}>

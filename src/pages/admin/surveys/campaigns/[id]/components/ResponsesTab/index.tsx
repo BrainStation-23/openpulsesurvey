@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Response } from "./types";
+import { RPCResponseItem } from "./types";
 import { ResponsesList } from "./ResponsesList";
 import { ResponsesFilters } from "./ResponsesFilters";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ import { useResponsesData } from "./hooks/useResponsesData";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { PageSizeSelector } from "../AssignmentsTab/components/AssignmentInstanceList/components/PageSizeSelector";
 import { ResponseDetails } from "./ResponseDetails";
-import { RPCResponseItem } from "./types";
 
 interface ResponsesTabProps {
   campaignId: string;

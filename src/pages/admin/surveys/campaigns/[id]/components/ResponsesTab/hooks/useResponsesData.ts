@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Response, FilterOptions, RPCResponseItem } from "../types";
+import { RPCResponseItem, FilterOptions } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 
 interface UseResponsesDataProps {
@@ -60,8 +60,10 @@ export function useResponsesData({ campaignId, instanceId }: UseResponsesDataPro
         // The data returned from RPC is an array of RPCResponseItem
         const responseItems = data as RPCResponseItem[];
         
-        // Extract total count from the first row if available
-        const totalCount = responseItems.length > 0 ? responseItems[0].total_count : 0;
+        // Get total count from the first row if available
+        const totalCount = responseItems.length > 0 && responseItems[0].total_count 
+          ? Number(responseItems[0].total_count) 
+          : responseItems.length;
         
         return { 
           data: responseItems,

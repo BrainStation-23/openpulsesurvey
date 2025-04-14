@@ -59,4 +59,20 @@ export interface RPCResponseItem {
   primary_sbu_name?: string;
   primary_supervisor_name?: string;
   state_data?: Record<string, any>;
+  total_count?: number;
+  // Add assignment property to match Response interface
+  assignment?: {
+    id: string;
+    campaign_id: string;
+    campaign?: {
+      anonymous: boolean;
+    };
+  };
+}
+
+// Add the missing FilterOptions interface
+export interface FilterOptions {
+  search: string;
+  sortBy: "date" | "name";
+  sortDirection: "asc" | "desc";
 }
