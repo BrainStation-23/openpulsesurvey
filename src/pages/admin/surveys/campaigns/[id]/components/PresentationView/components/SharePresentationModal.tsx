@@ -1,18 +1,18 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader, Share, Copy, Check } from "lucide-react";
+import { Share, Copy, Check, Loader } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
 
 interface SharePresentationModalProps {
   campaignId: string;
@@ -27,6 +27,37 @@ export function SharePresentationModal({ campaignId, instanceId }: SharePresenta
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [copied, setCopied] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+
+  // Fetch existing share link when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchExistingShareLink();
+    }
+  }, [isOpen]);
+
+  const fetchExistingShareLink = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('shared_presentations')
+        .select('access_token')
+        .eq('campaign_id', campaignId)
+        .eq('instance_id', instanceId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        const shareableUrl = `${window.location.origin}/presentation/${data.access_token}`;
+        setShareLink(shareableUrl);
+      }
+    } catch (error) {
+      console.error("Error fetching share link:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const generateShareLink = async () => {
     setIsLoading(true);
@@ -48,7 +79,7 @@ export function SharePresentationModal({ campaignId, instanceId }: SharePresenta
           access_token: accessToken,
           expires_at: showExpiryDate ? expiryDate?.toISOString() : null,
           is_active: true,
-          created_by: user.id  // Add the created_by field with current user's ID
+          created_by: user.id
         })
         .select()
         .single();
@@ -78,12 +109,11 @@ export function SharePresentationModal({ campaignId, instanceId }: SharePresenta
   const copyToClipboard = () => {
     navigator.clipboard.writeText(shareLink);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    
     toast({
       title: "Copied!",
       description: "Link copied to clipboard."
     });
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
