@@ -60,6 +60,7 @@ export interface RPCResponseItem {
   status: string;
   response_data: Record<string, any>;
   state_data: Record<string, any> | null;
+  total_count: number;
   user: {
     id: string;
     first_name: string | null;
@@ -91,7 +92,6 @@ export interface RPCResponseItem {
       anonymous: boolean;
     };
   };
-  total_count: number;
 }
 
 // Define the database RPC function type

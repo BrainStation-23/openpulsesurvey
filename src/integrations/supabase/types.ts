@@ -3039,16 +3039,17 @@ export type Database = {
           p_sort_direction?: string
         }
         Returns: {
-          assignment_id: string
-          campaign_instance_id: string | null
-          created_at: string | null
           id: string
-          response_data: Json
-          state_data: Json | null
-          status: Database["public"]["Enums"]["response_status"]
-          submitted_at: string | null
-          updated_at: string | null
+          assignment_id: string
           user_id: string
+          campaign_instance_id: string
+          created_at: string
+          updated_at: string
+          submitted_at: string
+          status: string
+          response_data: Json
+          state_data: Json
+          total_count: number
         }[]
       }
       get_pending_surveys_count: {
