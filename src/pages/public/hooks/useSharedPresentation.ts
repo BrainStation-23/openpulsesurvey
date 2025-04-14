@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CampaignData } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types";
@@ -63,6 +64,17 @@ export function useSharedPresentation(token: string) {
       // Process the returned data
       const campaignData = campaign[0];
       
+      // Ensure json_data is properly processed as an object not a string
+      if (typeof campaignData.survey.json_data === 'string') {
+        try {
+          campaignData.survey.json_data = JSON.parse(campaignData.survey.json_data);
+        } catch (e) {
+          console.error('Error parsing survey JSON data:', e);
+          // Provide a default empty structure that matches SurveyJsonData
+          campaignData.survey.json_data = { pages: [] };
+        }
+      }
+      
       // Filter instance data if needed
       if (presentation.instance_id && campaignData.instance) {
         campaignData.instance = Array.isArray(campaignData.instance) 
@@ -72,7 +84,7 @@ export function useSharedPresentation(token: string) {
 
       return {
         presentation,
-        campaign: campaignData,
+        campaign: campaignData as CampaignData, // Type assertion after fixing the data
         instance_id: presentation.instance_id
       };
     },
