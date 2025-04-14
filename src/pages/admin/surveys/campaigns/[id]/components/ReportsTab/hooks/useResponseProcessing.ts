@@ -6,7 +6,7 @@ interface ProcessedAnswer {
   question: string;
   answer: any;
   questionType: string;
-  rateCount?: number;  // Added this property
+  rateCount?: number;
 }
 
 export interface ProcessedResponse {
@@ -38,6 +38,11 @@ export interface ProcessedResponse {
     employee_role: {
       id: string;
       name: string;
+    } | null;
+    supervisor: {
+      id: string;
+      first_name: string;
+      last_name: string;
     } | null;
   };
   submitted_at: string;
@@ -117,6 +122,11 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
               id,
               name
             ),
+            supervisor:profiles (
+              id, 
+              first_name,
+              last_name
+            ),
             user_sbus:user_sbus (
               is_primary,
               sbu:sbus (
@@ -175,6 +185,7 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             level: response.user.level,
             employee_type: response.user.employee_type,
             employee_role: response.user.employee_role,
+            supervisor: response.user.supervisor,
           },
           submitted_at: response.submitted_at,
           answers,

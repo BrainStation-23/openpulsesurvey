@@ -139,6 +139,14 @@ function processComparisonData(
       case "employee_role":
         dimensionValue = response.respondent.employee_role?.name || "Unknown";
         break;
+      case "supervisor":
+        // Add supervisor handling
+        const supervisorFirst = response.respondent.supervisor?.first_name || "";
+        const supervisorLast = response.respondent.supervisor?.last_name || "";
+        dimensionValue = supervisorFirst && supervisorLast 
+          ? `${supervisorFirst} ${supervisorLast}` 
+          : "No Supervisor";
+        break;
     }
 
     if (!dimensionData.has(dimensionValue)) {

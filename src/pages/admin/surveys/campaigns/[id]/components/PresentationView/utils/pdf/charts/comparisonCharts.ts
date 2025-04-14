@@ -39,6 +39,14 @@ export function addComparisonChart(
       case "employee_role":
         groupKey = response.respondent.employee_role?.name || "Unknown";
         break;
+      case "supervisor":
+        // Add support for supervisor grouping in PDF
+        const supervisorFirst = response.respondent.supervisor?.first_name || "";
+        const supervisorLast = response.respondent.supervisor?.last_name || "";
+        groupKey = supervisorFirst && supervisorLast 
+          ? `${supervisorFirst} ${supervisorLast}` 
+          : "No Supervisor";
+        break;
     }
 
     if (!groupedData.has(groupKey)) {
