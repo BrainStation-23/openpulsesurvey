@@ -3028,6 +3028,29 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_paginated_campaign_responses: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_search_term?: string
+          p_page?: number
+          p_page_size?: number
+          p_sort_by?: string
+          p_sort_direction?: string
+        }
+        Returns: {
+          assignment_id: string
+          campaign_instance_id: string | null
+          created_at: string | null
+          id: string
+          response_data: Json
+          state_data: Json | null
+          status: Database["public"]["Enums"]["response_status"]
+          submitted_at: string | null
+          updated_at: string | null
+          user_id: string
+        }[]
+      }
       get_pending_surveys_count: {
         Args: { p_user_id: string }
         Returns: number

@@ -47,3 +47,16 @@ export interface FilterOptions {
   sortDirection: "asc" | "desc";
   // Additional filters can be added here in the future
 }
+
+// Define the database RPC function type
+export type GetPaginatedCampaignResponsesFunction = (
+  args: {
+    p_campaign_id: string;
+    p_instance_id: string;
+    p_search_term: string | null;
+    p_page: number;
+    p_page_size: number;
+    p_sort_by: string;
+    p_sort_direction: string;
+  }
+) => Response[];

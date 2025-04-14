@@ -58,7 +58,7 @@ export function useResponsesData({ campaignId, instanceId }: UseResponsesDataPro
         if (error) throw error;
         
         // Extract total count from the first row if available
-        const totalCount = data.length > 0 ? data[0].total_count : 0;
+        const totalCount = data && data.length > 0 ? data[0].total_count : 0;
         
         return { 
           data: data as Response[],
