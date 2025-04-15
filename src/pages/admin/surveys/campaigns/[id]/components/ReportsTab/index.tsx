@@ -11,7 +11,7 @@ import { TextComparison } from "./components/comparisons/TextComparison";
 import { useState } from "react";
 import { ComparisonDimension } from "./types/comparison";
 import { processRatingQuestion } from "./hooks/useRatingProcessing";
-import { RatingResponseData, SatisfactionData } from "../PresentationView/types/responses"; // Add proper import for SatisfactionData
+import { RatingResponseData, SatisfactionData } from "../PresentationView/types/responses"; 
 
 interface ReportsTabProps {
   campaignId: string;
