@@ -1,9 +1,9 @@
 
 import { useMemo } from "react";
-import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData } from "../../types/responses";
+import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData, ComparisonGroup } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
 
-type ProcessedResult = BooleanResponseData | RatingResponseData | SatisfactionData | any[];
+type ProcessedResult = BooleanResponseData | RatingResponseData | SatisfactionData | ComparisonGroup[];
 
 export function useQuestionData(
   data: ProcessedData | undefined | null,
@@ -89,8 +89,8 @@ function processComparisonData(
   questionName: string,
   dimension: ComparisonDimension,
   isNps: boolean
-) {
-  const dimensionData = new Map();
+): ComparisonGroup[] {
+  const dimensionData = new Map<string, any>();
 
   responses.forEach((response) => {
     const answer = response.answers[questionName]?.answer;

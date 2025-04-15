@@ -1,7 +1,5 @@
 
-import { ComparisonDimension } from "./types/exportConfig";
-
-export const COMPARISON_DIMENSIONS: ComparisonDimension[] = [
+export const COMPARISON_DIMENSIONS = [
   "sbu",
   "gender",
   "location",
@@ -9,4 +7,4 @@ export const COMPARISON_DIMENSIONS: ComparisonDimension[] = [
   "level",
   "employee_type",
   "employee_role"
-];
+] as const;

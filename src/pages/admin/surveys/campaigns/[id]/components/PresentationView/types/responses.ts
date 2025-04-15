@@ -6,9 +6,16 @@ export interface ProcessedData {
     averageRating: number;
   };
   questions: Question[];
-  questionData: Record<string, any>;
+  questionData: Record<string, QuestionData>;
   comparisons: Record<string, Record<string, any>>;
-  responses: Response[];
+  responses: ProcessedResponse[];
+}
+
+export interface QuestionData {
+  ratings?: Record<string, number>;
+  avgRating?: number;
+  choices?: Record<string, number>;
+  matrix?: Record<string, Record<string, number>>;
 }
 
 export interface Question {
@@ -18,6 +25,31 @@ export interface Question {
   title: string;
   rateCount?: number; 
   choices?: string[];
+}
+
+export interface ProcessedResponse {
+  id: string;
+  respondent: {
+    id: string;
+    name?: string;
+    email?: string;
+    sbu?: { name: string };
+    gender?: string;
+    location?: { name: string };
+    employment_type?: { name: string };
+    level?: { name: string };
+    employee_type?: { name: string };
+    employee_role?: { name: string };
+    supervisor?: { id: string; first_name?: string; last_name?: string } | null;
+  };
+  submitted_at?: string;
+  answers: Record<string, {
+    question: string;
+    answer: any;
+    questionType: string;
+    rateCount?: number;
+    question_id?: string;
+  }>;
 }
 
 export interface Response {
@@ -36,4 +68,29 @@ export interface Response {
     answer: any;
     question_id: string;
   }>;
+}
+
+// Question-specific response data types
+export interface BooleanResponseData {
+  yes: number;
+  no: number;
+}
+
+export interface RatingResponseData {
+  rating: number;
+  count: number;
+}[]
+
+export interface SatisfactionData {
+  unsatisfied: number;
+  neutral: number;
+  satisfied: number;
+  total: number;
+  median: number;
+}
+
+// Comparison types
+export interface ComparisonGroup {
+  dimension: string;
+  [key: string]: number | string;
 }

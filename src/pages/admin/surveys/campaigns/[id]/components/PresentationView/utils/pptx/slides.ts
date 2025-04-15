@@ -140,7 +140,7 @@ export const createQuestionSlides = async (
     // Filter based on includedQuestionIds
     return options.includedQuestionIds === "all" || 
            (Array.isArray(options.includedQuestionIds) && 
-            options.includedQuestionIds.includes(question.id));
+            options.includedQuestionIds.includes(question.name));
   });
 
   for (const question of filteredQuestions) {

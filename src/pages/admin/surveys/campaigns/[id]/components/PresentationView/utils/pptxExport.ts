@@ -20,8 +20,8 @@ export const exportToPptx = async (
     let currentProgress = 0;
     
     // Get the theme based on config
-    const theme = getTheme(config.theme);
-    const slideMasters = getSlideMasters(config.theme);
+    const theme = getTheme(config.branding.theme);
+    const slideMasters = getSlideMasters(config.branding.theme);
     
     // Calculate total steps for progress tracking
     let totalSteps = 0;

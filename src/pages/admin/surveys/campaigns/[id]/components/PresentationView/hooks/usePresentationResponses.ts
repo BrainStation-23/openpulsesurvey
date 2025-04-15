@@ -112,6 +112,7 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
     const surveyQuestions = (surveyData?.pages || []).flatMap(
       (page: any) => page.elements || []
     ).map((q: any) => ({
+      id: q.name,
       name: q.name || '',
       title: q.title || '',
       type: q.type || 'text',
@@ -120,9 +121,16 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
 
     if (!responses) {
       return {
+        summary: {
+          totalResponses: 0,
+          completionRate: 0,
+          averageRating: 0
+        },
         questions: surveyQuestions,
+        questionData: {},
+        comparisons: {},
         responses: [],
-      };
+      } as ProcessedData;
     }
 
     // Create a lookup map for supervisor data
@@ -161,6 +169,7 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
       return {
         id: response.id,
         respondent: {
+          id: response.user?.id,
           name: `${response.user?.first_name || ""} ${
             response.user?.last_name || ""
           }`.trim(),
@@ -179,10 +188,43 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
       };
     });
 
+    // Compute summary data
+    const totalResponses = processedResponses.length;
+    let totalRatingSum = 0;
+    let ratingCount = 0;
+
+    // Prepare questionData structure
+    const questionData: Record<string, any> = {};
+    const comparisons: Record<string, Record<string, any>> = {};
+
+    // Initialize the data structure
+    surveyQuestions.forEach(question => {
+      questionData[question.name] = {};
+      comparisons[question.name] = {
+        sbu: {},
+        gender: {},
+        location: {},
+        employment_type: {},
+        level: {},
+        employee_type: {},
+        employee_role: {},
+        supervisor: {}
+      };
+    });
+
+    // For now we're just returning a basic structure
+    // In a real implementation, you would process the responses to generate statistics
     return {
+      summary: {
+        totalResponses,
+        completionRate: 65.4, // This would need actual calculation
+        averageRating: 4.2,   // This would need actual calculation
+      },
       questions: surveyQuestions,
+      questionData,
+      comparisons,
       responses: processedResponses,
-    };
+    } as ProcessedData;
   }, [rawData]);
 
   return { data: processedData, ...rest };

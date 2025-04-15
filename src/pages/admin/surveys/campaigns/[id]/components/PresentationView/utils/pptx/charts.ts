@@ -28,7 +28,7 @@ export const addQuestionChart = async (
       });
     }
   } catch (error) {
-    console.error(`Error adding chart for question ${question.id}:`, error);
+    console.error(`Error adding chart for question ${question.name}:`, error);
     slide.addText(`Error generating chart: ${error.message}`, {
       x: 0.5,
       y: 2.5,
@@ -47,8 +47,8 @@ const addRatingChart = async (
   theme: ThemeColors
 ) => {
   // Get the rating distribution for this question
-  const ratings = processedData.questionData[question.id]?.ratings || {};
-  const avgRating = processedData.questionData[question.id]?.avgRating || 0;
+  const ratings = processedData.questionData[question.name]?.ratings || {};
+  const avgRating = processedData.questionData[question.name]?.avgRating || 0;
   
   // Create data for the chart
   const data = [];
@@ -101,7 +101,7 @@ const addChoiceChart = async (
   theme: ThemeColors
 ) => {
   // Get the choice distribution for this question
-  const choices = processedData.questionData[question.id]?.choices || {};
+  const choices = processedData.questionData[question.name]?.choices || {};
   
   // Create data for the chart
   if (choices && Object.keys(choices).length > 0) {
@@ -154,7 +154,7 @@ const addMatrixChart = async (
   theme: ThemeColors
 ) => {
   // Get the matrix data for this question
-  const matrixData = processedData.questionData[question.id]?.matrix || {};
+  const matrixData = processedData.questionData[question.name]?.matrix || {};
   
   if (matrixData && Object.keys(matrixData).length > 0) {
     // Create a multi-series chart
@@ -210,7 +210,7 @@ export const addComparisonChart = async (
 ) => {
   try {
     // Get comparison data for this dimension
-    const comparisonData = processedData.comparisons?.[question.id]?.[dimension];
+    const comparisonData = processedData.comparisons?.[question.name]?.[dimension];
     
     if (comparisonData && Object.keys(comparisonData).length > 0) {
       const data = [];
@@ -248,8 +248,9 @@ export const addComparisonChart = async (
         // Get all possible choices
         const allChoices = new Set<string>();
         Object.values(comparisonData).forEach(segment => {
-          if (segment && typeof segment === 'object' && segment.choices) {
-            Object.keys(segment.choices).forEach(choice => allChoices.add(choice));
+          if (segment && typeof segment === 'object' && 'choices' in segment) {
+            const segChoices = segment.choices as Record<string, number>;
+            Object.keys(segChoices).forEach(choice => allChoices.add(choice));
           }
         });
         
@@ -265,8 +266,9 @@ export const addComparisonChart = async (
           Object.keys(comparisonData).forEach(segment => {
             const segmentData = comparisonData[segment];
             choiceData.labels.push(segment || 'Unknown');
-            if (typeof segmentData === 'object' && segmentData?.choices) {
-              choiceData.values.push(segmentData.choices[choice] || 0);
+            if (typeof segmentData === 'object' && 'choices' in segmentData) {
+              const choices = segmentData.choices as Record<string, number>;
+              choiceData.values.push(choices[choice] || 0);
             } else {
               choiceData.values.push(0);
             }
@@ -312,7 +314,7 @@ export const addComparisonChart = async (
       });
     }
   } catch (error) {
-    console.error(`Error adding comparison chart for question ${question.id} and dimension ${dimension}:`, error);
+    console.error(`Error adding comparison chart for question ${question.name} and dimension ${dimension}:`, error);
     slide.addText(`Error generating comparison chart: ${error.message}`, {
       x: 0.5,
       y: 2.5,
