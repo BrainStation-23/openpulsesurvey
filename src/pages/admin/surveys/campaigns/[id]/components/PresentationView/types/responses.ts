@@ -20,14 +20,6 @@ export interface SatisfactionData {
   median: number;
 }
 
-export interface NpsData {
-  detractors: number;
-  passives: number;
-  promoters: number;
-  total: number;
-  npsScore: number;
-}
-
 export interface TextDataPoint {
   text: string;
   value: number;
@@ -35,13 +27,11 @@ export interface TextDataPoint {
 
 export type TextResponseData = TextDataPoint[];
 
-// Update the Question interface to be compatible with RatingQuestion from questionTypes.ts
 export interface Question {
   name: string;
   title: string;
   type: string;
   rateCount?: number;
-  mode?: 'nps' | 'satisfaction'; // Add mode property to align with RatingQuestion
 }
 
 export interface ProcessedResponse {
@@ -92,6 +82,4 @@ export interface ProcessedResponse {
 export interface ProcessedData {
   questions: Question[];
   responses: ProcessedResponse[];
-  campaignId?: string;
-  instanceId?: string;
 }

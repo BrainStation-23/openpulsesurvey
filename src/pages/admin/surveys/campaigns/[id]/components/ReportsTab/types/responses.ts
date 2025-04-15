@@ -4,7 +4,6 @@ export interface Question {
   title: string;
   type: string;
   rateCount?: number;
-  mode?: 'nps' | 'satisfaction'; // Add the mode property
 }
 
 export interface ProcessedResponse {

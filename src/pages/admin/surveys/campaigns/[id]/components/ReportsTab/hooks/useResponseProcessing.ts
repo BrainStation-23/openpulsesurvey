@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -53,7 +54,6 @@ interface Question {
   title: string;
   type: string;
   rateCount?: number;
-  mode?: string;
 }
 
 interface ProcessedData {
@@ -182,8 +182,7 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
             question: question.title,
             answer: answer,
             questionType: question.type,
-            rateCount: question.rateCount,
-            ...(question.mode && { mode: question.mode })
+            rateCount: question.rateCount
           };
         });
 
@@ -222,7 +221,6 @@ export function useResponseProcessing(campaignId: string, instanceId?: string) {
           title: q.title,
           type: q.type,
           rateCount: q.rateCount,
-          mode: q.mode,
         })),
         responses: processedResponses,
       };

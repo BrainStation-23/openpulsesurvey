@@ -2,16 +2,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResponseProcessing } from "./hooks/useResponseProcessing";
 import { BooleanCharts } from "./charts/BooleanCharts";
-import { NpsScaleChart, RatingScaleChart, SatisfactionScaleChart } from "./charts/RatingScaleChart";
+import { NpsChart } from "./charts/NpsChart";
 import { WordCloud } from "./charts/WordCloud";
 import { ComparisonSelector } from "./components/ComparisonSelector";
 import { BooleanComparison } from "./components/comparisons/BooleanComparison";
-import { RatingComparison } from "./components/comparisons/RatingComparison";
+import { NpsComparison } from "./components/comparisons/NpsComparison";
 import { TextComparison } from "./components/comparisons/TextComparison";
 import { useState } from "react";
 import { ComparisonDimension } from "./types/comparison";
-import { processRatingQuestion } from "./hooks/useRatingProcessing";
-import { RatingResponseData, SatisfactionData } from "../PresentationView/types/responses"; 
+import { SatisfactionDonutChart } from "./charts/SatisfactionDonutChart";
 
 interface ReportsTabProps {
   campaignId: string;
@@ -39,19 +38,94 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
     }));
   };
 
+  const calculateMedian = (ratings: number[]) => {
+    const sorted = [...ratings].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    
+    if (sorted.length % 2 === 0) {
+      return (sorted[middle - 1] + sorted[middle]) / 2;
+    }
+    return sorted[middle];
+  };
+
+  const processAnswersForQuestion = (questionName: string, type: string, question: any) => {
+    const answers = data.responses.map(
+      (response) => response.answers[questionName]?.answer
+    );
+
+    switch (type) {
+      case "boolean":
+        return {
+          yes: answers.filter((a) => a === true).length,
+          no: answers.filter((a) => a === false).length,
+        };
+
+      case "rating":
+      case "nps": {
+        const isNps = question.rateCount === 10;
+        
+        if (isNps) {
+          const ratingCounts = new Array(11).fill(0);
+          answers.forEach((rating) => {
+            if (typeof rating === "number" && rating >= 0 && rating <= 10) {
+              ratingCounts[rating]++;
+            }
+          });
+          return ratingCounts.map((count, rating) => ({ rating, count }));
+        } else {
+          const validAnswers = answers.filter(
+            (rating) => typeof rating === "number" && rating >= 1 && rating <= 5
+          );
+          
+          return {
+            unsatisfied: validAnswers.filter((r) => r <= 2).length,
+            neutral: validAnswers.filter((r) => r === 3).length,
+            satisfied: validAnswers.filter((r) => r >= 4).length,
+            total: validAnswers.length,
+            median: calculateMedian(validAnswers)
+          };
+        }
+      }
+
+      case "text":
+      case "comment": {
+        const wordFrequency: Record<string, number> = {};
+        answers.forEach((answer) => {
+          if (typeof answer === "string") {
+            const words = answer
+              .toLowerCase()
+              .replace(/[^\w\s]/g, "")
+              .split(/\s+/)
+              .filter((word) => word.length > 2);
+
+            words.forEach((word) => {
+              wordFrequency[word] = (wordFrequency[word] || 0) + 1;
+            });
+          }
+        });
+
+        return Object.entries(wordFrequency)
+          .map(([text, value]) => ({ text, value }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 50);
+      }
+
+      default:
+        throw new Error(`Unsupported question type: ${type}`);
+    }
+  };
+
   return (
     <div className="grid gap-6">
       {data.questions.map((question) => {
         const currentDimension = comparisonDimensions[question.name] || "none";
-        
-        // Extract answers for this question
-        const answers = data.responses
-          .map(response => response.answers[question.name]?.answer)
-          .filter(answer => answer !== undefined);
-        
-        // Helper to determine if it's an NPS question based on rateCount or mode
-        const isNps = question.rateCount === 10 || question.mode === 'nps';
-        
+        const processedData = processAnswersForQuestion(
+          question.name,
+          question.type,
+          question
+        );
+        const isNpsQuestion = question.type === "rating" && question.rateCount === 10;
+
         return (
           <Card key={question.name} className="w-full overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -68,34 +142,31 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
                 <>
                   {question.type === "boolean" && (
                     <BooleanCharts
-                      data={{
-                        yes: answers.filter(a => a === true).length,
-                        no: answers.filter(a => a === false).length
-                      }}
+                      data={processedData as { yes: number; no: number }}
                     />
                   )}
-                  {question.type === "rating" && (
+                  {(question.type === "nps" || question.type === "rating") && (
                     <>
-                      {isNps ? (
-                        <NpsScaleChart
-                          data={answers.filter(a => typeof a === 'number').map(a => ({
-                            rating: a as number,
-                            count: answers.filter(val => val === a).length
-                          }))}
+                      {isNpsQuestion ? (
+                        <NpsChart
+                          data={processedData as { rating: number; count: number }[]}
                         />
                       ) : (
-                        <SatisfactionScaleChart
-                          data={processRatingQuestion(
-                            answers.filter(a => typeof a === 'number') as number[],
-                            question
-                          ).data as SatisfactionData}
+                        <SatisfactionDonutChart
+                          data={processedData as { 
+                            unsatisfied: number;
+                            neutral: number;
+                            satisfied: number;
+                            total: number;
+                            median: number;
+                          }}
                         />
                       )}
                     </>
                   )}
                   {(question.type === "text" || question.type === "comment") && (
                     <WordCloud
-                      words={processTextAnswers(answers)}
+                      words={processedData as { text: string; value: number }[]}
                     />
                   )}
                 </>
@@ -110,12 +181,12 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
                       dimension={currentDimension}
                     />
                   )}
-                  {question.type === "rating" && (
-                    <RatingComparison
+                  {(question.type === "nps" || question.type === "rating") && (
+                    <NpsComparison
                       responses={data.responses}
                       questionName={question.name}
-                      question={question}
                       dimension={currentDimension}
+                      isNps={isNpsQuestion}
                       campaignId={campaignId}
                       instanceId={instanceId}
                     />
@@ -135,28 +206,4 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
       })}
     </div>
   );
-}
-
-// Helper function for text processing
-function processTextAnswers(answers: any[]) {
-  const wordFrequency: Record<string, number> = {};
-  
-  answers.forEach((answer) => {
-    if (typeof answer === "string") {
-      const words = answer
-        .toLowerCase()
-        .replace(/[^\w\s]/g, "")
-        .split(/\s+/)
-        .filter((word) => word.length > 2);
-
-      words.forEach((word) => {
-        wordFrequency[word] = (wordFrequency[word] || 0) + 1;
-      });
-    }
-  });
-
-  return Object.entries(wordFrequency)
-    .map(([text, value]) => ({ text, value }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 50);
 }

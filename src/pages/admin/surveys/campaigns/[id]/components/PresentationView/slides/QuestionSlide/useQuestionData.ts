@@ -1,16 +1,7 @@
+
 import { useMemo } from "react";
-import { 
-  ProcessedData, 
-  BooleanResponseData, 
-  RatingResponseData, 
-  SatisfactionData,
-  Question
-} from "../../types/responses";
+import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
-import { 
-  processNpsData, 
-  processSatisfactionData 
-} from "../../../ReportsTab/hooks/useRatingProcessing";
 
 type ProcessedResult = BooleanResponseData | RatingResponseData | SatisfactionData | any[];
 
@@ -30,11 +21,7 @@ export function useQuestionData(
 
     const responses = data.responses;
     const question = data.questions.find(q => q.name === questionName);
-    
-    if (!question) return null;
-    
-    // Use the rateCount property to determine if it's an NPS question
-    const isNps = question.rateCount === 10 || question.mode === 'nps';
+    const isNps = question?.type === 'rating' && question?.rateCount === 10;
 
     if (slideType === 'main') {
       switch (questionType) {
@@ -62,7 +49,29 @@ export function useQuestionData(
             }));
             return ratingCounts;
           } else {
-            return processSatisfactionData(answers);
+            const validAnswers = answers.filter(
+              (rating) => typeof rating === "number" && rating >= 1 && rating <= 5
+            );
+            
+            const calculateMedian = (ratings: number[]) => {
+              if (ratings.length === 0) return 0;
+              const sorted = [...ratings].sort((a, b) => a - b);
+              const middle = Math.floor(sorted.length / 2);
+              
+              if (sorted.length % 2 === 0) {
+                return (sorted[middle - 1] + sorted[middle]) / 2;
+              }
+              return sorted[middle];
+            };
+
+            const result: SatisfactionData = {
+              unsatisfied: validAnswers.filter((r) => r <= 2).length,
+              neutral: validAnswers.filter((r) => r === 3).length,
+              satisfied: validAnswers.filter((r) => r >= 4).length,
+              total: validAnswers.length,
+              median: calculateMedian(validAnswers)
+            };
+            return result;
           }
         }
 
@@ -81,7 +90,7 @@ function processComparisonData(
   dimension: ComparisonDimension,
   isNps: boolean
 ) {
-  const dimensionData = new Map<string, number[]>();
+  const dimensionData = new Map();
 
   responses.forEach((response) => {
     const answer = response.answers[questionName]?.answer;
@@ -113,27 +122,42 @@ function processComparisonData(
     }
 
     if (!dimensionData.has(dimensionValue)) {
-      dimensionData.set(dimensionValue, []);
+      dimensionData.set(dimensionValue, isNps ? {
+        dimension: dimensionValue,
+        detractors: 0,
+        passives: 0,
+        promoters: 0,
+        total: 0
+      } : {
+        dimension: dimensionValue,
+        unsatisfied: 0,
+        neutral: 0,
+        satisfied: 0,
+        total: 0
+      });
     }
 
-    dimensionData.get(dimensionValue)!.push(answer);
+    const group = dimensionData.get(dimensionValue);
+    group.total += 1;
+
+    if (isNps) {
+      if (answer <= 6) {
+        group.detractors += 1;
+      } else if (answer <= 8) {
+        group.passives += 1;
+      } else {
+        group.promoters += 1;
+      }
+    } else {
+      if (answer <= 2) {
+        group.unsatisfied += 1;
+      } else if (answer === 3) {
+        group.neutral += 1;
+      } else {
+        group.satisfied += 1;
+      }
+    }
   });
 
-  if (isNps) {
-    return Array.from(dimensionData.entries()).map(([dimension, answers]) => {
-      const npsData = processNpsData(answers);
-      return {
-        dimension,
-        ...npsData
-      };
-    });
-  } else {
-    return Array.from(dimensionData.entries()).map(([dimension, answers]) => {
-      const satisfactionData = processSatisfactionData(answers);
-      return {
-        dimension,
-        ...satisfactionData
-      };
-    });
-  }
+  return Array.from(dimensionData.values());
 }
