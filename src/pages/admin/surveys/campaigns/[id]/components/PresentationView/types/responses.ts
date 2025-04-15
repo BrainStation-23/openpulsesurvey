@@ -1,3 +1,4 @@
+
 export interface BooleanResponseData {
   yes: number;
   no: number;
@@ -81,6 +82,4 @@ export interface ProcessedResponse {
 export interface ProcessedData {
   questions: Question[];
   responses: ProcessedResponse[];
-  campaignId: string;
-  instanceId: string;
 }
