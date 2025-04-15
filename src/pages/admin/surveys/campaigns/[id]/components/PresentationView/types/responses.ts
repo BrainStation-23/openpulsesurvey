@@ -40,6 +40,7 @@ export interface Question {
   title: string;
   type: string;
   rateCount?: number;
+  mode?: string; // Add mode property to align with RatingQuestion in questionTypes.ts
 }
 
 export interface ProcessedResponse {

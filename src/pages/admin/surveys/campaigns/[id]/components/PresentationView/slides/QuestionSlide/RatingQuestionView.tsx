@@ -16,7 +16,8 @@ interface RatingQuestionViewProps {
 }
 
 export function RatingQuestionView({ data, question }: RatingQuestionViewProps) {
-  const isNps = isNpsQuestion(question);
+  // Check if the question is NPS either by rateCount or using the isNpsQuestion helper
+  const isNps = question.rateCount === 10 || isNpsQuestion(question);
 
   return (
     <div className="w-full max-w-4xl">

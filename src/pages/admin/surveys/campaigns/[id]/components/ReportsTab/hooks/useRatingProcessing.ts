@@ -240,17 +240,14 @@ export function useRatingProcessing(
     const processDimensionData = async () => {
       // If this is the supervisor dimension, we need to fetch data from the backend
       if (dimension === "supervisor" && responses[0]?.answers[questionName]) {
-        // Get the campaignId and instanceId from the first response
-        const firstResponse = responses[0];
-        if (!firstResponse) return;
-        
         // Normally these would be passed as props, but we can try to extract from the URL in this implementation
         // Later, refine how we pass these values
         const urlParts = window.location.pathname.split('/');
         const campaignId = urlParts[urlParts.indexOf('campaigns') + 1];
-        const instanceId = firstResponse.answers[questionName]?.instanceId || undefined;
         
-        const supervisorData = await fetchSupervisorData(campaignId, instanceId);
+        // Fix: Don't try to access instanceId directly from ProcessedAnswer
+        // Instead use the campaignId to fetch the instance or pass it as a prop
+        const supervisorData = await fetchSupervisorData(campaignId);
         setData(supervisorData);
       } else {
         setData(processComparisonData());
@@ -270,7 +267,8 @@ export function processRatingQuestion(
   answers: number[], 
   question: any
 ) {
-  const isNps = isNpsQuestion(question);
+  // Handle question.rateCount to determine if it's NPS or satisfaction
+  const isNps = question && (question.rateCount === 10 || (isNpsQuestion && isNpsQuestion(question)));
   
   if (isNps) {
     // For NPS questions (0-10 scale)
