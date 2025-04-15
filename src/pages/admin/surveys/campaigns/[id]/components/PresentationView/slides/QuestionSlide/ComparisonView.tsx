@@ -1,13 +1,13 @@
+
 import { HeatMapChart } from "../../../ReportsTab/charts/HeatMapChart";
 import { NpsChart } from "../../../ReportsTab/charts/NpsChart";
 
 interface ComparisonViewProps {
   data: any;
   isNps: boolean;
-  dimensionTitle: string;
 }
 
-export function ComparisonView({ data, isNps, dimensionTitle }: ComparisonViewProps) {
+export function ComparisonView({ data, isNps }: ComparisonViewProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center text-muted-foreground">
@@ -34,7 +34,7 @@ export function ComparisonView({ data, isNps, dimensionTitle }: ComparisonViewPr
           ))}
         </div>
       ) : (
-        <HeatMapChart data={data} title={dimensionTitle} />
+        <HeatMapChart data={data} />
       )}
     </div>
   );

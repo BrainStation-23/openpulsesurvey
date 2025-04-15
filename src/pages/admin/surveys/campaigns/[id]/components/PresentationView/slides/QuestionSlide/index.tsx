@@ -111,7 +111,6 @@ const QuestionSlideComponent = ({
               <ComparisonView 
                 data={processedData}
                 isNps={isNps}
-                dimensionTitle={getDimensionTitle(slideType)}
               />
             )
           )}
