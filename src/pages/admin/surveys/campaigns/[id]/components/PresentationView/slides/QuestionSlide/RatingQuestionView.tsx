@@ -126,7 +126,14 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
         </div>
 
         <div className="h-48">
-          <ChartContainer className="h-full">
+          <ChartContainer 
+            className="h-full" 
+            config={{
+              satisfied: { color: "#22c55e" },
+              neutral: { color: "#eab308" },
+              unsatisfied: { color: "#ef4444" }
+            }}
+          >
             <PieChart>
               <Pie
                 data={[
@@ -187,7 +194,15 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
     
     return (
       <div className="w-full h-64">
-        <ChartContainer className="h-full">
+        <ChartContainer 
+          className="h-full" 
+          config={{
+            count: { 
+              color: "#3b82f6",
+              label: "Response Count"
+            }
+          }}
+        >
           <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <Bar dataKey="count" fill="#3b82f6">
               {data.map((entry, index) => (
