@@ -1,4 +1,3 @@
-
 import pptxgen from "pptxgenjs";
 import { CampaignData } from "../types";
 import { ProcessedData } from "../types/responses";
@@ -8,7 +7,6 @@ import { getTheme, getSlideMasters } from "./pptx/theme";
 
 type ProgressCallback = (progress: number) => void;
 
-// Main export function
 export const exportToPptx = async (
   campaign: CampaignData,
   processedData: ProcessedData,
@@ -27,66 +25,25 @@ export const exportToPptx = async (
     let totalSteps = 0;
     if (config.slides.includeTitleSlide) totalSteps++;
     if (config.slides.includeCompletionSlide) totalSteps++;
-    if (config.slides.includeTrendSlide) totalSteps++;
     
-    // If including question slides, count those too
-    if (config.slides.includeQuestionSlides) {
-      // Get questions, filtering text questions if needed
-      const filteredQuestions = processedData.questions.filter(question => {
-        if (config.questions.excludeTextQuestions && (question.type === "text" || question.type === "comment")) {
-          return false;
-        }
-        return config.questions.includedQuestionIds === "all" || 
-               (Array.isArray(config.questions.includedQuestionIds) && 
-                config.questions.includedQuestionIds.includes(question.name));
-      });
-      
-      // Each question has a main slide plus comparison slides
-      totalSteps += filteredQuestions.length * (1 + config.comparisons.dimensions.length);
-    }
-    
+    // Get questions for slides
+    const questions = processedData.questions.filter(question => {
+      if (!question) return false;
+      if (config.questions.excludeTextQuestions && 
+          (question.type === "text" || question.type === "comment")) {
+        return false;
+      }
+      return config.questions.includedQuestionIds === "all" || 
+             (Array.isArray(config.questions.includedQuestionIds) && 
+              config.questions.includedQuestionIds.includes(question.name));
+    });
+
+    totalSteps += questions.length * (1 + config.comparisons.dimensions.length);
+
     // Set presentation properties
     pptx.author = "Survey System";
-    pptx.company = "Your Company";
-    pptx.revision = "1";
-    pptx.subject = campaign.name;
     pptx.title = campaign.name;
     
-    // Add branding if configured
-    if (config.branding.includeLogo && config.branding.logoUrl) {
-      pptx.defineSlideMaster({
-        title: "BRANDED",
-        background: { color: "#FFFFFF" },
-        objects: [
-          { image: { x: 0.5, y: 6.5, w: 1, h: 0.5, path: config.branding.logoUrl } }
-        ]
-      });
-    }
-    
-    if (config.branding.includeFooter && config.branding.footerText) {
-      // Use proper text object properties according to pptxgenjs docs
-      pptx.defineSlideMaster({
-        title: "FOOTER",
-        background: { color: "#FFFFFF" },
-        objects: [
-          { 
-            text: {
-              text: config.branding.footerText,
-              options: {
-                x: 0.5, 
-                y: 7, 
-                w: "90%", 
-                h: 0.3,
-                fontSize: 10, 
-                color: theme.text.secondary, 
-                align: "center"
-              }
-            }
-          }
-        ]
-      });
-    }
-
     // Create title slide if configured
     if (config.slides.includeTitleSlide) {
       await createTitleSlide(pptx, campaign, theme, slideMasters);
@@ -101,34 +58,103 @@ export const exportToPptx = async (
       onProgress?.(Math.round((currentProgress / totalSteps) * 100));
     }
 
-    // Create question slides with comparisons if configured
-    if (config.slides.includeQuestionSlides) {
-      await createQuestionSlides(
-        pptx, 
-        campaign, 
-        processedData, 
-        theme,
-        slideMasters,
-        {
-          excludeTextQuestions: config.questions.excludeTextQuestions,
-          includedQuestionIds: config.questions.includedQuestionIds,
-          comparisonDimensions: config.comparisons.dimensions
-        },
-        () => {
-          currentProgress += 1;
-          onProgress?.(Math.round((currentProgress / totalSteps) * 100));
-        }
-      );
+    // Create question slides with comparisons
+    for (const question of questions) {
+      // Create main question slide
+      await createQuestionSlide(pptx, campaign, processedData, question, theme, slideMasters);
+      currentProgress += 1;
+      onProgress?.(Math.round((currentProgress / totalSteps) * 100));
+
+      // Create comparison slides if configured
+      for (const dimension of config.comparisons.dimensions) {
+        await createComparisonSlide(
+          pptx, 
+          campaign, 
+          processedData,
+          question,
+          dimension,
+          theme,
+          slideMasters
+        );
+        currentProgress += 1;
+        onProgress?.(Math.round((currentProgress / totalSteps) * 100));
+      }
     }
 
     // Save the presentation
     const fileName = `${campaign.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_presentation.pptx`;
     await pptx.writeFile({ fileName });
 
-    onProgress?.(100); // Ensure we reach 100%
+    onProgress?.(100);
     return fileName;
   } catch (error) {
     console.error("Error exporting presentation:", error);
     throw error;
   }
+};
+
+// Create a single question slide
+const createQuestionSlide = async (
+  pptx: any,
+  campaign: CampaignData,
+  processedData: ProcessedData,
+  question: Question,
+  theme: ThemeColors,
+  slideMasters: any
+) => {
+  const slide = pptx.addSlide({ masterName: "CHART" });
+  
+  // Add slide number
+  slide.slideNumber = { x: 0.5, y: "90%", color: theme.text.secondary, fontFace: "Arial" };
+  
+  // Add question title
+  slide.addText(question.title, {
+    x: 0.5,
+    y: 0.5,
+    w: 9,
+    h: 0.5,
+    fontSize: 18,
+    bold: true,
+    color: theme.text.primary,
+  });
+  
+  // Add chart for the question
+  await addQuestionChart(slide, question, processedData, theme);
+  
+  return slide;
+};
+
+// Create a comparison slide for a question
+const createComparisonSlide = async (
+  pptx: any,
+  campaign: CampaignData,
+  processedData: ProcessedData,
+  question: Question,
+  dimension: ComparisonDimension,
+  theme: ThemeColors,
+  slideMasters: any
+) => {
+  const slide = pptx.addSlide({ masterName: "CHART" });
+  
+  // Add slide number
+  slide.slideNumber = { x: 0.5, y: "90%", color: theme.text.secondary, fontFace: "Arial" };
+  
+  // Get a friendly name for the dimension
+  const dimensionName = dimension.replace(/_/g, ' ');
+  
+  // Add slide title
+  slide.addText(`${question.title} by ${dimensionName}`, {
+    x: 0.5,
+    y: 0.5,
+    w: 9,
+    h: 0.5,
+    fontSize: 18,
+    bold: true,
+    color: theme.text.primary,
+  });
+  
+  // Add comparison chart
+  await addComparisonChart(slide, question, processedData, dimension, theme);
+  
+  return slide;
 };
