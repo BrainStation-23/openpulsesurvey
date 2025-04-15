@@ -1,4 +1,3 @@
-
 export interface ProcessedData {
   summary: {
     totalResponses: number;
@@ -87,8 +86,21 @@ export interface SatisfactionData {
   median: number;
 }
 
-// Comparison types
+// Updated NPS data structure
+export interface NpsData {
+  detractors: number;
+  passives: number;
+  promoters: number;
+  total: number;
+  npsScore: number;
+}
+
+// Comparison types - updated to include index signature
 export interface ComparisonGroup {
   dimension: string;
-  [key: string]: number | string;
+  [key: string]: number | string; // Add index signature to allow any string property
 }
+
+// Specific comparison group types for better type checking
+export interface SatisfactionComparisonGroup extends ComparisonGroup, SatisfactionData {}
+export interface NpsComparisonGroup extends ComparisonGroup, NpsData {}
