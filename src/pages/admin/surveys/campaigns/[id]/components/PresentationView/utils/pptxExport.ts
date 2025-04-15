@@ -35,7 +35,7 @@ export const exportToPptx = async (
     onProgress?.(Math.round((currentProgress / totalSteps) * 100));
 
     // Create question slides with comparisons
-    await createQuestionSlides(pptx, campaign, processedData, (progress) => {
+    await createQuestionSlides(pptx, campaign, processedData, () => {
       currentProgress += 1;
       onProgress?.(Math.round((currentProgress / totalSteps) * 100));
     });

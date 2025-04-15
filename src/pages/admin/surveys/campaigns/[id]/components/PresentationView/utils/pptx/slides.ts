@@ -85,7 +85,7 @@ export const createQuestionSlides = async (
   pptx: pptxgen, 
   campaign: CampaignData, 
   processedData: ProcessedData,
-  onProgress?: () => void
+  onProgress?: (progress: number) => void
 ) => {
   // Filter out text and comment questions
   const filteredQuestions = processedData.questions.filter(
@@ -137,6 +137,8 @@ export const createQuestionSlides = async (
     }
     
     // Call the progress callback after each question's slides are created
-    onProgress?.();
+    if (onProgress) {
+      onProgress(1); // Pass a numeric value to indicate progress increment
+    }
   }
 };
