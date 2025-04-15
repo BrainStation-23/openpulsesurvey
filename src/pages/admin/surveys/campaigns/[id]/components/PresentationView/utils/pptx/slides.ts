@@ -2,12 +2,18 @@
 import pptxgen from "pptxgenjs";
 import { CampaignData } from "../../types";
 import { ProcessedData } from "../../types/responses";
-import { THEME, slideMasters } from "./theme";
+import { ThemeColors, getSlideMasters } from "./theme";
 import { cleanText, formatDate } from "./helpers";
 import { addQuestionChart, addComparisonChart } from "./charts";
+import { ComparisonDimension } from "../../types/exportConfig";
 
 // Create title slide
-export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
+export const createTitleSlide = async (
+  pptx: pptxgen, 
+  campaign: CampaignData, 
+  theme: ThemeColors,
+  slideMasters: any
+) => {
   const slide = pptx.addSlide();
   Object.assign(slide, slideMasters.TITLE);
 
@@ -17,7 +23,7 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
     w: "90%",
     fontSize: 44,
     bold: true,
-    color: THEME.text.primary,
+    color: theme.text.primary,
   });
 
   if (campaign.description) {
@@ -26,7 +32,7 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
       y: 2,
       w: "90%",
       fontSize: 20,
-      color: THEME.text.secondary,
+      color: theme.text.secondary,
     });
   }
 
@@ -44,12 +50,17 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
     y: 4,
     w: "90%",
     fontSize: 16,
-    color: THEME.text.light,
+    color: theme.text.light,
   });
 };
 
 // Create completion rate slide
-export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => {
+export const createCompletionSlide = async (
+  pptx: pptxgen, 
+  campaign: CampaignData,
+  theme: ThemeColors,
+  slideMasters: any
+) => {
   const slide = pptx.addSlide();
   Object.assign(slide, slideMasters.CHART);
 
@@ -58,7 +69,7 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
     y: 0.5,
     fontSize: 32,
     bold: true,
-    color: THEME.text.primary,
+    color: theme.text.primary,
   });
 
   // Calculate instance status distribution
@@ -78,7 +89,7 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
     y: 1.5,  // Position from top
     w: 4.2,  // Reduced width (60% smaller)
     h: 3,    // Reduced height (60% smaller)
-    chartColors: [THEME.primary, THEME.tertiary, THEME.light],
+    chartColors: [theme.primary, theme.tertiary, theme.light],
     showLegend: true,
     legendPos: 'r',
     legendFontSize: 11,
@@ -101,7 +112,7 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
     y: 2,    // Align vertically with the chart
     w: 4,    // Fixed width for text block
     fontSize: 12,
-    color: THEME.text.primary,
+    color: theme.text.primary,
   });
 };
 
@@ -110,12 +121,27 @@ export const createQuestionSlides = async (
   pptx: pptxgen, 
   campaign: CampaignData, 
   processedData: ProcessedData,
+  theme: ThemeColors,
+  slideMasters: any,
+  options: {
+    excludeTextQuestions: boolean;
+    includedQuestionIds: string[] | "all";
+    comparisonDimensions: ComparisonDimension[];
+  },
   onProgress?: (progress: number) => void
 ) => {
-  // Filter out text and comment questions
-  const filteredQuestions = processedData.questions.filter(
-    question => question.type !== "text" && question.type !== "comment"
-  );
+  // Filter questions based on configuration
+  const filteredQuestions = processedData.questions.filter(question => {
+    // Filter out text and comment questions if configured
+    if (options.excludeTextQuestions && (question.type === "text" || question.type === "comment")) {
+      return false;
+    }
+    
+    // Filter based on includedQuestionIds
+    return options.includedQuestionIds === "all" || 
+           (Array.isArray(options.includedQuestionIds) && 
+            options.includedQuestionIds.includes(question.id));
+  });
 
   for (const question of filteredQuestions) {
     // Main question slide
@@ -128,15 +154,16 @@ export const createQuestionSlides = async (
       w: "90%",
       fontSize: 28,
       bold: true,
-      color: THEME.text.primary,
+      color: theme.text.primary,
       wrap: true,
     });
 
     // Add chart based on question type
-    await addQuestionChart(mainSlide, question, processedData);
+    await addQuestionChart(mainSlide, question, processedData, theme);
+    onProgress?.(1);
 
-    // Create comparison slides
-    for (const dimension of ["sbu", "gender", "location", "employment_type", "level", "employee_type", "employee_role"]) {
+    // Create comparison slides based on selected dimensions
+    for (const dimension of options.comparisonDimensions) {
       const comparisonSlide = pptx.addSlide();
       Object.assign(comparisonSlide, slideMasters.CHART);
 
@@ -146,24 +173,20 @@ export const createQuestionSlides = async (
         w: "90%",
         fontSize: 24,
         bold: true,
-        color: THEME.text.primary,
+        color: theme.text.primary,
         wrap: true,
       });
 
-      comparisonSlide.addText(`Response Distribution by ${dimension}`, {
+      comparisonSlide.addText(`Response Distribution by ${dimension.replace(/_/g, ' ')}`, {
         x: 0.5,
         y: 1.2,
         fontSize: 20,
-        color: THEME.text.secondary,
+        color: theme.text.secondary,
       });
 
       // Add comparison chart
-      await addComparisonChart(comparisonSlide, question, processedData, dimension);
-    }
-    
-    // Call the progress callback after each question's slides are created
-    if (onProgress) {
-      onProgress(1); // Pass a numeric value to indicate progress increment
+      await addComparisonChart(comparisonSlide, question, processedData, dimension, theme);
+      onProgress?.(1);
     }
   }
 };
