@@ -1,3 +1,4 @@
+
 export interface ProcessedData {
   summary: {
     totalResponses: number;
@@ -95,10 +96,10 @@ export interface NpsData {
   npsScore: number;
 }
 
-// Comparison types - updated to include index signature
+// Generic comparison group with index signature
 export interface ComparisonGroup {
   dimension: string;
-  [key: string]: number | string; // Add index signature to allow any string property
+  [key: string]: any; // Changed to 'any' to be more flexible
 }
 
 // Specific comparison group types for better type checking

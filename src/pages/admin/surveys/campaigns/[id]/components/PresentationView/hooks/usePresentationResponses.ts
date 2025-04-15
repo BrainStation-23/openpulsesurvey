@@ -1,8 +1,16 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ProcessedData, ProcessedResponse, Question, SatisfactionData, ComparisonGroup } from "../types/responses";
+import { 
+  ProcessedData, 
+  ProcessedResponse, 
+  Question, 
+  SatisfactionData, 
+  NpsData, 
+  ComparisonGroup,
+  SatisfactionComparisonGroup,
+  NpsComparisonGroup
+} from "../types/responses";
 
 export function usePresentationResponses(campaignId: string, instanceId?: string) {
   const { data: rawData, ...rest } = useQuery({
@@ -205,7 +213,7 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
         let count = 0;
         
         processedResponses.forEach(response => {
-          const answer = response.answers[question.name]?.answer;
+          const answer = response?.answers[question.name]?.answer;
           if (typeof answer === 'number' || (typeof answer === 'string' && !isNaN(Number(answer)))) {
             const rating = typeof answer === 'number' ? answer : Number(answer);
             ratings[rating] = (ratings[rating] || 0) + 1;
@@ -297,18 +305,18 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
         });
         
         if (question.type === 'rating') {
-          // For rating questions, calculate satisfaction metrics
-          const groupsData: ComparisonGroup[] = Object.entries(groupedResponses).map(([group, groupResponses]) => {
-            // Extract rating values from this group
-            const ratings = groupResponses
-              .map(r => r.answers[question.name]?.answer)
-              .filter(r => typeof r === 'number' || (typeof r === 'string' && !isNaN(Number(r))))
-              .map(r => typeof r === 'number' ? r : Number(r));
-              
-            const total = ratings.length;
-            
+          // For rating questions, calculate satisfaction or NPS metrics
+          if (question.rateCount === 10) {
             // For NPS (0-10 scale)
-            if (question.rateCount === 10) {
+            const groupsData: NpsComparisonGroup[] = Object.entries(groupedResponses).map(([group, groupResponses]) => {
+              // Extract rating values from this group
+              const ratings = groupResponses
+                .map(r => r.answers[question.name]?.answer)
+                .filter(r => typeof r === 'number' || (typeof r === 'string' && !isNaN(Number(r))))
+                .map(r => typeof r === 'number' ? r : Number(r));
+                
+              const total = ratings.length;
+              
               const detractors = ratings.filter(r => r <= 6).length;
               const passives = ratings.filter(r => r > 6 && r <= 8).length;
               const promoters = ratings.filter(r => r > 8).length;
@@ -321,9 +329,21 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
                 total,
                 npsScore: total > 0 ? Math.round(((promoters - detractors) / total) * 100) : 0
               };
-            } 
+            });
+            
+            comparisons[question.name][dimension] = groupsData;
+          } 
+          else {
             // For satisfaction (1-5 scale)
-            else {
+            const groupsData: SatisfactionComparisonGroup[] = Object.entries(groupedResponses).map(([group, groupResponses]) => {
+              // Extract rating values from this group
+              const ratings = groupResponses
+                .map(r => r.answers[question.name]?.answer)
+                .filter(r => typeof r === 'number' || (typeof r === 'string' && !isNaN(Number(r))))
+                .map(r => typeof r === 'number' ? r : Number(r));
+                
+              const total = ratings.length;
+              
               const unsatisfied = ratings.filter(r => r <= 2).length;
               const neutral = ratings.filter(r => r === 3).length;
               const satisfied = ratings.filter(r => r >= 4).length;
@@ -336,11 +356,11 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
                 total,
                 median: total > 0 ? 
                   ratings.sort((a, b) => a - b)[Math.floor(total / 2)] : 0
-              } as SatisfactionData & { dimension: string };
-            }
-          });
-          
-          comparisons[question.name][dimension] = groupsData;
+              };
+            });
+            
+            comparisons[question.name][dimension] = groupsData;
+          }
         } 
         else if (question.type === 'boolean' || question.type === 'radiogroup' || question.type === 'checkbox') {
           // For choice questions, calculate choice distributions by group

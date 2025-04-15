@@ -1,9 +1,17 @@
 
 import { useMemo } from "react";
-import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData, ComparisonGroup } from "../../types/responses";
+import { 
+  ProcessedData, 
+  BooleanResponseData, 
+  RatingResponseData, 
+  SatisfactionData, 
+  ComparisonGroup,
+  NpsComparisonGroup,
+  SatisfactionComparisonGroup 
+} from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
 
-type QuestionDataResult = BooleanResponseData | RatingResponseData | SatisfactionData | ComparisonGroup[] | null;
+type QuestionDataResult = BooleanResponseData | RatingResponseData | NpsComparisonGroup[] | SatisfactionComparisonGroup[] | null;
 
 export function useQuestionData(
   data: ProcessedData | null,
@@ -22,7 +30,7 @@ export function useQuestionData(
       // No data available for this comparison
       if (!comparisonData) return null;
       
-      // For rating-type questions, convert to expected format
+      // For rating-type questions, return the comparison data as is
       if (questionType === "rating" && Array.isArray(comparisonData)) {
         return comparisonData;
       }

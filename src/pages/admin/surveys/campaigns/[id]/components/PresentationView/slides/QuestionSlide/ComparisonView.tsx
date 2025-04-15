@@ -1,6 +1,7 @@
 
 import { HeatMapChart } from "../../../ReportsTab/charts/HeatMapChart";
 import { NpsChart } from "../../../ReportsTab/charts/NpsChart";
+import { NpsComparisonGroup, SatisfactionComparisonGroup } from "../../types/responses";
 
 interface ComparisonViewProps {
   data: any;
@@ -38,10 +39,13 @@ export function ComparisonView({ data, isNps }: ComparisonViewProps) {
       );
     }
 
+    // Cast data to the correct type
+    const npsData = data as NpsComparisonGroup[];
+
     return (
       <div className="w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {data.map((groupData) => (
+          {npsData.map((groupData) => (
             <div key={groupData.dimension} className="bg-white rounded-lg shadow p-4">
               <h3 className="text-lg font-semibold mb-4">{groupData.dimension}</h3>
               <NpsChart 
