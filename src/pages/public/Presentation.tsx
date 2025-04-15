@@ -105,40 +105,42 @@ export default function Presentation() {
   const totalSlides = 3 + (surveyQuestions.length * (1 + COMPARISON_DIMENSIONS.length));
 
   return (
-    <>
+    <div className="min-h-screen h-screen flex flex-col bg-background">
       <Helmet>
         <title>{campaign.name} - Presentation</title>
       </Helmet>
       
-      <PresentationLayout 
-        progress={((currentSlide + 1) / totalSlides) * 100}
-        isFullscreen={isFullscreen}
-      >
-        <PublicPresentationControls
-          onPrevious={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
-          onNext={() => setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1))}
-          onFullscreen={toggleFullscreen}
-          isFirstSlide={currentSlide === 0}
-          isLastSlide={currentSlide === totalSlides - 1}
+      <div className="flex-1 relative">
+        <PresentationLayout 
+          progress={((currentSlide + 1) / totalSlides) * 100}
           isFullscreen={isFullscreen}
-          currentSlide={currentSlide}
-          totalSlides={totalSlides}
-          campaign={campaign}
-        />
-        
-        <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
-        <ResponseDistributionSlide 
-          campaignId={campaign.id} 
-          instanceId={presentation.instance_id || undefined} 
-          isActive={currentSlide === 1}
-          campaign={campaign}
-        />
-        <ResponseTrendsSlide campaign={campaign} isActive={currentSlide === 2} />
-        <QuestionSlidesRenderer 
-          campaign={campaign}
-          currentSlide={currentSlide}
-        />
-      </PresentationLayout>
-    </>
+        >
+          <PublicPresentationControls
+            onPrevious={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
+            onNext={() => setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1))}
+            onFullscreen={toggleFullscreen}
+            isFirstSlide={currentSlide === 0}
+            isLastSlide={currentSlide === totalSlides - 1}
+            isFullscreen={isFullscreen}
+            currentSlide={currentSlide}
+            totalSlides={totalSlides}
+            campaign={campaign}
+          />
+          
+          <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
+          <ResponseDistributionSlide 
+            campaignId={campaign.id} 
+            instanceId={presentation.instance_id || undefined} 
+            isActive={currentSlide === 1}
+            campaign={campaign}
+          />
+          <ResponseTrendsSlide campaign={campaign} isActive={currentSlide === 2} />
+          <QuestionSlidesRenderer 
+            campaign={campaign}
+            currentSlide={currentSlide}
+          />
+        </PresentationLayout>
+      </div>
+    </div>
   );
 }
