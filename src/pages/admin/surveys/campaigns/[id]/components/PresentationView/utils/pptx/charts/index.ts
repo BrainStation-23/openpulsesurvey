@@ -27,11 +27,12 @@ export const addQuestionChart = async (
 
 // Fetch supervisor data from the database
 const fetchSupervisorData = async (campaignId: string, instanceId: string | undefined, questionName: string) => {
-  if (!campaignId || !instanceId) {
+  if (!campaignId) {
     return [];
   }
   
   try {
+    // Make sure to pass all required parameters including instanceId
     const { data, error } = await supabase.rpc(
       'get_supervisor_satisfaction',
       {

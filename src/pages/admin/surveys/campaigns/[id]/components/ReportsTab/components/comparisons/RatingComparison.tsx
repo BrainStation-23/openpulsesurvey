@@ -33,7 +33,9 @@ export function RatingComparison({
     responses, 
     questionName, 
     question, 
-    dimension
+    dimension,
+    campaignId,
+    instanceId
   );
 
   const getDimensionTitle = (dim: string) => {

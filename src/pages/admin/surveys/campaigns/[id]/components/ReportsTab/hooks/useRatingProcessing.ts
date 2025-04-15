@@ -110,6 +110,7 @@ export function useRatingProcessing(
         throw new Error("Campaign ID not provided");
       }
       
+      // Make sure to pass instanceId parameter to the function
       const { data: supervisorData, error: rpcError } = await supabase.rpc(
         'get_supervisor_satisfaction',
         {
@@ -249,6 +250,7 @@ export function useRatingProcessing(
           return idIndex < urlParts.length ? urlParts[idIndex] : '';
         })();
         
+        // Make sure to pass both campaignId and instanceId to the function
         const supervisorData = await fetchSupervisorData(extractedCampaignId, instanceId);
         setData(supervisorData);
       } else {
