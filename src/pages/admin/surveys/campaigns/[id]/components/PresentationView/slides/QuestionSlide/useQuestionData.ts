@@ -34,8 +34,8 @@ export function useQuestionData(
     
     if (!question) return null;
     
-    // Use the isNpsQuestion function but handle both question types correctly
-    const isNps = question.rateCount === 10 || isNpsQuestion(question);
+    // Use the rateCount property to determine if it's an NPS question
+    const isNps = question.rateCount === 10;
 
     if (slideType === 'main') {
       switch (questionType) {

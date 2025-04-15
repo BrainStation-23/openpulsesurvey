@@ -35,12 +35,13 @@ export interface TextDataPoint {
 
 export type TextResponseData = TextDataPoint[];
 
+// Update the Question interface to be compatible with RatingQuestion from questionTypes.ts
 export interface Question {
   name: string;
   title: string;
   type: string;
   rateCount?: number;
-  mode?: string; // Add mode property to align with RatingQuestion in questionTypes.ts
+  mode?: 'nps' | 'satisfaction'; // Add mode property to align with RatingQuestion
 }
 
 export interface ProcessedResponse {

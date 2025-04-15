@@ -91,7 +91,9 @@ export function useRatingProcessing(
   responses: ProcessedResponse[],
   questionName: string,
   question: any,
-  dimension: ComparisonDimension
+  dimension: ComparisonDimension,
+  campaignId?: string,
+  instanceId?: string
 ) {
   const isNps = isNpsQuestion(question);
   const [data, setData] = useState<any[]>([]);
@@ -104,8 +106,8 @@ export function useRatingProcessing(
     setError(null);
     
     try {
-      if (!campaignId || !instanceId) {
-        throw new Error("Campaign or instance ID not provided");
+      if (!campaignId) {
+        throw new Error("Campaign ID not provided");
       }
       
       const { data: supervisorData, error: rpcError } = await supabase.rpc(
@@ -239,15 +241,15 @@ export function useRatingProcessing(
   useEffect(() => {
     const processDimensionData = async () => {
       // If this is the supervisor dimension, we need to fetch data from the backend
-      if (dimension === "supervisor" && responses[0]?.answers[questionName]) {
-        // Normally these would be passed as props, but we can try to extract from the URL in this implementation
-        // Later, refine how we pass these values
-        const urlParts = window.location.pathname.split('/');
-        const campaignId = urlParts[urlParts.indexOf('campaigns') + 1];
+      if (dimension === "supervisor" && responses.length > 0 && responses[0]?.answers[questionName]) {
+        // Extract campaignId from the URL if not provided
+        const extractedCampaignId = campaignId || (() => {
+          const urlParts = window.location.pathname.split('/');
+          const idIndex = urlParts.indexOf('campaigns') + 1;
+          return idIndex < urlParts.length ? urlParts[idIndex] : '';
+        })();
         
-        // Fix: Don't try to access instanceId directly from ProcessedAnswer
-        // Instead use the campaignId to fetch the instance or pass it as a prop
-        const supervisorData = await fetchSupervisorData(campaignId);
+        const supervisorData = await fetchSupervisorData(extractedCampaignId, instanceId);
         setData(supervisorData);
       } else {
         setData(processComparisonData());
@@ -255,7 +257,7 @@ export function useRatingProcessing(
     };
 
     processDimensionData();
-  }, [dimension, questionName, responses]);
+  }, [dimension, questionName, responses, campaignId, instanceId]);
 
   return { data, isLoading: loading, error, isNps };
 }
@@ -268,7 +270,7 @@ export function processRatingQuestion(
   question: any
 ) {
   // Handle question.rateCount to determine if it's NPS or satisfaction
-  const isNps = question && (question.rateCount === 10 || (isNpsQuestion && isNpsQuestion(question)));
+  const isNps = question && (question.rateCount === 10 || (question.mode === 'nps'));
   
   if (isNps) {
     // For NPS questions (0-10 scale)

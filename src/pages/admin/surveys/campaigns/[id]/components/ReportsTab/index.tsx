@@ -11,6 +11,7 @@ import { TextComparison } from "./components/comparisons/TextComparison";
 import { useState } from "react";
 import { ComparisonDimension } from "./types/comparison";
 import { processRatingQuestion } from "./hooks/useRatingProcessing";
+import { SatisfactionData } from "../PresentationView/types/responses"; // Add proper import for SatisfactionData
 
 interface ReportsTabProps {
   campaignId: string;
@@ -87,7 +88,7 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
                           data={processRatingQuestion(
                             answers.filter(a => typeof a === 'number') as number[],
                             question
-                          ).data as SatisfactionData}
+                          ).data}
                         />
                       )}
                     </>
