@@ -24,7 +24,9 @@ export function usePdfExport() {
       setExporting(true);
       setProgress(0);
       
-      await exportToPptx(campaign, processedData);
+      await exportToPptx(campaign, processedData, (progress) => {
+        setProgress(progress);
+      });
       
       toast({
         title: "Success",
