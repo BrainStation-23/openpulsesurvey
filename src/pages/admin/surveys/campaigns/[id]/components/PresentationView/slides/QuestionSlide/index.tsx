@@ -81,16 +81,16 @@ const QuestionSlideComponent = ({
         </div>
       ) : (
         <ComparisonLayout title={getDimensionTitle(slideType)}>
-          {questionType === "boolean" && (
+          {questionType === "boolean" && data?.responses && (
             <BooleanComparison 
-              responses={data.responses} 
+              responses={data.responses}
               questionName={questionName}
               dimension={slideType}
               layout="grid"
             />
           )}
           {questionType === "rating" && (
-            slideType === "supervisor" ? (
+            slideType === "supervisor" && data?.responses ? (
               <NpsComparison
                 responses={data.responses}
                 questionName={questionName}

@@ -31,18 +31,18 @@ export interface ProcessedResponse {
   id: string;
   respondent: {
     id: string;
-    name?: string;
-    email?: string;
-    sbu?: { name: string };
+    name: string;
+    email: string;
+    sbu?: { id: string; name: string };
     gender?: string;
-    location?: { name: string };
-    employment_type?: { name: string };
-    level?: { name: string };
-    employee_type?: { name: string };
-    employee_role?: { name: string };
+    location?: { id: string; name: string };
+    employment_type?: { id: string; name: string };
+    level?: { id: string; name: string };
+    employee_type?: { id: string; name: string };
+    employee_role?: { id: string; name: string };
     supervisor?: { id: string; first_name?: string; last_name?: string } | null;
   };
-  submitted_at?: string;
+  submitted_at: string;
   answers: Record<string, {
     question: string;
     answer: any;
@@ -76,10 +76,8 @@ export interface BooleanResponseData {
   no: number;
 }
 
-export interface RatingResponseData {
-  rating: number;
-  count: number;
-}[]
+// Fix the RatingResponseData to be an array type
+export type RatingResponseData = { rating: number; count: number; group?: string }[];
 
 export interface SatisfactionData {
   unsatisfied: number;

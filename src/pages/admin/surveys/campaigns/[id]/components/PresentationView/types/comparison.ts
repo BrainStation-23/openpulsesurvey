@@ -1,2 +1,5 @@
 
-export type ComparisonDimension = 'main' | 'sbu' | 'gender' | 'location' | 'employment_type' | 'level' | 'employee_type' | 'employee_role' | 'supervisor' | 'none';
+import { ComparisonDimensionType } from "../constants";
+
+// Use the type from constants to avoid circular reference
+export type ComparisonDimension = ComparisonDimensionType;

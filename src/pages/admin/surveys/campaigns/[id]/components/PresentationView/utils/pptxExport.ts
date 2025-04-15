@@ -38,7 +38,7 @@ export const exportToPptx = async (
         }
         return config.questions.includedQuestionIds === "all" || 
                (Array.isArray(config.questions.includedQuestionIds) && 
-                config.questions.includedQuestionIds.includes(question.id));
+                config.questions.includedQuestionIds.includes(question.name));
       });
       
       // Each question has a main slide plus comparison slides
@@ -64,15 +64,25 @@ export const exportToPptx = async (
     }
     
     if (config.branding.includeFooter && config.branding.footerText) {
+      // Use proper text object properties according to pptxgenjs docs
       pptx.defineSlideMaster({
         title: "FOOTER",
         background: { color: "#FFFFFF" },
         objects: [
-          { text: { 
-            text: config.branding.footerText,
-            x: 0.5, y: 7, w: "90%", h: 0.3,
-            fontSize: 10, color: theme.text.secondary, align: "center"
-          }}
+          { 
+            text: { 
+              text: config.branding.footerText,
+              options: {
+                x: 0.5, 
+                y: 7, 
+                w: "90%", 
+                h: 0.3,
+                fontSize: 10, 
+                color: theme.text.secondary, 
+                align: "center"
+              }
+            }
+          }
         ]
       });
     }

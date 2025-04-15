@@ -43,6 +43,7 @@ export function useQuestionData(
             .map(r => r.answers[questionName].answer);
           
           if (isNps) {
+            // Create array of rating data points
             const ratingCounts: RatingResponseData = new Array(11).fill(0).map((_, rating) => ({
               rating,
               count: answers.filter(a => a === rating).length

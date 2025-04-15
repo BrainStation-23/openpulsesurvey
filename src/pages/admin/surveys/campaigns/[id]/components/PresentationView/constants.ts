@@ -8,3 +8,6 @@ export const COMPARISON_DIMENSIONS = [
   "employee_type",
   "employee_role"
 ] as const;
+
+// Define ComparisonDimension type separately to avoid circular reference
+export type ComparisonDimensionType = typeof COMPARISON_DIMENSIONS[number] | "main" | "supervisor" | "none";

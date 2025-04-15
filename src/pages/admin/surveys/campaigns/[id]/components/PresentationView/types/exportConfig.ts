@@ -1,7 +1,5 @@
 
-import { COMPARISON_DIMENSIONS } from "../constants";
-
-export type ComparisonDimension = typeof COMPARISON_DIMENSIONS[number];
+import { ComparisonDimension } from "./comparison";
 
 export interface PPTXExportConfig {
   slides: {
@@ -11,14 +9,14 @@ export interface PPTXExportConfig {
     includeQuestionSlides: boolean;
   };
   questions: {
-    includedQuestionIds: string[] | "all";
     excludeTextQuestions: boolean;
+    includedQuestionIds: string[] | "all";
   };
   comparisons: {
     dimensions: ComparisonDimension[];
   };
   branding: {
-    theme: string;
+    theme: "default" | "modern" | "classic";
     includeLogo: boolean;
     logoUrl?: string;
     includeFooter: boolean;
@@ -34,8 +32,8 @@ export const DEFAULT_EXPORT_CONFIG: PPTXExportConfig = {
     includeQuestionSlides: true,
   },
   questions: {
-    includedQuestionIds: "all",
     excludeTextQuestions: true,
+    includedQuestionIds: "all",
   },
   comparisons: {
     dimensions: ["sbu", "gender", "location"],
