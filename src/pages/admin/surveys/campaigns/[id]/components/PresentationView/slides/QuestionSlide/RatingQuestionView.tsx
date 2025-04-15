@@ -1,7 +1,13 @@
-
 import React from "react";
-import { Chart } from "@/components/ui/chart";  // Update import path to use absolute import
+import { 
+  ChartContainer, 
+  ChartTooltip, 
+  ChartTooltipContent, 
+  ChartLegend, 
+  ChartLegendContent 
+} from "@/components/ui/chart";
 import { RatingResponseData, SatisfactionData } from "../../types/responses";
+import { Bar, BarChart, Pie, PieChart } from "recharts";
 
 interface RatingQuestionViewProps {
   data: RatingResponseData | SatisfactionData;
@@ -22,8 +28,10 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
   if (!data) return <div>No data available</div>;
 
   // Format data for the chart based on its type
+  let chartConfig = {};
   let chartData;
   let chartType: "bar" | "pie" = "bar";
+  let ChartComponent: typeof BarChart | typeof PieChart = BarChart;
 
   if (isRatingResponseData(data)) {
     // Process array-based rating data
@@ -39,18 +47,27 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
       { name: "Satisfied", value: data.satisfied }
     ];
     chartType = "pie";
+    ChartComponent = PieChart;
   } else {
     return <div>Invalid data format</div>;
   }
 
   return (
     <div className="w-full">
-      <Chart 
-        data={chartData} 
-        type={chartType}
-        height={300}
-        colors={isNps ? ["#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e"] : undefined}
-      />
+      <ChartContainer 
+        config={chartConfig}
+        className="h-[300px]"
+      >
+        <ChartComponent>
+          {chartType === "bar" ? (
+            <Bar dataKey="value" fill={isNps ? ["#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e"][0] : undefined} />
+          ) : (
+            <Pie dataKey="value" fill={isNps ? ["#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e"][0] : undefined} />
+          )}
+          <ChartTooltip content={<ChartTooltipContent />} />
+          <ChartLegend content={<ChartLegendContent />} />
+        </ChartComponent>
+      </ChartContainer>
       {isSatisfactionData(data) && (
         <div className="text-center mt-4">
           <p className="text-sm text-muted-foreground">
