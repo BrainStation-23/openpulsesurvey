@@ -52,12 +52,12 @@ export const addTextChart = (
   });
 
   // Add table headers
-  const tableData = [
+  const tableData: pptxgen.TableRow[] = [
     [
-      { text: "Word", options: { bold: true, fill: THEME.primary, color: "FFFFFF" } },
-      { text: "Frequency", options: { bold: true, fill: THEME.primary, color: "FFFFFF" } },
-      { text: "% of Responses", options: { bold: true, fill: THEME.primary, color: "FFFFFF" } },
-      { text: "Visualization", options: { bold: true, fill: THEME.primary, color: "FFFFFF" } }
+      { text: "Word", options: { bold: true, color: "FFFFFF", fill: { color: THEME.primary } } },
+      { text: "Frequency", options: { bold: true, color: "FFFFFF", fill: { color: THEME.primary } } },
+      { text: "% of Responses", options: { bold: true, color: "FFFFFF", fill: { color: THEME.primary } } },
+      { text: "Visualization", options: { bold: true, color: "FFFFFF", fill: { color: THEME.primary } } }
     ]
   ];
 
@@ -67,11 +67,11 @@ export const addTextChart = (
     const barWidth = (word.value / processedWords[0].value) * maxBarWidth;
     
     tableData.push([
-      { text: word.text },
-      { text: word.value.toString() },
-      { text: `${word.percentage}%` },
+      { text: word.text, options: { color: THEME.text.primary } },
+      { text: word.value.toString(), options: { color: THEME.text.primary } },
+      { text: `${word.percentage}%`, options: { color: THEME.text.primary } },
       {
-        text: "█".repeat(Math.round(barWidth * 10)), // Simple bar visualization
+        text: "█".repeat(Math.round(barWidth * 10)), 
         options: { color: THEME.primary }
       }
     ]);
@@ -83,7 +83,7 @@ export const addTextChart = (
     y: TABLE_LAYOUT.startY,
     w: TABLE_LAYOUT.width,
     colW: [2, 1.5, 1.5, 4],
-    border: { pt: 0.5, color: THEME.border },
+    border: { pt: 0.5, color: "#CCCCCC" },
     align: "left",
     fontSize: 10,
   });
@@ -107,4 +107,3 @@ export const addTextChart = (
     color: THEME.text.primary,
   });
 };
-
