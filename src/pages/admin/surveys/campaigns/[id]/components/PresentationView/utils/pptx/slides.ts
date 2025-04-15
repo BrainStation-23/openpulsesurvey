@@ -63,7 +63,6 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
 
   // Calculate instance status distribution
   const instanceCompletionRate = campaign.instance?.completion_rate || 0;
-  // Use 0 as fallback since expired_rate doesn't exist in the type
   const expiredRate = 0; // Fallback since the property doesn't exist in the type
   const pendingRate = 100 - (instanceCompletionRate + expiredRate);
 
@@ -73,21 +72,22 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
     values: [instanceCompletionRate, expiredRate, pendingRate]
   }];
 
+  // Make pie chart smaller and position it on the left side
   slide.addChart(pptx.ChartType.pie, data, {
-    x: 1.5,
-    y: 1.5,
-    w: 7,
-    h: 5,
-    chartColors: [THEME.primary, THEME.tertiary, THEME.light], // Use tertiary instead of danger
+    x: 0.5,  // Position from left
+    y: 1.5,  // Position from top
+    w: 4.2,  // Reduced width (60% smaller)
+    h: 3,    // Reduced height (60% smaller)
+    chartColors: [THEME.primary, THEME.tertiary, THEME.light],
     showLegend: true,
     legendPos: 'r',
-    legendFontSize: 12,
+    legendFontSize: 11,
     dataLabelFormatCode: '0"%"',
-    dataLabelFontSize: 11,
+    dataLabelFontSize: 10,
     showValue: true,
   });
 
-  // Add completion stats as text below
+  // Add completion stats as text on the right side of the chart
   slide.addText([
     { text: "Response Status\n\n", options: { bold: true, fontSize: 14 } },
     { text: `Completed: `, options: { bold: true } },
@@ -97,9 +97,9 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
     { text: `Pending: `, options: { bold: true } },
     { text: `${pendingRate.toFixed(1)}%` },
   ], {
-    x: 0.5,
-    y: 6.5,
-    w: "90%",
+    x: 5.2,  // Position text to the right of the chart
+    y: 2,    // Align vertically with the chart
+    w: 4,    // Fixed width for text block
     fontSize: 12,
     color: THEME.text.primary,
   });
