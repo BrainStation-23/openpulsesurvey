@@ -1,17 +1,16 @@
-
 import { useMemo } from "react";
 import { 
   ProcessedData, 
   BooleanResponseData, 
   RatingResponseData, 
-  SatisfactionData 
+  SatisfactionData,
+  Question
 } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
 import { 
   processNpsData, 
   processSatisfactionData 
 } from "../../../ReportsTab/hooks/useRatingProcessing";
-import { isNpsQuestion } from "../../types/questionTypes";
 
 type ProcessedResult = BooleanResponseData | RatingResponseData | SatisfactionData | any[];
 
@@ -35,7 +34,7 @@ export function useQuestionData(
     if (!question) return null;
     
     // Use the rateCount property to determine if it's an NPS question
-    const isNps = question.rateCount === 10;
+    const isNps = question.rateCount === 10 || question.mode === 'nps';
 
     if (slideType === 'main') {
       switch (questionType) {

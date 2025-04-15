@@ -11,7 +11,7 @@ import { TextComparison } from "./components/comparisons/TextComparison";
 import { useState } from "react";
 import { ComparisonDimension } from "./types/comparison";
 import { processRatingQuestion } from "./hooks/useRatingProcessing";
-import { SatisfactionData } from "../PresentationView/types/responses"; // Add proper import for SatisfactionData
+import { RatingResponseData, SatisfactionData } from "../PresentationView/types/responses"; // Add proper import for SatisfactionData
 
 interface ReportsTabProps {
   campaignId: string;
@@ -50,7 +50,7 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
           .filter(answer => answer !== undefined);
         
         // Helper to determine if it's an NPS question based on rateCount
-        const isNps = question.rateCount === 10;
+        const isNps = question.rateCount === 10 || question.mode === 'nps';
         
         return (
           <Card key={question.name} className="w-full overflow-hidden">
@@ -88,7 +88,7 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
                           data={processRatingQuestion(
                             answers.filter(a => typeof a === 'number') as number[],
                             question
-                          ).data}
+                          ).data as SatisfactionData}
                         />
                       )}
                     </>
