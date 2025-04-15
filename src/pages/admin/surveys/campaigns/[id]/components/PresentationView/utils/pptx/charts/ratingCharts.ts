@@ -130,106 +130,11 @@ export const addRatingChart = (
 
 export const addRatingComparison = (
   slide: pptxgen.Slide,
-  groupedData: Map<string, any>,
+  groupedData: Map<string, number[]>,
   dimension: string,
   isNps: boolean
 ) => {
   const groups = Array.from(groupedData.keys());
-
-  if (dimension === 'supervisor') {
-    // For supervisor comparison, use the same bar chart approach as other dimensions
-    if (isNps) {
-      // Create data for detractors, passives, and promoters
-      const detractorsData = {
-        name: "Detractors",
-        labels: groups,
-        values: groups.map(group => {
-          const data = groupedData.get(group);
-          return data ? Math.round((data.detractors / data.total) * 100) : 0;
-        })
-      };
-
-      const passivesData = {
-        name: "Passives",
-        labels: groups,
-        values: groups.map(group => {
-          const data = groupedData.get(group);
-          return data ? Math.round((data.passives / data.total) * 100) : 0;
-        })
-      };
-
-      const promotersData = {
-        name: "Promoters",
-        labels: groups,
-        values: groups.map(group => {
-          const data = groupedData.get(group);
-          return data ? Math.round((data.promoters / data.total) * 100) : 0;
-        })
-      };
-
-      slide.addChart("bar", [detractorsData, passivesData, promotersData], {
-        x: 0.5,
-        y: 1.5,
-        w: 8,
-        h: 4,
-        barDir: "col",
-        barGrouping: "clustered",
-        chartColors: [THEME.chart.colors[1], THEME.chart.colors[2], THEME.chart.colors[0]],
-        showLegend: true,
-        legendPos: 'b',
-        dataLabelFormatCode: '0"%"',
-        catAxisTitle: dimension,
-        valAxisTitle: "Distribution (%)",
-        valAxisMaxVal: 100,
-      });
-    } else {
-      // Create data for satisfaction categories
-      const unsatisfiedData = {
-        name: "Unsatisfied",
-        labels: groups,
-        values: groups.map(group => {
-          const data = groupedData.get(group);
-          return data ? Math.round((data.unsatisfied / data.total) * 100) : 0;
-        })
-      };
-
-      const neutralData = {
-        name: "Neutral",
-        labels: groups,
-        values: groups.map(group => {
-          const data = groupedData.get(group);
-          return data ? Math.round((data.neutral / data.total) * 100) : 0;
-        })
-      };
-
-      const satisfiedData = {
-        name: "Satisfied",
-        labels: groups,
-        values: groups.map(group => {
-          const data = groupedData.get(group);
-          return data ? Math.round((data.satisfied / data.total) * 100) : 0;
-        })
-      };
-
-      // Adjusted comparison chart size and position
-      slide.addChart("bar", [unsatisfiedData, neutralData, satisfiedData], {
-        x: 0.5,
-        y: 1.5,
-        w: 8,
-        h: 3.5,
-        barDir: "col",
-        barGrouping: "clustered",
-        chartColors: ["#ef4444", "#eab308", "#22c55e"],
-        showLegend: true,
-        legendPos: 'b',
-        dataLabelFormatCode: '0"%"',
-        catAxisTitle: dimension,
-        valAxisTitle: "Distribution (%)",
-        valAxisMaxVal: 100,
-      });
-    }
-    return;
-  }
 
   if (isNps) {
     // Create data for detractors, passives, and promoters
@@ -238,9 +143,9 @@ export const addRatingComparison = (
       labels: groups,
       values: groups.map(group => {
         const answers = groupedData.get(group) || [];
-        const validAnswers = Array.isArray(answers) ? answers.filter((a: number) => typeof a === "number") : [];
-        const detractors = validAnswers.length > 0 ? validAnswers.filter((r: number) => r <= 6).length : 0;
-        return validAnswers.length > 0 ? (detractors / validAnswers.length) * 100 : 0;
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const detractors = validAnswers.filter((r: number) => r <= 6).length;
+        return (detractors / validAnswers.length) * 100;
       })
     };
 
@@ -249,9 +154,9 @@ export const addRatingComparison = (
       labels: groups,
       values: groups.map(group => {
         const answers = groupedData.get(group) || [];
-        const validAnswers = Array.isArray(answers) ? answers.filter((a: number) => typeof a === "number") : [];
-        const passives = validAnswers.length > 0 ? validAnswers.filter((r: number) => r > 6 && r <= 8).length : 0;
-        return validAnswers.length > 0 ? (passives / validAnswers.length) * 100 : 0;
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const passives = validAnswers.filter((r: number) => r > 6 && r <= 8).length;
+        return (passives / validAnswers.length) * 100;
       })
     };
 
@@ -260,9 +165,9 @@ export const addRatingComparison = (
       labels: groups,
       values: groups.map(group => {
         const answers = groupedData.get(group) || [];
-        const validAnswers = Array.isArray(answers) ? answers.filter((a: number) => typeof a === "number") : [];
-        const promoters = validAnswers.length > 0 ? validAnswers.filter((r: number) => r > 8).length : 0;
-        return validAnswers.length > 0 ? (promoters / validAnswers.length) * 100 : 0;
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const promoters = validAnswers.filter((r: number) => r > 8).length;
+        return (promoters / validAnswers.length) * 100;
       })
     };
 
@@ -288,9 +193,9 @@ export const addRatingComparison = (
       labels: groups,
       values: groups.map(group => {
         const answers = groupedData.get(group) || [];
-        const validAnswers = Array.isArray(answers) ? answers.filter((a: number) => typeof a === "number") : [];
-        const unsatisfied = validAnswers.length > 0 ? validAnswers.filter((r: number) => r <= 2).length : 0;
-        return validAnswers.length > 0 ? (unsatisfied / validAnswers.length) * 100 : 0;
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const unsatisfied = validAnswers.filter((r: number) => r <= 2).length;
+        return (unsatisfied / validAnswers.length) * 100;
       })
     };
 
@@ -299,9 +204,9 @@ export const addRatingComparison = (
       labels: groups,
       values: groups.map(group => {
         const answers = groupedData.get(group) || [];
-        const validAnswers = Array.isArray(answers) ? answers.filter((a: number) => typeof a === "number") : [];
-        const neutral = validAnswers.length > 0 ? validAnswers.filter((r: number) => r === 3).length : 0;
-        return validAnswers.length > 0 ? (neutral / validAnswers.length) * 100 : 0;
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const neutral = validAnswers.filter((r: number) => r === 3).length;
+        return (neutral / validAnswers.length) * 100;
       })
     };
 
@@ -310,9 +215,9 @@ export const addRatingComparison = (
       labels: groups,
       values: groups.map(group => {
         const answers = groupedData.get(group) || [];
-        const validAnswers = Array.isArray(answers) ? answers.filter((a: number) => typeof a === "number") : [];
-        const satisfied = validAnswers.length > 0 ? validAnswers.filter((r: number) => r >= 4).length : 0;
-        return validAnswers.length > 0 ? (satisfied / validAnswers.length) * 100 : 0;
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const satisfied = validAnswers.filter((r: number) => r >= 4).length;
+        return (satisfied / validAnswers.length) * 100;
       })
     };
 
