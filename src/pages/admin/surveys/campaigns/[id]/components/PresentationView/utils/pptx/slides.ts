@@ -1,3 +1,4 @@
+
 import pptxgen from "pptxgenjs";
 import { CampaignData } from "../../types";
 import { ProcessedData } from "../../types/responses";
@@ -62,7 +63,8 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
 
   // Calculate instance status distribution
   const instanceCompletionRate = campaign.instance?.completion_rate || 0;
-  const expiredRate = campaign.instance?.expired_rate || 0;
+  // Use 0 as fallback since expired_rate doesn't exist in the type
+  const expiredRate = 0; // Fallback since the property doesn't exist in the type
   const pendingRate = 100 - (instanceCompletionRate + expiredRate);
 
   const data = [{
@@ -76,7 +78,7 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
     y: 1.5,
     w: 7,
     h: 5,
-    chartColors: [THEME.primary, THEME.danger, THEME.light],
+    chartColors: [THEME.primary, THEME.tertiary, THEME.light], // Use tertiary instead of danger
     showLegend: true,
     legendPos: 'r',
     legendFontSize: 12,

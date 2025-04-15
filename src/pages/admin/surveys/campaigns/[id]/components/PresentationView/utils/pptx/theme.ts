@@ -6,6 +6,7 @@ export const THEME = {
   tertiary: "#6E59A5",
   dark: "#1A1F2C",
   light: "#F1F0FB",
+  danger: "#E11D48", // Adding the missing danger color
   text: {
     primary: "#1A1F2C",
     secondary: "#6E59A5",
