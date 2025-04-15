@@ -108,6 +108,16 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
   
   // Render Satisfaction data
   if (isSatisfactionData(data)) {
+    // Create data for horizontal stacked bar chart
+    const satisfactionData = [
+      {
+        name: "Satisfaction",
+        unsatisfied: data.unsatisfied,
+        neutral: data.neutral,
+        satisfied: data.satisfied,
+      }
+    ];
+
     return (
       <div className="w-full space-y-4">
         <div className="flex items-center justify-between">
@@ -125,31 +135,57 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
           </div>
         </div>
 
-        <div className="h-48">
+        <div className="h-28">
           <ChartContainer 
             className="h-full" 
             config={{
-              satisfied: { color: "#22c55e" },
-              neutral: { color: "#eab308" },
-              unsatisfied: { color: "#ef4444" }
+              unsatisfied: { color: "#ef4444", label: "Unsatisfied" },
+              neutral: { color: "#eab308", label: "Neutral" },
+              satisfied: { color: "#22c55e", label: "Satisfied" }
             }}
           >
-            <PieChart>
-              <Pie
-                data={[
-                  { name: 'Unsatisfied', value: data.unsatisfied, fill: '#ef4444' },
-                  { name: 'Neutral', value: data.neutral, fill: '#eab308' },
-                  { name: 'Satisfied', value: data.satisfied, fill: '#22c55e' }
-                ]}
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                dataKey="value"
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            <BarChart
+              layout="vertical"
+              data={satisfactionData}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
+              <Bar 
+                dataKey="unsatisfied" 
+                fill="#ef4444" 
+                stackId="a"
+                name="Unsatisfied"
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
+              <Bar 
+                dataKey="neutral" 
+                fill="#eab308" 
+                stackId="a"
+                name="Neutral"
+              />
+              <Bar 
+                dataKey="satisfied" 
+                fill="#22c55e" 
+                stackId="a"
+                name="Satisfied"
+              />
+              <ChartTooltip 
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="rounded-lg border bg-background p-2 shadow-sm">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="font-medium">{payload[0].name}:</div>
+                          <div>{payload[0].value} responses</div>
+                          <div className="font-medium">Percentage:</div>
+                          <div>{Math.round((payload[0].value / data.total) * 100)}%</div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
               <ChartLegend content={<ChartLegendContent />} />
-            </PieChart>
+            </BarChart>
           </ChartContainer>
         </div>
 
