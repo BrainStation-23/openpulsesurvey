@@ -84,7 +84,8 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
 export const createQuestionSlides = async (
   pptx: pptxgen, 
   campaign: CampaignData, 
-  processedData: ProcessedData
+  processedData: ProcessedData,
+  onProgress?: () => void
 ) => {
   // Filter out text and comment questions
   const filteredQuestions = processedData.questions.filter(
@@ -134,5 +135,8 @@ export const createQuestionSlides = async (
       // Add comparison chart
       await addComparisonChart(comparisonSlide, question, processedData, dimension);
     }
+    
+    // Call the progress callback after each question's slides are created
+    onProgress?.();
   }
 };
