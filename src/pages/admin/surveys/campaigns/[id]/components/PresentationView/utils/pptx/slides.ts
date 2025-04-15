@@ -1,4 +1,3 @@
-
 import pptxgen from "pptxgenjs";
 import { CampaignData } from "../../types";
 import { ProcessedData } from "../../types/responses";
@@ -53,7 +52,7 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
   const slide = pptx.addSlide();
   Object.assign(slide, slideMasters.CHART);
 
-  slide.addText("Campaign Completion", {
+  slide.addText("Response Distribution", {
     x: 0.5,
     y: 0.5,
     fontSize: 32,
@@ -61,22 +60,46 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
     color: THEME.text.primary,
   });
 
-  const labels: string[] = ["Completed", "Pending"];
-  const completionData = [{
-    name: "Completion",
-    labels,
-    values: [campaign.completion_rate || 0, 100 - (campaign.completion_rate || 0)]
+  // Calculate instance status distribution
+  const instanceCompletionRate = campaign.instance?.completion_rate || 0;
+  const expiredRate = campaign.instance?.expired_rate || 0;
+  const pendingRate = 100 - (instanceCompletionRate + expiredRate);
+
+  const data = [{
+    name: "Status Distribution",
+    labels: ["Completed", "Expired", "Pending"],
+    values: [instanceCompletionRate, expiredRate, pendingRate]
   }];
 
-  slide.addChart(pptx.ChartType.doughnut, completionData, {
-    x: 1,
+  slide.addChart(pptx.ChartType.pie, data, {
+    x: 1.5,
     y: 1.5,
-    w: 8,
+    w: 7,
     h: 5,
-    chartColors: [THEME.primary, THEME.light],
+    chartColors: [THEME.primary, THEME.danger, THEME.light],
     showLegend: true,
-    legendPos: 'b',
-    dataLabelFormatCode: '0"%"'
+    legendPos: 'r',
+    legendFontSize: 12,
+    dataLabelFormatCode: '0"%"',
+    dataLabelFontSize: 11,
+    showValue: true,
+  });
+
+  // Add completion stats as text below
+  slide.addText([
+    { text: "Response Status\n\n", options: { bold: true, fontSize: 14 } },
+    { text: `Completed: `, options: { bold: true } },
+    { text: `${instanceCompletionRate.toFixed(1)}%\n` },
+    { text: `Expired: `, options: { bold: true } },
+    { text: `${expiredRate.toFixed(1)}%\n` },
+    { text: `Pending: `, options: { bold: true } },
+    { text: `${pendingRate.toFixed(1)}%` },
+  ], {
+    x: 0.5,
+    y: 6.5,
+    w: "90%",
+    fontSize: 12,
+    color: THEME.text.primary,
   });
 };
 
