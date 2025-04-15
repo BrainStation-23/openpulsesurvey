@@ -17,11 +17,12 @@ export default function PresentationView() {
 
   const { data: campaign } = useCampaignData(id, instanceId);
 
-  const surveyQuestions = (campaign?.survey.json_data.pages || []).flatMap(
-    (page) => page.elements || []
-  );
+  // Filter out text and comment type questions
+  const filteredQuestions = (campaign?.survey.json_data.pages || [])
+    .flatMap(page => page.elements || [])
+    .filter(question => question.type !== "text" && question.type !== "comment");
 
-  const totalSlides = 3 + (surveyQuestions.length * (1 + COMPARISON_DIMENSIONS.length));
+  const totalSlides = 3 + (filteredQuestions.length * (1 + COMPARISON_DIMENSIONS.length));
 
   const {
     currentSlide,

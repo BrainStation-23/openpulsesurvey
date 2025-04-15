@@ -86,9 +86,12 @@ export const createQuestionSlides = async (
   campaign: CampaignData, 
   processedData: ProcessedData
 ) => {
-  const { questions } = processedData;
+  // Filter out text and comment questions
+  const filteredQuestions = processedData.questions.filter(
+    question => question.type !== "text" && question.type !== "comment"
+  );
 
-  for (const question of questions) {
+  for (const question of filteredQuestions) {
     // Main question slide
     const mainSlide = pptx.addSlide();
     Object.assign(mainSlide, slideMasters.CHART);
