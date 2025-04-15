@@ -176,7 +176,7 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
                           <div className="font-medium">{payload[0].name}:</div>
                           <div>{payload[0].value} responses</div>
                           <div className="font-medium">Percentage:</div>
-                          <div>{Math.round((payload[0].value / data.total) * 100)}%</div>
+                          <div>{Math.round((Number(payload[0].value) / data.total) * 100)}%</div>
                         </div>
                       </div>
                     );
