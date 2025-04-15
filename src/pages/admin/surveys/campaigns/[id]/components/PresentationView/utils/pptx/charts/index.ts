@@ -1,8 +1,8 @@
+
 import pptxgen from "pptxgenjs";
 import { ProcessedData } from "../../../types/responses";
 import { addBooleanChart, addBooleanComparison } from "./booleanCharts";
 import { addRatingChart, addRatingComparison } from "./ratingCharts";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
 
 // Helper to add appropriate chart for question type
 export const addQuestionChart = async (
@@ -31,41 +31,6 @@ export const addComparisonChart = async (
   processedData: ProcessedData,
   dimension: string
 ) => {
-  // Special handling for supervisor comparison
-  if (dimension === 'supervisor') {
-    const supabase = useSupabaseClient();
-    
-    // Fetch supervisor satisfaction data
-    const { data: supervisorData, error } = await supabase
-      .rpc('get_supervisor_satisfaction', {
-        p_campaign_id: processedData.campaignId,
-        p_instance_id: processedData.instanceId,
-        p_question_name: question.name
-      });
-
-    if (error) {
-      console.error('Error fetching supervisor data:', error);
-      return;
-    }
-
-    // Transform supervisor data to match the format expected by the chart functions
-    const groupedData = new Map();
-    supervisorData.forEach((item: any) => {
-      groupedData.set(item.supervisor_name, item.responses);
-    });
-
-    // Use existing chart rendering functions with transformed data
-    switch (question.type) {
-      case "boolean":
-        addBooleanComparison(slide, groupedData, dimension);
-        break;
-      case "rating":
-        addRatingComparison(slide, groupedData, dimension, question.rateCount === 10);
-        break;
-    }
-    return;
-  }
-
   const groupedData = new Map();
 
   // Group responses by dimension
