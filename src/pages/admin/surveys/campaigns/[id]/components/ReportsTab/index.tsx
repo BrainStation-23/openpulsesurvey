@@ -49,7 +49,7 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
           .map(response => response.answers[question.name]?.answer)
           .filter(answer => answer !== undefined);
         
-        // Helper to determine if it's an NPS question based on rateCount
+        // Helper to determine if it's an NPS question based on rateCount or mode
         const isNps = question.rateCount === 10 || question.mode === 'nps';
         
         return (
