@@ -82,4 +82,7 @@ export interface ProcessedResponse {
 export interface ProcessedData {
   questions: Question[];
   responses: ProcessedResponse[];
+  campaignId: string;
+  instanceId: string;
 }
+
