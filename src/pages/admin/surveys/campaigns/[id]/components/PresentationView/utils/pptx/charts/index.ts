@@ -3,6 +3,7 @@ import { Question, ProcessedData } from "../../../types/responses";
 import { ThemeColors } from "../theme";
 import { ComparisonDimension } from "../../../types/comparison";
 import { calculateChartStatistics } from "./helpers/statisticsCalculator";
+import { addBooleanChart, addBooleanComparison } from "./booleanCharts";
 
 // Export functions for charts
 export const addQuestionChart = async (
@@ -20,6 +21,15 @@ export const addQuestionChart = async (
       return;
     }
 
+    if (question.type === "boolean") {
+      const booleanData = questionData.choices || {};
+      const answers = processedData.responses.map(r => 
+        r.answers[question.name]?.answer === "true" || r.answers[question.name]?.answer === true
+      );
+      await addBooleanChart(slide, answers);
+      return;
+    }
+
     if (question.type === "rating") {
       // Process rating data
       const ratings = questionData.ratings || {};
@@ -32,7 +42,7 @@ export const addQuestionChart = async (
       }];
 
       // Add chart
-      slide.addChart(slide.ChartType.column, data, {
+      slide.addChart("column", data, {
         x: 0.5,
         y: 1.5,
         w: 9,
@@ -51,7 +61,6 @@ export const addQuestionChart = async (
         color: theme.text.primary,
       });
     }
-    // Handle other question types similarly...
   } catch (error) {
     console.error("Error adding chart:", error);
     slide.addText("Error generating chart", {
@@ -78,8 +87,25 @@ export const addComparisonChart = async (
       return;
     }
 
+    if (question.type === "boolean") {
+      // Group answers by dimension
+      const groupedData = new Map<string, boolean[]>();
+      processedData.responses.forEach(response => {
+        const group = response.respondent[dimension]?.name || 'Unknown';
+        const answer = response.answers[question.name]?.answer === "true" || 
+                      response.answers[question.name]?.answer === true;
+        
+        if (!groupedData.has(group)) {
+          groupedData.set(group, []);
+        }
+        groupedData.get(group)?.push(answer);
+      });
+
+      await addBooleanComparison(slide, groupedData, dimension);
+      return;
+    }
+
     const data = Object.entries(comparisonData).map(([group, values]) => {
-      // Ensure type safety with explicit type checking
       const groupData = values as any;
       return {
         name: group,
@@ -88,7 +114,7 @@ export const addComparisonChart = async (
       };
     });
 
-    slide.addChart(slide.ChartType.column, data, {
+    slide.addChart("column", data, {
       x: 0.5,
       y: 1.5,
       w: 9,
