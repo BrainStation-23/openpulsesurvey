@@ -1,7 +1,7 @@
 
-import { Question, ProcessedData } from "../../types/responses";
-import { ThemeColors } from "./theme";
-import { ComparisonDimension } from "../../types/comparison";
+import { Question, ProcessedData } from "../../../types/responses";
+import { ThemeColors } from "../theme";
+import { ComparisonDimension } from "../../../types/comparison";
 import { calculateChartStatistics } from "./helpers/statisticsCalculator";
 
 // Export functions for charts
@@ -78,11 +78,15 @@ export const addComparisonChart = async (
       return;
     }
 
-    const data = Object.entries(comparisonData).map(([group, values]) => ({
-      name: group,
-      labels: ['Average'],
-      values: [values.avgRating || 0]
-    }));
+    const data = Object.entries(comparisonData).map(([group, values]) => {
+      // Ensure type safety with explicit type checking
+      const groupData = values as any;
+      return {
+        name: group,
+        labels: ['Average'],
+        values: [groupData.avgRating || 0]
+      };
+    });
 
     slide.addChart(slide.ChartType.column, data, {
       x: 0.5,

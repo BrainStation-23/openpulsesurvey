@@ -1,9 +1,12 @@
+
 import pptxgen from "pptxgenjs";
 import { CampaignData } from "../types";
-import { ProcessedData } from "../types/responses";
+import { ProcessedData, Question } from "../types/responses";
 import { createTitleSlide, createCompletionSlide, createQuestionSlides } from "./pptx/slides";
 import { PPTXExportConfig, DEFAULT_EXPORT_CONFIG } from "../types/exportConfig";
-import { getTheme, getSlideMasters } from "./pptx/theme";
+import { getTheme, getSlideMasters, ThemeColors } from "./pptx/theme";
+import { ComparisonDimension } from "../types/comparison";
+import { addQuestionChart, addComparisonChart } from "./pptx/charts";
 
 type ProgressCallback = (progress: number) => void;
 
