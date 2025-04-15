@@ -1,4 +1,3 @@
-
 import React from "react";
 import { 
   ChartContainer, 
@@ -108,6 +107,8 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
   
   // Render Satisfaction data
   if (isSatisfactionData(data)) {
+    const avgScore = ((data.satisfied * 5 + data.neutral * 3 + data.unsatisfied * 1) / data.total).toFixed(1);
+
     return (
       <div className="w-full space-y-4">
         <div className="flex items-center justify-between">
@@ -123,11 +124,17 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
             </div>
             <div className="text-sm text-muted-foreground">Median Score</div>
           </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-purple-600">
+              {avgScore}
+            </div>
+            <div className="text-sm text-muted-foreground">Average Score</div>
+          </div>
         </div>
 
-        <div className="h-48">
+        <div className="h-[400px] flex items-center justify-center">
           <ChartContainer 
-            className="h-full" 
+            className="h-full w-full max-w-[600px]"
             config={{
               satisfied: { color: "#22c55e" },
               neutral: { color: "#eab308" },
@@ -143,11 +150,30 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
                 ]}
                 cx="50%"
                 cy="50%"
-                outerRadius={80}
+                outerRadius={160}
+                innerRadius={80}
                 dataKey="value"
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                labelLine={true}
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
+              <ChartTooltip 
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="rounded-lg border bg-background p-2 shadow-sm">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="font-medium">{data.name}:</div>
+                          <div>{data.value} responses</div>
+                          <div className="font-medium">Percentage:</div>
+                          <div>{((data.value / (data.total || 1)) * 100).toFixed(1)}%</div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
               <ChartLegend content={<ChartLegendContent />} />
             </PieChart>
           </ChartContainer>
