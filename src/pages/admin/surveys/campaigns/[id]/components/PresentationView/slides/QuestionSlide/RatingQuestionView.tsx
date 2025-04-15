@@ -1,3 +1,4 @@
+
 import React from "react";
 import { 
   ChartContainer, 
@@ -6,6 +7,7 @@ import {
   ChartLegend, 
   ChartLegendContent 
 } from "@/components/ui/chart";
+import { Progress } from "@/components/ui/progress"; // Add this import
 import { RatingResponseData, SatisfactionData, NpsData } from "../../types/responses";
 import { Bar, BarChart, Cell, XAxis } from "recharts";
 
