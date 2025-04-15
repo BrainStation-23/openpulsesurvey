@@ -15,8 +15,8 @@ export function PresentationLayout({ children, progress, isFullscreen, className
 
   return (
     <div className={cn(
-      "relative h-full bg-background transition-colors duration-300",
-      isFullscreen && "fixed inset-0 z-50 bg-background",
+      "fixed inset-0 bg-background transition-colors duration-300",
+      isFullscreen && "z-50",
       className
     )}>
       {/* Progress bar */}
@@ -38,7 +38,7 @@ export function PresentationLayout({ children, progress, isFullscreen, className
       </div>
 
       {/* Main content */}
-      <div className="relative h-full overflow-hidden pt-4">
+      <div className="h-full overflow-hidden pt-4">
         <div className="h-full p-8">
           <div className="relative max-w-full mx-auto h-full">
             {content}

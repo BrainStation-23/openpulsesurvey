@@ -1,9 +1,9 @@
 
 import { useMemo } from "react";
-import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
+import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
 
-type ProcessedResult = BooleanResponseData | RatingResponseData | SatisfactionData | TextResponseData | any[];
+type ProcessedResult = BooleanResponseData | RatingResponseData | SatisfactionData | any[];
 
 export function useQuestionData(
   data: ProcessedData | undefined | null,
@@ -13,6 +13,11 @@ export function useQuestionData(
 ): ProcessedResult | null {
   return useMemo(() => {
     if (!data?.responses) return null;
+
+    // Skip processing for text questions entirely
+    if (questionType === "text" || questionType === "comment") {
+      return null;
+    }
 
     const responses = data.responses;
     const question = data.questions.find(q => q.name === questionName);
@@ -68,31 +73,6 @@ export function useQuestionData(
             };
             return result;
           }
-        }
-
-        case "text":
-        case "comment": {
-          const wordFrequency: Record<string, number> = {};
-          responses.forEach((response) => {
-            const answer = response.answers[questionName]?.answer;
-            if (typeof answer === "string") {
-              const words = answer
-                .toLowerCase()
-                .replace(/[^\w\s]/g, "")
-                .split(/\s+/)
-                .filter((word) => word.length > 2);
-
-              words.forEach((word) => {
-                wordFrequency[word] = (wordFrequency[word] || 0) + 1;
-              });
-            }
-          });
-
-          const result: TextResponseData = Object.entries(wordFrequency)
-            .map(([text, value]) => ({ text, value }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 50);
-          return result;
         }
 
         default:

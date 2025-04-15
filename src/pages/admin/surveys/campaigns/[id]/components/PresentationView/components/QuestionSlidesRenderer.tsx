@@ -13,8 +13,15 @@ export function QuestionSlidesRenderer({ campaign, currentSlide }: QuestionSlide
     (page) => page.elements || []
   );
 
-  return surveyQuestions.map((question, index) => {
-    const baseSlideIndex = 3 + (index * (1 + COMPARISON_DIMENSIONS.length));
+  // Filter out text and comment questions
+  const filteredQuestions = surveyQuestions.filter(
+    question => question.type !== "text" && question.type !== "comment"
+  );
+
+  let slideIndex = 3; // Start after the first 3 slides (title, distribution, trends)
+
+  return filteredQuestions.map((question, index) => {
+    const baseSlideIndex = slideIndex;
     
     const slides = [(
       <QuestionSlide
@@ -28,6 +35,9 @@ export function QuestionSlidesRenderer({ campaign, currentSlide }: QuestionSlide
       />
     )];
 
+    // Increment slide index for the main slide
+    slideIndex++;
+
     COMPARISON_DIMENSIONS.forEach((dimension, dimIndex) => {
       slides.push(
         <QuestionSlide
@@ -40,6 +50,9 @@ export function QuestionSlidesRenderer({ campaign, currentSlide }: QuestionSlide
           slideType={dimension}
         />
       );
+      
+      // Increment slide index for each comparison dimension
+      slideIndex++;
     });
 
     return slides;

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { LogOut } from "lucide-react";
@@ -19,11 +18,6 @@ interface AdminSidebarProps {
 export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
   const location = useLocation();
   const { setOpen } = useSidebar();
-  
-  // Set sidebar open on component mount
-  React.useEffect(() => {
-    setOpen(true);
-  }, [setOpen]);
   
   const isActiveRoute = (path: string) => {
     // Special case for dashboard which is now under surveys

@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -81,6 +82,8 @@ import AdminObjectiveDetails from "./pages/admin/okrs/ObjectiveDetails";
 import OkrSettingsPage from "./pages/admin/okrs/OkrSettings";
 import OkrHistory from "./pages/admin/okrs/History";
 
+import { TokenInputForm } from "./pages/public/presentation/TokenInputForm";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -108,6 +111,7 @@ const App = () => (
             
             <Route path="/public/survey/:token" element={<PublicSurveyPage />} />
             <Route path="/public/survey/:token/thank-you" element={<ThankYouPage />} />
+            <Route path="/presentation" element={<TokenInputForm />} />
             <Route path="/presentation/:token" element={<Presentation />} />
             
             <Route path="/user" element={<UserLayout />}>

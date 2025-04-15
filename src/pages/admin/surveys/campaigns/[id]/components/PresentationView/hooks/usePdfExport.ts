@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { exportToPdf } from '../utils/pdfExport';
+import { exportToPptx } from '../utils/pptxExport';
 import { CampaignData } from "../types";
 import { ProcessedData } from "../types/responses";
 import { useToast } from "@/hooks/use-toast";
@@ -24,19 +24,19 @@ export function usePdfExport() {
       setExporting(true);
       setProgress(0);
       
-      await exportToPdf(campaign, processedData, (current, total) => {
-        setProgress(Math.round((current / total) * 100));
+      await exportToPptx(campaign, processedData, (progress) => {
+        setProgress(progress);
       });
       
       toast({
         title: "Success",
-        description: "Presentation has been exported to PDF successfully",
+        description: "Presentation has been exported to PPTX successfully",
       });
     } catch (error) {
-      console.error("Error exporting PDF:", error);
+      console.error("Error exporting PPTX:", error);
       toast({
         title: "Export failed",
-        description: "There was an error exporting the PDF presentation",
+        description: "There was an error exporting the PPTX presentation",
         variant: "destructive",
       });
     } finally {

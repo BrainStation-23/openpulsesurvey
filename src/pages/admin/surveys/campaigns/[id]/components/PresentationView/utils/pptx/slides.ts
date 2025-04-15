@@ -53,7 +53,7 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
   const slide = pptx.addSlide();
   Object.assign(slide, slideMasters.CHART);
 
-  slide.addText("Campaign Completion", {
+  slide.addText("Response Distribution", {
     x: 0.5,
     y: 0.5,
     fontSize: 32,
@@ -61,22 +61,47 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
     color: THEME.text.primary,
   });
 
-  const labels: string[] = ["Completed", "Pending"];
-  const completionData = [{
-    name: "Completion",
-    labels,
-    values: [campaign.completion_rate || 0, 100 - (campaign.completion_rate || 0)]
+  // Calculate instance status distribution
+  const instanceCompletionRate = campaign.instance?.completion_rate || 0;
+  const expiredRate = 0; // Fallback since the property doesn't exist in the type
+  const pendingRate = 100 - (instanceCompletionRate + expiredRate);
+
+  const data = [{
+    name: "Status Distribution",
+    labels: ["Completed", "Expired", "Pending"],
+    values: [instanceCompletionRate, expiredRate, pendingRate]
   }];
 
-  slide.addChart(pptx.ChartType.doughnut, completionData, {
-    x: 1,
-    y: 1.5,
-    w: 8,
-    h: 5,
-    chartColors: [THEME.primary, THEME.light],
+  // Make pie chart smaller and position it on the left side
+  slide.addChart(pptx.ChartType.pie, data, {
+    x: 0.5,  // Position from left
+    y: 1.5,  // Position from top
+    w: 4.2,  // Reduced width (60% smaller)
+    h: 3,    // Reduced height (60% smaller)
+    chartColors: [THEME.primary, THEME.tertiary, THEME.light],
     showLegend: true,
-    legendPos: 'b',
-    dataLabelFormatCode: '0"%"'
+    legendPos: 'r',
+    legendFontSize: 11,
+    dataLabelFormatCode: '0"%"',
+    dataLabelFontSize: 10,
+    showValue: true,
+  });
+
+  // Add completion stats as text on the right side of the chart
+  slide.addText([
+    { text: "Response Status\n\n", options: { bold: true, fontSize: 14 } },
+    { text: `Completed: `, options: { bold: true } },
+    { text: `${instanceCompletionRate.toFixed(1)}%\n` },
+    { text: `Expired: `, options: { bold: true } },
+    { text: `${expiredRate.toFixed(1)}%\n` },
+    { text: `Pending: `, options: { bold: true } },
+    { text: `${pendingRate.toFixed(1)}%` },
+  ], {
+    x: 5.2,  // Position text to the right of the chart
+    y: 2,    // Align vertically with the chart
+    w: 4,    // Fixed width for text block
+    fontSize: 12,
+    color: THEME.text.primary,
   });
 };
 
@@ -84,11 +109,15 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
 export const createQuestionSlides = async (
   pptx: pptxgen, 
   campaign: CampaignData, 
-  processedData: ProcessedData
+  processedData: ProcessedData,
+  onProgress?: (progress: number) => void
 ) => {
-  const { questions } = processedData;
+  // Filter out text and comment questions
+  const filteredQuestions = processedData.questions.filter(
+    question => question.type !== "text" && question.type !== "comment"
+  );
 
-  for (const question of questions) {
+  for (const question of filteredQuestions) {
     // Main question slide
     const mainSlide = pptx.addSlide();
     Object.assign(mainSlide, slideMasters.CHART);
@@ -130,6 +159,11 @@ export const createQuestionSlides = async (
 
       // Add comparison chart
       await addComparisonChart(comparisonSlide, question, processedData, dimension);
+    }
+    
+    // Call the progress callback after each question's slides are created
+    if (onProgress) {
+      onProgress(1); // Pass a numeric value to indicate progress increment
     }
   }
 };

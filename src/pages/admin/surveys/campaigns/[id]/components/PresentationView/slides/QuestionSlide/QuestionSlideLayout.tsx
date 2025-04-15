@@ -6,7 +6,6 @@ interface QuestionSlideLayoutProps {
   campaign: CampaignData;
   isActive: boolean;
   questionTitle: string;
-  comparisonTitle?: string;
   children: React.ReactNode;
 }
 
@@ -14,7 +13,6 @@ export function QuestionSlideLayout({
   campaign,
   isActive,
   questionTitle,
-  comparisonTitle,
   children,
 }: QuestionSlideLayoutProps) {
   return (
@@ -36,11 +34,6 @@ export function QuestionSlideLayout({
               </span>
             )}
           </h2>
-          {comparisonTitle && (
-            <p className="text-base md:text-lg text-muted-foreground mt-2">
-              {comparisonTitle}
-            </p>
-          )}
         </div>
 
         <div className="flex-1 flex justify-center min-h-0 overflow-y-auto">

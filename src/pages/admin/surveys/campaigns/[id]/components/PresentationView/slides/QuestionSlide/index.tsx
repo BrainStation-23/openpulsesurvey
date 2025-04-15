@@ -5,15 +5,13 @@ import { ComparisonDimension } from "../../types/comparison";
 import { QuestionSlideLayout } from "./QuestionSlideLayout";
 import { BooleanQuestionView } from "./BooleanQuestionView";
 import { RatingQuestionView } from "./RatingQuestionView";
-import { TextQuestionView } from "./TextQuestionView";
 import { ComparisonView } from "./ComparisonView";
 import { useQuestionData } from "./useQuestionData";
 import { usePresentationResponses } from "../../hooks/usePresentationResponses";
 import { ComparisonLayout } from "../../components/ComparisonLayout";
 import { BooleanComparison } from "../../../ReportsTab/components/comparisons/BooleanComparison";
-import { TextComparison } from "../../../ReportsTab/components/comparisons/TextComparison";
 import { NpsComparison } from "../../../ReportsTab/components/comparisons/NpsComparison";
-import { BooleanResponseData, RatingResponseData, SatisfactionData, TextResponseData } from "../../types/responses";
+import { BooleanResponseData, RatingResponseData, SatisfactionData } from "../../types/responses";
 
 interface QuestionSlideProps extends SlideProps {
   questionName: string;
@@ -41,6 +39,11 @@ const QuestionSlideComponent = ({
     return null;
   }
 
+  // Skip rendering for text questions entirely
+  if (questionType === "text" || questionType === "comment") {
+    return null;
+  }
+
   const getDimensionTitle = (dim: string) => {
     const titles: Record<string, string> = {
       sbu: "Response Distribution by Department",
@@ -63,7 +66,6 @@ const QuestionSlideComponent = ({
       campaign={campaign}
       isActive={isActive}
       questionTitle={questionTitle}
-      comparisonTitle={slideType !== 'main' ? getDimensionTitle(slideType) : undefined}
     >
       {slideType === 'main' ? (
         <div className="w-full flex items-center justify-center">
@@ -76,23 +78,12 @@ const QuestionSlideComponent = ({
               isNps={isNps} 
             />
           )}
-          {(questionType === "text" || questionType === "comment") && (
-            <TextQuestionView data={processedData as TextResponseData} />
-          )}
         </div>
       ) : (
         <ComparisonLayout title={getDimensionTitle(slideType)}>
           {questionType === "boolean" && (
             <BooleanComparison 
               responses={data.responses} 
-              questionName={questionName}
-              dimension={slideType}
-              layout="grid"
-            />
-          )}
-          {(questionType === "text" || questionType === "comment") && (
-            <TextComparison
-              responses={data.responses}
               questionName={questionName}
               dimension={slideType}
               layout="grid"
@@ -113,7 +104,6 @@ const QuestionSlideComponent = ({
               <ComparisonView 
                 data={processedData}
                 isNps={isNps}
-                dimensionTitle={getDimensionTitle(slideType)}
               />
             )
           )}
