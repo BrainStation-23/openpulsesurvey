@@ -1,19 +1,29 @@
-import { NpsChart } from "../../../ReportsTab/charts/NpsChart";
-import { SatisfactionDonutChart } from "../../../ReportsTab/charts/SatisfactionDonutChart";
-import { RatingResponseData, SatisfactionData } from "../../types/responses";
+
+import { 
+  RatingScaleChart, 
+  NpsScaleChart, 
+  SatisfactionScaleChart 
+} from "../../../ReportsTab/charts/RatingScaleChart";
+import { 
+  RatingResponseData, 
+  SatisfactionData 
+} from "../../types/responses";
+import { isNpsQuestion } from "../../types/questionTypes";
 
 interface RatingQuestionViewProps {
   data: RatingResponseData | SatisfactionData;
-  isNps: boolean;
+  question: any;
 }
 
-export function RatingQuestionView({ data, isNps }: RatingQuestionViewProps) {
+export function RatingQuestionView({ data, question }: RatingQuestionViewProps) {
+  const isNps = isNpsQuestion(question);
+
   return (
     <div className="w-full max-w-4xl">
       {isNps ? (
-        <NpsChart data={data as RatingResponseData} />
+        <NpsScaleChart data={data as RatingResponseData} />
       ) : (
-        <SatisfactionDonutChart data={data as SatisfactionData} />
+        <SatisfactionScaleChart data={data as SatisfactionData} />
       )}
     </div>
   );

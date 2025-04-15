@@ -2,7 +2,13 @@
 import pptxgen from "pptxgenjs";
 import { THEME } from "../theme";
 import { calculateMedian } from "./helpers/mediaCalculations";
-import { processNpsData, processSatisfactionData } from "./helpers/dataProcessing";
+import { 
+  processNpsData, 
+  processSatisfactionData,
+  processSupervisorData,
+  processSupervisorNpsData
+} from "./helpers/dataProcessing";
+import { isNpsQuestion } from "../../../types/questionTypes";
 
 export const addRatingChart = (
   slide: pptxgen.Slide,

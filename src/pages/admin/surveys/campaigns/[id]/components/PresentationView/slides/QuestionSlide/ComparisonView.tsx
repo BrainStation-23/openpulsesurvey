@@ -1,13 +1,16 @@
 
 import { HeatMapChart } from "../../../ReportsTab/charts/HeatMapChart";
-import { NpsChart } from "../../../ReportsTab/charts/NpsChart";
+import { NpsScaleChart } from "../../../ReportsTab/charts/RatingScaleChart";
+import { isNpsQuestion } from "../../types/questionTypes";
 
 interface ComparisonViewProps {
   data: any;
-  isNps: boolean;
+  question: any;
 }
 
-export function ComparisonView({ data, isNps }: ComparisonViewProps) {
+export function ComparisonView({ data, question }: ComparisonViewProps) {
+  const isNps = isNpsQuestion(question);
+
   if (!data || data.length === 0) {
     return (
       <div className="text-center text-muted-foreground">
@@ -23,12 +26,8 @@ export function ComparisonView({ data, isNps }: ComparisonViewProps) {
           {data.map((groupData: any) => (
             <div key={groupData.dimension} className="bg-white rounded-lg shadow p-4">
               <h3 className="text-lg font-semibold mb-4">{groupData.dimension}</h3>
-              <NpsChart 
-                data={[
-                  { rating: 0, count: groupData.detractors },
-                  { rating: 7, count: groupData.passives },
-                  { rating: 9, count: groupData.promoters }
-                ]} 
+              <NpsScaleChart 
+                data={groupData} 
               />
             </div>
           ))}

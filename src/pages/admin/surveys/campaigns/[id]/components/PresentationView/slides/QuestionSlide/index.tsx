@@ -10,8 +10,9 @@ import { useQuestionData } from "./useQuestionData";
 import { usePresentationResponses } from "../../hooks/usePresentationResponses";
 import { ComparisonLayout } from "../../components/ComparisonLayout";
 import { BooleanComparison } from "../../../ReportsTab/components/comparisons/BooleanComparison";
-import { NpsComparison } from "../../../ReportsTab/components/comparisons/NpsComparison";
+import { RatingComparison } from "../../../ReportsTab/components/comparisons/RatingComparison";
 import { BooleanResponseData, RatingResponseData, SatisfactionData } from "../../types/responses";
+import { isNpsQuestion } from "../../types/questionTypes";
 
 interface QuestionSlideProps extends SlideProps {
   questionName: string;
@@ -32,7 +33,7 @@ const QuestionSlideComponent = ({
   const { data } = usePresentationResponses(campaign.id, campaign.instance?.id);
   const processedData = useQuestionData(data, questionName, questionType, slideType);
   const question = data?.questions.find(q => q.name === questionName);
-  const isNps = question?.type === 'rating' && question?.rateCount === 10;
+  const isNps = question ? isNpsQuestion(question) : false;
 
   // Don't render anything if the slide is not active
   if (!isActive) {
@@ -75,7 +76,7 @@ const QuestionSlideComponent = ({
           {questionType === "rating" && (
             <RatingQuestionView 
               data={processedData as (RatingResponseData | SatisfactionData)} 
-              isNps={isNps} 
+              question={question}
             />
           )}
         </div>
@@ -90,22 +91,15 @@ const QuestionSlideComponent = ({
             />
           )}
           {questionType === "rating" && (
-            slideType === "supervisor" ? (
-              <NpsComparison
-                responses={data.responses}
-                questionName={questionName}
-                dimension={slideType}
-                isNps={isNps}
-                layout="grid"
-                campaignId={campaign.id}
-                instanceId={campaign.instance?.id}
-              />
-            ) : (
-              <ComparisonView 
-                data={processedData}
-                isNps={isNps}
-              />
-            )
+            <RatingComparison
+              responses={data.responses}
+              questionName={questionName}
+              question={question}
+              dimension={slideType}
+              layout="grid"
+              campaignId={campaign.id}
+              instanceId={campaign.instance?.id}
+            />
           )}
         </ComparisonLayout>
       )}
