@@ -1,3 +1,4 @@
+
 import React from "react";
 import { 
   ChartContainer, 
@@ -25,7 +26,7 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
     return !Array.isArray(data) && 'unsatisfied' in data;
   };
 
-  if (!data) return <div>No data available</div>;
+  if (!data) return <div className="text-center text-muted-foreground">No data available</div>;
 
   // Format data for the chart based on its type
   let chartConfig = {};
@@ -35,6 +36,10 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
 
   if (isRatingResponseData(data)) {
     // Process array-based rating data
+    if (data.length === 0) {
+      return <div className="text-center text-muted-foreground">No rating data available</div>;
+    }
+    
     chartData = data.map(item => ({
       name: `${item.rating}${item.group ? ` (${item.group})` : ''}`,
       value: item.count
@@ -49,7 +54,7 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
     chartType = "pie";
     ChartComponent = PieChart;
   } else {
-    return <div>Invalid data format</div>;
+    return <div className="text-center text-muted-foreground">Invalid data format for rating visualization</div>;
   }
 
   return (
@@ -60,9 +65,17 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
       >
         <ChartComponent>
           {chartType === "bar" ? (
-            <Bar dataKey="value" fill={isNps ? ["#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e"][0] : undefined} />
+            <Bar 
+              dataKey="value" 
+              fill={isNps ? ["#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e"][0] : undefined} 
+            />
           ) : (
-            <Pie dataKey="value" fill={isNps ? ["#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e"][0] : undefined} />
+            <Pie 
+              dataKey="value" 
+              data={chartData}
+              fill={isNps ? ["#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e"][0] : undefined} 
+              label
+            />
           )}
           <ChartTooltip content={<ChartTooltipContent />} />
           <ChartLegend content={<ChartLegendContent />} />

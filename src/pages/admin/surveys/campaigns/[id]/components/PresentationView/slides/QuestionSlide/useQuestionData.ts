@@ -16,7 +16,18 @@ export function useQuestionData(
 
     // If looking for a comparison (not the main view)
     if (comparisonDimension !== "main" && comparisonDimension !== "none") {
-      return data.comparisons[questionName]?.[comparisonDimension] || null;
+      // Get comparison data for this dimension
+      const comparisonData = data.comparisons[questionName]?.[comparisonDimension];
+      
+      // No data available for this comparison
+      if (!comparisonData) return null;
+      
+      // For rating-type questions, convert to expected format
+      if (questionType === "rating" && Array.isArray(comparisonData)) {
+        return comparisonData;
+      }
+      
+      return comparisonData;
     }
 
     // Get data for the main question view
@@ -27,8 +38,8 @@ export function useQuestionData(
     if (questionType === "boolean") {
       const choices = questionData.choices || {};
       return {
-        yes: choices["yes"] || 0,
-        no: choices["no"] || 0
+        yes: choices["yes"] || choices["true"] || 0,
+        no: choices["no"] || choices["false"] || 0
       } as BooleanResponseData;
     }
 
@@ -39,7 +50,7 @@ export function useQuestionData(
       // Convert to array form for RatingResponseData
       const ratingData: RatingResponseData = Object.entries(ratings).map(([rating, count]) => ({
         rating: Number(rating),
-        count: count
+        count: count as number
       })).sort((a, b) => a.rating - b.rating);
 
       return ratingData;

@@ -17,22 +17,31 @@ export function ComparisonView({ data, isNps }: ComparisonViewProps) {
     );
   }
 
-  // Check if data is not an array but should be one for this view
-  if (isNps && !Array.isArray(data)) {
-    console.warn("Expected array data for NPS comparison view but received:", data);
-    return (
-      <div className="text-center text-muted-foreground">
-        Invalid data format for comparison view
-      </div>
-    );
-  }
+  // For NPS view, we expect an array of data points
+  if (isNps) {
+    // Ensure data is an array for NPS view
+    if (!Array.isArray(data)) {
+      console.warn("Expected array data for NPS comparison view but received:", data);
+      return (
+        <div className="text-center text-muted-foreground">
+          Invalid data format for NPS comparison view
+        </div>
+      );
+    }
 
-  return (
-    <div className="w-full">
-      {isNps ? (
+    // Check if array is empty
+    if (data.length === 0) {
+      return (
+        <div className="text-center text-muted-foreground">
+          No NPS comparison data available
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {/* Only try to map if data is actually an array */}
-          {Array.isArray(data) ? data.map((groupData: any) => (
+          {data.map((groupData) => (
             <div key={groupData.dimension} className="bg-white rounded-lg shadow p-4">
               <h3 className="text-lg font-semibold mb-4">{groupData.dimension}</h3>
               <NpsChart 
@@ -43,15 +52,16 @@ export function ComparisonView({ data, isNps }: ComparisonViewProps) {
                 ]} 
               />
             </div>
-          )) : (
-            <div className="col-span-full text-center text-muted-foreground">
-              No comparison data groups available
-            </div>
-          )}
+          ))}
         </div>
-      ) : (
-        <HeatMapChart data={data} />
-      )}
+      </div>
+    );
+  }
+
+  // For HeatMap view, we need to ensure the data is in the expected format
+  return (
+    <div className="w-full">
+      <HeatMapChart data={data} />
     </div>
   );
 }

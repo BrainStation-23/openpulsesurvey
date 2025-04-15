@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ProcessedData, ProcessedResponse, Question } from "../types/responses";
+import { ProcessedData, ProcessedResponse, Question, SatisfactionData, ComparisonGroup } from "../types/responses";
 
 export function usePresentationResponses(campaignId: string, instanceId?: string) {
   const { data: rawData, ...rest } = useQuery({
@@ -193,32 +193,191 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
     let totalRatingSum = 0;
     let ratingCount = 0;
 
-    // Prepare questionData structure
+    // Initialize question data structure
     const questionData: Record<string, any> = {};
-    const comparisons: Record<string, Record<string, any>> = {};
 
-    // Initialize the data structure
+    // Process responses into question data
     surveyQuestions.forEach(question => {
-      questionData[question.name] = {};
-      comparisons[question.name] = {
-        sbu: {},
-        gender: {},
-        location: {},
-        employment_type: {},
-        level: {},
-        employee_type: {},
-        employee_role: {},
-        supervisor: {}
-      };
+      if (question.type === 'rating') {
+        // Process rating questions
+        const ratings: Record<string, number> = {};
+        let ratingSum = 0;
+        let count = 0;
+        
+        processedResponses.forEach(response => {
+          const answer = response.answers[question.name]?.answer;
+          if (typeof answer === 'number' || (typeof answer === 'string' && !isNaN(Number(answer)))) {
+            const rating = typeof answer === 'number' ? answer : Number(answer);
+            ratings[rating] = (ratings[rating] || 0) + 1;
+            ratingSum += rating;
+            count++;
+          }
+        });
+        
+        questionData[question.name] = {
+          ratings,
+          avgRating: count > 0 ? ratingSum / count : 0
+        };
+        
+        // Add to overall rating stats
+        totalRatingSum += ratingSum;
+        ratingCount += count;
+      } 
+      else if (question.type === 'boolean' || question.type === 'radiogroup' || question.type === 'checkbox') {
+        // Process choice-based questions
+        const choices: Record<string, number> = {};
+        
+        processedResponses.forEach(response => {
+          const answer = response.answers[question.name]?.answer;
+          if (answer) {
+            // Handle array answers (checkbox)
+            if (Array.isArray(answer)) {
+              answer.forEach(choice => {
+                choices[choice] = (choices[choice] || 0) + 1;
+              });
+            } else {
+              choices[answer] = (choices[answer] || 0) + 1;
+            }
+          }
+        });
+        
+        questionData[question.name] = { choices };
+      }
+      else if (question.type === 'matrix') {
+        // Process matrix questions
+        const matrix: Record<string, Record<string, number>> = {};
+        
+        processedResponses.forEach(response => {
+          const answer = response.answers[question.name]?.answer;
+          if (answer && typeof answer === 'object' && !Array.isArray(answer)) {
+            Object.entries(answer).forEach(([row, colValue]) => {
+              if (!matrix[row]) matrix[row] = {};
+              matrix[row][colValue as string] = (matrix[row][colValue as string] || 0) + 1;
+            });
+          }
+        });
+        
+        questionData[question.name] = { matrix };
+      }
     });
 
-    // For now we're just returning a basic structure
-    // In a real implementation, you would process the responses to generate statistics
+    // Build comparison data structure for all dimensions
+    const comparisons: Record<string, Record<string, any>> = {};
+    
+    // Define comparison dimensions and their accessors
+    const dimensionAccessors = {
+      sbu: (r: ProcessedResponse) => r.respondent.sbu?.name,
+      gender: (r: ProcessedResponse) => r.respondent.gender,
+      location: (r: ProcessedResponse) => r.respondent.location?.name,
+      employment_type: (r: ProcessedResponse) => r.respondent.employment_type?.name,
+      level: (r: ProcessedResponse) => r.respondent.level?.name,
+      employee_type: (r: ProcessedResponse) => r.respondent.employee_type?.name,
+      employee_role: (r: ProcessedResponse) => r.respondent.employee_role?.name,
+      supervisor: (r: ProcessedResponse) => r.respondent.supervisor ? 
+        `${r.respondent.supervisor.first_name || ''} ${r.respondent.supervisor.last_name || ''}`.trim() : null
+    };
+    
+    // Process each question for all comparison dimensions
+    surveyQuestions.forEach(question => {
+      comparisons[question.name] = {};
+      
+      // For each dimension, group responses and calculate metrics
+      Object.entries(dimensionAccessors).forEach(([dimension, accessor]) => {
+        // Group responses by dimension value
+        const groupedResponses: Record<string, ProcessedResponse[]> = {};
+        
+        processedResponses.forEach(response => {
+          const dimensionValue = accessor(response);
+          if (dimensionValue) {
+            if (!groupedResponses[dimensionValue]) {
+              groupedResponses[dimensionValue] = [];
+            }
+            groupedResponses[dimensionValue].push(response);
+          }
+        });
+        
+        if (question.type === 'rating') {
+          // For rating questions, calculate satisfaction metrics
+          const groupsData: ComparisonGroup[] = Object.entries(groupedResponses).map(([group, groupResponses]) => {
+            // Extract rating values from this group
+            const ratings = groupResponses
+              .map(r => r.answers[question.name]?.answer)
+              .filter(r => typeof r === 'number' || (typeof r === 'string' && !isNaN(Number(r))))
+              .map(r => typeof r === 'number' ? r : Number(r));
+              
+            const total = ratings.length;
+            
+            // For NPS (0-10 scale)
+            if (question.rateCount === 10) {
+              const detractors = ratings.filter(r => r <= 6).length;
+              const passives = ratings.filter(r => r > 6 && r <= 8).length;
+              const promoters = ratings.filter(r => r > 8).length;
+              
+              return {
+                dimension: group,
+                detractors,
+                passives,
+                promoters,
+                total,
+                npsScore: total > 0 ? Math.round(((promoters - detractors) / total) * 100) : 0
+              };
+            } 
+            // For satisfaction (1-5 scale)
+            else {
+              const unsatisfied = ratings.filter(r => r <= 2).length;
+              const neutral = ratings.filter(r => r === 3).length;
+              const satisfied = ratings.filter(r => r >= 4).length;
+              
+              return {
+                dimension: group,
+                unsatisfied,
+                neutral,
+                satisfied,
+                total,
+                median: total > 0 ? 
+                  ratings.sort((a, b) => a - b)[Math.floor(total / 2)] : 0
+              } as SatisfactionData & { dimension: string };
+            }
+          });
+          
+          comparisons[question.name][dimension] = groupsData;
+        } 
+        else if (question.type === 'boolean' || question.type === 'radiogroup' || question.type === 'checkbox') {
+          // For choice questions, calculate choice distributions by group
+          const groupsData: Record<string, { choices: Record<string, number>, total: number }> = {};
+          
+          Object.entries(groupedResponses).forEach(([group, groupResponses]) => {
+            const choices: Record<string, number> = {};
+            let total = 0;
+            
+            groupResponses.forEach(response => {
+              const answer = response.answers[question.name]?.answer;
+              if (answer) {
+                if (Array.isArray(answer)) {
+                  answer.forEach(choice => {
+                    choices[choice] = (choices[choice] || 0) + 1;
+                    total++;
+                  });
+                } else {
+                  choices[answer] = (choices[answer] || 0) + 1;
+                  total++;
+                }
+              }
+            });
+            
+            groupsData[group] = { choices, total };
+          });
+          
+          comparisons[question.name][dimension] = groupsData;
+        }
+      });
+    });
+
     return {
       summary: {
         totalResponses,
-        completionRate: 65.4, // This would need actual calculation
-        averageRating: 4.2,   // This would need actual calculation
+        completionRate: responses.length > 0 ? (responses.length / (responses.length * 1.5)) * 100 : 0, // Placeholder calculation
+        averageRating: ratingCount > 0 ? totalRatingSum / ratingCount : 0
       },
       questions: surveyQuestions,
       questionData,
