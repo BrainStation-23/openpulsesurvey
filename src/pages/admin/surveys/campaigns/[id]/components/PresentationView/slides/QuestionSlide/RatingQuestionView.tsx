@@ -7,9 +7,9 @@ import {
   ChartLegend, 
   ChartLegendContent 
 } from "@/components/ui/chart";
-import { Progress } from "@/components/ui/progress"; // Add this import
 import { RatingResponseData, SatisfactionData, NpsData } from "../../types/responses";
-import { Bar, BarChart, Cell, XAxis } from "recharts";
+import { Bar, BarChart, Cell, Pie, PieChart, Sector } from "recharts";
+import { Progress } from "@/components/ui/progress";
 
 interface RatingQuestionViewProps {
   data: RatingResponseData | SatisfactionData | NpsData;
@@ -32,7 +32,7 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
 
   if (!data) return <div className="text-center text-muted-foreground">No data available</div>;
 
-  // NPS data rendering
+  // Render NPS data
   if (isNpsData(data)) {
     const totalResponses = data.total;
     const percentages = {
@@ -105,124 +105,88 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
       </div>
     );
   }
-
-  // Satisfaction data rendering
+  
+  // Render Satisfaction data
   if (isSatisfactionData(data)) {
-    const totalResponses = data.total;
-    const satisfactionData = [
-      {
-        unsatisfied: Math.round((data.unsatisfied / totalResponses) * 100),
-        neutral: Math.round((data.neutral / totalResponses) * 100),
-        satisfied: Math.round((data.satisfied / totalResponses) * 100),
-      }
-    ];
-
-    const satisfactionRate = Math.round((data.satisfied / totalResponses) * 100);
-    const avgScore = totalResponses > 0 
-      ? ((data.unsatisfied * 1.5) + (data.neutral * 3) + (data.satisfied * 4.5)) / totalResponses 
-      : 0;
-
     return (
-      <div className="w-full space-y-6">
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center">
+      <div className="w-full space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="text-right">
             <div className="text-2xl font-bold text-green-600">
-              {satisfactionRate}%
+              {Math.round((data.satisfied / data.total) * 100)}%
             </div>
             <div className="text-sm text-muted-foreground">Satisfaction Rate</div>
           </div>
-          <div className="text-center">
+          <div className="text-right">
             <div className="text-2xl font-bold text-blue-600">
               {data.median.toFixed(1)}
             </div>
             <div className="text-sm text-muted-foreground">Median Score</div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">
-              {avgScore.toFixed(1)}
-            </div>
-            <div className="text-sm text-muted-foreground">Average Score</div>
-          </div>
         </div>
 
-        <div className="h-28">
+        <div className="h-48">
           <ChartContainer 
-            className="h-full"
+            className="h-full" 
             config={{
-              unsatisfied: { color: "#ef4444", label: "Unsatisfied" },
-              neutral: { color: "#eab308", label: "Neutral" },
-              satisfied: { color: "#22c55e", label: "Satisfied" }
+              satisfied: { color: "#22c55e" },
+              neutral: { color: "#eab308" },
+              unsatisfied: { color: "#ef4444" }
             }}
           >
-            <BarChart
-              layout="vertical"
-              data={satisfactionData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              barSize={40}
-            >
-              <XAxis type="number" domain={[0, 100]} hide />
-              <Bar 
-                dataKey="unsatisfied" 
-                stackId="a"
-                fill="#ef4444"
-                name="Unsatisfied"
+            <PieChart>
+              <Pie
+                data={[
+                  { name: 'Unsatisfied', value: data.unsatisfied, fill: '#ef4444' },
+                  { name: 'Neutral', value: data.neutral, fill: '#eab308' },
+                  { name: 'Satisfied', value: data.satisfied, fill: '#22c55e' }
+                ]}
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                dataKey="value"
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
               />
-              <Bar 
-                dataKey="neutral" 
-                stackId="a"
-                fill="#eab308"
-                name="Neutral"
-              />
-              <Bar 
-                dataKey="satisfied" 
-                stackId="a"
-                fill="#22c55e"
-                name="Satisfied"
-              />
-              <ChartTooltip 
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    return (
-                      <div className="rounded-lg border bg-background p-2 shadow-sm">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="font-medium">{payload[0].name}:</div>
-                          <div>{payload[0].value}%</div>
-                          <div className="font-medium">Responses:</div>
-                          <div>{Math.round((Number(payload[0].value) / 100) * totalResponses)}</div>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
+              <ChartTooltip content={<ChartTooltipContent />} />
               <ChartLegend content={<ChartLegendContent />} />
-            </BarChart>
+            </PieChart>
           </ChartContainer>
         </div>
 
         <div className="grid grid-cols-3 gap-4 text-center text-sm">
           <div>
             <div className="font-medium text-red-600">Unsatisfied</div>
-            <div className="text-lg font-semibold">{data.unsatisfied}</div>
-            <div className="text-muted-foreground">responses</div>
+            <div className="text-lg font-semibold">
+              {data.unsatisfied}
+            </div>
+            <div className="text-muted-foreground">
+              responses
+            </div>
           </div>
           <div>
             <div className="font-medium text-yellow-600">Neutral</div>
-            <div className="text-lg font-semibold">{data.neutral}</div>
-            <div className="text-muted-foreground">responses</div>
+            <div className="text-lg font-semibold">
+              {data.neutral}
+            </div>
+            <div className="text-muted-foreground">
+              responses
+            </div>
           </div>
           <div>
             <div className="font-medium text-green-600">Satisfied</div>
-            <div className="text-lg font-semibold">{data.satisfied}</div>
-            <div className="text-muted-foreground">responses</div>
+            <div className="text-lg font-semibold">
+              {data.satisfied}
+            </div>
+            <div className="text-muted-foreground">
+              responses
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // Rating response data rendering
+  // Format data for bar chart from Rating Response Data
   if (isRatingResponseData(data)) {
     if (data.length === 0) {
       return <div className="text-center text-muted-foreground">No rating data available</div>;
