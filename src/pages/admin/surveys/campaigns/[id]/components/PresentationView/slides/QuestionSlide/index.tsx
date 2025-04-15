@@ -1,4 +1,3 @@
-
 import { memo } from "react";
 import { SlideProps } from "../../types";
 import { ComparisonDimension } from "../../types/comparison";
@@ -63,7 +62,6 @@ const QuestionSlideComponent = ({
       campaign={campaign}
       isActive={isActive}
       questionTitle={questionTitle}
-      comparisonTitle={slideType !== 'main' ? getDimensionTitle(slideType) : undefined}
     >
       {slideType === 'main' ? (
         <div className="w-full flex items-center justify-center">
