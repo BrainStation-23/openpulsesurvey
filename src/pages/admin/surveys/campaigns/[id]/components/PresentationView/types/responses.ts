@@ -20,6 +20,14 @@ export interface SatisfactionData {
   median: number;
 }
 
+export interface NpsData {
+  detractors: number;
+  passives: number;
+  promoters: number;
+  total: number;
+  npsScore: number;
+}
+
 export interface TextDataPoint {
   text: string;
   value: number;
@@ -82,4 +90,6 @@ export interface ProcessedResponse {
 export interface ProcessedData {
   questions: Question[];
   responses: ProcessedResponse[];
+  campaignId?: string;
+  instanceId?: string;
 }

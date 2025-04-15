@@ -122,6 +122,8 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
       return {
         questions: surveyQuestions,
         responses: [],
+        campaignId,
+        instanceId
       };
     }
 
@@ -182,8 +184,10 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
     return {
       questions: surveyQuestions,
       responses: processedResponses,
+      campaignId,
+      instanceId
     };
-  }, [rawData]);
+  }, [rawData, campaignId, instanceId]);
 
   return { data: processedData, ...rest };
 }

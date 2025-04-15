@@ -44,3 +44,34 @@ export const processSatisfactionData = (validAnswers: number[]) => {
     satisfactionRate
   };
 };
+
+/**
+ * Process supervisor satisfaction data for PPTX charts
+ * @param supervisorData Data from get_supervisor_satisfaction RPC
+ * @returns Processed data ready for charting
+ */
+export const processSupervisorData = (supervisorData: any[]) => {
+  return supervisorData.map(item => ({
+    dimension: item.dimension,
+    unsatisfied: item.unsatisfied,
+    neutral: item.neutral,
+    satisfied: item.satisfied,
+    total: item.total
+  }));
+};
+
+/**
+ * Process supervisor NPS data for PPTX charts
+ * @param supervisorData Data from get_supervisor_satisfaction RPC
+ * @returns Processed data ready for NPS charting
+ */
+export const processSupervisorNpsData = (supervisorData: any[]) => {
+  return supervisorData.map(item => ({
+    dimension: item.dimension,
+    detractors: item.unsatisfied,
+    passives: item.neutral,
+    promoters: item.satisfied,
+    total: item.total,
+    npsScore: Math.round(((item.satisfied - item.unsatisfied) / item.total) * 100)
+  }));
+};
