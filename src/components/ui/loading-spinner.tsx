@@ -5,10 +5,9 @@ import { cn } from "@/lib/utils";
 interface LoadingSpinnerProps {
   className?: string;
   size?: "sm" | "md" | "lg" | number;
-  percentage?: number;
 }
 
-export function LoadingSpinner({ className, size = "md", percentage }: LoadingSpinnerProps) {
+export function LoadingSpinner({ className, size = "md" }: LoadingSpinnerProps) {
   // If size is a string, use the sizeClass mapping
   // If size is a number, create a dynamic size class
   let sizeClassName: string;
@@ -26,15 +25,8 @@ export function LoadingSpinner({ className, size = "md", percentage }: LoadingSp
   }
 
   return (
-    <div className="relative">
-      <Loader2 
-        className={cn("animate-spin text-primary", sizeClassName, className)} 
-      />
-      {percentage !== undefined && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xs font-semibold">{Math.round(percentage)}%</span>
-        </div>
-      )}
-    </div>
+    <Loader2 
+      className={cn("animate-spin text-primary", sizeClassName, className)} 
+    />
   );
 }

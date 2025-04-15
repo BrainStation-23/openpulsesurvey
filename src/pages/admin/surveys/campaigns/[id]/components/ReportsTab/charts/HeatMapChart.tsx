@@ -10,16 +10,13 @@ interface HeatMapData {
 }
 
 interface HeatMapChartProps {
-  data: HeatMapData[] | HeatMapData;
+  data: HeatMapData[];
   title?: string;
 }
 
 export function HeatMapChart({ data = [], title }: HeatMapChartProps) {
-  // Ensure data is an array
-  const dataArray = Array.isArray(data) ? data : (data ? [data] : []);
-  
   // Return early if no data is provided
-  if (!dataArray || dataArray.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <div className="w-full p-4 text-center text-muted-foreground">
         No data available
@@ -62,7 +59,7 @@ export function HeatMapChart({ data = [], title }: HeatMapChartProps) {
             </tr>
           </thead>
           <tbody>
-            {dataArray.map((row) => (
+            {data.map((row) => (
               <tr 
                 key={row.dimension} 
                 className={needsAttention(row) ? "bg-red-50" : ""}

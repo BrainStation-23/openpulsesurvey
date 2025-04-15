@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Check, Edit2, Play, X, Share2, Download } from "lucide-react";
+import { Calendar, Check, Edit2, Play, X } from "lucide-react";
 import { format, isValid } from "date-fns";
 import {
   Select,
@@ -15,13 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { SharePresentationModal } from "./PresentationView/components/SharePresentationModal";
 import { supabase } from "@/integrations/supabase/client";
 
 interface CampaignHeaderProps {
@@ -46,8 +40,8 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
   const [editedName, setEditedName] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
   const [editedStatus, setEditedStatus] = useState("");
-  const [shareModalOpen, setShareModalOpen] = useState(false);
 
+  // Update local state when campaign data changes
   useEffect(() => {
     if (campaign) {
       setEditedName(campaign.name);
@@ -110,22 +104,6 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
     navigate(`/admin/surveys/campaigns/${id}/present?instance=${selectedInstanceId}`);
   };
 
-  const handleShare = () => {
-    setShareModalOpen(true);
-  };
-
-  const handleDownload = () => {
-    if (!selectedInstanceId) {
-      toast({
-        variant: "destructive",
-        title: "No instance selected",
-        description: "Please select an instance before downloading the presentation.",
-      });
-      return;
-    }
-    navigate(`/admin/surveys/campaigns/${id}/present?instance=${selectedInstanceId}&download=true`);
-  };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return isValid(date) ? format(date, 'MMM d, yyyy HH:mm') : 'Invalid date';
@@ -175,29 +153,15 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
           )}
         </div>
         <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Play className="h-4 w-4" />
-                Present
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handlePresent}>
-                <Play className="h-4 w-4 mr-2" />
-                Start Presentation
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleShare}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Share Presentation
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDownload}>
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
+          <Button
+            onClick={handlePresent}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <Play className="h-4 w-4" />
+            Present
+          </Button>
           {isEditing ? (
             <>
               <Button onClick={handleCancel} variant="outline" size="sm">
@@ -252,11 +216,6 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
         <span>Starts: {formatDate(campaign.starts_at)}</span>
         <span>Ends: {formatDate(campaign.ends_at)}</span>
       </div>
-
-      <SharePresentationModal 
-        campaignId={campaign.id}
-        instanceId={selectedInstanceId}
-      />
     </div>
   );
 }

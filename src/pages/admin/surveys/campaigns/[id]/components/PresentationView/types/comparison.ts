@@ -1,5 +1,2 @@
 
-import { ComparisonDimensionType } from "../constants";
-
-// Export the comparison dimension type
-export type ComparisonDimension = ComparisonDimensionType;
+export type ComparisonDimension = 'main' | 'sbu' | 'gender' | 'location' | 'employment_type' | 'level' | 'employee_type' | 'employee_role' | 'supervisor' | 'none';

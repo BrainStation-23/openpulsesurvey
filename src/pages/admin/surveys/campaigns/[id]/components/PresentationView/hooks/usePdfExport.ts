@@ -4,19 +4,13 @@ import { exportToPptx } from '../utils/pptxExport';
 import { CampaignData } from "../types";
 import { ProcessedData } from "../types/responses";
 import { useToast } from "@/hooks/use-toast";
-import { PPTXExportConfig, DEFAULT_EXPORT_CONFIG } from "../types/exportConfig";
-import { useProcessedData } from './useProcessedData';
 
 export function usePdfExport() {
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
-  const { processedData } = useProcessedData();
 
-  const handleExport = async (
-    campaign: CampaignData, 
-    config: PPTXExportConfig = DEFAULT_EXPORT_CONFIG
-  ) => {
+  const handleExport = async (campaign: CampaignData, processedData: ProcessedData) => {
     try {
       if (!processedData) {
         toast({
@@ -30,7 +24,7 @@ export function usePdfExport() {
       setExporting(true);
       setProgress(0);
       
-      await exportToPptx(campaign, processedData, config, (progress) => {
+      await exportToPptx(campaign, processedData, (progress) => {
         setProgress(progress);
       });
       

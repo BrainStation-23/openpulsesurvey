@@ -1,42 +1,20 @@
-
-import React from "react";
-import { RatingResponseData, SatisfactionData, NpsData } from "../../types/responses";
-import { NpsRatingView } from "./ratings/NpsRatingView";
-import { SatisfactionRatingView } from "./ratings/SatisfactionRatingView";
-import { NumericRatingView } from "./ratings/NumericRatingView";
+import { NpsChart } from "../../../ReportsTab/charts/NpsChart";
+import { SatisfactionDonutChart } from "../../../ReportsTab/charts/SatisfactionDonutChart";
+import { RatingResponseData, SatisfactionData } from "../../types/responses";
 
 interface RatingQuestionViewProps {
-  data: RatingResponseData | SatisfactionData | NpsData;
-  isNps?: boolean;
+  data: RatingResponseData | SatisfactionData;
+  isNps: boolean;
 }
 
-export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, isNps = false }) => {
-  // Helper to determine data types
-  const isRatingResponseData = (data: any): data is RatingResponseData => {
-    return Array.isArray(data);
-  };
-
-  const isSatisfactionData = (data: any): data is SatisfactionData => {
-    return !Array.isArray(data) && 'unsatisfied' in data && 'satisfied' in data;
-  };
-
-  const isNpsData = (data: any): data is NpsData => {
-    return !Array.isArray(data) && 'detractors' in data && 'promoters' in data;
-  };
-
-  if (!data) return <div className="text-center text-muted-foreground">No data available</div>;
-
-  if (isNpsData(data)) {
-    return <NpsRatingView data={data} />;
-  }
-  
-  if (isSatisfactionData(data)) {
-    return <SatisfactionRatingView data={data} />;
-  }
-
-  if (isRatingResponseData(data)) {
-    return <NumericRatingView data={data} isNps={isNps} />;
-  }
-
-  return <div className="text-center text-muted-foreground">Invalid data format for rating visualization</div>;
-};
+export function RatingQuestionView({ data, isNps }: RatingQuestionViewProps) {
+  return (
+    <div className="w-full max-w-4xl">
+      {isNps ? (
+        <NpsChart data={data as RatingResponseData} />
+      ) : (
+        <SatisfactionDonutChart data={data as SatisfactionData} />
+      )}
+    </div>
+  );
+}

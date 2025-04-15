@@ -1,136 +1,80 @@
 
-import { Question, ProcessedData } from "../../../types/responses";
-import { ThemeColors } from "../theme";
-import { ComparisonDimension } from "../../../types/comparison";
-import { calculateChartStatistics } from "./helpers/statisticsCalculator";
+import pptxgen from "pptxgenjs";
+import { ProcessedData } from "../../../types/responses";
 import { addBooleanChart, addBooleanComparison } from "./booleanCharts";
+import { addRatingChart, addRatingComparison } from "./ratingCharts";
 
-// Export functions for charts
+// Helper to add appropriate chart for question type
 export const addQuestionChart = async (
-  slide: any, 
-  question: Question, 
-  processedData: ProcessedData,
-  theme: ThemeColors
+  slide: pptxgen.Slide,
+  question: any,
+  processedData: ProcessedData
 ) => {
-  try {
-    // Get question data
-    const questionData = processedData.questionData[question.name];
-    
-    if (!questionData) {
-      console.warn(`No data found for question ${question.name}`);
-      return;
-    }
+  const answers = processedData.responses
+    .filter(r => r.answers[question.name]?.answer !== undefined)
+    .map(r => r.answers[question.name].answer);
 
-    if (question.type === "boolean") {
-      const booleanData = questionData.choices || {};
-      const answers = processedData.responses.map(r => 
-        r.answers[question.name]?.answer === "true" || r.answers[question.name]?.answer === true
-      );
-      await addBooleanChart(slide, answers);
-      return;
-    }
-
-    if (question.type === "rating") {
-      // Process rating data
-      const ratings = questionData.ratings || {};
-      const stats = calculateChartStatistics(Object.values(ratings));
-      
-      const data = [{
-        name: 'Ratings',
-        labels: Object.keys(ratings),
-        values: Object.values(ratings)
-      }];
-
-      // Add chart
-      slide.addChart("column", data, {
-        x: 0.5,
-        y: 1.5,
-        w: 9,
-        h: 4.5,
-        chartColors: theme.chart.colors,
-        showLegend: false,
-        showValue: true,
-        dataLabelFontSize: 10,
-      });
-
-      // Add average
-      slide.addText(`Average Rating: ${stats.average.toFixed(2)}`, {
-        x: 0.5,
-        y: 6,
-        fontSize: 14,
-        color: theme.text.primary,
-      });
-    }
-  } catch (error) {
-    console.error("Error adding chart:", error);
-    slide.addText("Error generating chart", {
-      x: 0.5,
-      y: 2,
-      fontSize: 14,
-      color: theme.danger,
-    });
+  switch (question.type) {
+    case "boolean":
+      addBooleanChart(slide, answers);
+      break;
+    case "rating":
+      addRatingChart(slide, answers, question.rateCount === 10);
+      break;
   }
 };
 
+// Helper to add comparison chart
 export const addComparisonChart = async (
-  slide: any, 
-  question: Question, 
+  slide: pptxgen.Slide,
+  question: any,
   processedData: ProcessedData,
-  dimension: ComparisonDimension,
-  theme: ThemeColors
+  dimension: string
 ) => {
-  try {
-    const comparisonData = processedData.comparisons?.[question.name]?.[dimension];
-    
-    if (!comparisonData) {
-      console.warn(`No comparison data for ${question.name} - ${dimension}`);
-      return;
+  const groupedData = new Map();
+
+  // Group responses by dimension
+  processedData.responses.forEach((response) => {
+    const answer = response.answers[question.name]?.answer;
+    if (answer === undefined) return;
+
+    let groupKey = "Unknown";
+    switch (dimension) {
+      case "sbu":
+        groupKey = response.respondent.sbu?.name || "Unknown";
+        break;
+      case "gender":
+        groupKey = response.respondent.gender || "Unknown";
+        break;
+      case "location":
+        groupKey = response.respondent.location?.name || "Unknown";
+        break;
+      case "employment_type":
+        groupKey = response.respondent.employment_type?.name || "Unknown";
+        break;
+      case "level":
+        groupKey = response.respondent.level?.name || "Unknown";
+        break;
+      case "employee_type":
+        groupKey = response.respondent.employee_type?.name || "Unknown";
+        break;
+      case "employee_role":
+        groupKey = response.respondent.employee_role?.name || "Unknown";
+        break;
     }
 
-    if (question.type === "boolean") {
-      // Group answers by dimension
-      const groupedData = new Map<string, boolean[]>();
-      processedData.responses.forEach(response => {
-        const group = response.respondent[dimension]?.name || 'Unknown';
-        const answer = response.answers[question.name]?.answer === "true" || 
-                      response.answers[question.name]?.answer === true;
-        
-        if (!groupedData.has(group)) {
-          groupedData.set(group, []);
-        }
-        groupedData.get(group)?.push(answer);
-      });
-
-      await addBooleanComparison(slide, groupedData, dimension);
-      return;
+    if (!groupedData.has(groupKey)) {
+      groupedData.set(groupKey, []);
     }
+    groupedData.get(groupKey).push(answer);
+  });
 
-    const data = Object.entries(comparisonData).map(([group, values]) => {
-      const groupData = values as any;
-      return {
-        name: group,
-        labels: ['Average'],
-        values: [groupData.avgRating || 0]
-      };
-    });
-
-    slide.addChart("column", data, {
-      x: 0.5,
-      y: 1.5,
-      w: 9,
-      h: 4.5,
-      chartColors: theme.chart.colors,
-      showLegend: true,
-      showValue: true,
-      dataLabelFontSize: 10,
-    });
-  } catch (error) {
-    console.error("Error adding comparison chart:", error);
-    slide.addText("Error generating comparison chart", {
-      x: 0.5,
-      y: 2,
-      fontSize: 14,
-      color: theme.danger,
-    });
+  switch (question.type) {
+    case "boolean":
+      addBooleanComparison(slide, groupedData, dimension);
+      break;
+    case "rating":
+      addRatingComparison(slide, groupedData, dimension, question.rateCount === 10);
+      break;
   }
 };

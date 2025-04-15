@@ -1,20 +1,12 @@
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Download, 
-  Maximize, 
-  Minimize, 
-  ArrowLeft 
-} from "lucide-react";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useToast } from "@/hooks/use-toast";
-import { usePdfExport } from "../hooks/usePdfExport";
+import { Progress } from "@/components/ui/progress";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Maximize, Minimize, Loader } from "lucide-react";
 import { CampaignData } from "../types";
-import { ExportConfigDialog } from "./ExportConfigDialog";
-import { PPTXExportConfig, DEFAULT_EXPORT_CONFIG } from "../types/exportConfig";
+import { usePresentationResponses } from "../hooks/usePresentationResponses";
+import { usePdfExport } from "../hooks/usePdfExport";
+import { useToast } from "@/hooks/use-toast";
+import { SharePresentationModal } from "./SharePresentationModal";
 
 interface PresentationControlsProps {
   onBack: () => void;
@@ -41,98 +33,91 @@ export function PresentationControls({
   totalSlides,
   campaign,
 }: PresentationControlsProps) {
-  const { handleExport, exporting, progress } = usePdfExport();
-  const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const { toast } = useToast();
-
-  const handleConfiguredExport = (config: PPTXExportConfig) => {
-    if (!campaign) {
-      toast({
-        title: "Export failed",
-        description: "Campaign data not available",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    handleExport(campaign, config);
-  };
+  const { data: processedData } = usePresentationResponses(campaign.id, campaign.instance?.id);
+  const { handleExport, exporting, progress } = usePdfExport();
 
   return (
-    <div className="fixed z-20 bottom-4 left-0 right-0 flex justify-center items-center gap-2">
-      <div className="p-2 rounded-full bg-background border shadow-lg flex items-center gap-2">
-        <Button 
-          variant="ghost" 
-          size="icon"
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onBack}
-          className="rounded-full"
-          aria-label="Back to campaign"
+          className="text-black hover:bg-black/20 hover:text-black"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Campaign
         </Button>
-        
-        <div className="h-6 w-px bg-muted-foreground/30" />
-        
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={onPrevious}
-          disabled={isFirstSlide}
-          className="rounded-full"
-          aria-label="Previous slide"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
-        
-        <span className="px-2 text-sm text-muted-foreground">
-          {currentSlide + 1} / {totalSlides}
-        </span>
-        
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={onNext}
-          disabled={isLastSlide}
-          className="rounded-full"
-          aria-label="Next slide"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </Button>
-        
-        <div className="h-6 w-px bg-muted-foreground/30" />
-        
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={onFullscreen}
-          className="rounded-full"
-          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-        >
-          {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => setConfigDialogOpen(true)}
-          disabled={exporting}
-          className="rounded-full"
-          aria-label="Export to PowerPoint"
-        >
-          {exporting ? (
-            <LoadingSpinner size="sm" />
-          ) : (
-            <Download className="w-5 h-5" />
-          )}
-        </Button>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <SharePresentationModal 
+            campaignId={campaign.id} 
+            instanceId={campaign.instance?.id} 
+          />
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleExport(campaign, processedData)}
+            disabled={exporting}
+            className="text-black hover:bg-black/20 hover:text-black relative"
+            title="Export to PPTX"
+          >
+            {exporting ? (
+              <Loader className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onPrevious}
+            disabled={isFirstSlide}
+            className="text-black hover:bg-black/20 hover:text-black"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+
+          <span className="text-sm font-medium text-black">
+            {currentSlide + 1} / {totalSlides}
+          </span>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onNext}
+            disabled={isLastSlide}
+            className="text-black hover:bg-black/20 hover:text-black"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={onFullscreen}
+            className="text-black hover:bg-black/20 hover:text-black"
+          >
+            {isFullscreen ? (
+              <Minimize className="h-4 w-4" />
+            ) : (
+              <Maximize className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </div>
 
-      <ExportConfigDialog
-        open={configDialogOpen}
-        onOpenChange={setConfigDialogOpen}
-        onExport={handleConfiguredExport}
-        campaign={campaign}
-      />
+      {exporting && (
+        <div className="w-full">
+          <Progress value={progress} className="h-1" />
+          <p className="text-xs text-center text-muted-foreground mt-1">
+            Generating presentation... {progress}%
+          </p>
+        </div>
+      )}
     </div>
   );
 }
