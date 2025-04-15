@@ -3,7 +3,6 @@ import pptxgen from "pptxgenjs";
 import { ProcessedData } from "../../../types/responses";
 import { addBooleanChart, addBooleanComparison } from "./booleanCharts";
 import { addRatingChart, addRatingComparison } from "./ratingCharts";
-import { addTextChart } from "./textCharts";
 
 // Helper to add appropriate chart for question type
 export const addQuestionChart = async (
@@ -21,10 +20,6 @@ export const addQuestionChart = async (
       break;
     case "rating":
       addRatingChart(slide, answers, question.rateCount === 10);
-      break;
-    case "text":
-    case "comment":
-      addTextChart(slide, answers);
       break;
   }
 };
