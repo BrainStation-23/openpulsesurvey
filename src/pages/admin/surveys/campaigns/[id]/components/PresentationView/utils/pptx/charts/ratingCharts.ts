@@ -1,4 +1,3 @@
-
 import pptxgen from "pptxgenjs";
 import { THEME } from "../theme";
 import { calculateMedian } from "./helpers/mediaCalculations";
@@ -130,11 +129,55 @@ export const addRatingChart = (
 
 export const addRatingComparison = (
   slide: pptxgen.Slide,
-  groupedData: Map<string, number[]>,
+  groupedData: Map<string, any>,
   dimension: string,
   isNps: boolean
 ) => {
   const groups = Array.from(groupedData.keys());
+
+  if (dimension === 'supervisor') {
+    // Create a table for supervisor heatmap
+    const tableData = groups.map(group => {
+      const data = groupedData.get(group);
+      const total = data.total;
+      return [
+        group,
+        `${Math.round((data.unsatisfied / total) * 100)}%`,
+        `${Math.round((data.neutral / total) * 100)}%`,
+        `${Math.round((data.satisfied / total) * 100)}%`
+      ];
+    });
+
+    // Add title for the heatmap
+    slide.addText("Response Distribution by Supervisor", {
+      x: 0.5,
+      y: 1.5,
+      fontSize: 14,
+      bold: true,
+      color: "363636"
+    });
+
+    // Add heatmap table
+    slide.addTable([
+      [{ text: "Supervisor", options: { bold: true } }, 
+       { text: "Unsatisfied (1-2)", options: { bold: true } }, 
+       { text: "Neutral (3)", options: { bold: true } }, 
+       { text: "Satisfied (4-5)", options: { bold: true } }],
+      ...tableData
+    ], {
+      x: 0.5,
+      y: 2.0,
+      w: 9,
+      fill: { color: "F5F5F5" },
+      border: { pt: 1, color: "E0E0E0" },
+      colW: [3, 2, 2, 2],
+      align: "center",
+      fontSize: 11,
+      color: "363636"
+    });
+
+    return;
+  }
 
   if (isNps) {
     // Create data for detractors, passives, and promoters

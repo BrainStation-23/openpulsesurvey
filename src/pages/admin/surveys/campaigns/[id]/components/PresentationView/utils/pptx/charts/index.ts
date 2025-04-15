@@ -1,4 +1,3 @@
-
 import pptxgen from "pptxgenjs";
 import { ProcessedData } from "../../../types/responses";
 import { addBooleanChart, addBooleanComparison } from "./booleanCharts";
@@ -39,6 +38,7 @@ export const addComparisonChart = async (
     if (answer === undefined) return;
 
     let groupKey = "Unknown";
+    let isNps = question.rateCount === 10;
     switch (dimension) {
       case "sbu":
         groupKey = response.respondent.sbu?.name || "Unknown";
@@ -61,12 +61,49 @@ export const addComparisonChart = async (
       case "employee_role":
         groupKey = response.respondent.employee_role?.name || "Unknown";
         break;
+      case "supervisor":
+        groupKey = response.respondent.supervisor ? 
+          `${response.respondent.supervisor.first_name} ${response.respondent.supervisor.last_name}`.trim() : 
+          "Unknown";
+        break;
     }
 
     if (!groupedData.has(groupKey)) {
-      groupedData.set(groupKey, []);
+      groupedData.set(groupKey, isNps ? {
+        dimension: groupKey,
+        detractors: 0,
+        passives: 0,
+        promoters: 0,
+        total: 0
+      } : {
+        dimension: groupKey,
+        unsatisfied: 0,
+        neutral: 0,
+        satisfied: 0,
+        total: 0
+      });
     }
-    groupedData.get(groupKey).push(answer);
+
+    const group = groupedData.get(groupKey);
+    group.total += 1;
+
+    if (isNps) {
+      if (answer <= 6) {
+        group.detractors += 1;
+      } else if (answer <= 8) {
+        group.passives += 1;
+      } else {
+        group.promoters += 1;
+      }
+    } else {
+      if (answer <= 2) {
+        group.unsatisfied += 1;
+      } else if (answer === 3) {
+        group.neutral += 1;
+      } else {
+        group.satisfied += 1;
+      }
+    }
   });
 
   switch (question.type) {
