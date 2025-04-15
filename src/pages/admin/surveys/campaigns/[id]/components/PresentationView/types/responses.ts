@@ -76,8 +76,8 @@ export interface BooleanResponseData {
   no: number;
 }
 
-// Fix the RatingResponseData to be an array type
-export type RatingResponseData = { rating: number; count: number; group?: string }[];
+// Update RatingResponseData to be an array of objects instead of a single object
+export type RatingResponseData = Array<{ rating: number; count: number; group?: string }>;
 
 export interface SatisfactionData {
   unsatisfied: number;

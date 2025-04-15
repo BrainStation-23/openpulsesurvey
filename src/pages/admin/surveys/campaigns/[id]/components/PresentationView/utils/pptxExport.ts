@@ -70,7 +70,7 @@ export const exportToPptx = async (
         background: { color: "#FFFFFF" },
         objects: [
           { 
-            text: { 
+            text: {
               text: config.branding.footerText,
               options: {
                 x: 0.5, 

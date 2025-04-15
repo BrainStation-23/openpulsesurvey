@@ -16,7 +16,7 @@ export interface PPTXExportConfig {
     dimensions: ComparisonDimension[];
   };
   branding: {
-    theme: "default" | "modern" | "classic";
+    theme: "default" | "modern" | "classic" | "corporate" | "minimal" | "vibrant";
     includeLogo: boolean;
     logoUrl?: string;
     includeFooter: boolean;

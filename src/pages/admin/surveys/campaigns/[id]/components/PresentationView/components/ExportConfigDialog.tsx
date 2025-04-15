@@ -14,8 +14,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CampaignData } from "../types";
-import { DEFAULT_EXPORT_CONFIG, PPTXExportConfig, ComparisonDimension } from "../types/exportConfig";
+import { DEFAULT_EXPORT_CONFIG, PPTXExportConfig } from "../types/exportConfig";
 import { COMPARISON_DIMENSIONS } from "../constants";
+import { ComparisonDimension } from "../types/comparison";
 
 interface ExportConfigDialogProps {
   open: boolean;
@@ -23,6 +24,10 @@ interface ExportConfigDialogProps {
   onExport: (config: PPTXExportConfig) => void;
   campaign: CampaignData;
 }
+
+// Define the valid theme types
+type ThemeType = PPTXExportConfig["branding"]["theme"];
+const VALID_THEMES: ThemeType[] = ["default", "corporate", "modern", "minimal", "vibrant", "classic"];
 
 export function ExportConfigDialog({
   open,
@@ -71,7 +76,7 @@ export function ExportConfigDialog({
     });
   };
 
-  const handleThemeChange = (theme: string) => {
+  const handleThemeChange = (theme: ThemeType) => {
     setConfig((prev) => ({
       ...prev,
       branding: {
@@ -218,7 +223,7 @@ export function ExportConfigDialog({
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Theme</h3>
               <div className="grid grid-cols-3 gap-4">
-                {["default", "corporate", "modern", "minimal", "vibrant"].map((theme) => (
+                {VALID_THEMES.map((theme) => (
                   <div
                     key={theme}
                     className={`border rounded-md p-4 cursor-pointer transition-all ${

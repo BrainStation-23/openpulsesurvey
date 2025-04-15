@@ -1,4 +1,5 @@
 
+// Define comparison dimensions
 export const COMPARISON_DIMENSIONS = [
   "sbu",
   "gender",
@@ -9,5 +10,5 @@ export const COMPARISON_DIMENSIONS = [
   "employee_role"
 ] as const;
 
-// Define ComparisonDimension type separately to avoid circular reference
+// Define ComparisonDimensionType separately to avoid circular reference
 export type ComparisonDimensionType = typeof COMPARISON_DIMENSIONS[number] | "main" | "supervisor" | "none";

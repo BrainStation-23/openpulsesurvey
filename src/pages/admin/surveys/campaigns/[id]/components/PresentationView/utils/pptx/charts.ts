@@ -1,7 +1,6 @@
-
 import { Question, ProcessedData } from "../../types/responses";
 import { ThemeColors } from "./theme";
-import { ComparisonDimension } from "../../types/exportConfig";
+import { ComparisonDimension } from "../../types/comparison";
 
 // Function to add a chart for a specific question
 export const addQuestionChart = async (
@@ -220,7 +219,7 @@ export const addComparisonChart = async (
         // Each segment/dimension value is a series
         Object.keys(comparisonData).forEach(segment => {
           const segmentData = comparisonData[segment];
-          if (segmentData && segmentData.avgRating !== undefined) {
+          if (segmentData && typeof segmentData === 'object' && 'avgRating' in segmentData) {
             data.push({
               name: segment || 'Unknown',
               labels: ['Average Rating'],

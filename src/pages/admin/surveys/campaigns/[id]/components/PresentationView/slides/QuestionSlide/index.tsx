@@ -11,7 +11,7 @@ import { usePresentationResponses } from "../../hooks/usePresentationResponses";
 import { ComparisonLayout } from "../../components/ComparisonLayout";
 import { BooleanComparison } from "../../../ReportsTab/components/comparisons/BooleanComparison";
 import { NpsComparison } from "../../../ReportsTab/components/comparisons/NpsComparison";
-import { BooleanResponseData, RatingResponseData, SatisfactionData } from "../../types/responses";
+import { BooleanResponseData, RatingResponseData, SatisfactionData, ProcessedResponse } from "../../types/responses";
 
 interface QuestionSlideProps extends SlideProps {
   questionName: string;
@@ -83,7 +83,7 @@ const QuestionSlideComponent = ({
         <ComparisonLayout title={getDimensionTitle(slideType)}>
           {questionType === "boolean" && data?.responses && (
             <BooleanComparison 
-              responses={data.responses}
+              responses={data.responses as any}
               questionName={questionName}
               dimension={slideType}
               layout="grid"
@@ -92,7 +92,7 @@ const QuestionSlideComponent = ({
           {questionType === "rating" && (
             slideType === "supervisor" && data?.responses ? (
               <NpsComparison
-                responses={data.responses}
+                responses={data.responses as any}
                 questionName={questionName}
                 dimension={slideType}
                 isNps={isNps}

@@ -1,5 +1,5 @@
 
 import { ComparisonDimensionType } from "../constants";
 
-// Use the type from constants to avoid circular reference
+// Export the comparison dimension type
 export type ComparisonDimension = ComparisonDimensionType;

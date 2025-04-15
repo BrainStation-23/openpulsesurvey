@@ -1,125 +1,96 @@
-
-import pptxgen from "pptxgenjs";
 import { CampaignData } from "../../types";
 import { ProcessedData, Question } from "../../types/responses";
-import { ThemeColors, getSlideMasters } from "./theme";
-import { cleanText, formatDate } from "./helpers";
+import { ThemeColors } from "./theme";
 import { addQuestionChart, addComparisonChart } from "./charts";
-import { ComparisonDimension } from "../../types/exportConfig";
+import { ComparisonDimension } from "../../types/comparison";
 
 // Create title slide
-export const createTitleSlide = async (
-  pptx: pptxgen, 
-  campaign: CampaignData, 
-  theme: ThemeColors,
-  slideMasters: any
-) => {
-  const slide = pptx.addSlide();
-  Object.assign(slide, slideMasters.TITLE);
+export const createTitleSlide = async (pptx: any, campaign: CampaignData, theme: ThemeColors, slideMasters: any) => {
+  const slide = pptx.addSlide({ masterName: "TITLE" });
 
+  // Title
   slide.addText(campaign.name, {
     x: 0.5,
-    y: 0.5,
-    w: "90%",
-    fontSize: 44,
+    y: 2,
+    w: 9,
+    h: 1.5,
+    fontSize: 36,
     bold: true,
-    color: theme.text.primary,
+    color: theme.primary,
+    align: "center",
   });
 
-  if (campaign.description) {
-    slide.addText(campaign.description, {
-      x: 0.5,
-      y: 2,
-      w: "90%",
-      fontSize: 20,
-      color: theme.text.secondary,
-    });
-  }
-
-  const startDate = campaign.instance?.starts_at || campaign.starts_at;
-  const endDate = campaign.instance?.ends_at || campaign.ends_at;
-  const completionRate = campaign.instance?.completion_rate ?? campaign.completion_rate;
-
-  slide.addText([
-    { text: "Period: ", options: { bold: true } },
-    { text: `${formatDate(startDate)} - ${formatDate(endDate)}` },
-    { text: "\nCompletion Rate: ", options: { bold: true } },
-    { text: `${completionRate?.toFixed(1)}%` },
-  ], {
+  // Subtitle
+  slide.addText(campaign.description || "No description provided", {
     x: 0.5,
-    y: 4,
-    w: "90%",
-    fontSize: 16,
-    color: theme.text.light,
+    y: 3.5,
+    w: 9,
+    h: 1,
+    fontSize: 18,
+    color: theme.text.secondary,
+    align: "center",
   });
+
+  // Footer
+  slide.addText(`Campaign started on ${new Date(campaign.starts_at).toLocaleDateString()}`, {
+    x: 0.5,
+    y: 6,
+    w: 9,
+    h: 0.5,
+    fontSize: 12,
+    color: theme.text.light,
+    align: "center",
+  });
+
+  return slide;
 };
 
 // Create completion rate slide
-export const createCompletionSlide = async (
-  pptx: pptxgen, 
-  campaign: CampaignData,
-  theme: ThemeColors,
-  slideMasters: any
-) => {
-  const slide = pptx.addSlide();
-  Object.assign(slide, slideMasters.CHART);
+export const createCompletionSlide = async (pptx: any, campaign: CampaignData, theme: ThemeColors, slideMasters: any) => {
+  const slide = pptx.addSlide({ masterName: "SECTION" });
 
-  slide.addText("Response Distribution", {
+  // Title
+  slide.addText("Completion Rate", {
     x: 0.5,
-    y: 0.5,
-    fontSize: 32,
+    y: 1.5,
+    w: 9,
+    h: 1,
+    fontSize: 28,
     bold: true,
-    color: theme.text.primary,
+    color: "#FFFFFF",
+    align: "center",
   });
 
-  // Calculate instance status distribution
-  const instanceCompletionRate = campaign.instance?.completion_rate || 0;
-  const expiredRate = 0; // Fallback since the property doesn't exist in the type
-  const pendingRate = 100 - (instanceCompletionRate + expiredRate);
-
-  const data = [{
-    name: "Status Distribution",
-    labels: ["Completed", "Expired", "Pending"],
-    values: [instanceCompletionRate, expiredRate, pendingRate]
-  }];
-
-  // Make pie chart smaller and position it on the left side
-  slide.addChart(pptx.ChartType.pie, data, {
-    x: 0.5,  // Position from left
-    y: 1.5,  // Position from top
-    w: 4.2,  // Reduced width (60% smaller)
-    h: 3,    // Reduced height (60% smaller)
-    chartColors: [theme.primary, theme.tertiary, theme.light],
-    showLegend: true,
-    legendPos: 'r',
-    legendFontSize: 11,
-    dataLabelFormatCode: '0"%"',
-    dataLabelFontSize: 10,
-    showValue: true,
+  // Completion Rate Value
+  slide.addText(`${campaign.completion_rate.toFixed(1)}%`, {
+    x: 0.5,
+    y: 3,
+    w: 9,
+    h: 1.5,
+    fontSize: 48,
+    bold: true,
+    color: "#FFFFFF",
+    align: "center",
   });
 
-  // Add completion stats as text on the right side of the chart
-  slide.addText([
-    { text: "Response Status\n\n", options: { bold: true, fontSize: 14 } },
-    { text: `Completed: `, options: { bold: true } },
-    { text: `${instanceCompletionRate.toFixed(1)}%\n` },
-    { text: `Expired: `, options: { bold: true } },
-    { text: `${expiredRate.toFixed(1)}%\n` },
-    { text: `Pending: `, options: { bold: true } },
-    { text: `${pendingRate.toFixed(1)}%` },
-  ], {
-    x: 5.2,  // Position text to the right of the chart
-    y: 2,    // Align vertically with the chart
-    w: 4,    // Fixed width for text block
-    fontSize: 12,
-    color: theme.text.primary,
+  // Subtitle
+  slide.addText("of invited users completed the survey", {
+    x: 0.5,
+    y: 4.5,
+    w: 9,
+    h: 1,
+    fontSize: 18,
+    color: "#FFFFFF",
+    align: "center",
   });
+
+  return slide;
 };
 
-// Create question slides
+// Create slides for each question with visualizations
 export const createQuestionSlides = async (
-  pptx: pptxgen, 
-  campaign: CampaignData, 
+  pptx: any,
+  campaign: CampaignData,
   processedData: ProcessedData,
   theme: ThemeColors,
   slideMasters: any,
@@ -128,65 +99,99 @@ export const createQuestionSlides = async (
     includedQuestionIds: string[] | "all";
     comparisonDimensions: ComparisonDimension[];
   },
-  onProgress?: (progress: number) => void
+  onProgress?: () => void
 ) => {
-  // Filter questions based on configuration
+  // Filter questions based on options
   const filteredQuestions = processedData.questions.filter(question => {
-    // Filter out text and comment questions if configured
+    // Skip text questions if configured
     if (options.excludeTextQuestions && (question.type === "text" || question.type === "comment")) {
       return false;
     }
     
-    // Filter based on includedQuestionIds
-    return options.includedQuestionIds === "all" || 
-           (Array.isArray(options.includedQuestionIds) && 
-            options.includedQuestionIds.includes(question.name));
+    // Include only specific questions if requested
+    if (options.includedQuestionIds !== "all" && Array.isArray(options.includedQuestionIds)) {
+      return options.includedQuestionIds.includes(question.name);
+    }
+    
+    return true;
   });
-
+  
+  // Create slides for each question
   for (const question of filteredQuestions) {
-    // Main question slide
-    const mainSlide = pptx.addSlide();
-    Object.assign(mainSlide, slideMasters.CHART);
-
-    mainSlide.addText(cleanText(question.title), {
-      x: 0.5,
-      y: 0.5,
-      w: "90%",
-      fontSize: 28,
-      bold: true,
-      color: theme.text.primary,
-      wrap: true,
-    });
-
-    // Add chart based on question type
-    await addQuestionChart(mainSlide, question, processedData, theme);
-    onProgress?.(1);
-
-    // Create comparison slides based on selected dimensions
+    // Create the main question slide
+    await createQuestionSlide(pptx, campaign, processedData, question, theme, slideMasters);
+    onProgress?.();
+    
+    // Create comparison slides if configured
     for (const dimension of options.comparisonDimensions) {
-      const comparisonSlide = pptx.addSlide();
-      Object.assign(comparisonSlide, slideMasters.CHART);
-
-      comparisonSlide.addText(cleanText(question.title), {
-        x: 0.5,
-        y: 0.5,
-        w: "90%",
-        fontSize: 24,
-        bold: true,
-        color: theme.text.primary,
-        wrap: true,
-      });
-
-      comparisonSlide.addText(`Response Distribution by ${dimension.replace(/_/g, ' ')}`, {
-        x: 0.5,
-        y: 1.2,
-        fontSize: 20,
-        color: theme.text.secondary,
-      });
-
-      // Add comparison chart
-      await addComparisonChart(comparisonSlide, question, processedData, dimension, theme);
-      onProgress?.(1);
+      await createComparisonSlide(pptx, campaign, processedData, question, dimension, theme, slideMasters);
+      onProgress?.();
     }
   }
+};
+
+// Create a single question slide
+const createQuestionSlide = async (
+  pptx: any,
+  campaign: CampaignData,
+  processedData: ProcessedData,
+  question: Question,
+  theme: ThemeColors,
+  slideMasters: any
+) => {
+  const slide = pptx.addSlide({ masterName: "CHART" });
+  
+  // Add slide number
+  slide.slideNumber = { x: 0.5, y: "90%", color: theme.text.secondary, fontFace: "Arial" };
+  
+  // Add question title
+  slide.addText(question.title, {
+    x: 0.5,
+    y: 0.5,
+    w: 9,
+    h: 0.5,
+    fontSize: 18,
+    bold: true,
+    color: theme.text.primary,
+  });
+  
+  // Add chart for the question
+  await addQuestionChart(slide, question, processedData, theme);
+  
+  return slide;
+};
+
+// Create a comparison slide for a question
+const createComparisonSlide = async (
+  pptx: any,
+  campaign: CampaignData,
+  processedData: ProcessedData,
+  question: Question,
+  dimension: ComparisonDimension,
+  theme: ThemeColors,
+  slideMasters: any
+) => {
+  const slide = pptx.addSlide({ masterName: "CHART" });
+  
+  // Add slide number
+  slide.slideNumber = { x: 0.5, y: "90%", color: theme.text.secondary, fontFace: "Arial" };
+  
+  // Get a friendly name for the dimension
+  const dimensionName = dimension.replace(/_/g, ' ');
+  
+  // Add slide title
+  slide.addText(`${question.title} by ${dimensionName}`, {
+    x: 0.5,
+    y: 0.5,
+    w: 9,
+    h: 0.5,
+    fontSize: 18,
+    bold: true,
+    color: theme.text.primary,
+  });
+  
+  // Add comparison chart
+  await addComparisonChart(slide, question, processedData, dimension, theme);
+  
+  return slide;
 };
