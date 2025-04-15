@@ -1,13 +1,14 @@
 
-import { ComparisonDimension } from "./types/comparison";
+// We use these dimensions for creating comparison slides
+export const COMPARISON_DIMENSIONS = [
+  "sbu", 
+  "gender", 
+  "location", 
+  "employment_type",
+  "level",
+  "employee_type",
+  "employee_role",
+  "supervisor"
+] as const;
 
-export const COMPARISON_DIMENSIONS: ComparisonDimension[] = [
-  'sbu', 
-  'gender', 
-  'location', 
-  'employment_type',
-  'level',
-  'employee_type',
-  'employee_role',
-  'supervisor'
-];
+export type ComparisonDimension = typeof COMPARISON_DIMENSIONS[number];
