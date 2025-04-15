@@ -1,3 +1,4 @@
+
 import pptxgen from "pptxgenjs";
 import { THEME } from "../theme";
 import { calculateMedian } from "./helpers/mediaCalculations";
@@ -140,11 +141,13 @@ export const addRatingComparison = (
     const tableData = groups.map(group => {
       const data = groupedData.get(group);
       const total = data.total;
+      
+      // Convert string array to proper TableRow format with TableCell objects
       return [
-        group,
-        `${Math.round((data.unsatisfied / total) * 100)}%`,
-        `${Math.round((data.neutral / total) * 100)}%`,
-        `${Math.round((data.satisfied / total) * 100)}%`
+        { text: group, options: {} },
+        { text: `${Math.round((data.unsatisfied / total) * 100)}%`, options: {} },
+        { text: `${Math.round((data.neutral / total) * 100)}%`, options: {} },
+        { text: `${Math.round((data.satisfied / total) * 100)}%`, options: {} }
       ];
     });
 
@@ -157,12 +160,14 @@ export const addRatingComparison = (
       color: "363636"
     });
 
-    // Add heatmap table
+    // Add heatmap table with proper header row format
     slide.addTable([
-      [{ text: "Supervisor", options: { bold: true } }, 
-       { text: "Unsatisfied (1-2)", options: { bold: true } }, 
-       { text: "Neutral (3)", options: { bold: true } }, 
-       { text: "Satisfied (4-5)", options: { bold: true } }],
+      [
+        { text: "Supervisor", options: { bold: true } }, 
+        { text: "Unsatisfied (1-2)", options: { bold: true } }, 
+        { text: "Neutral (3)", options: { bold: true } }, 
+        { text: "Satisfied (4-5)", options: { bold: true } }
+      ],
       ...tableData
     ], {
       x: 0.5,
