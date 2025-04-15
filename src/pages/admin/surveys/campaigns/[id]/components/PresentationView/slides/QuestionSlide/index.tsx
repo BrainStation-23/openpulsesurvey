@@ -11,7 +11,7 @@ import { usePresentationResponses } from "../../hooks/usePresentationResponses";
 import { ComparisonLayout } from "../../components/ComparisonLayout";
 import { BooleanComparison } from "../../../ReportsTab/components/comparisons/BooleanComparison";
 import { NpsComparison } from "../../../ReportsTab/components/comparisons/NpsComparison";
-import { BooleanResponseData, RatingResponseData, SatisfactionData, ProcessedResponse } from "../../types/responses";
+import { BooleanResponseData, RatingResponseData, SatisfactionData, NpsData, ProcessedResponse } from "../../types/responses";
 
 interface QuestionSlideProps extends SlideProps {
   questionName: string;
@@ -33,6 +33,11 @@ const QuestionSlideComponent = ({
   const processedData = useQuestionData(data, questionName, questionType, slideType);
   const question = data?.questions.find(q => q.name === questionName);
   const isNps = question?.type === 'rating' && question?.rateCount === 10;
+
+  // Debug data format when active
+  if (isActive && processedData) {
+    console.log(`Slide active for ${questionName}, type: ${questionType}, isNps: ${isNps}`, processedData);
+  }
 
   // Don't render anything if the slide is not active
   if (!isActive) {
@@ -74,7 +79,7 @@ const QuestionSlideComponent = ({
           )}
           {questionType === "rating" && (
             <RatingQuestionView 
-              data={processedData as (RatingResponseData | SatisfactionData)} 
+              data={processedData as (RatingResponseData | SatisfactionData | NpsData)} 
               isNps={isNps} 
             />
           )}

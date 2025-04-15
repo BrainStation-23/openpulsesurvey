@@ -87,7 +87,7 @@ export interface SatisfactionData {
   median: number;
 }
 
-// Updated NPS data structure
+// Added NPS data structure
 export interface NpsData {
   detractors: number;
   passives: number;
