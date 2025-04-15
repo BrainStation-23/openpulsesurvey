@@ -81,6 +81,8 @@ import AdminObjectiveDetails from "./pages/admin/okrs/ObjectiveDetails";
 import OkrSettingsPage from "./pages/admin/okrs/OkrSettings";
 import OkrHistory from "./pages/admin/okrs/History";
 
+import { TokenInputForm } from "./pages/public/presentation/TokenInputForm";
+
 const queryClient = new QueryClient();
 
 const App = () => (
