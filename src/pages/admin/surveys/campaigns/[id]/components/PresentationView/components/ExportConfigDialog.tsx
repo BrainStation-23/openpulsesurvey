@@ -1,21 +1,21 @@
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { 
-  PPTXExportConfig, 
-  DEFAULT_EXPORT_CONFIG, 
-  COMPARISON_DIMENSIONS,
-  THEME_OPTIONS,
-  ComparisonDimension
-} from "../types/exportConfig";
+import { Label } from "@/components/ui/label";
 import { CampaignData } from "../types";
+import { DEFAULT_EXPORT_CONFIG, PPTXExportConfig, ComparisonDimension } from "../types/exportConfig";
+import { COMPARISON_DIMENSIONS } from "../constants";
 
 interface ExportConfigDialogProps {
   open: boolean;
@@ -24,265 +24,288 @@ interface ExportConfigDialogProps {
   campaign: CampaignData;
 }
 
-export function ExportConfigDialog({ 
-  open, 
-  onOpenChange, 
+export function ExportConfigDialog({
+  open,
+  onOpenChange,
   onExport,
-  campaign 
+  campaign,
 }: ExportConfigDialogProps) {
   const [config, setConfig] = useState<PPTXExportConfig>({ ...DEFAULT_EXPORT_CONFIG });
-  
-  // Get all questions from the campaign
-  const allQuestions = (campaign?.survey?.json_data?.pages || [])
-    .flatMap(page => page.elements || [])
-    .filter(element => element.type !== undefined);
-  
+  const [activeTab, setActiveTab] = useState("content");
+
+  const handleCheckboxChange = (
+    section: keyof PPTXExportConfig,
+    property: string,
+    value: boolean
+  ) => {
+    setConfig((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [property]: value,
+      },
+    }));
+  };
+
+  const handleComparisonDimensionToggle = (dimension: ComparisonDimension) => {
+    setConfig((prev) => {
+      const dimensions = [...prev.comparisons.dimensions];
+      
+      if (dimensions.includes(dimension)) {
+        return {
+          ...prev,
+          comparisons: {
+            ...prev.comparisons,
+            dimensions: dimensions.filter((d) => d !== dimension),
+          },
+        };
+      } else {
+        return {
+          ...prev,
+          comparisons: {
+            ...prev.comparisons,
+            dimensions: [...dimensions, dimension],
+          },
+        };
+      }
+    });
+  };
+
+  const handleThemeChange = (theme: string) => {
+    setConfig((prev) => ({
+      ...prev,
+      branding: {
+        ...prev.branding,
+        theme,
+      },
+    }));
+  };
+
+  const handleInputChange = (
+    section: keyof PPTXExportConfig,
+    property: string,
+    value: string
+  ) => {
+    setConfig((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [property]: value,
+      },
+    }));
+  };
+
   const handleExport = () => {
     onExport(config);
     onOpenChange(false);
   };
 
-  const toggleSlide = (slideKey: keyof PPTXExportConfig["slides"]) => {
-    setConfig(prev => ({
-      ...prev,
-      slides: {
-        ...prev.slides,
-        [slideKey]: !prev.slides[slideKey as keyof typeof prev.slides]
-      }
-    }));
-  };
-
-  const toggleComparison = (dimension: ComparisonDimension) => {
-    setConfig(prev => {
-      const dimensions = prev.comparisons.dimensions.includes(dimension)
-        ? prev.comparisons.dimensions.filter(d => d !== dimension)
-        : [...prev.comparisons.dimensions, dimension];
-        
-      return {
-        ...prev,
-        comparisons: {
-          ...prev.comparisons,
-          dimensions
-        }
-      };
-    });
-  };
-
-  const setTheme = (theme: PPTXExportConfig["theme"]) => {
-    setConfig(prev => ({
-      ...prev,
-      theme
-    }));
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Configure Presentation Export</DialogTitle>
+          <DialogDescription>
+            Customize what to include in your PowerPoint presentation.
+          </DialogDescription>
         </DialogHeader>
-        
-        <Tabs defaultValue="content">
-          <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="content">Content Selection</TabsTrigger>
+
+        <Tabs defaultValue="content" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid grid-cols-3">
+            <TabsTrigger value="content">Content</TabsTrigger>
+            <TabsTrigger value="comparisons">Comparisons</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
-            <TabsTrigger value="branding">Branding</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="content" className="space-y-6">
+
+          <TabsContent value="content" className="space-y-4 pt-4">
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Slides to Include</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="title-slide" 
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="titleSlide"
                     checked={config.slides.includeTitleSlide}
-                    onCheckedChange={() => toggleSlide('includeTitleSlide')}
+                    onCheckedChange={(checked) =>
+                      handleCheckboxChange("slides", "includeTitleSlide", !!checked)
+                    }
                   />
-                  <Label htmlFor="title-slide">Title Slide</Label>
+                  <div className="space-y-1 leading-none">
+                    <Label htmlFor="titleSlide">Title Slide</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Includes the campaign title and basic information
+                    </p>
+                  </div>
                 </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="completion-slide" 
-                    checked={config.slides.includeCompletionSlide}
-                    onCheckedChange={() => toggleSlide('includeCompletionSlide')}
-                  />
-                  <Label htmlFor="completion-slide">Completion Statistics</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="trend-slide" 
-                    checked={config.slides.includeTrendSlide}
-                    onCheckedChange={() => toggleSlide('includeTrendSlide')}
-                  />
-                  <Label htmlFor="trend-slide">Response Trends</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="question-slides" 
-                    checked={config.slides.includeQuestionSlides}
-                    onCheckedChange={() => toggleSlide('includeQuestionSlides')}
-                  />
-                  <Label htmlFor="question-slides">Question Slides</Label>
-                </div>
-              </div>
-            </div>
 
-            {config.slides.includeQuestionSlides && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">Question Options</h3>
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="exclude-text"
-                      checked={config.questions.excludeTextQuestions}
-                      onCheckedChange={(checked) => setConfig(prev => ({
-                        ...prev,
-                        questions: {
-                          ...prev.questions,
-                          excludeTextQuestions: checked
-                        }
-                      }))}
-                    />
-                    <Label htmlFor="exclude-text">Exclude Text Questions</Label>
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="completionSlide"
+                    checked={config.slides.includeCompletionSlide}
+                    onCheckedChange={(checked) =>
+                      handleCheckboxChange("slides", "includeCompletionSlide", !!checked)
+                    }
+                  />
+                  <div className="space-y-1 leading-none">
+                    <Label htmlFor="completionSlide">Completion Rate Slide</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Shows survey completion statistics
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="questionSlides"
+                    checked={config.slides.includeQuestionSlides}
+                    onCheckedChange={(checked) =>
+                      handleCheckboxChange("slides", "includeQuestionSlides", !!checked)
+                    }
+                  />
+                  <div className="space-y-1 leading-none">
+                    <Label htmlFor="questionSlides">Question Slides</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Individual slides for each question with visualizations
+                    </p>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
 
-            {config.slides.includeQuestionSlides && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Comparison Dimensions</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {COMPARISON_DIMENSIONS.map((dimension) => (
-                    <div key={dimension} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`dimension-${dimension}`}
-                        checked={config.comparisons.dimensions.includes(dimension)}
-                        onCheckedChange={() => toggleComparison(dimension)}
-                      />
-                      <Label htmlFor={`dimension-${dimension}`} className="capitalize">
-                        {dimension.replace(/_/g, ' ')}
-                      </Label>
-                    </div>
-                  ))}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Question Options</h3>
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="excludeTextQuestions"
+                  checked={config.questions.excludeTextQuestions}
+                  onCheckedChange={(checked) =>
+                    handleCheckboxChange("questions", "excludeTextQuestions", !!checked)
+                  }
+                />
+                <div className="space-y-1 leading-none">
+                  <Label htmlFor="excludeTextQuestions">Exclude Text Questions</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Skip open-ended text questions that don't have visualizations
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
           </TabsContent>
-          
-          <TabsContent value="appearance" className="space-y-6">
+
+          <TabsContent value="comparisons" className="space-y-4 pt-4">
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Comparison Dimensions</h3>
+              <p className="text-sm text-muted-foreground">
+                Select which dimensions to create comparison slides for
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                {COMPARISON_DIMENSIONS.map((dimension) => (
+                  <div key={dimension} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`dimension-${dimension}`}
+                      checked={config.comparisons.dimensions.includes(dimension)}
+                      onCheckedChange={() => handleComparisonDimensionToggle(dimension)}
+                    />
+                    <Label htmlFor={`dimension-${dimension}`}>
+                      {dimension.replace(/_/g, ' ')}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="appearance" className="space-y-4 pt-4">
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Theme</h3>
-              <Select 
-                value={config.theme} 
-                onValueChange={(value) => setTheme(value as PPTXExportConfig["theme"])}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select theme" />
-                </SelectTrigger>
-                <SelectContent>
-                  {THEME_OPTIONS.map(theme => (
-                    <SelectItem key={theme.value} value={theme.value}>
-                      {theme.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-3 gap-4">
+                {["default", "corporate", "modern", "minimal", "vibrant"].map((theme) => (
+                  <div
+                    key={theme}
+                    className={`border rounded-md p-4 cursor-pointer transition-all ${
+                      config.branding.theme === theme
+                        ? "border-primary bg-primary/10"
+                        : "hover:border-primary/50"
+                    }`}
+                    onClick={() => handleThemeChange(theme)}
+                  >
+                    <div className="text-center capitalize">{theme}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="branding" className="space-y-6">
+
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Logo</h3>
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="include-logo"
+              <h3 className="text-lg font-medium">Branding</h3>
+              <div className="space-y-4">
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="includeLogo"
                     checked={config.branding.includeLogo}
-                    onCheckedChange={(checked) => setConfig(prev => ({
-                      ...prev,
-                      branding: {
-                        ...prev.branding,
-                        includeLogo: checked
-                      }
-                    }))}
+                    onCheckedChange={(checked) =>
+                      handleCheckboxChange("branding", "includeLogo", !!checked)
+                    }
                   />
-                  <Label htmlFor="include-logo">Include Logo</Label>
+                  <div className="space-y-1 leading-none">
+                    <Label htmlFor="includeLogo">Include Logo</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Add your company logo to slides
+                    </p>
+                  </div>
                 </div>
-              </div>
-              
-              {config.branding.includeLogo && (
-                <div className="space-y-2">
-                  <Label htmlFor="logo-url">Logo URL</Label>
-                  <Input 
-                    id="logo-url" 
-                    type="text" 
-                    placeholder="https://example.com/logo.png"
-                    value={config.branding.logoUrl || ''}
-                    onChange={(e) => setConfig(prev => ({
-                      ...prev,
-                      branding: {
-                        ...prev.branding,
-                        logoUrl: e.target.value
+
+                {config.branding.includeLogo && (
+                  <div className="space-y-2 pl-6">
+                    <Label htmlFor="logoUrl">Logo URL</Label>
+                    <Input
+                      id="logoUrl"
+                      placeholder="https://example.com/logo.png"
+                      value={config.branding.logoUrl || ""}
+                      onChange={(e) =>
+                        handleInputChange("branding", "logoUrl", e.target.value)
                       }
-                    }))}
-                  />
-                </div>
-              )}
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Footer</h3>
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="include-footer"
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="includeFooter"
                     checked={config.branding.includeFooter}
-                    onCheckedChange={(checked) => setConfig(prev => ({
-                      ...prev,
-                      branding: {
-                        ...prev.branding,
-                        includeFooter: checked
-                      }
-                    }))}
+                    onCheckedChange={(checked) =>
+                      handleCheckboxChange("branding", "includeFooter", !!checked)
+                    }
                   />
-                  <Label htmlFor="include-footer">Include Footer</Label>
+                  <div className="space-y-1 leading-none">
+                    <Label htmlFor="includeFooter">Include Footer</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Add a custom footer to all slides
+                    </p>
+                  </div>
                 </div>
+
+                {config.branding.includeFooter && (
+                  <div className="space-y-2 pl-6">
+                    <Label htmlFor="footerText">Footer Text</Label>
+                    <Input
+                      id="footerText"
+                      placeholder="© 2025 Your Company Name"
+                      value={config.branding.footerText || ""}
+                      onChange={(e) =>
+                        handleInputChange("branding", "footerText", e.target.value)
+                      }
+                    />
+                  </div>
+                )}
               </div>
-              
-              {config.branding.includeFooter && (
-                <div className="space-y-2">
-                  <Label htmlFor="footer-text">Footer Text</Label>
-                  <Input 
-                    id="footer-text" 
-                    type="text" 
-                    placeholder="Confidential - Internal Use Only"
-                    value={config.branding.footerText || ''}
-                    onChange={(e) => setConfig(prev => ({
-                      ...prev,
-                      branding: {
-                        ...prev.branding,
-                        footerText: e.target.value
-                      }
-                    }))}
-                  />
-                </div>
-              )}
             </div>
           </TabsContent>
         </Tabs>
-        
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleExport}>
-            Export Presentation
-          </Button>
+          <Button onClick={handleExport}>Export Presentation</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

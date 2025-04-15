@@ -5,9 +5,10 @@ import { cn } from "@/lib/utils";
 interface LoadingSpinnerProps {
   className?: string;
   size?: "sm" | "md" | "lg" | number;
+  percentage?: number;  // Added percentage prop
 }
 
-export function LoadingSpinner({ className, size = "md" }: LoadingSpinnerProps) {
+export function LoadingSpinner({ className, size = "md", percentage }: LoadingSpinnerProps) {
   // If size is a string, use the sizeClass mapping
   // If size is a number, create a dynamic size class
   let sizeClassName: string;

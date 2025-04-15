@@ -120,7 +120,7 @@ export function PresentationControls({
           aria-label="Export to PowerPoint"
         >
           {exporting ? (
-            <LoadingSpinner size="sm" percentage={progress} />
+            <LoadingSpinner size="sm" />
           ) : (
             <Download className="w-5 h-5" />
           )}

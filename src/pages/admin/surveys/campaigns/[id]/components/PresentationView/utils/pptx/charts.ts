@@ -248,7 +248,7 @@ export const addComparisonChart = async (
         // Get all possible choices
         const allChoices = new Set<string>();
         Object.values(comparisonData).forEach(segment => {
-          if (segment && segment.choices) {
+          if (segment && typeof segment === 'object' && segment.choices) {
             Object.keys(segment.choices).forEach(choice => allChoices.add(choice));
           }
         });
@@ -265,7 +265,11 @@ export const addComparisonChart = async (
           Object.keys(comparisonData).forEach(segment => {
             const segmentData = comparisonData[segment];
             choiceData.labels.push(segment || 'Unknown');
-            choiceData.values.push(segmentData?.choices?.[choice] || 0);
+            if (typeof segmentData === 'object' && segmentData?.choices) {
+              choiceData.values.push(segmentData.choices[choice] || 0);
+            } else {
+              choiceData.values.push(0);
+            }
           });
           
           data.push(choiceData);

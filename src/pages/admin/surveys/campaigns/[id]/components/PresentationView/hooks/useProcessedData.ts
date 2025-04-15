@@ -17,10 +17,30 @@ const processData = async (campaignId: string, instanceId?: string): Promise<Pro
       averageRating: 4.2,
     },
     questions: [
-      // Your processed questions would be here
+      {
+        id: "q1",
+        name: "satisfaction",
+        type: "rating",
+        title: "How satisfied are you?",
+        rateCount: 5
+      }
     ],
-    questionData: {},
-    comparisons: {},
+    questionData: {
+      "q1": {
+        ratings: { 1: 5, 2: 10, 3: 15, 4: 30, 5: 40 },
+        avgRating: 3.9
+      }
+    },
+    comparisons: {
+      "q1": {
+        "sbu": {
+          "HR": { avgRating: 4.2, choices: {} },
+          "IT": { avgRating: 3.8, choices: {} },
+          "Finance": { avgRating: 4.0, choices: {} }
+        }
+      }
+    },
+    responses: []
   };
 };
 

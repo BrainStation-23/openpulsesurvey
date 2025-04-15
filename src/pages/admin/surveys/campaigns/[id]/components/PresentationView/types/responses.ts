@@ -1,85 +1,39 @@
 
-export interface BooleanResponseData {
-  yes: number;
-  no: number;
+export interface ProcessedData {
+  summary: {
+    totalResponses: number;
+    completionRate: number;
+    averageRating: number;
+  };
+  questions: Question[];
+  questionData: Record<string, any>;
+  comparisons: Record<string, Record<string, any>>;
+  responses: Response[];
 }
-
-export interface RatingDataPoint {
-  rating: number;
-  count: number;
-  group?: string;
-}
-
-export type RatingResponseData = RatingDataPoint[];
-
-export interface SatisfactionData {
-  unsatisfied: number;
-  neutral: number;
-  satisfied: number;
-  total: number;
-  median: number;
-}
-
-export interface TextDataPoint {
-  text: string;
-  value: number;
-}
-
-export type TextResponseData = TextDataPoint[];
 
 export interface Question {
+  id: string;
   name: string;
-  title: string;
   type: string;
-  rateCount?: number;
+  title: string;
+  rateCount?: number; 
+  choices?: string[];
 }
 
-export interface ProcessedResponse {
+export interface Response {
   id: string;
   respondent: {
-    name: string;
-    email: string;
-    gender: string | null;
-    location: {
-      id: string;
-      name: string;
-    } | null;
-    sbu: {
-      id: string;
-      name: string;
-    } | null;
-    employment_type: {
-      id: string;
-      name: string;
-    } | null;
-    level: {
-      id: string;
-      name: string;
-    } | null;
-    employee_type: {
-      id: string;
-      name: string;
-    } | null;
-    employee_role: {
-      id: string;
-      name: string;
-    } | null;
-    supervisor: {
-      id: string;
-      first_name: string;
-      last_name: string;
-    } | null;
+    id: string;
+    sbu?: { name: string };
+    gender?: string;
+    location?: { name: string };
+    employment_type?: { name: string };
+    level?: { name: string };
+    employee_type?: { name: string };
+    employee_role?: { name: string };
   };
-  submitted_at: string;
   answers: Record<string, {
-    question: string;
     answer: any;
-    questionType: string;
-    rateCount?: number;
+    question_id: string;
   }>;
-}
-
-export interface ProcessedData {
-  questions: Question[];
-  responses: ProcessedResponse[];
 }
