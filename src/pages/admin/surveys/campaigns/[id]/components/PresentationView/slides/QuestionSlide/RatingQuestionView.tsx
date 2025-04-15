@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Chart } from "../../components/Chart";
+import { Chart } from "@/components/ui/chart";  // Update import path to use absolute import
 import { RatingResponseData, SatisfactionData } from "../../types/responses";
 
 interface RatingQuestionViewProps {
