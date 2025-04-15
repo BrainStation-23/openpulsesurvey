@@ -11,7 +11,7 @@ export interface BaseQuestion {
 
 export interface RatingQuestion extends BaseQuestion {
   type: 'rating';
-  mode: RatingMode;
+  mode?: RatingMode;
   rateCount: number; // 10 for NPS, 5 for satisfaction
 }
 
@@ -30,7 +30,13 @@ export const isRatingQuestion = (question: Question): question is RatingQuestion
   question.type === 'rating';
 
 export const isNpsQuestion = (question: Question): boolean => 
-  isRatingQuestion(question) && question.rateCount === 10;
+  isRatingQuestion(question) && (question.rateCount === 10 || question.mode === 'nps');
 
 export const isSatisfactionQuestion = (question: Question): boolean => 
-  isRatingQuestion(question) && question.rateCount === 5;
+  isRatingQuestion(question) && !isNpsQuestion(question);
+
+export const isValidNpsRating = (rating: number): boolean =>
+  typeof rating === 'number' && rating >= 0 && rating <= 10;
+
+export const isValidSatisfactionRating = (rating: number): boolean =>
+  typeof rating === 'number' && rating >= 1 && rating <= 5;

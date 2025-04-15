@@ -1,16 +1,15 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NpsData, RatingResponseData, SatisfactionData } from "../../PresentationView/types/responses";
 import { ProcessedResponse } from "../hooks/useResponseProcessing";
 import { ComparisonDimension } from "../types/comparison";
-import { isNpsQuestion, isSatisfactionQuestion } from "../../PresentationView/types/questionTypes";
+import { isNpsQuestion, isValidNpsRating, isValidSatisfactionRating } from "../../PresentationView/types/questionTypes";
 
 /**
  * Process NPS rating data for a question
  */
 export const processNpsData = (answers: number[]): NpsData => {
-  const validAnswers = answers.filter(rating => typeof rating === "number");
+  const validAnswers = answers.filter(isValidNpsRating);
   const total = validAnswers.length;
   
   if (total === 0) {
@@ -44,9 +43,7 @@ export const processNpsData = (answers: number[]): NpsData => {
  * Process satisfaction rating data for a question
  */
 export const processSatisfactionData = (answers: number[]): SatisfactionData => {
-  const validAnswers = answers.filter(
-    (rating) => typeof rating === "number" && rating >= 1 && rating <= 5
-  );
+  const validAnswers = answers.filter(isValidSatisfactionRating);
   
   const total = validAnswers.length;
   
@@ -145,9 +142,12 @@ export function useRatingProcessing(
 
       responses.forEach((response) => {
         const questionData = response.answers[questionName];
-        if (!questionData || typeof questionData.answer !== "number") return;
-
+        if (!questionData) return;
+        
         const answer = questionData.answer;
+        if (isNps && !isValidNpsRating(answer)) return;
+        if (!isNps && !isValidSatisfactionRating(answer)) return;
+
         let dimensionValue = "Unknown";
 
         switch (dimension) {
@@ -193,9 +193,12 @@ export function useRatingProcessing(
 
       responses.forEach((response) => {
         const questionData = response.answers[questionName];
-        if (!questionData || typeof questionData.answer !== "number") return;
-
+        if (!questionData) return;
+        
         const answer = questionData.answer;
+        if (isNps && !isValidNpsRating(answer)) return;
+        if (!isNps && !isValidSatisfactionRating(answer)) return;
+
         let dimensionValue = "Unknown";
 
         switch (dimension) {
