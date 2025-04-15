@@ -118,6 +118,11 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
       }
     ];
 
+    // Calculate average score from the data
+    const totalResponses = data.total;
+    const totalScore = (data.unsatisfied * 1.5) + (data.neutral * 3) + (data.satisfied * 4.5);
+    const avgScore = totalResponses > 0 ? totalScore / totalResponses : 0;
+
     return (
       <div className="w-full space-y-4">
         <div className="flex items-center justify-between">
@@ -132,6 +137,12 @@ export const RatingQuestionView: React.FC<RatingQuestionViewProps> = ({ data, is
               {data.median.toFixed(1)}
             </div>
             <div className="text-sm text-muted-foreground">Median Score</div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-purple-600">
+              {avgScore.toFixed(1)}
+            </div>
+            <div className="text-sm text-muted-foreground">Average Score</div>
           </div>
         </div>
 
