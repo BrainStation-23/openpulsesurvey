@@ -1,12 +1,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Maximize, Minimize, Loader } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Maximize, Minimize, Loader } from "lucide-react";
 import { exportToPptx } from "../utils/pptxExport";
 import { CampaignData } from "../types";
 import { usePresentationResponses } from "../hooks/usePresentationResponses";
 import { useToast } from "@/hooks/use-toast";
-import { usePdfExport } from "../hooks/usePdfExport";
 import { SharePresentationModal } from "./SharePresentationModal";
 
 interface PresentationControlsProps {
@@ -36,7 +35,6 @@ export function PresentationControls({
 }: PresentationControlsProps) {
   const { toast } = useToast();
   const { data: processedData } = usePresentationResponses(campaign.id, campaign.instance?.id);
-  const { handleExport, exporting, progress } = usePdfExport();
 
   const handlePptxExport = async () => {
     try {
@@ -95,21 +93,6 @@ export function PresentationControls({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => processedData && handleExport(campaign, processedData)}
-            disabled={exporting || !processedData}
-            className="text-black hover:bg-black/20 hover:text-black"
-            title="Export to PDF"
-          >
-            {exporting ? (
-              <Loader className="h-4 w-4 animate-spin" />
-            ) : (
-              <FileText className="h-4 w-4" />
-            )}
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
             onClick={onPrevious}
             disabled={isFirstSlide}
             className="text-black hover:bg-black/20 hover:text-black"
@@ -145,11 +128,6 @@ export function PresentationControls({
           </Button>
         </div>
       </div>
-      {exporting && (
-        <div className="w-full">
-          <Progress value={progress} className="h-1" />
-        </div>
-      )}
     </div>
   );
 }
