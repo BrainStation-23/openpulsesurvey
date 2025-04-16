@@ -62,9 +62,16 @@ export function useInstanceManagement(campaignId: string) {
     mutationFn: async (updatedInstance: Partial<Instance> & { id: string }) => {
       const { id, ...updateData } = updatedInstance;
       
+      // Convert 'inactive' status to 'upcoming' for database compatibility
+      // This is a temporary solution until the database enum is updated
+      const finalUpdateData = {
+        ...updateData,
+        status: updateData.status === 'inactive' ? 'upcoming' : updateData.status
+      };
+      
       const { data, error } = await supabase
         .from('campaign_instances')
-        .update(updateData)
+        .update(finalUpdateData)
         .eq('id', id)
         .select()
         .single();
