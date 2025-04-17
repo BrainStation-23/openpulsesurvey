@@ -12,26 +12,27 @@ interface TopManagerPerformer {
   rank_change: number;
 }
 
-export function useTopManagersComparison(baseInstanceId?: string, comparisonInstanceId?: string) {
+export function useTopManagersComparison(campaignId?: string, baseInstanceId?: string, comparisonInstanceId?: string) {
   return useQuery({
-    queryKey: ["top-managers-comparison", baseInstanceId, comparisonInstanceId],
+    queryKey: ["top-managers-comparison", campaignId, baseInstanceId, comparisonInstanceId],
     queryFn: async (): Promise<TopManagerPerformer[]> => {
-      if (!baseInstanceId || !comparisonInstanceId) return [];
+      if (!campaignId || !baseInstanceId || !comparisonInstanceId) return [];
 
       try {
         // We'll use the existing RPC function if available
         const [baseResult, comparisonResult] = await Promise.all([
           supabase.rpc('get_campaign_supervisor_performance', {
-            p_campaign_id: null, // Would be derived from baseInstanceId
+            p_campaign_id: campaignId,
             p_instance_id: baseInstanceId
           }),
           supabase.rpc('get_campaign_supervisor_performance', {
-            p_campaign_id: null, // Would be derived from comparisonInstanceId
+            p_campaign_id: campaignId,
             p_instance_id: comparisonInstanceId
           })
         ]);
         
         if (baseResult.error || comparisonResult.error) {
+          console.error("Error fetching manager data:", baseResult.error || comparisonResult.error);
           throw new Error("Failed to fetch manager data");
         }
         
@@ -79,38 +80,9 @@ export function useTopManagersComparison(baseInstanceId?: string, comparisonInst
           .sort((a, b) => a.base_rank - b.base_rank);
       } catch (error) {
         console.error("Error fetching manager comparison data:", error);
-        // Return mock data if the RPC doesn't exist or fails
-        return [
-          {
-            name: "John Smith",
-            base_score: 4.5,
-            comparison_score: 4.2,
-            change: -0.3,
-            base_rank: 1,
-            comparison_rank: 2,
-            rank_change: -1
-          },
-          {
-            name: "Sarah Johnson",
-            base_score: 4.2,
-            comparison_score: 4.6,
-            change: 0.4,
-            base_rank: 2,
-            comparison_rank: 1,
-            rank_change: 1
-          },
-          {
-            name: "Michael Brown",
-            base_score: 4.0,
-            comparison_score: 3.9,
-            change: -0.1,
-            base_rank: 3,
-            comparison_rank: 3,
-            rank_change: 0
-          }
-        ];
+        return []; // Return empty array instead of mock data
       }
     },
-    enabled: !!baseInstanceId && !!comparisonInstanceId,
+    enabled: !!campaignId && !!baseInstanceId && !!comparisonInstanceId,
   });
 }

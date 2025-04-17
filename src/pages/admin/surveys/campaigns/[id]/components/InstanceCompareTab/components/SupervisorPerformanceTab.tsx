@@ -4,12 +4,14 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { useTopManagersComparison } from "../hooks/useTopManagersComparison";
 
 interface SupervisorPerformanceTabProps {
+  campaignId?: string;
   baseInstanceId?: string;
   comparisonInstanceId?: string;
 }
 
-export function SupervisorPerformanceTab({ baseInstanceId, comparisonInstanceId }: SupervisorPerformanceTabProps) {
+export function SupervisorPerformanceTab({ campaignId, baseInstanceId, comparisonInstanceId }: SupervisorPerformanceTabProps) {
   const { data: managersComparison, isLoading: isLoadingManagersComparison } = useTopManagersComparison(
+    campaignId,
     baseInstanceId,
     comparisonInstanceId
   );
