@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,12 +43,14 @@ interface EnhancedInstanceSelectorProps {
   campaignId: string;
   selectedInstanceId?: string;
   onInstanceSelect: (instanceId: string) => void;
+  disabledInstanceId?: string;
 }
 
 export function EnhancedInstanceSelector({
   campaignId,
   selectedInstanceId,
   onInstanceSelect,
+  disabledInstanceId,
 }: EnhancedInstanceSelectorProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,14 +74,11 @@ export function EnhancedInstanceSelector({
     enabled: !!campaignId,
   });
 
-  // Set default instance when instances are loaded
   useEffect(() => {
     if (instances?.length && !selectedInstanceId) {
-      // Find active instance
       const activeInstance = instances.find(
         (instance) => instance.status === "active"
       );
-      // If no active instance, use most recent
       const defaultInstance = activeInstance || instances[0];
       if (defaultInstance) {
         onInstanceSelect(defaultInstance.id);
@@ -88,12 +86,10 @@ export function EnhancedInstanceSelector({
     }
   }, [instances, selectedInstanceId, onInstanceSelect]);
 
-  // Find the current selected instance
   const currentInstance = instances?.find(
     (instance) => instance.id === selectedInstanceId
   );
 
-  // Filter instances based on search term and status filter
   const filteredInstances = instances?.filter((instance) => {
     const periodMatch = instance.period_number.toString().includes(searchTerm);
     const dateMatch = 
@@ -105,7 +101,6 @@ export function EnhancedInstanceSelector({
     return (periodMatch || dateMatch) && statusMatch;
   });
 
-  // Quick selection functions
   const selectLatestActive = () => {
     const activeInstance = instances?.find(instance => instance.status === 'active');
     if (activeInstance) {
@@ -117,7 +112,6 @@ export function EnhancedInstanceSelector({
   const selectMostRecentCompleted = () => {
     const completedInstances = instances?.filter(instance => instance.status === 'completed') || [];
     if (completedInstances.length > 0) {
-      // Sort by endDate descending to get most recent
       completedInstances.sort((a, b) => 
         isAfter(new Date(a.ends_at), new Date(b.ends_at)) ? -1 : 1
       );
@@ -155,6 +149,10 @@ export function EnhancedInstanceSelector({
       default:
         return null;
     }
+  };
+
+  const isInstanceDisabled = (instanceId: string) => {
+    return disabledInstanceId === instanceId;
   };
 
   if (isLoading) return <div>Loading instances...</div>;
@@ -267,7 +265,8 @@ export function EnhancedInstanceSelector({
                         onInstanceSelect(instance.id);
                         setOpen(false);
                       }}
-                      className="flex justify-between items-center"
+                      disabled={isInstanceDisabled(instance.id)}
+                      className={`flex justify-between items-center ${isInstanceDisabled(instance.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <div className="flex flex-col">
                         <span>Period {instance.period_number}</span>
@@ -277,6 +276,9 @@ export function EnhancedInstanceSelector({
                       </div>
                       <div>
                         {getStatusBadge(instance.status)}
+                        {isInstanceDisabled(instance.id) && (
+                          <Badge variant="outline" className="ml-1">Selected in other field</Badge>
+                        )}
                       </div>
                     </CommandItem>
                   ))}
