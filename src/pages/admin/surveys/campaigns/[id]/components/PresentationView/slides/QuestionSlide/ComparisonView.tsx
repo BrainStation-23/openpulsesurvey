@@ -1,26 +1,41 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProcessedResult } from "../../types/responses";
+import { HeatMapChart } from "../../../ReportsTab/charts/HeatMapChart";
+import { NpsChart } from "../../../ReportsTab/charts/NpsChart";
 
 interface ComparisonViewProps {
-  data: ProcessedResult;
+  data: any;
   isNps: boolean;
 }
 
 export function ComparisonView({ data, isNps }: ComparisonViewProps) {
-  // This is a placeholder component for the ComparisonView
-  // It will be implemented in the future when the comparison feature is revamped
-  
+  if (!data || data.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground">
+        No comparison data available
+      </div>
+    );
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Comparison View ({isNps ? 'NPS' : 'Rating'})</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground">
-          The comparison view is currently being reimplemented.
-        </p>
-      </CardContent>
-    </Card>
+    <div className="w-full">
+      {isNps ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {data.map((groupData: any) => (
+            <div key={groupData.dimension} className="bg-white rounded-lg shadow p-4">
+              <h3 className="text-lg font-semibold mb-4">{groupData.dimension}</h3>
+              <NpsChart 
+                data={[
+                  { rating: 0, count: groupData.detractors },
+                  { rating: 7, count: groupData.passives },
+                  { rating: 9, count: groupData.promoters }
+                ]} 
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <HeatMapChart data={data} />
+      )}
+    </div>
   );
 }
