@@ -58,9 +58,34 @@ export function useQuestionComparison(
           comparisonData: comparisonResponses.data
         });
 
+        // Fetch campaign instances to get period numbers
+        const [baseInstance, comparisonInstance] = await Promise.all([
+          supabase
+            .from('campaign_instances')
+            .select('period_number')
+            .eq('id', baseInstanceId)
+            .single(),
+          supabase
+            .from('campaign_instances')
+            .select('period_number')
+            .eq('id', comparisonInstanceId)
+            .single()
+        ]);
+
+        // Add period_number to each response
+        const baseData = baseResponses.data.map((item: any) => ({
+          ...item,
+          period_number: baseInstance.data?.period_number || null
+        }));
+
+        const comparisonData = comparisonResponses.data.map((item: any) => ({
+          ...item,
+          period_number: comparisonInstance.data?.period_number || null
+        }));
+
         return {
-          baseInstance: baseResponses.data || [],
-          comparisonInstance: comparisonResponses.data || []
+          baseInstance: baseData || [],
+          comparisonInstance: comparisonData || []
         };
       } catch (error) {
         console.error("Error in question comparison query:", error);
