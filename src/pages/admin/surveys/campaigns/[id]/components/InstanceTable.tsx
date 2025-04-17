@@ -1,6 +1,6 @@
 
 import { format } from "date-fns";
-import { Edit, Save, Trash2, Plus } from "lucide-react";
+import { Save, Trash2, Plus, XCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -13,6 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Instance } from "../hooks/useInstanceManagement";
 
 interface InstanceTableProps {
@@ -34,6 +42,8 @@ export function InstanceTable({
 }: InstanceTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Partial<Instance>>({});
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState<boolean>(false);
+  const [instanceToDelete, setInstanceToDelete] = useState<string | null>(null);
 
   const handleEdit = (instance: Instance) => {
     setEditingId(instance.id);
@@ -57,22 +67,31 @@ export function InstanceTable({
     setEditValues((prev) => ({ ...prev, [field]: value }));
   };
 
+  const confirmDelete = (instanceId: string) => {
+    setInstanceToDelete(instanceId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (instanceToDelete) {
+      onDelete(instanceToDelete);
+      setDeleteConfirmOpen(false);
+      setInstanceToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setInstanceToDelete(null);
+  };
+
   const columns = [
     {
       accessorKey: "period_number",
       header: "Period",
       cell: ({ row }: any) => {
-        const isEditing = editingId === row.original.id;
-        return isEditing ? (
-          <Input 
-            className="w-16"
-            type="number"
-            value={editValues.period_number || row.original.period_number}
-            onChange={(e) => handleChange("period_number", parseInt(e.target.value))}
-          />
-        ) : (
-          `#${row.original.period_number}`
-        );
+        // Period number is now read-only
+        return `#${row.original.period_number}`;
       },
     },
     {
@@ -172,12 +191,12 @@ export function InstanceTable({
               <Save className="h-4 w-4" />
             </Button>
             <Button 
-              variant="outline" 
+              variant="ghost" 
               size="icon" 
               onClick={handleCancel}
               className="h-8 w-8"
             >
-              <Edit className="h-4 w-4" />
+              <XCircle className="h-4 w-4" />
             </Button>
           </div>
         ) : (
@@ -188,12 +207,12 @@ export function InstanceTable({
               onClick={() => handleEdit(row.original)}
               className="h-8 w-8"
             >
-              <Edit className="h-4 w-4" />
+              <Save className="h-4 w-4" />
             </Button>
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => onDelete(row.original.id)}
+              onClick={() => confirmDelete(row.original.id)}
               className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="h-4 w-4" />
@@ -221,6 +240,26 @@ export function InstanceTable({
         data={instances} 
         isLoading={isLoading}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this campaign instance? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={cancelDelete}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

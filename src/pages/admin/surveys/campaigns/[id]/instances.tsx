@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -79,7 +78,7 @@ export default function CampaignInstancesPage() {
       // Set default dates - start date tomorrow, end date a week later
       const startDate = new Date();
       startDate.setDate(startDate.getDate() + 1);
-      startDate.setHours(0, 0, 0, 0);
+      startDate.setHours(0,, 0, 0);
       
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 7);
