@@ -33,3 +33,13 @@ export interface QuestionComparisonData {
   baseInstance: QuestionComparison[];
   comparisonInstance: QuestionComparison[];
 }
+
+export interface TopManagerPerformer {
+  name: string;
+  base_score: number;
+  comparison_score: number;
+  change: number;
+  base_rank: number;
+  comparison_rank: number;
+  rank_change: number;
+}
