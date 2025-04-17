@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { useTopManagersComparison } from "../hooks/useTopManagersComparison";
+import { useEffect } from "react";
 
 interface SupervisorPerformanceTabProps {
   campaignId?: string;
@@ -10,6 +11,14 @@ interface SupervisorPerformanceTabProps {
 }
 
 export function SupervisorPerformanceTab({ campaignId, baseInstanceId, comparisonInstanceId }: SupervisorPerformanceTabProps) {
+  useEffect(() => {
+    console.log("SupervisorPerformanceTab mounted with:", { 
+      campaignId, 
+      baseInstanceId, 
+      comparisonInstanceId 
+    });
+  }, [campaignId, baseInstanceId, comparisonInstanceId]);
+
   const { data: managersComparison, isLoading: isLoadingManagersComparison } = useTopManagersComparison(
     campaignId,
     baseInstanceId,
@@ -39,7 +48,7 @@ export function SupervisorPerformanceTab({ campaignId, baseInstanceId, compariso
             </ResponsiveTable.Header>
             <ResponsiveTable.Body>
               {managersComparison.map((manager) => (
-                <ResponsiveTable.Row key={manager.name} className="hover:bg-muted/50">
+                <ResponsiveTable.Row key={`${manager.name}-${manager.base_rank}`} className="hover:bg-muted/50">
                   <ResponsiveTable.Cell className="font-medium">{manager.name}</ResponsiveTable.Cell>
                   <ResponsiveTable.Cell className="text-right">{manager.base_score.toFixed(2)}</ResponsiveTable.Cell>
                   <ResponsiveTable.Cell className="text-right">{manager.base_rank}</ResponsiveTable.Cell>

@@ -16,9 +16,18 @@ export function useTopManagersComparison(campaignId?: string, baseInstanceId?: s
   return useQuery({
     queryKey: ["top-managers-comparison", campaignId, baseInstanceId, comparisonInstanceId],
     queryFn: async (): Promise<TopManagerPerformer[]> => {
-      if (!campaignId || !baseInstanceId || !comparisonInstanceId) return [];
+      if (!campaignId || !baseInstanceId || !comparisonInstanceId) {
+        console.log("Missing required parameters for supervisor comparison", { campaignId, baseInstanceId, comparisonInstanceId });
+        return [];
+      }
 
       try {
+        console.log("Fetching supervisor performance data for:", { 
+          campaignId, 
+          baseInstanceId, 
+          comparisonInstanceId 
+        });
+        
         // We'll use the existing RPC function if available
         const [baseResult, comparisonResult] = await Promise.all([
           supabase.rpc('get_campaign_supervisor_performance', {
@@ -35,6 +44,11 @@ export function useTopManagersComparison(campaignId?: string, baseInstanceId?: s
           console.error("Error fetching manager data:", baseResult.error || comparisonResult.error);
           throw new Error("Failed to fetch manager data");
         }
+        
+        console.log("Supervisor data fetched successfully:", {
+          baseData: baseResult.data,
+          comparisonData: comparisonResult.data
+        });
         
         // Build map of managers
         const managerMap = new Map<string, TopManagerPerformer>();
@@ -70,7 +84,7 @@ export function useTopManagersComparison(campaignId?: string, baseInstanceId?: s
               change: manager.avg_score || 0,
               base_rank: 999,
               comparison_rank: manager.rank || 999,
-              rank_change: 999 - manager.rank || 0
+              rank_change: 999 - (manager.rank || 0)
             });
           }
         });

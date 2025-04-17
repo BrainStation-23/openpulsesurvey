@@ -53,6 +53,7 @@ export function InstanceCompareTab() {
           
           <TabsContent value="supervisors">
             <SupervisorPerformanceTab 
+              campaignId={campaignId}
               baseInstanceId={baseInstanceId}
               comparisonInstanceId={comparisonInstanceId}
             />
@@ -60,6 +61,7 @@ export function InstanceCompareTab() {
           
           <TabsContent value="questions">
             <QuestionResponsesTab 
+              campaignId={campaignId}
               baseInstanceId={baseInstanceId}
               comparisonInstanceId={comparisonInstanceId}
             />
