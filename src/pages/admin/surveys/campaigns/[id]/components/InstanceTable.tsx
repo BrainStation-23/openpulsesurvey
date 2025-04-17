@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { Save, Trash2, Plus, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
@@ -148,7 +147,6 @@ export function InstanceTable({
         </Button>
       ),
       cell: ({ row }: any) => {
-        // Period number is now read-only
         return `#${row.original.period_number}`;
       },
     },
@@ -313,16 +311,13 @@ export function InstanceTable({
     },
   ];
 
-  // Calculate total pages for pagination
   const totalPages = Math.ceil(totalCount / pagination.pageSize);
 
-  // Generate pagination items
   const renderPaginationItems = () => {
     const items = [];
     const maxVisiblePages = 5;
     
     if (totalPages <= maxVisiblePages) {
-      // If we have fewer pages than our max, show all pages
       for (let i = 1; i <= totalPages; i++) {
         items.push(
           <PaginationItem key={i}>
@@ -336,7 +331,6 @@ export function InstanceTable({
         );
       }
     } else {
-      // Always show first page
       items.push(
         <PaginationItem key={1}>
           <PaginationLink 
@@ -348,21 +342,17 @@ export function InstanceTable({
         </PaginationItem>
       );
       
-      // Calculate range around current page
       let startPage = Math.max(2, pagination.page - 1);
       let endPage = Math.min(totalPages - 1, pagination.page + 1);
       
-      // Adjust if we're near the beginning
       if (pagination.page <= 3) {
         endPage = Math.min(4, totalPages - 1);
       }
       
-      // Adjust if we're near the end
       if (pagination.page >= totalPages - 2) {
         startPage = Math.max(2, totalPages - 3);
       }
       
-      // Show ellipsis if needed before middle pages
       if (startPage > 2) {
         items.push(
           <PaginationItem key="ellipsis-1">
@@ -371,7 +361,6 @@ export function InstanceTable({
         );
       }
       
-      // Add middle pages
       for (let i = startPage; i <= endPage; i++) {
         items.push(
           <PaginationItem key={i}>
@@ -385,7 +374,6 @@ export function InstanceTable({
         );
       }
       
-      // Show ellipsis if needed after middle pages
       if (endPage < totalPages - 1) {
         items.push(
           <PaginationItem key="ellipsis-2">
@@ -394,7 +382,6 @@ export function InstanceTable({
         );
       }
       
-      // Always show last page
       items.push(
         <PaginationItem key={totalPages}>
           <PaginationLink 
@@ -471,28 +458,47 @@ export function InstanceTable({
           <Pagination>
             <PaginationContent>
               <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => onPageChange(Math.max(1, pagination.page - 1))} 
-                  disabled={pagination.page === 1} 
-                  className={pagination.page === 1 ? "pointer-events-none opacity-50" : ""}
-                />
+                {pagination.page === 1 ? (
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    disabled 
+                    className="cursor-not-allowed opacity-50"
+                  >
+                    <ChevronUp className="h-4 w-4 rotate-90" />
+                  </Button>
+                ) : (
+                  <PaginationPrevious 
+                    onClick={() => onPageChange(Math.max(1, pagination.page - 1))}
+                    className={pagination.page === 1 ? "pointer-events-none opacity-50" : ""}
+                  />
+                )}
               </PaginationItem>
               
               {renderPaginationItems()}
               
               <PaginationItem>
-                <PaginationNext 
-                  onClick={() => onPageChange(Math.min(totalPages, pagination.page + 1))} 
-                  disabled={pagination.page === totalPages}
-                  className={pagination.page === totalPages ? "pointer-events-none opacity-50" : ""}
-                />
+                {pagination.page === totalPages ? (
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    disabled 
+                    className="cursor-not-allowed opacity-50"
+                  >
+                    <ChevronUp className="h-4 w-4 -rotate-90" />
+                  </Button>
+                ) : (
+                  <PaginationNext 
+                    onClick={() => onPageChange(Math.min(totalPages, pagination.page + 1))}
+                    className={pagination.page === totalPages ? "pointer-events-none opacity-50" : ""}
+                  />
+                )}
               </PaginationItem>
             </PaginationContent>
           </Pagination>
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <DialogContent>
           <DialogHeader>
