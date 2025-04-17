@@ -55,43 +55,49 @@ export function QuestionCard({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {questionType === "rating" && baseData.avg_numeric_value !== null && comparisonData.avg_numeric_value !== null && (
-          <RatingComparisonChart
-            baseInstanceData={{
-              avg_numeric_value: baseData.avg_numeric_value,
-              response_count: baseData.response_count || 0,
-            }}
-            comparisonInstanceData={{
-              avg_numeric_value: comparisonData.avg_numeric_value,
-              response_count: comparisonData.response_count || 0,
-            }}
-            questionKey={questionTitle}
-            basePeriodNumber={baseData.period_number || undefined}
-            comparisonPeriodNumber={comparisonData.period_number || undefined}
-          />
-        )}
+        <div className="w-full overflow-hidden">
+          {questionType === "rating" && baseData.avg_numeric_value !== null && comparisonData.avg_numeric_value !== null && (
+            <div className="w-full h-[300px]">
+              <RatingComparisonChart
+                baseInstanceData={{
+                  avg_numeric_value: baseData.avg_numeric_value,
+                  response_count: baseData.response_count || 0,
+                }}
+                comparisonInstanceData={{
+                  avg_numeric_value: comparisonData.avg_numeric_value,
+                  response_count: comparisonData.response_count || 0,
+                }}
+                questionKey={questionTitle}
+                basePeriodNumber={baseData.period_number || undefined}
+                comparisonPeriodNumber={comparisonData.period_number || undefined}
+              />
+            </div>
+          )}
 
-        {questionType === "boolean" && baseData.yes_percentage !== null && comparisonData.yes_percentage !== null && (
-          <BooleanComparisonChart
-            baseInstanceData={{
-              yes_percentage: baseData.yes_percentage,
-              response_count: baseData.response_count || 0,
-            }}
-            comparisonInstanceData={{
-              yes_percentage: comparisonData.yes_percentage,
-              response_count: comparisonData.response_count || 0,
-            }}
-            questionKey={questionTitle}
-            basePeriodNumber={baseData.period_number || undefined}
-            comparisonPeriodNumber={comparisonData.period_number || undefined}
-          />
-        )}
+          {questionType === "boolean" && baseData.yes_percentage !== null && comparisonData.yes_percentage !== null && (
+            <div className="w-full h-[300px]">
+              <BooleanComparisonChart
+                baseInstanceData={{
+                  yes_percentage: baseData.yes_percentage,
+                  response_count: baseData.response_count || 0,
+                }}
+                comparisonInstanceData={{
+                  yes_percentage: comparisonData.yes_percentage,
+                  response_count: comparisonData.response_count || 0,
+                }}
+                questionKey={questionTitle}
+                basePeriodNumber={baseData.period_number || undefined}
+                comparisonPeriodNumber={comparisonData.period_number || undefined}
+              />
+            </div>
+          )}
 
-        {questionType === "text" && (
-          <p className="text-center text-muted-foreground py-4">
-            Text response comparison not supported
-          </p>
-        )}
+          {questionType === "text" && (
+            <p className="text-center text-muted-foreground py-4">
+              Text response comparison not supported
+            </p>
+          )}
+        </div>
 
         <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
           <div>
