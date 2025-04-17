@@ -1,19 +1,16 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useInstanceManagement } from "./hooks/useInstanceManagement";
 import { InstanceTable } from "./components/InstanceTable";
-import { InstanceEditDialog } from "./components/InstanceEditDialog";
 
 export default function CampaignInstancesPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedInstance, setSelectedInstance] = useState<any>(null);
   const campaignId = id as string;
 
   const {
@@ -23,17 +20,14 @@ export default function CampaignInstancesPage() {
     updateInstance,
     refreshInstances,
     calculateCompletionRate,
+    createInstance,
+    deleteInstance,
   } = useInstanceManagement(campaignId);
 
   if (!campaignId) {
     navigate('/admin/surveys/campaigns');
     return null;
   }
-
-  const handleEdit = (instance: any) => {
-    setSelectedInstance(instance);
-    setIsEditDialogOpen(true);
-  };
 
   const handleSave = async (data: any) => {
     try {
@@ -44,7 +38,6 @@ export default function CampaignInstancesPage() {
         await calculateCompletionRate(data.id);
       }
       
-      setIsEditDialogOpen(false);
       toast({
         title: "Instance updated",
         description: "The campaign instance has been updated successfully.",
@@ -54,6 +47,60 @@ export default function CampaignInstancesPage() {
       toast({
         variant: "destructive",
         title: "Error updating instance",
+        description: error.message || "An error occurred. Please try again.",
+      });
+    }
+  };
+
+  const handleDelete = async (instanceId: string) => {
+    try {
+      await deleteInstance(instanceId);
+      toast({
+        title: "Instance deleted",
+        description: "The campaign instance has been deleted successfully.",
+      });
+      refreshInstances();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error deleting instance",
+        description: error.message || "An error occurred. Please try again.",
+      });
+    }
+  };
+
+  const handleAddInstance = async () => {
+    try {
+      // Get next period number
+      const nextPeriod = instances.length > 0 
+        ? Math.max(...instances.map(i => i.period_number)) + 1 
+        : 1;
+      
+      // Set default dates - start date tomorrow, end date a week later
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() + 1);
+      startDate.setHours(0, 0, 0, 0);
+      
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 7);
+      
+      await createInstance({
+        campaign_id: campaignId,
+        period_number: nextPeriod,
+        starts_at: startDate.toISOString(),
+        ends_at: endDate.toISOString(),
+        status: 'upcoming',
+      });
+      
+      toast({
+        title: "Instance created",
+        description: "New campaign instance has been created successfully.",
+      });
+      refreshInstances();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error creating instance",
         description: error.message || "An error occurred. Please try again.",
       });
     }
@@ -80,15 +127,10 @@ export default function CampaignInstancesPage() {
       <InstanceTable 
         instances={instances} 
         isLoading={isLoading}
-        onEdit={handleEdit}
-      />
-
-      <InstanceEditDialog
-        instance={selectedInstance}
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
         onSave={handleSave}
-        isRecurring={campaign?.is_recurring}
+        onDelete={handleDelete}
+        onAdd={handleAddInstance}
+        campaign={campaign}
       />
     </div>
   );

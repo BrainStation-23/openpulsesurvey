@@ -17,6 +17,14 @@ export interface Instance {
   completion_rate?: number;
 }
 
+export interface CreateInstanceData {
+  campaign_id: string;
+  starts_at: string;
+  ends_at: string;
+  status: InstanceStatus;
+  period_number: number;
+}
+
 export function useInstanceManagement(campaignId: string) {
   const queryClient = useQueryClient();
 
@@ -92,6 +100,45 @@ export function useInstanceManagement(campaignId: string) {
     },
   });
 
+  // Create instance mutation
+  const createInstanceMutation = useMutation({
+    mutationFn: async (newInstance: CreateInstanceData) => {
+      // Convert 'inactive' status to 'upcoming' for database compatibility
+      const finalInsertData = {
+        ...newInstance,
+        status: newInstance.status === 'inactive' ? 'upcoming' : newInstance.status
+      };
+      
+      const { data, error } = await supabase
+        .from('campaign_instances')
+        .insert(finalInsertData)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaign-instances', campaignId] });
+    },
+  });
+
+  // Delete instance mutation
+  const deleteInstanceMutation = useMutation({
+    mutationFn: async (instanceId: string) => {
+      const { error } = await supabase
+        .from('campaign_instances')
+        .delete()
+        .eq('id', instanceId);
+        
+      if (error) throw error;
+      return instanceId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaign-instances', campaignId] });
+    },
+  });
+
   // Check for status conflicts
   const validateStatusChange = (
     instance: Instance, 
@@ -135,6 +182,14 @@ export function useInstanceManagement(campaignId: string) {
     }
 
     return updateInstanceMutation.mutateAsync(updatedInstance);
+  };
+
+  const createInstance = async (newInstance: CreateInstanceData) => {
+    return createInstanceMutation.mutateAsync(newInstance);
+  };
+
+  const deleteInstance = async (instanceId: string) => {
+    return deleteInstanceMutation.mutateAsync(instanceId);
   };
 
   // Manual function to calculate completion rate
@@ -192,5 +247,7 @@ export function useInstanceManagement(campaignId: string) {
     updateInstance,
     refreshInstances,
     calculateCompletionRate,
+    createInstance,
+    deleteInstance,
   };
 }

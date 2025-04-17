@@ -2976,10 +2976,6 @@ export type Database = {
         Args: { p_user_id: string; p_board_id: string; p_access_type: string }
         Returns: boolean
       }
-      cleanup_campaign_cron_jobs: {
-        Args: { p_campaign_id: string }
-        Returns: undefined
-      }
       decrement_vote_count: {
         Args: { issue_id: string }
         Returns: undefined
@@ -2995,18 +2991,6 @@ export type Database = {
       fix_all_instance_completion_rates: {
         Args: Record<PropertyKey, never>
         Returns: undefined
-      }
-      fix_missing_campaign_jobs: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      generate_campaign_cron_schedule: {
-        Args: {
-          p_timestamp: string
-          p_recurring_frequency: string
-          p_job_type: Database["public"]["Enums"]["cron_job_type"]
-        }
-        Returns: string
       }
       get_assignment_instance_status: {
         Args: { p_assignment_id: string; p_instance_id: string }
@@ -3170,18 +3154,6 @@ export type Database = {
         }
         Returns: Json
       }
-      handle_campaign_end: {
-        Args: { p_campaign_id: string }
-        Returns: undefined
-      }
-      handle_instance_activation: {
-        Args: { p_campaign_id: string }
-        Returns: undefined
-      }
-      handle_instance_due_time: {
-        Args: { p_campaign_id: string }
-        Returns: undefined
-      }
       increment_vote_count: {
         Args: { issue_id: string }
         Returns: undefined
@@ -3207,14 +3179,6 @@ export type Database = {
           p_direction: string
         }
         Returns: boolean
-      }
-      schedule_campaign_cron_job: {
-        Args: { p_campaign_id: string }
-        Returns: undefined
-      }
-      schedule_campaign_jobs: {
-        Args: { p_campaign_id: string }
-        Returns: undefined
       }
       search_live_sessions: {
         Args: {
