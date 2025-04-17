@@ -34,3 +34,15 @@ export type MetricSummary = {
 };
 
 export type ChartViewType = 'distribution' | 'movement' | 'matrix' | 'timeline';
+
+// Add the SBUPerformanceData type
+export type SBUPerformanceData = {
+  sbu: string;
+  baseScore: number;
+  comparisonScore: number;
+  change: number;
+  baseRank: number;
+  comparisonRank: number;
+  rankChange: number;
+  category: 'improved' | 'declined' | 'unchanged';
+};

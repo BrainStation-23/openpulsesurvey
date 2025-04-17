@@ -62,13 +62,13 @@ export function SBUPerformanceTab({
   // Prepare data for charts and performance categories
   const performanceData: SBUPerformanceData[] = sbuComparison?.map(sbu => ({
     sbu: sbu.name,
-    baseScore: sbu.base_score,
-    comparisonScore: sbu.comparison_score,
-    change: sbu.comparison_score - sbu.base_score,
-    category: getPerformanceCategory(sbu.comparison_score - sbu.base_score),
-    baseRank: sbu.base_rank, 
-    comparisonRank: sbu.comparison_rank,
-    rankChange: sbu.base_rank - sbu.comparison_rank
+    baseScore: sbu.baseScore,
+    comparisonScore: sbu.comparisonScore,
+    change: sbu.comparisonScore - sbu.baseScore,
+    category: getPerformanceCategory(sbu.comparisonScore - sbu.baseScore),
+    baseRank: sbu.baseRank, 
+    comparisonRank: sbu.comparisonRank,
+    rankChange: sbu.baseRank - sbu.comparisonRank
   })) || [];
 
   // Helper to get performance category
@@ -94,12 +94,12 @@ export function SBUPerformanceTab({
     
     const rows = sbuComparison.map(sbu => [
       sbu.name,
-      sbu.base_score.toFixed(2),
-      sbu.base_rank,
-      sbu.comparison_score.toFixed(2),
-      sbu.comparison_rank,
-      (sbu.comparison_score - sbu.base_score).toFixed(2),
-      (sbu.base_rank - sbu.comparison_rank)
+      sbu.baseScore.toFixed(2),
+      sbu.baseRank,
+      sbu.comparisonScore.toFixed(2),
+      sbu.comparisonRank,
+      (sbu.comparisonScore - sbu.baseScore).toFixed(2),
+      (sbu.baseRank - sbu.comparisonRank)
     ]);
     
     const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n");
@@ -198,42 +198,42 @@ export function SBUPerformanceTab({
                     <ResponsiveTable.Body>
                       {sbuComparison.map((sbu, index) => {
                         const isSignificantChange = Math.abs(sbu.change) > 0.4;
-                        const scoreChange = sbu.comparison_score - sbu.base_score;
-                        const rankChange = sbu.base_rank - sbu.comparison_rank;
+                        const scoreChange = sbu.comparisonScore - sbu.baseScore;
+                        const rankChange = sbu.baseRank - sbu.comparisonRank;
                         
                         return (
                           <ResponsiveTable.Row key={sbu.name} className="border-b hover:bg-muted/50">
                             <ResponsiveTable.Cell className="text-center font-medium">
-                              {sbu.comparison_rank === 1 ? (
+                              {sbu.comparisonRank === 1 ? (
                                 <div className="flex justify-center">
                                   <TrophyIcon className="h-5 w-5 text-yellow-500" />
                                 </div>
-                              ) : sbu.comparison_rank === 2 ? (
+                              ) : sbu.comparisonRank === 2 ? (
                                 <div className="flex justify-center">
                                   <Medal className="h-5 w-5 text-gray-400" />
                                 </div>
-                              ) : sbu.comparison_rank === 3 ? (
+                              ) : sbu.comparisonRank === 3 ? (
                                 <div className="flex justify-center">
                                   <Medal className="h-5 w-5 text-amber-600" />
                                 </div>
                               ) : (
-                                sbu.comparison_rank
+                                sbu.comparisonRank
                               )}
                             </ResponsiveTable.Cell>
                             <ResponsiveTable.Cell className="font-medium">
                               {sbu.name}
                             </ResponsiveTable.Cell>
                             <ResponsiveTable.Cell className="text-right">
-                              {sbu.base_score.toFixed(2)}
+                              {sbu.baseScore.toFixed(2)}
                             </ResponsiveTable.Cell>
                             <ResponsiveTable.Cell className="text-right">
-                              {sbu.base_rank}
+                              {sbu.baseRank}
                             </ResponsiveTable.Cell>
                             <ResponsiveTable.Cell className="text-right">
-                              {sbu.comparison_score.toFixed(2)}
+                              {sbu.comparisonScore.toFixed(2)}
                             </ResponsiveTable.Cell>
                             <ResponsiveTable.Cell className="text-right">
-                              {sbu.comparison_rank}
+                              {sbu.comparisonRank}
                             </ResponsiveTable.Cell>
                             <ResponsiveTable.Cell className="text-right">
                               <div className="flex items-center justify-end space-x-1">

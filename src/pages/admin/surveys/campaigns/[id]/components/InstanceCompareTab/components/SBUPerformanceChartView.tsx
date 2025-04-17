@@ -205,8 +205,8 @@ export function SBUPerformanceChartView({ data }: SBUPerformanceChartViewProps) 
               <ReferenceLine y="x" stroke="red" strokeDasharray="3 3" />
               <Scatter 
                 name="SBUs" 
-                data={matrixData} 
-                fill="#8884d8"
+                data={matrixData}
+                fill={(entry) => entry.fillColor}
                 fillOpacity={0.8}
               />
               <Legend />

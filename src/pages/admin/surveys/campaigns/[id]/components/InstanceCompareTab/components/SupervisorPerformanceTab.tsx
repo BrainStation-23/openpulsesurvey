@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SupervisorPerformanceMetrics } from "./SupervisorPerformanceMetrics";
 import { SupervisorPerformanceTable } from "./SupervisorPerformanceTable";
 import { SupervisorPerformanceChartView } from "./SupervisorPerformanceChartView";
-import { SupervisorPerformer } from "../types/instance-comparison";
+import { SupervisorPerformer, MetricSummary } from "../types/instance-comparison";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { Download, BarChart3, TableIcon } from "lucide-react";
@@ -82,7 +82,7 @@ export function SupervisorPerformanceTab({
   })) : [];
 
   // Calculate summary metrics
-  const getMetrics = () => {
+  const getMetrics = (): MetricSummary[] => {
     if (!processedData.length) return [];
     
     const improved = processedData.filter(m => m.category === 'improved').length;
@@ -105,7 +105,7 @@ export function SupervisorPerformanceTab({
         title: "Improved Performance",
         value: improved,
         change: improved / processedData.length * 100,
-        changeType: "positive",
+        changeType: "positive" as const,
         description: "Supervisors with improved scores",
         icon: <TrendingUp className="h-5 w-5 text-green-500" />
       },
@@ -113,14 +113,14 @@ export function SupervisorPerformanceTab({
         title: "Declined Performance",
         value: declined,
         change: declined / processedData.length * 100,
-        changeType: "negative",
+        changeType: "negative" as const,
         description: "Supervisors with declining scores",
         icon: <TrendingDown className="h-5 w-5 text-red-500" />
       },
       {
         title: "Average Change",
         value: avgChange.toFixed(2),
-        changeType: avgChange > 0 ? "positive" : avgChange < 0 ? "negative" : "neutral",
+        changeType: avgChange > 0 ? "positive" as const : avgChange < 0 ? "negative" as const : "neutral" as const,
         description: "Average score change",
         icon: <AreaChart className="h-5 w-5 text-purple-500" />
       },
@@ -128,7 +128,7 @@ export function SupervisorPerformanceTab({
         title: "Top Improver",
         value: topImprover?.name || "N/A",
         change: topImprover?.change || 0,
-        changeType: "positive",
+        changeType: "positive" as const,
         description: `Score change: +${topImprover?.change.toFixed(2) || 0}`,
         icon: <Award className="h-5 w-5 text-yellow-500" />
       }
