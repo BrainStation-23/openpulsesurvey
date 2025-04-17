@@ -43,3 +43,33 @@ export interface TopManagerPerformer {
   comparison_rank: number;
   rank_change: number;
 }
+
+export interface TopSBUPerformer {
+  name: string;
+  base_score: number;
+  comparison_score: number;
+  change: number;
+  base_rank: number;
+  comparison_rank: number;
+  rank_change: number;
+}
+
+export interface ChartDataPoint {
+  name: string;
+  baseScore: number;
+  comparisonScore: number;
+  change: number;
+}
+
+export type PerformanceCategory = "improved" | "declined" | "unchanged";
+
+export interface SBUPerformanceData {
+  sbu: string;
+  baseScore: number;
+  comparisonScore: number;
+  change: number;
+  category: PerformanceCategory;
+  baseRank: number;
+  comparisonRank: number;
+  rankChange: number;
+}

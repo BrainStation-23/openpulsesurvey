@@ -1,16 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
-export interface TopSBUPerformer {
-  name: string;
-  base_score: number;
-  comparison_score: number;
-  change: number;
-  base_rank: number;
-  comparison_rank: number;
-  rank_change: number;
-}
+import { TopSBUPerformer } from "../types/instance-comparison";
 
 // Define explicit interface for RPC function results
 interface SBUPerformanceResult {
@@ -82,7 +73,7 @@ export function useTopSBUComparison(
               // Update existing SBU
               const existing = sbuMap.get(sbu.sbu_name)!;
               existing.comparison_score = Number(sbu.avg_score) || 0;
-              existing.change = existing.base_score - existing.comparison_score;
+              existing.change = existing.comparison_score - existing.base_score;
               existing.comparison_rank = sbu.rank || 999;
               existing.rank_change = existing.base_rank - existing.comparison_rank;
             } else {
@@ -100,7 +91,9 @@ export function useTopSBUComparison(
           });
         }
         
-        return Array.from(sbuMap.values());
+        // Sort by comparison rank and convert to array
+        return Array.from(sbuMap.values())
+          .sort((a, b) => a.comparison_rank - b.comparison_rank);
       } catch (error) {
         console.error("Error fetching SBU comparison data:", error);
         throw error;
