@@ -22,6 +22,7 @@ export default function CampaignInstancesPage() {
     isLoading,
     updateInstance,
     refreshInstances,
+    calculateCompletionRate,
   } = useInstanceManagement(campaignId);
 
   if (!campaignId) {
@@ -37,6 +38,12 @@ export default function CampaignInstancesPage() {
   const handleSave = async (data: any) => {
     try {
       await updateInstance(data);
+      
+      // Manually recalculate completion rate after status change
+      if (data.status === 'completed') {
+        await calculateCompletionRate(data.id);
+      }
+      
       setIsEditDialogOpen(false);
       toast({
         title: "Instance updated",

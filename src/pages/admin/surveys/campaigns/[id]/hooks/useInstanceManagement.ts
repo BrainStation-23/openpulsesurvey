@@ -53,7 +53,15 @@ export function useInstanceManagement(campaignId: string) {
         .order('period_number', { ascending: true });
         
       if (error) throw error;
-      return data as Instance[];
+      
+      // Handle the status mapping here in the frontend
+      // Map the database statuses to our internal statuses
+      return data.map(instance => ({
+        ...instance,
+        // Convert 'upcoming' to 'inactive' for instances that should be inactive
+        status: instance.status === 'upcoming' && new Date(instance.starts_at) > new Date() ? 
+          'inactive' as InstanceStatus : instance.status as InstanceStatus
+      }));
     },
   });
 
@@ -129,11 +137,60 @@ export function useInstanceManagement(campaignId: string) {
     return updateInstanceMutation.mutateAsync(updatedInstance);
   };
 
+  // Manual function to calculate completion rate
+  const calculateCompletionRate = async (instanceId: string) => {
+    try {
+      // This would typically call a database function, but since we're removing those,
+      // we'll implement the calculation logic here
+      
+      // Get total assignments for this campaign
+      const { data: assignments, error: assignmentError } = await supabase
+        .from('survey_assignments')
+        .select('id')
+        .eq('campaign_id', campaignId);
+        
+      if (assignmentError) throw assignmentError;
+      
+      // Get completed responses for this instance
+      const { data: responses, error: responseError } = await supabase
+        .from('survey_responses')
+        .select('id')
+        .eq('campaign_instance_id', instanceId)
+        .eq('status', 'submitted');
+        
+      if (responseError) throw responseError;
+      
+      // Calculate completion rate
+      const totalAssignments = assignments?.length || 0;
+      const completedResponses = responses?.length || 0;
+      const completionRate = totalAssignments > 0 
+        ? (completedResponses / totalAssignments) * 100 
+        : 0;
+      
+      // Update the instance with the calculated completion rate
+      const { error: updateError } = await supabase
+        .from('campaign_instances')
+        .update({ completion_rate: completionRate })
+        .eq('id', instanceId);
+        
+      if (updateError) throw updateError;
+      
+      // Refresh instances data
+      refreshInstances();
+      
+      return completionRate;
+    } catch (error) {
+      console.error("Error calculating completion rate:", error);
+      throw error;
+    }
+  };
+
   return {
     campaign,
     instances,
     isLoading: isCampaignLoading || isInstancesLoading,
     updateInstance,
     refreshInstances,
+    calculateCompletionRate,
   };
 }
