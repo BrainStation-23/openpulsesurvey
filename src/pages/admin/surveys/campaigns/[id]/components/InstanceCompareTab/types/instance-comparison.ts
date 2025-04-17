@@ -46,3 +46,37 @@ export type SBUPerformanceData = {
   rankChange: number;
   category: 'improved' | 'declined' | 'unchanged';
 };
+
+// Add missing ComparisonData type
+export type ComparisonData = {
+  baseInstance: {
+    avg_rating: number;
+    unique_respondents: number;
+    total_responses: number;
+    ends_at: string;
+    starts_at: string;
+    period_number: number;
+    campaign_instance_id: string;
+    gender_breakdown: any | null;
+    location_breakdown: any | null;
+    completion_rate: number;
+  };
+  comparisonInstance: {
+    avg_rating: number;
+    unique_respondents: number;
+    total_responses: number;
+    ends_at: string;
+    starts_at: string;
+    period_number: number;
+    campaign_instance_id: string;
+    gender_breakdown: any | null;
+    location_breakdown: any | null;
+    completion_rate: number;
+  };
+};
+
+// Add missing QuestionComparisonData type
+export type QuestionComparisonData = {
+  baseInstance: any[];
+  comparisonInstance: any[];
+};

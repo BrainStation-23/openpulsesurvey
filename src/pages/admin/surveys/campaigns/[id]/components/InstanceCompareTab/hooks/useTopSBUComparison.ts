@@ -56,12 +56,13 @@ export function useTopSBUComparison(
           baseResults.forEach((sbu: SBUPerformanceResult) => {
             sbuMap.set(sbu.sbu_name, {
               name: sbu.sbu_name,
-              base_score: Number(sbu.avg_score) || 0,
-              comparison_score: 0,
+              sbu: sbu.sbu_name,
+              baseScore: Number(sbu.avg_score) || 0,
+              comparisonScore: 0,
               change: 0,
-              base_rank: sbu.rank || 999,
-              comparison_rank: 999,
-              rank_change: 0
+              baseRank: sbu.rank || 999,
+              comparisonRank: 999,
+              rankChange: 0
             });
           });
         }
@@ -72,20 +73,21 @@ export function useTopSBUComparison(
             if (sbuMap.has(sbu.sbu_name)) {
               // Update existing SBU
               const existing = sbuMap.get(sbu.sbu_name)!;
-              existing.comparison_score = Number(sbu.avg_score) || 0;
-              existing.change = existing.comparison_score - existing.base_score;
-              existing.comparison_rank = sbu.rank || 999;
-              existing.rank_change = existing.base_rank - existing.comparison_rank;
+              existing.comparisonScore = Number(sbu.avg_score) || 0;
+              existing.change = existing.comparisonScore - existing.baseScore;
+              existing.comparisonRank = sbu.rank || 999;
+              existing.rankChange = existing.baseRank - existing.comparisonRank;
             } else {
               // Add new SBU
               sbuMap.set(sbu.sbu_name, {
                 name: sbu.sbu_name,
-                base_score: 0,
-                comparison_score: Number(sbu.avg_score) || 0,
+                sbu: sbu.sbu_name,
+                baseScore: 0,
+                comparisonScore: Number(sbu.avg_score) || 0,
                 change: -(Number(sbu.avg_score) || 0),
-                base_rank: 999,
-                comparison_rank: sbu.rank || 999,
-                rank_change: -999
+                baseRank: 999,
+                comparisonRank: sbu.rank || 999,
+                rankChange: -999
               });
             }
           });
@@ -93,7 +95,7 @@ export function useTopSBUComparison(
         
         // Sort by comparison rank and convert to array
         return Array.from(sbuMap.values())
-          .sort((a, b) => a.comparison_rank - b.comparison_rank);
+          .sort((a, b) => a.comparisonRank - b.comparisonRank);
       } catch (error) {
         console.error("Error fetching SBU comparison data:", error);
         throw error;

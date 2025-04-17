@@ -206,9 +206,12 @@ export function SBUPerformanceChartView({ data }: SBUPerformanceChartViewProps) 
               <Scatter 
                 name="SBUs" 
                 data={matrixData}
-                fill={(entry) => entry.fillColor}
-                fillOpacity={0.8}
-              />
+                fill="#8884d8"
+              >
+                {matrixData.map((entry, index) => (
+                  <cell key={`cell-${index}`} fill={entry.fillColor} />
+                ))}
+              </Scatter>
               <Legend />
             </ScatterChart>
           </ResponsiveContainer>
