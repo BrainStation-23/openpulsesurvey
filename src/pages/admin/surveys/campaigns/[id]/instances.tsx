@@ -78,7 +78,7 @@ export default function CampaignInstancesPage() {
       // Set default dates - start date tomorrow, end date a week later
       const startDate = new Date();
       startDate.setDate(startDate.getDate() + 1);
-      startDate.setHours(0,, 0, 0);
+      startDate.setHours(0, 0, 0, 0); // Fixed syntax error: removed extra comma
       
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 7);
