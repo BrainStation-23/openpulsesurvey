@@ -2905,6 +2905,10 @@ export type Database = {
         Args: { p_user_id: string; p_board_id: string; p_access_type: string }
         Returns: boolean
       }
+      create_next_campaign_instance: {
+        Args: { p_campaign_id: string }
+        Returns: string
+      }
       decrement_vote_count: {
         Args: { issue_id: string }
         Returns: undefined
