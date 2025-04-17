@@ -3,7 +3,7 @@ import { AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TopSBUPerformer } from "../hooks/useTopSBUComparison";
+import { TopSBUPerformer } from "../types/instance-comparison";
 
 interface TopPerformersComparisonTableProps {
   title: string;

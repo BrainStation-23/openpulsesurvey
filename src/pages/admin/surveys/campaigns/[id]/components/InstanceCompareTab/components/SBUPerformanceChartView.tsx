@@ -38,14 +38,16 @@ export function SBUPerformanceChartView({ data }: SBUPerformanceChartViewProps) 
     .sort((a, b) => Math.abs(b.rankChange) - Math.abs(a.rankChange))
     .slice(0, 10); // Top 10 SBUs by absolute rank change
 
-  // Format data for matrix chart
+  // Format data for matrix chart - Add category color property
   const matrixData = data.map(item => ({
     name: item.sbu,
     x: item.baseScore,
     y: item.comparisonScore,
     z: Math.abs(item.change) * 10, // Size based on absolute change
     change: item.change,
-    category: item.category
+    category: item.category,
+    // Add a color property based on category
+    fillColor: item.change > 0 ? "#4ade80" : item.change < 0 ? "#f87171" : "#94a3b8"
   }));
 
   // Custom colors for charts
@@ -77,6 +79,13 @@ export function SBUPerformanceChartView({ data }: SBUPerformanceChartViewProps) 
       );
     }
     return null;
+  };
+
+  // Create a custom bar renderer for the rank movement chart that handles colors
+  const CustomizedBar = (props: any) => {
+    const { x, y, width, height, value } = props;
+    const fill = value > 0 ? chartColors.improved : value < 0 ? chartColors.declined : chartColors.unchanged;
+    return <rect x={x} y={y} width={width} height={height} fill={fill} radius={4} />;
   };
 
   return (
@@ -149,9 +158,7 @@ export function SBUPerformanceChartView({ data }: SBUPerformanceChartViewProps) 
               <Bar 
                 name="Rank Change" 
                 dataKey="rankChange" 
-                fill={(data) => data.rankChange > 0 ? chartColors.improved : 
-                               data.rankChange < 0 ? chartColors.declined : 
-                               chartColors.unchanged}
+                shape={<CustomizedBar />}
                 radius={[4, 4, 4, 4]}
               />
               <ReferenceLine x={0} stroke="#666" />
@@ -199,9 +206,8 @@ export function SBUPerformanceChartView({ data }: SBUPerformanceChartViewProps) 
               <Scatter 
                 name="SBUs" 
                 data={matrixData} 
-                fill={(entry) => entry.change > 0 ? chartColors.improved : 
-                                 entry.change < 0 ? chartColors.declined : 
-                                 chartColors.unchanged}
+                fill="#8884d8"
+                fillOpacity={0.8}
               />
               <Legend />
             </ScatterChart>
