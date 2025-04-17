@@ -10,7 +10,7 @@ import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
 import { InstanceSelector } from "./components/InstanceSelector";
 import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
-import { InstanceCompareTab } from "./components/InstanceCompareTab";
+import { ComparePlaceholder } from "./components/ComparePlaceholder";
 import { useState } from "react";
 
 export default function CampaignDetailsPage() {
@@ -102,7 +102,7 @@ export default function CampaignDetailsPage() {
         </TabPanel>
 
         <TabPanel value="compare">
-          <InstanceCompareTab />
+          <ComparePlaceholder />
         </TabPanel>
 
         <TabPanel value="analyze">
