@@ -13,31 +13,32 @@ interface TopSBUPerformer {
 }
 
 export function useTopSBUComparison(baseInstanceId?: string, comparisonInstanceId?: string) {
-  return useQuery({
+  return useQuery<TopSBUPerformer[], Error>({
     queryKey: ["top-sbu-comparison", baseInstanceId, comparisonInstanceId],
-    queryFn: async (): Promise<TopSBUPerformer[]> => {
+    queryFn: async () => {
       if (!baseInstanceId || !comparisonInstanceId) return [];
 
       try {
-        // Try to fetch real data if available
-        const [baseResult, comparisonResult] = await Promise.all([
-          supabase.from("top_performing_sbus")
-            .select("*")
-            .eq("instance_id", baseInstanceId),
-          supabase.from("top_performing_sbus")
-            .select("*")
-            .eq("instance_id", comparisonInstanceId)
-        ]);
+        // Try to fetch real data from top_performing_sbus if available
+        const { data: baseResults, error: baseError } = await supabase
+          .from("top_performing_sbus")
+          .select("*")
+          .eq("instance_id", baseInstanceId);
+          
+        const { data: comparisonResults, error: comparisonError } = await supabase
+          .from("top_performing_sbus")
+          .select("*")
+          .eq("instance_id", comparisonInstanceId);
 
-        if (baseResult.error || comparisonResult.error) {
+        if (baseError || comparisonError || !baseResults || !comparisonResults) {
           throw new Error("Failed to fetch SBU data");
         }
 
-        // Build map of SBUs
+        // Map the results to our interface
         const sbuMap = new Map<string, TopSBUPerformer>();
         
         // Process base instance data
-        baseResult.data.forEach((sbu: any) => {
+        baseResults.forEach((sbu: any) => {
           sbuMap.set(sbu.sbu_name, {
             name: sbu.sbu_name,
             base_score: sbu.average_score || 0,
@@ -50,7 +51,7 @@ export function useTopSBUComparison(baseInstanceId?: string, comparisonInstanceI
         });
         
         // Process comparison data
-        comparisonResult.data.forEach((sbu: any) => {
+        comparisonResults.forEach((sbu: any) => {
           if (sbuMap.has(sbu.sbu_name)) {
             // Update existing SBU
             const existing = sbuMap.get(sbu.sbu_name)!;
@@ -74,6 +75,7 @@ export function useTopSBUComparison(baseInstanceId?: string, comparisonInstanceI
         
         return Array.from(sbuMap.values());
       } catch (error) {
+        console.error("Error fetching SBU data:", error);
         // Return mock data if the query fails
         return [
           {
