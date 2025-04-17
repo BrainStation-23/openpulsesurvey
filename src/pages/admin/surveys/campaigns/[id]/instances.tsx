@@ -14,8 +14,15 @@ export default function CampaignInstancesPage() {
 
   const {
     instances,
+    totalCount,
     campaign,
     isLoading,
+    filters,
+    sort,
+    pagination,
+    updateFilters,
+    updateSort,
+    updatePagination,
     updateInstance,
     refreshInstances,
     calculateCompletionRate,
@@ -105,6 +112,25 @@ export default function CampaignInstancesPage() {
     }
   };
 
+  const handlePageChange = (page: number) => {
+    updatePagination({ page });
+  };
+
+  const handlePageSizeChange = (pageSize: number) => {
+    updatePagination({ pageSize, page: 1 });
+  };
+
+  const handleSortChange = (sortBy: string, sortDirection: 'asc' | 'desc') => {
+    updateSort({ 
+      sortBy: sortBy as any, 
+      sortDirection 
+    });
+  };
+
+  const handleFilterChange = (newFilters: any) => {
+    updateFilters(newFilters);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -125,10 +151,18 @@ export default function CampaignInstancesPage() {
 
       <InstanceTable 
         instances={instances} 
+        totalCount={totalCount}
+        pagination={pagination}
+        sort={sort}
+        filters={filters}
         isLoading={isLoading}
         onSave={handleSave}
         onDelete={handleDelete}
         onAdd={handleAddInstance}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+        onSortChange={handleSortChange}
+        onFilterChange={handleFilterChange}
         campaign={campaign}
       />
     </div>

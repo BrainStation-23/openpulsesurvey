@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,8 +24,35 @@ export interface CreateInstanceData {
   period_number: number;
 }
 
+export interface InstanceFilters {
+  startDateMin?: string;
+  startDateMax?: string;
+  endDateMin?: string;
+  endDateMax?: string;
+  status?: InstanceStatus[];
+}
+
+export interface InstanceSortOptions {
+  sortBy: 'period_number' | 'starts_at' | 'ends_at' | 'status' | 'completion_rate';
+  sortDirection: 'asc' | 'desc';
+}
+
+export interface PaginationOptions {
+  page: number;
+  pageSize: number;
+}
+
 export function useInstanceManagement(campaignId: string) {
   const queryClient = useQueryClient();
+  const [filters, setFilters] = useState<InstanceFilters>({});
+  const [sort, setSort] = useState<InstanceSortOptions>({
+    sortBy: 'period_number',
+    sortDirection: 'asc'
+  });
+  const [pagination, setPagination] = useState<PaginationOptions>({
+    page: 1,
+    pageSize: 10
+  });
 
   // Fetch campaign details
   const { data: campaign, isLoading: isCampaignLoading } = useQuery({
@@ -46,30 +72,49 @@ export function useInstanceManagement(campaignId: string) {
     },
   });
 
-  // Fetch campaign instances
+  // Fetch campaign instances using the new RPC function
   const { 
-    data: instances = [], 
+    data: instancesData = { data: [], totalCount: 0 }, 
     isLoading: isInstancesLoading,
     refetch: refreshInstances
   } = useQuery({
-    queryKey: ['campaign-instances', campaignId],
+    queryKey: ['campaign-instances', campaignId, filters, sort, pagination],
     queryFn: async () => {
+      const { startDateMin, startDateMax, endDateMin, endDateMax, status } = filters;
+      const { sortBy, sortDirection } = sort;
+      const { page, pageSize } = pagination;
+      
       const { data, error } = await supabase
-        .from('campaign_instances')
-        .select('*')
-        .eq('campaign_id', campaignId)
-        .order('period_number', { ascending: true });
+        .rpc('get_campaign_instances', {
+          p_campaign_id: campaignId,
+          p_start_date_min: startDateMin,
+          p_start_date_max: startDateMax,
+          p_end_date_min: endDateMin,
+          p_end_date_max: endDateMax,
+          p_status: status,
+          p_sort_by: sortBy,
+          p_sort_direction: sortDirection,
+          p_page: page,
+          p_page_size: pageSize
+        });
         
       if (error) throw error;
       
-      // Handle the status mapping here in the frontend
+      // Process the data and extract total count
+      const totalCount = data.length > 0 ? Number(data[0].total_count) : 0;
+      
       // Map the database statuses to our internal statuses
-      return data.map(instance => ({
+      const processedData = data.map(instance => ({
         ...instance,
         // Convert 'upcoming' to 'inactive' for instances that should be inactive
         status: instance.status === 'upcoming' && new Date(instance.starts_at) > new Date() ? 
           'inactive' as InstanceStatus : instance.status as InstanceStatus
       }));
+      
+      return { 
+        data: processedData,
+        totalCount
+      };
     },
   });
 
@@ -168,7 +213,7 @@ export function useInstanceManagement(campaignId: string) {
   const updateInstance = async (updatedInstance: Partial<Instance> & { id: string }) => {
     // If status is being updated, validate it
     if (updatedInstance.status) {
-      const instance = instances.find(i => i.id === updatedInstance.id);
+      const instance = instancesData.data.find(i => i.id === updatedInstance.id);
       if (instance) {
         const validationError = validateStatusChange(
           instance, 
@@ -240,14 +285,37 @@ export function useInstanceManagement(campaignId: string) {
     }
   };
 
+  // New functions for handling filters, sorting, and pagination
+  const updateFilters = (newFilters: Partial<InstanceFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+    // Reset to first page when filters change
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const updateSort = (newSort: Partial<InstanceSortOptions>) => {
+    setSort(prev => ({ ...prev, ...newSort }));
+  };
+
+  const updatePagination = (newPagination: Partial<PaginationOptions>) => {
+    setPagination(prev => ({ ...prev, ...newPagination }));
+  };
+
   return {
     campaign,
-    instances,
+    instances: instancesData.data,
+    totalCount: instancesData.totalCount,
     isLoading: isCampaignLoading || isInstancesLoading,
     updateInstance,
     refreshInstances,
     calculateCompletionRate,
     createInstance,
     deleteInstance,
+    // New filter, sort, and pagination state and handlers
+    filters,
+    sort,
+    pagination,
+    updateFilters,
+    updateSort,
+    updatePagination,
   };
 }
