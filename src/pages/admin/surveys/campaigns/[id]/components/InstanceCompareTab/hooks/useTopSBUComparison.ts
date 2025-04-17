@@ -12,55 +12,60 @@ export interface TopSBUPerformer {
   rank_change: number;
 }
 
-// Define explicit interface for database results
-interface TopPerformingSBU {
-  sbu_name: string;
-  average_score: number;
+// Define explicit interface for RPC function results
+interface SBUPerformanceResult {
   rank: number;
+  sbu_name: string;
+  total_assigned: number;
+  total_completed: number;
+  avg_score: number;
+  completion_rate: number;
 }
 
-interface TopSBUComparisonResult {
-  data: TopSBUPerformer[];
-  error: Error | null;
-}
-
-export function useTopSBUComparison(baseInstanceId?: string, comparisonInstanceId?: string) {
+export function useTopSBUComparison(
+  campaignId?: string,
+  baseInstanceId?: string, 
+  comparisonInstanceId?: string
+) {
   return useQuery({
-    queryKey: ["top-sbu-comparison", baseInstanceId, comparisonInstanceId],
+    queryKey: ["top-sbu-comparison", campaignId, baseInstanceId, comparisonInstanceId],
     queryFn: async () => {
-      if (!baseInstanceId || !comparisonInstanceId) {
+      if (!campaignId || !baseInstanceId || !comparisonInstanceId) {
         return [] as TopSBUPerformer[];
       }
 
       try {
-        // Try to fetch real data from top_performing_sbus if available
+        // Get base instance data using RPC function
         const { data: baseResults, error: baseError } = await supabase
-          .from("top_performing_sbus")
-          .select("*")
-          .eq("instance_id", baseInstanceId);
+          .rpc('get_campaign_sbu_performance', {
+            p_campaign_id: campaignId,
+            p_instance_id: baseInstanceId
+          });
           
+        // Get comparison instance data using RPC function
         const { data: comparisonResults, error: comparisonError } = await supabase
-          .from("top_performing_sbus")
-          .select("*")
-          .eq("instance_id", comparisonInstanceId);
+          .rpc('get_campaign_sbu_performance', {
+            p_campaign_id: campaignId,
+            p_instance_id: comparisonInstanceId
+          });
 
         if (baseError) throw new Error(`Failed to fetch base SBU data: ${baseError.message}`);
         if (comparisonError) throw new Error(`Failed to fetch comparison SBU data: ${comparisonError.message}`);
         
+        // Early return if no data
         if (!baseResults?.length && !comparisonResults?.length) {
-          // Return empty array when no data is found
           return [] as TopSBUPerformer[];
         }
 
-        // Map the results to our interface
+        // Map and merge the results
         const sbuMap = new Map<string, TopSBUPerformer>();
         
         // Process base instance data
         if (baseResults) {
-          baseResults.forEach((sbu: TopPerformingSBU) => {
+          baseResults.forEach((sbu: SBUPerformanceResult) => {
             sbuMap.set(sbu.sbu_name, {
               name: sbu.sbu_name,
-              base_score: sbu.average_score || 0,
+              base_score: Number(sbu.avg_score) || 0,
               comparison_score: 0,
               change: 0,
               base_rank: sbu.rank || 999,
@@ -72,21 +77,21 @@ export function useTopSBUComparison(baseInstanceId?: string, comparisonInstanceI
         
         // Process comparison data
         if (comparisonResults) {
-          comparisonResults.forEach((sbu: TopPerformingSBU) => {
+          comparisonResults.forEach((sbu: SBUPerformanceResult) => {
             if (sbuMap.has(sbu.sbu_name)) {
               // Update existing SBU
               const existing = sbuMap.get(sbu.sbu_name)!;
-              existing.comparison_score = sbu.average_score || 0;
+              existing.comparison_score = Number(sbu.avg_score) || 0;
               existing.change = existing.base_score - existing.comparison_score;
               existing.comparison_rank = sbu.rank || 999;
-              existing.rank_change = existing.comparison_rank - existing.base_rank;
+              existing.rank_change = existing.base_rank - existing.comparison_rank;
             } else {
               // Add new SBU
               sbuMap.set(sbu.sbu_name, {
                 name: sbu.sbu_name,
                 base_score: 0,
-                comparison_score: sbu.average_score || 0,
-                change: -(sbu.average_score || 0),
+                comparison_score: Number(sbu.avg_score) || 0,
+                change: -(Number(sbu.avg_score) || 0),
                 base_rank: 999,
                 comparison_rank: sbu.rank || 999,
                 rank_change: -999
@@ -101,6 +106,6 @@ export function useTopSBUComparison(baseInstanceId?: string, comparisonInstanceI
         throw error;
       }
     },
-    enabled: !!baseInstanceId && !!comparisonInstanceId,
+    enabled: !!campaignId && !!baseInstanceId && !!comparisonInstanceId,
   });
 }
