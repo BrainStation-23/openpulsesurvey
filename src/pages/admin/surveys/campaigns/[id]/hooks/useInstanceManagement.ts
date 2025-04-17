@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,14 +25,6 @@ export interface CreateInstanceData {
   period_number: number;
 }
 
-export interface InstanceFilters {
-  startDateMin?: string;
-  startDateMax?: string;
-  endDateMin?: string;
-  endDateMax?: string;
-  status?: InstanceStatus[];
-}
-
 export interface InstanceSortOptions {
   sortBy: 'period_number' | 'starts_at' | 'ends_at' | 'status' | 'completion_rate';
   sortDirection: 'asc' | 'desc';
@@ -44,7 +37,6 @@ export interface PaginationOptions {
 
 export function useInstanceManagement(campaignId: string) {
   const queryClient = useQueryClient();
-  const [filters, setFilters] = useState<InstanceFilters>({});
   const [sort, setSort] = useState<InstanceSortOptions>({
     sortBy: 'period_number',
     sortDirection: 'asc'
@@ -72,26 +64,25 @@ export function useInstanceManagement(campaignId: string) {
     },
   });
 
-  // Fetch campaign instances using the new RPC function
+  // Fetch campaign instances using the RPC function with default values for filters
   const { 
     data: instancesData = { data: [], totalCount: 0 }, 
     isLoading: isInstancesLoading,
     refetch: refreshInstances
   } = useQuery({
-    queryKey: ['campaign-instances', campaignId, filters, sort, pagination],
+    queryKey: ['campaign-instances', campaignId, sort, pagination],
     queryFn: async () => {
-      const { startDateMin, startDateMax, endDateMin, endDateMax, status } = filters;
       const { sortBy, sortDirection } = sort;
       const { page, pageSize } = pagination;
       
       const { data, error } = await supabase
         .rpc('get_campaign_instances', {
           p_campaign_id: campaignId,
-          p_start_date_min: startDateMin,
-          p_start_date_max: startDateMax,
-          p_end_date_min: endDateMin,
-          p_end_date_max: endDateMax,
-          p_status: status,
+          p_start_date_min: null,       // Default value to get all instances
+          p_start_date_max: null,       // Default value to get all instances
+          p_end_date_min: null,         // Default value to get all instances
+          p_end_date_max: null,         // Default value to get all instances
+          p_status: null,               // Default value to get all instances
           p_sort_by: sortBy,
           p_sort_direction: sortDirection,
           p_page: page,
@@ -285,13 +276,7 @@ export function useInstanceManagement(campaignId: string) {
     }
   };
 
-  // New functions for handling filters, sorting, and pagination
-  const updateFilters = (newFilters: Partial<InstanceFilters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-    // Reset to first page when filters change
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
+  // Functions for handling sorting and pagination
   const updateSort = (newSort: Partial<InstanceSortOptions>) => {
     setSort(prev => ({ ...prev, ...newSort }));
   };
@@ -310,11 +295,9 @@ export function useInstanceManagement(campaignId: string) {
     calculateCompletionRate,
     createInstance,
     deleteInstance,
-    // New filter, sort, and pagination state and handlers
-    filters,
+    // Sort and pagination state and handlers
     sort,
     pagination,
-    updateFilters,
     updateSort,
     updatePagination,
   };

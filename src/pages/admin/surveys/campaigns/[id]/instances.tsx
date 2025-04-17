@@ -17,10 +17,8 @@ export default function CampaignInstancesPage() {
     totalCount,
     campaign,
     isLoading,
-    filters,
     sort,
     pagination,
-    updateFilters,
     updateSort,
     updatePagination,
     updateInstance,
@@ -127,10 +125,6 @@ export default function CampaignInstancesPage() {
     });
   };
 
-  const handleFilterChange = (newFilters: any) => {
-    updateFilters(newFilters);
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -151,7 +145,6 @@ export default function CampaignInstancesPage() {
         totalCount={totalCount}
         pagination={pagination}
         sort={sort}
-        filters={filters}
         isLoading={isLoading}
         onSave={handleSave}
         onDelete={handleDelete}
@@ -159,7 +152,6 @@ export default function CampaignInstancesPage() {
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
         onSortChange={handleSortChange}
-        onFilterChange={handleFilterChange}
         campaign={campaign}
       />
     </div>

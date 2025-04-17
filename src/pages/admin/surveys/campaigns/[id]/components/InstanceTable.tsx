@@ -1,3 +1,4 @@
+
 import { format } from "date-fns";
 import { Pencil, Trash2, Plus, XCircle, ChevronDown, ChevronUp, Save } from "lucide-react";
 import { useState } from "react";
@@ -31,18 +32,15 @@ import {
 } from "@/components/ui/pagination";
 import { 
   Instance, 
-  InstanceFilters, 
   InstanceSortOptions, 
   PaginationOptions 
 } from "../hooks/useInstanceManagement";
-import { InstanceFilters as InstanceFiltersComponent } from "./InstanceFilters";
 
 interface InstanceTableProps {
   instances: Instance[];
   totalCount: number;
   pagination: PaginationOptions;
   sort: InstanceSortOptions;
-  filters: InstanceFilters;
   isLoading: boolean;
   onSave: (instance: Instance) => void;
   onDelete: (instanceId: string) => void;
@@ -50,7 +48,6 @@ interface InstanceTableProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   onSortChange: (sortBy: string, sortDirection: 'asc' | 'desc') => void;
-  onFilterChange: (filters: any) => void;
   campaign: any;
 }
 
@@ -59,7 +56,6 @@ export function InstanceTable({
   totalCount,
   pagination,
   sort,
-  filters,
   isLoading, 
   onSave, 
   onDelete,
@@ -67,7 +63,6 @@ export function InstanceTable({
   onPageChange,
   onPageSizeChange,
   onSortChange,
-  onFilterChange,
   campaign
 }: InstanceTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -395,16 +390,7 @@ export function InstanceTable({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Campaign Instances</h3>
-      </div>
-      
-      <div className="p-4 border rounded-md mb-4">
-        <InstanceFiltersComponent 
-          onFilterChange={onFilterChange}
-          currentFilters={filters}
-        />
-      </div>
-      
-      <div className="flex justify-end mb-4">
+        
         <Button 
           onClick={onAdd} 
           className="bg-primary text-primary-foreground flex items-center gap-1"
