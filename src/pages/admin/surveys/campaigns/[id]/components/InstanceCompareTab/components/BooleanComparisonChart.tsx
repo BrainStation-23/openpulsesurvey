@@ -1,6 +1,11 @@
 
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+
+interface ChartData {
+  name: string;
+  base: number;
+  comparison: number;
+}
 
 interface BooleanComparisonChartProps {
   baseInstanceData: {
@@ -14,106 +19,84 @@ interface BooleanComparisonChartProps {
   questionKey: string;
   basePeriodNumber?: number;
   comparisonPeriodNumber?: number;
-  className?: string;
 }
 
 export function BooleanComparisonChart({
   baseInstanceData,
   comparisonInstanceData,
-  questionKey,
   basePeriodNumber,
   comparisonPeriodNumber,
-  className,
 }: BooleanComparisonChartProps) {
-  const data = [
+  // Format period labels
+  const baseLabel = basePeriodNumber ? `Period ${basePeriodNumber}` : "Base";
+  const comparisonLabel = comparisonPeriodNumber ? `Period ${comparisonPeriodNumber}` : "Current";
+
+  // Calculate percentage change for display
+  const changeValue = comparisonInstanceData.yes_percentage - baseInstanceData.yes_percentage;
+  
+  // Prepare chart data
+  const data: ChartData[] = [
     {
-      name: questionKey,
-      "Base Yes": baseInstanceData.yes_percentage,
-      "Base No": 100 - baseInstanceData.yes_percentage,
-      "Base Count": baseInstanceData.response_count,
-      "Comparison Yes": comparisonInstanceData.yes_percentage,
-      "Comparison No": 100 - comparisonInstanceData.yes_percentage,
-      "Comparison Count": comparisonInstanceData.response_count,
+      name: "Yes Percentage",
+      base: baseInstanceData.yes_percentage,
+      comparison: comparisonInstanceData.yes_percentage,
     },
   ];
 
-  // Set chart configuration with colors
-  const chartConfig = {
-    "Base Yes": { color: "#3b82f6" }, // blue
-    "Base No": { color: "#93c5fd" }, // light blue
-    "Comparison Yes": { color: "#ef4444" }, // red
-    "Comparison No": { color: "#fca5a5" }, // light red
-  };
-
-  const baseLabel = basePeriodNumber ? `Period ${basePeriodNumber}` : "Base";
-  const comparisonLabel = comparisonPeriodNumber ? `Period ${comparisonPeriodNumber}` : "Comparison";
+  // Determine colors based on change direction
+  const baseColor = "#9b87f5"; // Primary purple
+  const comparisonColor = changeValue > 0 ? "#22c55e" : changeValue < 0 ? "#ef4444" : "#8E9196"; // Green, Red, or Gray
 
   return (
-    <div className={`w-full ${className}`}>
-      <ChartContainer config={chartConfig} className="h-[300px]">
+    <div className="w-full">
+      <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
-            layout="vertical"
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            barGap={30}
           >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" domain={[0, 100]} />
-            <YAxis dataKey="name" type="category" />
-            <ChartTooltip
-              content={({ active, payload }) => {
-                if (!active || !payload?.length) return null;
-                return (
-                  <ChartTooltipContent 
-                    active={active} 
-                    payload={payload}
-                    formatter={(value, name) => {
-                      if (name === "Base Count" || name === "Comparison Count") {
-                        return [`${value} responses`, name.replace("Count", "Responses")];
-                      }
-                      if (typeof value === 'number') {
-                        return [`${value.toFixed(1)}%`, name];
-                      }
-                      return [`${value}%`, name];
-                    }}
-                  />
-                );
-              }}
+            <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
+            <XAxis dataKey="name" />
+            <YAxis domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
+            <Tooltip
+              formatter={(value: number) => [`${value.toFixed(1)}%`, ""]}
+              labelFormatter={() => "Yes Percentage"}
+              contentStyle={{ borderRadius: "8px" }}
             />
             <Legend formatter={(value) => {
-              if (value === "Base Yes") return `${baseLabel} (Yes)`;
-              if (value === "Base No") return `${baseLabel} (No)`;
-              if (value === "Comparison Yes") return `${comparisonLabel} (Yes)`;
-              if (value === "Comparison No") return `${comparisonLabel} (No)`;
-              return value;
+              return value === 'base' ? baseLabel : comparisonLabel;
             }} />
             <Bar 
-              dataKey="Base Yes" 
-              stackId="base"
-              fill="#3b82f6" 
-              name="Base Yes"
+              dataKey="base" 
+              name="base" 
+              fill={baseColor} 
+              radius={[4, 4, 0, 0]} 
+              barSize={40} 
             />
             <Bar 
-              dataKey="Base No" 
-              stackId="base"
-              fill="#93c5fd" 
-              name="Base No"
-            />
-            <Bar 
-              dataKey="Comparison Yes" 
-              stackId="comparison"
-              fill="#ef4444" 
-              name="Comparison Yes"
-            />
-            <Bar 
-              dataKey="Comparison No" 
-              stackId="comparison"
-              fill="#fca5a5" 
-              name="Comparison No"
+              dataKey="comparison" 
+              name="comparison" 
+              fill={comparisonColor} 
+              radius={[4, 4, 0, 0]} 
+              barSize={40} 
             />
           </BarChart>
         </ResponsiveContainer>
-      </ChartContainer>
+      </div>
+      
+      <div className="mt-2 text-center text-sm text-muted-foreground">
+        <span className={`font-medium ${
+          changeValue > 0 
+            ? 'text-green-500' 
+            : changeValue < 0 
+            ? 'text-red-500' 
+            : ''
+        }`}>
+          {changeValue > 0 ? "+" : ""}{changeValue.toFixed(1)}%
+        </span>
+        {" "}change from {baseLabel} to {comparisonLabel}
+      </div>
     </div>
   );
 }

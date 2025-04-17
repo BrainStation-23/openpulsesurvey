@@ -7,12 +7,14 @@ import { useQuestionComparison } from "../hooks/useQuestionComparison";
 import { QuestionCard } from "./QuestionCard";
 import { Spinner } from "@/components/ui/spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CircleSlash, Search, SlidersHorizontal } from "lucide-react";
+import { CircleSlash, Download, Search, SlidersHorizontal, Table as TableIcon, LayoutDashboard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { QuestionComparisonTable } from "./QuestionComparisonTable";
+import { format } from "date-fns";
 
 interface QuestionResponsesTabProps {
   campaignId?: string;
@@ -21,6 +23,7 @@ interface QuestionResponsesTabProps {
 }
 
 type QuestionType = "rating" | "boolean" | "text";
+type ViewMode = "cards" | "table";
 
 interface QuestionInfo {
   key: string;
@@ -32,20 +35,13 @@ export function QuestionResponsesTab({ campaignId, baseInstanceId, comparisonIns
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | QuestionType>("all");
   const [selectedTypes, setSelectedTypes] = useState<QuestionType[]>(["rating", "boolean", "text"]);
+  const [viewMode, setViewMode] = useState<ViewMode>("cards");
   
   const { data: questionComparison, isLoading, error } = useQuestionComparison(
     campaignId,
     baseInstanceId,
     comparisonInstanceId
   );
-
-  useEffect(() => {
-    console.log("QuestionResponsesTab mounted with:", { 
-      campaignId, 
-      baseInstanceId, 
-      comparisonInstanceId 
-    });
-  }, [campaignId, baseInstanceId, comparisonInstanceId]);
 
   // Process the data to match questions between instances
   const processedQuestions = questionComparison ? processQuestionData(questionComparison) : [];
@@ -62,6 +58,68 @@ export function QuestionResponsesTab({ campaignId, baseInstanceId, comparisonIns
     return matchesSearch && matchesType && matchesSelectedTypes;
   });
 
+  // Function to format date
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    return format(new Date(dateString), "MMM d, yyyy");
+  };
+
+  // Get date ranges for instances
+  const basePeriod = questionComparison?.baseInstance[0]?.period_number || "N/A";
+  const comparisonPeriod = questionComparison?.comparisonInstance[0]?.period_number || "N/A";
+
+  // Export data to CSV
+  const exportToCSV = () => {
+    if (!filteredQuestions.length) return;
+    
+    const headers = [
+      "Question",
+      "Type",
+      `Period ${basePeriod} Score`,
+      `Period ${basePeriod} Responses`,
+      `Period ${comparisonPeriod} Score`,
+      `Period ${comparisonPeriod} Responses`,
+      "Change"
+    ];
+    
+    const rows = filteredQuestions.map(q => {
+      let baseScore = "N/A";
+      let comparisonScore = "N/A";
+      let changeValue = "N/A";
+      
+      if (q.type === "rating" && q.baseData.avg_numeric_value !== null && q.comparisonData.avg_numeric_value !== null) {
+        baseScore = q.baseData.avg_numeric_value.toFixed(2);
+        comparisonScore = q.comparisonData.avg_numeric_value.toFixed(2);
+        changeValue = (q.comparisonData.avg_numeric_value - q.baseData.avg_numeric_value).toFixed(2);
+      } else if (q.type === "boolean" && q.baseData.yes_percentage !== null && q.comparisonData.yes_percentage !== null) {
+        baseScore = `${q.baseData.yes_percentage.toFixed(1)}%`;
+        comparisonScore = `${q.comparisonData.yes_percentage.toFixed(1)}%`;
+        changeValue = `${(q.comparisonData.yes_percentage - q.baseData.yes_percentage).toFixed(1)}%`;
+      }
+      
+      return [
+        q.title,
+        q.type,
+        baseScore,
+        q.baseData.response_count || 0,
+        comparisonScore,
+        q.comparisonData.response_count || 0,
+        changeValue
+      ];
+    });
+    
+    const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `question_comparison_${basePeriod}_vs_${comparisonPeriod}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Type info with display names
   const questionTypeInfo = [
     { id: "rating", label: "Rating Questions" },
@@ -72,9 +130,29 @@ export function QuestionResponsesTab({ campaignId, baseInstanceId, comparisonIns
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>Question Response Comparison</span>
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col space-y-3 sm:flex-row sm:justify-between sm:space-y-0">
+          <CardTitle>Question Response Comparison</CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="rounded-md border">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`rounded-l-md ${viewMode === 'cards' ? 'bg-muted' : ''}`}
+                onClick={() => setViewMode('cards')}
+              >
+                <LayoutDashboard className="h-4 w-4 mr-2" />
+                Cards
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`rounded-r-md ${viewMode === 'table' ? 'bg-muted' : ''}`}
+                onClick={() => setViewMode('table')}
+              >
+                <TableIcon className="h-4 w-4 mr-2" />
+                Table
+              </Button>
+            </div>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
               <TabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
@@ -83,8 +161,16 @@ export function QuestionResponsesTab({ campaignId, baseInstanceId, comparisonIns
               </TabsList>
             </Tabs>
           </div>
-        </CardTitle>
+        </div>
+        
+        {/* Period information */}
+        {questionComparison?.baseInstance.length > 0 && questionComparison?.comparisonInstance.length > 0 && (
+          <div className="mt-2 text-sm text-muted-foreground">
+            Comparing Period {basePeriod} vs Period {comparisonPeriod}
+          </div>
+        )}
       </CardHeader>
+      
       <CardContent>
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-8">
@@ -106,7 +192,7 @@ export function QuestionResponsesTab({ campaignId, baseInstanceId, comparisonIns
           </div>
         ) : (
           <>
-            <div className="mb-6 flex items-center justify-between gap-4">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -116,44 +202,62 @@ export function QuestionResponsesTab({ campaignId, baseInstanceId, comparisonIns
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <SlidersHorizontal className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56" align="end">
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Filter by question type</h4>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportToCSV}
+                  className="flex items-center gap-1"
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <SlidersHorizontal className="h-4 w-4 mr-2" />
+                      Filter
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56" align="end">
                     <div className="space-y-2">
-                      {questionTypeInfo.map((type) => (
-                        <div key={type.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`filter-${type.id}`}
-                            checked={selectedTypes.includes(type.id as QuestionType)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedTypes([...selectedTypes, type.id as QuestionType]);
-                              } else {
-                                setSelectedTypes(selectedTypes.filter(t => t !== type.id));
-                              }
-                            }}
-                          />
-                          <Label htmlFor={`filter-${type.id}`}>{type.label}</Label>
-                        </div>
-                      ))}
+                      <h4 className="font-medium">Filter by question type</h4>
+                      <div className="space-y-2">
+                        {questionTypeInfo.map((type) => (
+                          <div key={type.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`filter-${type.id}`}
+                              checked={selectedTypes.includes(type.id as QuestionType)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedTypes([...selectedTypes, type.id as QuestionType]);
+                                } else {
+                                  setSelectedTypes(selectedTypes.filter(t => t !== type.id));
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`filter-${type.id}`}>{type.label}</Label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
             {filteredQuestions.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
                 No matching questions found.
               </div>
+            ) : viewMode === 'table' ? (
+              <QuestionComparisonTable 
+                questions={filteredQuestions}
+                basePeriod={basePeriod}
+                comparisonPeriod={comparisonPeriod}
+              />
             ) : (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6">
                 {filteredQuestions.map((question) => (
                   <QuestionCard
                     key={question.key}
@@ -161,6 +265,8 @@ export function QuestionResponsesTab({ campaignId, baseInstanceId, comparisonIns
                     questionType={question.type}
                     baseData={question.baseData}
                     comparisonData={question.comparisonData}
+                    basePeriod={basePeriod.toString()}
+                    comparisonPeriod={comparisonPeriod.toString()}
                   />
                 ))}
               </div>
