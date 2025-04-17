@@ -136,20 +136,13 @@ export function useInstanceManagement(campaignId: string) {
     },
   });
 
-  // Create instance mutation
-  const createInstanceMutation = useMutation({
-    mutationFn: async (newInstance: CreateInstanceData) => {
-      // Convert 'inactive' status to 'upcoming' for database compatibility
-      const finalInsertData = {
-        ...newInstance,
-        status: newInstance.status === 'inactive' ? 'upcoming' : newInstance.status
-      };
-      
+  // New mutation that uses the database function to create the next instance
+  const createNextInstanceMutation = useMutation({
+    mutationFn: async () => {
       const { data, error } = await supabase
-        .from('campaign_instances')
-        .insert(finalInsertData)
-        .select()
-        .single();
+        .rpc('create_next_campaign_instance', { 
+          p_campaign_id: campaignId 
+        });
         
       if (error) throw error;
       return data;
@@ -232,13 +225,9 @@ export function useInstanceManagement(campaignId: string) {
     return updateInstanceMutation.mutateAsync(updatedInstance);
   };
 
-  const createInstance = async (newInstance: CreateInstanceData) => {
-    // If trying to create an active instance, check if one already exists
-    if (newInstance.status === 'active' && hasActiveInstance()) {
-      throw new Error("There is already an active instance for this campaign. Please mark it as completed or inactive first.");
-    }
-    
-    return createInstanceMutation.mutateAsync(newInstance);
+  // Updated to use the new database function
+  const createInstance = async () => {
+    return createNextInstanceMutation.mutateAsync();
   };
 
   const deleteInstance = async (instanceId: string) => {
