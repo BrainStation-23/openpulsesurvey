@@ -2496,77 +2496,6 @@ export type Database = {
         }
         Relationships: []
       }
-      instance_comparison_metrics: {
-        Row: {
-          avg_rating: number | null
-          campaign_instance_id: string | null
-          completion_rate: number | null
-          ends_at: string | null
-          gender_breakdown: Json | null
-          location_breakdown: Json | null
-          period_number: number | null
-          starts_at: string | null
-          total_responses: number | null
-          unique_respondents: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
-            columns: ["campaign_instance_id"]
-            isOneToOne: false
-            referencedRelation: "campaign_instances"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
-            columns: ["campaign_instance_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["instance_id"]
-          },
-          {
-            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
-            columns: ["campaign_instance_id"]
-            isOneToOne: false
-            referencedRelation: "upcoming_survey_deadlines"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      instance_question_comparison: {
-        Row: {
-          avg_numeric_value: number | null
-          campaign_instance_id: string | null
-          period_number: number | null
-          question_key: string | null
-          response_count: number | null
-          text_responses: string[] | null
-          yes_percentage: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
-            columns: ["campaign_instance_id"]
-            isOneToOne: false
-            referencedRelation: "campaign_instances"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
-            columns: ["campaign_instance_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["instance_id"]
-          },
-          {
-            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
-            columns: ["campaign_instance_id"]
-            isOneToOne: false
-            referencedRelation: "upcoming_survey_deadlines"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       key_result_statistics: {
         Row: {
           check_ins_count: number | null
@@ -2976,10 +2905,6 @@ export type Database = {
         Args: { p_user_id: string; p_board_id: string; p_access_type: string }
         Returns: boolean
       }
-      cleanup_campaign_cron_jobs: {
-        Args: { p_campaign_id: string }
-        Returns: undefined
-      }
       decrement_vote_count: {
         Args: { issue_id: string }
         Returns: undefined
@@ -2992,21 +2917,13 @@ export type Database = {
         Args: { p_assignment_id: string }
         Returns: Json
       }
+      drop_and_recreate_question_responses_function: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       fix_all_instance_completion_rates: {
         Args: Record<PropertyKey, never>
         Returns: undefined
-      }
-      fix_missing_campaign_jobs: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      generate_campaign_cron_schedule: {
-        Args: {
-          p_timestamp: string
-          p_recurring_frequency: string
-          p_job_type: Database["public"]["Enums"]["cron_job_type"]
-        }
-        Returns: string
       }
       get_assignment_instance_status: {
         Args: { p_assignment_id: string; p_instance_id: string }
@@ -3034,6 +2951,32 @@ export type Database = {
         Returns: {
           status: string
           count: number
+        }[]
+      }
+      get_campaign_instances: {
+        Args: {
+          p_campaign_id: string
+          p_start_date_min?: string
+          p_start_date_max?: string
+          p_end_date_min?: string
+          p_end_date_max?: string
+          p_status?: string[]
+          p_sort_by?: string
+          p_sort_direction?: string
+          p_page?: number
+          p_page_size?: number
+        }
+        Returns: {
+          id: string
+          campaign_id: string
+          period_number: number
+          starts_at: string
+          ends_at: string
+          status: string
+          completion_rate: number
+          created_at: string
+          updated_at: string
+          total_count: number
         }[]
       }
       get_campaign_sbu_performance: {
@@ -3066,6 +3009,17 @@ export type Database = {
       get_instance_assignment_status: {
         Args: { p_assignment_id: string; p_instance_id: string }
         Returns: string
+      }
+      get_instance_question_responses: {
+        Args: { p_campaign_id: string; p_instance_id: string }
+        Returns: {
+          campaign_instance_id: string
+          response_count: number
+          avg_numeric_value: number
+          yes_percentage: number
+          question_key: string
+          text_responses: string[]
+        }[]
       }
       get_my_survey_assignments: {
         Args: { p_user_id: string }
@@ -3170,18 +3124,6 @@ export type Database = {
         }
         Returns: Json
       }
-      handle_campaign_end: {
-        Args: { p_campaign_id: string }
-        Returns: undefined
-      }
-      handle_instance_activation: {
-        Args: { p_campaign_id: string }
-        Returns: undefined
-      }
-      handle_instance_due_time: {
-        Args: { p_campaign_id: string }
-        Returns: undefined
-      }
       increment_vote_count: {
         Args: { issue_id: string }
         Returns: undefined
@@ -3207,14 +3149,6 @@ export type Database = {
           p_direction: string
         }
         Returns: boolean
-      }
-      schedule_campaign_cron_job: {
-        Args: { p_campaign_id: string }
-        Returns: undefined
-      }
-      schedule_campaign_jobs: {
-        Args: { p_campaign_id: string }
-        Returns: undefined
       }
       search_live_sessions: {
         Args: {

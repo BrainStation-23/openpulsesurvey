@@ -1,35 +1,82 @@
 
-import { Json } from "@/integrations/supabase/types";
+export type TopSBUPerformer = {
+  sbu: string;
+  name: string;
+  baseScore: number;
+  comparisonScore: number;
+  change: number;
+  baseRank: number;
+  comparisonRank: number;
+  rankChange: number;
+  category?: 'improved' | 'declined' | 'stable';
+};
 
-export interface InstanceMetrics {
-  avg_rating: number | null;
-  unique_respondents: number | null;
-  total_responses: number | null;
-  ends_at: string | null;
-  starts_at: string | null;
-  period_number: number | null;
-  campaign_instance_id: string | null;
-  gender_breakdown: Json | null;
-  location_breakdown: Json | null;
-  completion_rate: number | null;
-}
+export type SupervisorPerformer = {
+  name: string;
+  base_score: number;
+  comparison_score: number;
+  change: number;
+  base_rank: number;
+  comparison_rank: number;
+  rank_change: number;
+  department?: string;
+  total_reports?: number;
+  category?: 'improved' | 'declined' | 'stable';
+};
 
-export interface QuestionComparison {
-  period_number: number | null;
-  campaign_instance_id: string | null;
-  response_count: number | null;
-  avg_numeric_value: number | null;
-  yes_percentage: number | null;
-  question_key: string | null;
-  text_responses: string[] | null;
-}
+export type MetricSummary = {
+  title: string;
+  value: string | number;
+  change?: number;
+  icon?: React.ReactNode;
+  description?: string;
+  changeType?: 'positive' | 'negative' | 'neutral';
+};
 
-export interface ComparisonData {
-  baseInstance: InstanceMetrics;
-  comparisonInstance: InstanceMetrics;
-}
+export type ChartViewType = 'distribution' | 'movement' | 'matrix' | 'timeline';
 
-export interface QuestionComparisonData {
-  baseInstance: QuestionComparison[];
-  comparisonInstance: QuestionComparison[];
-}
+// Add the SBUPerformanceData type
+export type SBUPerformanceData = {
+  sbu: string;
+  baseScore: number;
+  comparisonScore: number;
+  change: number;
+  baseRank: number;
+  comparisonRank: number;
+  rankChange: number;
+  category: 'improved' | 'declined' | 'unchanged';
+};
+
+// Add missing ComparisonData type
+export type ComparisonData = {
+  baseInstance: {
+    avg_rating: number;
+    unique_respondents: number;
+    total_responses: number;
+    ends_at: string;
+    starts_at: string;
+    period_number: number;
+    campaign_instance_id: string;
+    gender_breakdown: any | null;
+    location_breakdown: any | null;
+    completion_rate: number;
+  };
+  comparisonInstance: {
+    avg_rating: number;
+    unique_respondents: number;
+    total_responses: number;
+    ends_at: string;
+    starts_at: string;
+    period_number: number;
+    campaign_instance_id: string;
+    gender_breakdown: any | null;
+    location_breakdown: any | null;
+    completion_rate: number;
+  };
+};
+
+// Add missing QuestionComparisonData type
+export type QuestionComparisonData = {
+  baseInstance: any[];
+  comparisonInstance: any[];
+};

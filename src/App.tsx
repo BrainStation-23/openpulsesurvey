@@ -1,9 +1,10 @@
 
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TourProvider } from "./components/onboarding/TourContext";
 import { Tour } from "./components/onboarding/Tour";
 import MainLayout from "./components/layouts/MainLayout";
@@ -53,6 +54,7 @@ import PreviewSurveyPage from "./pages/admin/surveys/[id]/preview";
 import CampaignsPage from "./pages/admin/surveys/campaigns";
 import CampaignFormPage from "./pages/admin/surveys/campaigns/CampaignFormPage";
 import CampaignDetailsPage from "./pages/admin/surveys/campaigns/[id]";
+import CampaignInstancesPage from "./pages/admin/surveys/campaigns/[id]/instances";
 import LiveSurveyPage from "./pages/admin/surveys/live";
 import LiveSessionControlPage from "./pages/admin/surveys/live/[sessionId]";
 import AdminIssueBoards from "./pages/admin/surveys/issue-boards";
@@ -147,6 +149,7 @@ const App = () => (
               <Route path="surveys/campaigns" element={<CampaignsPage />} />
               <Route path="surveys/campaigns/create" element={<CampaignFormPage />} />
               <Route path="surveys/campaigns/:id" element={<CampaignDetailsPage />} />
+              <Route path="surveys/campaigns/:id/instances" element={<CampaignInstancesPage />} />
               <Route path="surveys/campaigns/:id/present" element={<PresentationView />} />
               <Route path="surveys/live" element={<LiveSurveyPage />} />
               <Route path="surveys/live/:sessionId" element={<LiveSessionControlPage />} />
