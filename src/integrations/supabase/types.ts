@@ -2917,6 +2917,10 @@ export type Database = {
         Args: { p_assignment_id: string }
         Returns: Json
       }
+      drop_and_recreate_question_responses_function: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       fix_all_instance_completion_rates: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -3009,7 +3013,6 @@ export type Database = {
       get_instance_question_responses: {
         Args: { p_campaign_id: string; p_instance_id: string }
         Returns: {
-          period_number: number
           campaign_instance_id: string
           response_count: number
           avg_numeric_value: number

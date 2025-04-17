@@ -26,7 +26,6 @@ export function useQuestionComparison(
           campaignId, baseInstanceId, comparisonInstanceId 
         });
 
-
         // Fetch question responses from both instances using the RPC function
         const baseResponses = await supabase.rpc(
           'get_instance_question_responses',
