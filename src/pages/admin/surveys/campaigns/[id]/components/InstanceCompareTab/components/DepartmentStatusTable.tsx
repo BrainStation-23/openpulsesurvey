@@ -1,80 +1,107 @@
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, AlertCircle } from "lucide-react";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-
-interface DepartmentData {
-  name: string;
-  base_completion: number;
-  comparison_completion: number;
-  change: number;
-}
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DepartmentData } from "../hooks/useDepartmentComparison";
 
 interface DepartmentStatusTableProps {
   departmentData: DepartmentData[];
   loading: boolean;
-  error?: Error | null;
+  error: Error | null;
 }
 
-export function DepartmentStatusTable({ departmentData, loading, error }: DepartmentStatusTableProps) {
+export function DepartmentStatusTable({
+  departmentData,
+  loading,
+  error
+}: DepartmentStatusTableProps) {
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="space-y-2">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="w-full h-12" />
+          ))}
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Error loading department data: {error.message}
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (!departmentData.length) {
+      return (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No department data available for comparison.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="px-2 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Department
+              </th>
+              <th className="px-2 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Base
+              </th>
+              <th className="px-2 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Comparison
+              </th>
+              <th className="px-2 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Change
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-muted">
+            {departmentData.map((dept, index) => (
+              <tr key={index} className="hover:bg-muted/50">
+                <td className="px-2 py-3 text-sm">{dept.name}</td>
+                <td className="px-2 py-3 text-sm text-right">{dept.base_completion.toFixed(1)}%</td>
+                <td className="px-2 py-3 text-sm text-right">{dept.comparison_completion.toFixed(1)}%</td>
+                <td className="px-2 py-3 text-sm text-right">
+                  <span
+                    className={
+                      dept.change > 0
+                        ? "text-green-600"
+                        : dept.change < 0
+                        ? "text-red-600"
+                        : ""
+                    }
+                  >
+                    {dept.change > 0 ? "+" : ""}
+                    {dept.change.toFixed(1)}%
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-md font-medium flex items-center">
-          <Building2 className="h-5 w-5 text-purple-500" />
-          <span className="ml-2">Department Completion Status</span>
-        </CardTitle>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">Department Completion Rates</CardTitle>
       </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <LoadingSpinner size={32} />
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">Error loading data: {error.message}</p>
-          </div>
-        ) : departmentData.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">No department data available for comparison</p>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Department</TableHead>
-                <TableHead className="text-right">Base Completion</TableHead>
-                <TableHead className="text-right">Comparison Completion</TableHead>
-                <TableHead className="text-right">Change</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {departmentData.map((department) => (
-                <TableRow key={department.name}>
-                  <TableCell className="font-medium">{department.name}</TableCell>
-                  <TableCell className="text-right">{(department.base_completion * 100).toFixed(1)}%</TableCell>
-                  <TableCell className="text-right">{(department.comparison_completion * 100).toFixed(1)}%</TableCell>
-                  <TableCell className="text-right">
-                    <span className={getChangeColor(department.change)}>
-                      {department.change > 0 ? "+" : ""}
-                      {(department.change * 100).toFixed(1)}%
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
+      <CardContent>{renderContent()}</CardContent>
     </Card>
   );
-}
-
-function getChangeColor(value: number) {
-  if (value > 0) return "text-green-500";
-  if (value < 0) return "text-red-500";
-  return "text-gray-500";
 }

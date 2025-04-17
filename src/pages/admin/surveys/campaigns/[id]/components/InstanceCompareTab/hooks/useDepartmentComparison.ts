@@ -2,17 +2,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-interface DepartmentComparisonItem {
-  sbu_name: string;
-  base_completion_rate: number;
-  comparison_completion_rate: number;
+export interface DepartmentData {
+  name: string;
+  base_completion: number;
+  comparison_completion: number;
   change: number;
 }
 
 export function useDepartmentComparison(baseInstanceId?: string, comparisonInstanceId?: string) {
-  return useQuery({
+  return useQuery<DepartmentData[], Error>({
     queryKey: ["department-comparison", baseInstanceId, comparisonInstanceId],
-    queryFn: async (): Promise<DepartmentComparisonItem[]> => {
+    queryFn: async (): Promise<DepartmentData[]> => {
       if (!baseInstanceId || !comparisonInstanceId) return [];
 
       // Since we don't have direct department performance tables,
@@ -28,67 +28,51 @@ export function useDepartmentComparison(baseInstanceId?: string, comparisonInsta
         })
       ]);
       
-      // If the RPC doesn't exist yet, fall back to mock data
+      // If the RPC doesn't exist yet or there was an error, return empty array
       if (baseResult.error || comparisonResult.error) {
         console.error("Error fetching department data:", baseResult.error || comparisonResult.error);
-        
-        // Return mock data
-        return [
-          {
-            sbu_name: "Engineering",
-            base_completion_rate: 85,
-            comparison_completion_rate: 75,
-            change: 10
-          },
-          {
-            sbu_name: "Marketing",
-            base_completion_rate: 70,
-            comparison_completion_rate: 80,
-            change: -10
-          },
-          {
-            sbu_name: "Sales",
-            base_completion_rate: 65,
-            comparison_completion_rate: 60,
-            change: 5
-          },
-          {
-            sbu_name: "HR",
-            base_completion_rate: 90,
-            comparison_completion_rate: 92,
-            change: -2
-          }
-        ];
+        return [];
       }
       
-      // If we have real data, process it
-      const departmentMap = new Map<string, DepartmentComparisonItem>();
+      // If no data was found, return empty array
+      if (!baseResult.data?.length && !comparisonResult.data?.length) {
+        return [];
+      }
+      
+      // Map the results to our interface
+      const departmentMap = new Map<string, DepartmentData>();
       
       // Process base instance data
-      baseResult.data.forEach((dept: any) => {
-        departmentMap.set(dept.sbu_name, {
-          sbu_name: dept.sbu_name,
-          base_completion_rate: dept.completion_rate || 0,
-          comparison_completion_rate: 0,
-          change: 0
+      if (baseResult.data) {
+        baseResult.data.forEach((dept: any) => {
+          departmentMap.set(dept.sbu_name, {
+            name: dept.sbu_name,
+            base_completion: dept.completion_rate || 0,
+            comparison_completion: 0,
+            change: 0
+          });
         });
-      });
+      }
       
       // Process comparison data
-      comparisonResult.data.forEach((dept: any) => {
-        if (departmentMap.has(dept.sbu_name)) {
-          const existing = departmentMap.get(dept.sbu_name)!;
-          existing.comparison_completion_rate = dept.completion_rate || 0;
-          existing.change = existing.base_completion_rate - existing.comparison_completion_rate;
-        } else {
-          departmentMap.set(dept.sbu_name, {
-            sbu_name: dept.sbu_name,
-            base_completion_rate: 0,
-            comparison_completion_rate: dept.completion_rate || 0,
-            change: -(dept.completion_rate || 0)
-          });
-        }
-      });
+      if (comparisonResult.data) {
+        comparisonResult.data.forEach((dept: any) => {
+          if (departmentMap.has(dept.sbu_name)) {
+            // Update existing department
+            const existing = departmentMap.get(dept.sbu_name)!;
+            existing.comparison_completion = dept.completion_rate || 0;
+            existing.change = existing.base_completion - existing.comparison_completion;
+          } else {
+            // Add new department
+            departmentMap.set(dept.sbu_name, {
+              name: dept.sbu_name,
+              base_completion: 0,
+              comparison_completion: dept.completion_rate || 0,
+              change: -(dept.completion_rate || 0)
+            });
+          }
+        });
+      }
       
       return Array.from(departmentMap.values());
     },
