@@ -27,16 +27,22 @@ export function useQuestionComparison(
         });
 
         // Fetch question responses from both instances
-        const [baseResponses, comparisonResponses] = await Promise.all([
-          supabase.rpc('get_instance_question_responses', {
+        // Using any as a workaround for the RPC type issue
+        const baseResponses = await supabase.rpc<any>(
+          'get_instance_question_responses',
+          {
             p_campaign_id: campaignId,
             p_instance_id: baseInstanceId
-          }),
-          supabase.rpc('get_instance_question_responses', {
+          }
+        );
+        
+        const comparisonResponses = await supabase.rpc<any>(
+          'get_instance_question_responses',
+          {
             p_campaign_id: campaignId,
             p_instance_id: comparisonInstanceId
-          })
-        ]);
+          }
+        );
 
         if (baseResponses.error || comparisonResponses.error) {
           console.error("Error fetching question data:", 

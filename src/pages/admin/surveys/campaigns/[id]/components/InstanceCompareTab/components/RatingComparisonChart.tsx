@@ -67,7 +67,11 @@ export function RatingComparisonChart({
                       if (name === "Base Count" || name === "Comparison Count") {
                         return [`${value} responses`, name.replace("Count", "Responses")];
                       }
-                      return [`${value.toFixed(2)}`, name];
+                      // Fix: Handle value properly by checking its type
+                      if (typeof value === 'number') {
+                        return [`${value.toFixed(2)}`, name];
+                      }
+                      return [`${value}`, name];
                     }}
                   />
                 );
