@@ -8,7 +8,7 @@ import { AssignmentsTab } from "./components/AssignmentsTab";
 import { ResponsesTab } from "./components/ResponsesTab";
 import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
-import { InstanceSelector } from "./components/InstanceSelector";
+import { EnhancedInstanceSelector } from "./components/EnhancedInstanceSelector";
 import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
 import { InstanceCompareTab } from "./components/InstanceCompareTab";
 import { useState } from "react";
@@ -64,7 +64,7 @@ export default function CampaignDetailsPage() {
       
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Campaign Details</h2>
-        <InstanceSelector
+        <EnhancedInstanceSelector
           campaignId={campaign.id}
           selectedInstanceId={selectedInstanceId}
           onInstanceSelect={setSelectedInstanceId}
