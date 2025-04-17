@@ -3006,6 +3006,18 @@ export type Database = {
         Args: { p_assignment_id: string; p_instance_id: string }
         Returns: string
       }
+      get_instance_question_responses: {
+        Args: { p_campaign_id: string; p_instance_id: string }
+        Returns: {
+          period_number: number
+          campaign_instance_id: string
+          response_count: number
+          avg_numeric_value: number
+          yes_percentage: number
+          question_key: string
+          text_responses: string[]
+        }[]
+      }
       get_my_survey_assignments: {
         Args: { p_user_id: string }
         Returns: {
