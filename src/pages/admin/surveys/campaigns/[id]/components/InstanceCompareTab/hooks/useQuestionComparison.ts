@@ -27,8 +27,8 @@ export function useQuestionComparison(
         });
 
         // Fetch question responses from both instances
-        // Using any as a workaround for the RPC type issue
-        const baseResponses = await supabase.rpc<any>(
+        // Using proper type parameters for the RPC call
+        const baseResponses = await supabase.rpc<any, any>(
           'get_instance_question_responses',
           {
             p_campaign_id: campaignId,
@@ -36,7 +36,7 @@ export function useQuestionComparison(
           }
         );
         
-        const comparisonResponses = await supabase.rpc<any>(
+        const comparisonResponses = await supabase.rpc<any, any>(
           'get_instance_question_responses',
           {
             p_campaign_id: campaignId,
