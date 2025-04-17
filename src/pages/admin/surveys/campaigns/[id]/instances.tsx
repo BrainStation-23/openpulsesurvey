@@ -76,26 +76,8 @@ export default function CampaignInstancesPage() {
 
   const handleAddInstance = async () => {
     try {
-      // Get next period number
-      const nextPeriod = instances.length > 0 
-        ? Math.max(...instances.map(i => i.period_number)) + 1 
-        : 1;
-      
-      // Set default dates - start date tomorrow, end date a week later
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() + 1);
-      startDate.setHours(0, 0, 0, 0);
-      
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + 7);
-      
-      await createInstance({
-        campaign_id: campaignId,
-        period_number: nextPeriod,
-        starts_at: startDate.toISOString(),
-        ends_at: endDate.toISOString(),
-        status: 'upcoming',
-      });
+      // Using the new database function to create the next instance
+      await createInstance();
       
       toast({
         title: "Instance created",

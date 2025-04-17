@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,7 +45,6 @@ export function useInstanceManagement(campaignId: string) {
     pageSize: 10
   });
 
-  // Fetch campaign details
   const { data: campaign, isLoading: isCampaignLoading } = useQuery({
     queryKey: ['campaign', campaignId],
     queryFn: async () => {
@@ -64,7 +62,6 @@ export function useInstanceManagement(campaignId: string) {
     },
   });
 
-  // Fetch campaign instances using the RPC function with default values for filters
   const { 
     data: instancesData = { data: [], totalCount: 0 }, 
     isLoading: isInstancesLoading,
@@ -78,11 +75,11 @@ export function useInstanceManagement(campaignId: string) {
       const { data, error } = await supabase
         .rpc('get_campaign_instances', {
           p_campaign_id: campaignId,
-          p_start_date_min: null,       // Default value to get all instances
-          p_start_date_max: null,       // Default value to get all instances
-          p_end_date_min: null,         // Default value to get all instances
-          p_end_date_max: null,         // Default value to get all instances
-          p_status: null,               // Default value to get all instances
+          p_start_date_min: null,
+          p_start_date_max: null,
+          p_end_date_min: null,
+          p_end_date_max: null,
+          p_status: null,
           p_sort_by: sortBy,
           p_sort_direction: sortDirection,
           p_page: page,
@@ -91,13 +88,10 @@ export function useInstanceManagement(campaignId: string) {
         
       if (error) throw error;
       
-      // Process the data and extract total count
       const totalCount = data.length > 0 ? Number(data[0].total_count) : 0;
       
-      // Map the database statuses to our internal statuses
       const processedData = data.map(instance => ({
         ...instance,
-        // Convert 'upcoming' to 'inactive' for instances that should be inactive
         status: instance.status === 'upcoming' && new Date(instance.starts_at) > new Date() ? 
           'inactive' as InstanceStatus : instance.status as InstanceStatus
       }));
@@ -109,13 +103,10 @@ export function useInstanceManagement(campaignId: string) {
     },
   });
 
-  // Update instance mutation
   const updateInstanceMutation = useMutation({
     mutationFn: async (updatedInstance: Partial<Instance> & { id: string }) => {
       const { id, ...updateData } = updatedInstance;
       
-      // Convert 'inactive' status to 'upcoming' for database compatibility
-      // This is a temporary solution until the database enum is updated
       const finalUpdateData = {
         ...updateData,
         status: updateData.status === 'inactive' ? 'upcoming' : updateData.status
@@ -136,20 +127,11 @@ export function useInstanceManagement(campaignId: string) {
     },
   });
 
-  // Create instance mutation
-  const createInstanceMutation = useMutation({
-    mutationFn: async (newInstance: CreateInstanceData) => {
-      // Convert 'inactive' status to 'upcoming' for database compatibility
-      const finalInsertData = {
-        ...newInstance,
-        status: newInstance.status === 'inactive' ? 'upcoming' : newInstance.status
-      };
-      
-      const { data, error } = await supabase
-        .from('campaign_instances')
-        .insert(finalInsertData)
-        .select()
-        .single();
+  const createNextInstanceMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('create_next_campaign_instance', { 
+        p_campaign_id: campaignId 
+      });
         
       if (error) throw error;
       return data;
@@ -159,7 +141,6 @@ export function useInstanceManagement(campaignId: string) {
     },
   });
 
-  // Delete instance mutation
   const deleteInstanceMutation = useMutation({
     mutationFn: async (instanceId: string) => {
       const { error } = await supabase
@@ -175,24 +156,20 @@ export function useInstanceManagement(campaignId: string) {
     },
   });
 
-  // NEW FUNCTION: Check if there are any active instances for this campaign
   const hasActiveInstance = (currentInstanceId?: string): boolean => {
     return instancesData.data.some(instance => 
       instance.status === 'active' && instance.id !== currentInstanceId
     );
   };
 
-  // Check for status conflicts
   const validateStatusChange = (
     instance: Instance, 
     newStatus: InstanceStatus
   ): string | null => {
-    // Check if there is already an active instance for this campaign
     if (newStatus === 'active' && hasActiveInstance(instance.id)) {
       return "There is already an active instance for this campaign. Please mark it as completed or inactive first.";
     }
 
-    // Prevent completed instances from being changed to other statuses
     if (instance.status === 'completed' && newStatus !== 'completed') {
       return "Completed instances cannot be changed to other statuses";
     }
@@ -201,7 +178,6 @@ export function useInstanceManagement(campaignId: string) {
     const startDate = new Date(instance.starts_at);
     const endDate = new Date(instance.ends_at);
 
-    // Validate status against dates
     if (newStatus === 'active' && endDate < now) {
       return "Cannot set an instance to active if its end date has passed";
     }
@@ -214,7 +190,6 @@ export function useInstanceManagement(campaignId: string) {
   };
 
   const updateInstance = async (updatedInstance: Partial<Instance> & { id: string }) => {
-    // If status is being updated, validate it
     if (updatedInstance.status) {
       const instance = instancesData.data.find(i => i.id === updatedInstance.id);
       if (instance) {
@@ -232,26 +207,16 @@ export function useInstanceManagement(campaignId: string) {
     return updateInstanceMutation.mutateAsync(updatedInstance);
   };
 
-  const createInstance = async (newInstance: CreateInstanceData) => {
-    // If trying to create an active instance, check if one already exists
-    if (newInstance.status === 'active' && hasActiveInstance()) {
-      throw new Error("There is already an active instance for this campaign. Please mark it as completed or inactive first.");
-    }
-    
-    return createInstanceMutation.mutateAsync(newInstance);
+  const createInstance = async () => {
+    return createNextInstanceMutation.mutateAsync();
   };
 
   const deleteInstance = async (instanceId: string) => {
     return deleteInstanceMutation.mutateAsync(instanceId);
   };
 
-  // Manual function to calculate completion rate
   const calculateCompletionRate = async (instanceId: string) => {
     try {
-      // This would typically call a database function, but since we're removing those,
-      // we'll implement the calculation logic here
-      
-      // Get total assignments for this campaign
       const { data: assignments, error: assignmentError } = await supabase
         .from('survey_assignments')
         .select('id')
@@ -259,7 +224,6 @@ export function useInstanceManagement(campaignId: string) {
         
       if (assignmentError) throw assignmentError;
       
-      // Get completed responses for this instance
       const { data: responses, error: responseError } = await supabase
         .from('survey_responses')
         .select('id')
@@ -268,14 +232,12 @@ export function useInstanceManagement(campaignId: string) {
         
       if (responseError) throw responseError;
       
-      // Calculate completion rate
       const totalAssignments = assignments?.length || 0;
       const completedResponses = responses?.length || 0;
       const completionRate = totalAssignments > 0 
         ? (completedResponses / totalAssignments) * 100 
         : 0;
       
-      // Update the instance with the calculated completion rate
       const { error: updateError } = await supabase
         .from('campaign_instances')
         .update({ completion_rate: completionRate })
@@ -283,7 +245,6 @@ export function useInstanceManagement(campaignId: string) {
         
       if (updateError) throw updateError;
       
-      // Refresh instances data
       refreshInstances();
       
       return completionRate;
@@ -293,7 +254,6 @@ export function useInstanceManagement(campaignId: string) {
     }
   };
 
-  // Functions for handling sorting and pagination
   const updateSort = (newSort: Partial<InstanceSortOptions>) => {
     setSort(prev => ({ ...prev, ...newSort }));
   };
@@ -312,9 +272,7 @@ export function useInstanceManagement(campaignId: string) {
     calculateCompletionRate,
     createInstance,
     deleteInstance,
-    // New function to check for active instances
     hasActiveInstance,
-    // Sort and pagination state and handlers
     sort,
     pagination,
     updateSort,
