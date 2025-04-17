@@ -57,50 +57,53 @@ export function useTopManagersComparison(baseInstanceId?: string, comparisonInst
             // Update existing manager
             const existing = managerMap.get(manager.supervisor_name)!;
             existing.comparison_score = manager.avg_score || 0;
-            existing.change = existing.base_score - existing.comparison_score;
+            existing.change = existing.comparison_score - existing.base_score;
             existing.comparison_rank = manager.rank || 999;
-            existing.rank_change = existing.comparison_rank - existing.base_rank;
+            existing.rank_change = existing.base_rank - existing.comparison_rank;
           } else {
             // Add new manager
             managerMap.set(manager.supervisor_name, {
               name: manager.supervisor_name,
               base_score: 0,
               comparison_score: manager.avg_score || 0,
-              change: -(manager.avg_score || 0),
+              change: manager.avg_score || 0,
               base_rank: 999,
               comparison_rank: manager.rank || 999,
-              rank_change: -999
+              rank_change: 999 - manager.rank || 0
             });
           }
         });
         
-        return Array.from(managerMap.values());
+        // Sort by base rank
+        return Array.from(managerMap.values())
+          .sort((a, b) => a.base_rank - b.base_rank);
       } catch (error) {
+        console.error("Error fetching manager comparison data:", error);
         // Return mock data if the RPC doesn't exist or fails
         return [
           {
             name: "John Smith",
             base_score: 4.5,
             comparison_score: 4.2,
-            change: 0.3,
+            change: -0.3,
             base_rank: 1,
             comparison_rank: 2,
-            rank_change: 1
+            rank_change: -1
           },
           {
             name: "Sarah Johnson",
             base_score: 4.2,
             comparison_score: 4.6,
-            change: -0.4,
+            change: 0.4,
             base_rank: 2,
             comparison_rank: 1,
-            rank_change: -1
+            rank_change: 1
           },
           {
             name: "Michael Brown",
             base_score: 4.0,
             comparison_score: 3.9,
-            change: 0.1,
+            change: -0.1,
             base_rank: 3,
             comparison_rank: 3,
             rank_change: 0

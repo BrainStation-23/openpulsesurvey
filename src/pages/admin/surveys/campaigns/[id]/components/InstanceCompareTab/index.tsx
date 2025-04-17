@@ -4,16 +4,24 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnhancedDualInstanceSelector } from "./components/EnhancedDualInstanceSelector";
 import { useTopSBUComparison } from "./hooks/useTopSBUComparison";
+import { useTopManagersComparison } from "./hooks/useTopManagersComparison";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 export function InstanceCompareTab() {
   const { id: campaignId } = useParams<{ id: string }>();
   const [baseInstanceId, setBaseInstanceId] = useState<string>();
   const [comparisonInstanceId, setComparisonInstanceId] = useState<string>();
 
-  // Use the updated hook with campaignId
+  // Use the SBU comparison hook
   const { data: sbuComparison, isLoading: isLoadingSBUComparison } = useTopSBUComparison(
     campaignId,
+    baseInstanceId,
+    comparisonInstanceId
+  );
+
+  // Use the managers comparison hook
+  const { data: managersComparison, isLoading: isLoadingManagersComparison } = useTopManagersComparison(
     baseInstanceId,
     comparisonInstanceId
   );
@@ -97,7 +105,48 @@ export function InstanceCompareTab() {
                 <CardTitle>Supervisor Performance Comparison</CardTitle>
               </CardHeader>
               <CardContent>
-                <div>Supervisor comparison data will be implemented soon.</div>
+                {isLoadingManagersComparison ? (
+                  <div>Loading supervisor comparison data...</div>
+                ) : managersComparison && managersComparison.length > 0 ? (
+                  <ResponsiveTable>
+                    <ResponsiveTable.Header>
+                      <ResponsiveTable.Row>
+                        <ResponsiveTable.Head className="text-left">Manager</ResponsiveTable.Head>
+                        <ResponsiveTable.Head className="text-right">Base Score</ResponsiveTable.Head>
+                        <ResponsiveTable.Head className="text-right">Base Rank</ResponsiveTable.Head>
+                        <ResponsiveTable.Head className="text-right">Comparison Score</ResponsiveTable.Head>
+                        <ResponsiveTable.Head className="text-right">Comparison Rank</ResponsiveTable.Head>
+                        <ResponsiveTable.Head className="text-right">Change</ResponsiveTable.Head>
+                        <ResponsiveTable.Head className="text-right">Rank Change</ResponsiveTable.Head>
+                      </ResponsiveTable.Row>
+                    </ResponsiveTable.Header>
+                    <ResponsiveTable.Body>
+                      {managersComparison.map((manager) => (
+                        <ResponsiveTable.Row key={manager.name} className="hover:bg-muted/50">
+                          <ResponsiveTable.Cell className="font-medium">{manager.name}</ResponsiveTable.Cell>
+                          <ResponsiveTable.Cell className="text-right">{manager.base_score.toFixed(2)}</ResponsiveTable.Cell>
+                          <ResponsiveTable.Cell className="text-right">{manager.base_rank}</ResponsiveTable.Cell>
+                          <ResponsiveTable.Cell className="text-right">{manager.comparison_score.toFixed(2)}</ResponsiveTable.Cell>
+                          <ResponsiveTable.Cell className="text-right">{manager.comparison_rank}</ResponsiveTable.Cell>
+                          <ResponsiveTable.Cell 
+                            className={`text-right ${manager.change > 0 ? 'text-green-600' : manager.change < 0 ? 'text-red-600' : ''}`}
+                          >
+                            {manager.change > 0 ? '+' : ''}{manager.change.toFixed(2)}
+                          </ResponsiveTable.Cell>
+                          <ResponsiveTable.Cell
+                            className={`text-right ${manager.rank_change > 0 ? 'text-green-600' : manager.rank_change < 0 ? 'text-red-600' : ''}`}
+                          >
+                            {manager.rank_change > 0 ? '+' : ''}{manager.rank_change}
+                          </ResponsiveTable.Cell>
+                        </ResponsiveTable.Row>
+                      ))}
+                    </ResponsiveTable.Body>
+                  </ResponsiveTable>
+                ) : (
+                  <div className="py-8 text-center text-muted-foreground">
+                    No supervisor comparison data available.
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
