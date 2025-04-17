@@ -1,21 +1,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
-interface TopManagerPerformer {
-  name: string;
-  base_score: number;
-  comparison_score: number;
-  change: number;
-  base_rank: number;
-  comparison_rank: number;
-  rank_change: number;
-}
+import { SupervisorPerformer } from "../types/instance-comparison";
 
 export function useTopManagersComparison(campaignId?: string, baseInstanceId?: string, comparisonInstanceId?: string) {
   return useQuery({
     queryKey: ["top-managers-comparison", campaignId, baseInstanceId, comparisonInstanceId],
-    queryFn: async (): Promise<TopManagerPerformer[]> => {
+    queryFn: async (): Promise<SupervisorPerformer[]> => {
       if (!campaignId || !baseInstanceId || !comparisonInstanceId) {
         console.log("Missing required parameters for supervisor comparison", { campaignId, baseInstanceId, comparisonInstanceId });
         return [];
@@ -51,7 +42,7 @@ export function useTopManagersComparison(campaignId?: string, baseInstanceId?: s
         });
         
         // Build map of managers
-        const managerMap = new Map<string, TopManagerPerformer>();
+        const managerMap = new Map<string, SupervisorPerformer>();
         
         // Process base instance data
         baseResult.data.forEach((manager: any) => {
@@ -62,7 +53,9 @@ export function useTopManagersComparison(campaignId?: string, baseInstanceId?: s
             change: 0,
             base_rank: manager.rank || 999,
             comparison_rank: 999,
-            rank_change: 0
+            rank_change: 0,
+            department: manager.sbu_name || undefined,
+            total_reports: manager.total_assigned || undefined
           });
         });
         
@@ -84,7 +77,9 @@ export function useTopManagersComparison(campaignId?: string, baseInstanceId?: s
               change: manager.avg_score || 0,
               base_rank: 999,
               comparison_rank: manager.rank || 999,
-              rank_change: 999 - (manager.rank || 0)
+              rank_change: 999 - (manager.rank || 0),
+              department: manager.sbu_name || undefined,
+              total_reports: manager.total_assigned || undefined
             });
           }
         });
