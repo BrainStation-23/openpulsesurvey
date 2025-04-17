@@ -1,87 +1,67 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDown, ArrowUp, Building, Minus } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Building2, AlertCircle } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface DepartmentData {
-  sbu_name: string;
-  base_completion_rate: number;
-  comparison_completion_rate: number;
+  name: string;
+  base_completion: number;
+  comparison_completion: number;
   change: number;
 }
 
 interface DepartmentStatusTableProps {
   departmentData: DepartmentData[];
-  loading?: boolean;
+  loading: boolean;
+  error?: Error | null;
 }
 
-export function DepartmentStatusTable({ departmentData, loading = false }: DepartmentStatusTableProps) {
-  const sortedData = [...departmentData].sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
-
-  const renderChangeIcon = (change: number) => {
-    if (change > 0) return <ArrowUp className="h-4 w-4 text-green-500" />;
-    if (change < 0) return <ArrowDown className="h-4 w-4 text-red-500" />;
-    return <Minus className="h-4 w-4 text-gray-500" />;
-  };
-
-  const getChangeColor = (change: number) => {
-    if (change > 0) return "text-green-500";
-    if (change < 0) return "text-red-500";
-    return "text-gray-500";
-  };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            Department Status Changes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-48 animate-pulse bg-muted rounded"></div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+export function DepartmentStatusTable({ departmentData, loading, error }: DepartmentStatusTableProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Building className="h-5 w-5" />
-          Department Status Changes
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-md font-medium flex items-center">
+          <Building2 className="h-5 w-5 text-purple-500" />
+          <span className="ml-2">Department Completion Status</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {departmentData.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground">
-            No department data available for comparison
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <LoadingSpinner size={32} />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">Error loading data: {error.message}</p>
+          </div>
+        ) : departmentData.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">No department data available for comparison</p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Department</TableHead>
-                <TableHead className="text-right">Current</TableHead>
-                <TableHead className="text-right">Previous</TableHead>
+                <TableHead className="text-right">Base Completion</TableHead>
+                <TableHead className="text-right">Comparison Completion</TableHead>
                 <TableHead className="text-right">Change</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedData.map((dept, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">{dept.sbu_name}</TableCell>
-                  <TableCell className="text-right">{dept.base_completion_rate.toFixed(1)}%</TableCell>
-                  <TableCell className="text-right">{dept.comparison_completion_rate.toFixed(1)}%</TableCell>
+              {departmentData.map((department) => (
+                <TableRow key={department.name}>
+                  <TableCell className="font-medium">{department.name}</TableCell>
+                  <TableCell className="text-right">{(department.base_completion * 100).toFixed(1)}%</TableCell>
+                  <TableCell className="text-right">{(department.comparison_completion * 100).toFixed(1)}%</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {renderChangeIcon(dept.change)}
-                      <span className={getChangeColor(dept.change)}>
-                        {Math.abs(dept.change).toFixed(1)}%
-                      </span>
-                    </div>
+                    <span className={getChangeColor(department.change)}>
+                      {department.change > 0 ? "+" : ""}
+                      {(department.change * 100).toFixed(1)}%
+                    </span>
                   </TableCell>
                 </TableRow>
               ))}
@@ -91,4 +71,10 @@ export function DepartmentStatusTable({ departmentData, loading = false }: Depar
       </CardContent>
     </Card>
   );
+}
+
+function getChangeColor(value: number) {
+  if (value > 0) return "text-green-500";
+  if (value < 0) return "text-red-500";
+  return "text-gray-500";
 }

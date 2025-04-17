@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-interface TopSBUPerformer {
+export interface TopSBUPerformer {
   name: string;
   base_score: number;
   comparison_score: number;
@@ -18,26 +18,30 @@ export function useTopSBUComparison(baseInstanceId?: string, comparisonInstanceI
     queryFn: async () => {
       if (!baseInstanceId || !comparisonInstanceId) return [];
 
-      try {
-        // Try to fetch real data from top_performing_sbus if available
-        const { data: baseResults, error: baseError } = await supabase
-          .from("top_performing_sbus")
-          .select("*")
-          .eq("instance_id", baseInstanceId);
-          
-        const { data: comparisonResults, error: comparisonError } = await supabase
-          .from("top_performing_sbus")
-          .select("*")
-          .eq("instance_id", comparisonInstanceId);
-
-        if (baseError || comparisonError || !baseResults || !comparisonResults) {
-          throw new Error("Failed to fetch SBU data");
-        }
-
-        // Map the results to our interface
-        const sbuMap = new Map<string, TopSBUPerformer>();
+      // Try to fetch real data from top_performing_sbus if available
+      const { data: baseResults, error: baseError } = await supabase
+        .from("top_performing_sbus")
+        .select("*")
+        .eq("instance_id", baseInstanceId);
         
-        // Process base instance data
+      const { data: comparisonResults, error: comparisonError } = await supabase
+        .from("top_performing_sbus")
+        .select("*")
+        .eq("instance_id", comparisonInstanceId);
+
+      if (baseError) throw new Error(`Failed to fetch base SBU data: ${baseError.message}`);
+      if (comparisonError) throw new Error(`Failed to fetch comparison SBU data: ${comparisonError.message}`);
+      
+      if (!baseResults?.length && !comparisonResults?.length) {
+        // Return empty array when no data is found
+        return [];
+      }
+
+      // Map the results to our interface
+      const sbuMap = new Map<string, TopSBUPerformer>();
+      
+      // Process base instance data
+      if (baseResults) {
         baseResults.forEach((sbu: any) => {
           sbuMap.set(sbu.sbu_name, {
             name: sbu.sbu_name,
@@ -49,8 +53,10 @@ export function useTopSBUComparison(baseInstanceId?: string, comparisonInstanceI
             rank_change: 0
           });
         });
-        
-        // Process comparison data
+      }
+      
+      // Process comparison data
+      if (comparisonResults) {
         comparisonResults.forEach((sbu: any) => {
           if (sbuMap.has(sbu.sbu_name)) {
             // Update existing SBU
@@ -72,41 +78,9 @@ export function useTopSBUComparison(baseInstanceId?: string, comparisonInstanceI
             });
           }
         });
-        
-        return Array.from(sbuMap.values());
-      } catch (error) {
-        console.error("Error fetching SBU data:", error);
-        // Return mock data if the query fails
-        return [
-          {
-            name: "Sales",
-            base_score: 85.2,
-            comparison_score: 82.5,
-            change: 2.7,
-            base_rank: 1,
-            comparison_rank: 2,
-            rank_change: 1
-          },
-          {
-            name: "Marketing",
-            base_score: 80.5,
-            comparison_score: 84.3,
-            change: -3.8,
-            base_rank: 2,
-            comparison_rank: 1,
-            rank_change: -1
-          },
-          {
-            name: "Engineering",
-            base_score: 78.9,
-            comparison_score: 79.1,
-            change: -0.2,
-            base_rank: 3,
-            comparison_rank: 3,
-            rank_change: 0
-          }
-        ];
       }
+      
+      return Array.from(sbuMap.values());
     },
     enabled: !!baseInstanceId && !!comparisonInstanceId,
   });

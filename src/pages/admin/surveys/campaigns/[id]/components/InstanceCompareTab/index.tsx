@@ -18,22 +18,22 @@ export function InstanceCompareTab() {
   const [baseInstanceId, setBaseInstanceId] = useState<string>();
   const [comparisonInstanceId, setComparisonInstanceId] = useState<string>();
 
-  const { data: comparisonData, isLoading: isLoadingComparison } = useInstanceComparison(
+  const { data: comparisonData, isLoading: isLoadingComparison, error: comparisonError } = useInstanceComparison(
     baseInstanceId, 
     comparisonInstanceId
   );
 
-  const { data: departmentData = [], isLoading: isLoadingDepartments } = useDepartmentComparison(
+  const { data: departmentData = [], isLoading: isLoadingDepartments, error: departmentsError } = useDepartmentComparison(
     baseInstanceId,
     comparisonInstanceId
   );
 
-  const { data: topSBUs = [], isLoading: isLoadingTopSBUs } = useTopSBUComparison(
+  const { data: topSBUs = [], isLoading: isLoadingTopSBUs, error: topSBUsError } = useTopSBUComparison(
     baseInstanceId,
     comparisonInstanceId
   );
 
-  const { data: topManagers = [], isLoading: isLoadingTopManagers } = useTopManagersComparison(
+  const { data: topManagers = [], isLoading: isLoadingTopManagers, error: topManagersError } = useTopManagersComparison(
     baseInstanceId,
     comparisonInstanceId
   );
@@ -140,7 +140,8 @@ export function InstanceCompareTab() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <DepartmentStatusTable 
               departmentData={departmentData} 
-              loading={isLoadingDepartments} 
+              loading={isLoadingDepartments}
+              error={departmentsError}
             />
             
             <TopPerformersComparisonTable
@@ -148,6 +149,7 @@ export function InstanceCompareTab() {
               icon={<Building2 className="h-5 w-5 text-blue-500" />}
               performers={topSBUs}
               loading={isLoadingTopSBUs}
+              error={topSBUsError}
             />
           </div>
           
@@ -157,9 +159,20 @@ export function InstanceCompareTab() {
               icon={<Trophy className="h-5 w-5 text-yellow-500" />}
               performers={topManagers}
               loading={isLoadingTopManagers}
+              error={topManagersError}
             />
           </div>
         </>
+      )}
+
+      {comparisonError && !isLoadingComparison && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-5 w-5" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            Failed to load comparison data: {comparisonError.message}
+          </AlertDescription>
+        </Alert>
       )}
     </ComparisonLayout>
   );
