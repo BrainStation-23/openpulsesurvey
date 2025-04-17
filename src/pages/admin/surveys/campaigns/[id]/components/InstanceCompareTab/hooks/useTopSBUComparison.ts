@@ -12,10 +12,17 @@ export interface TopSBUPerformer {
   rank_change: number;
 }
 
+// Define explicit interface for database results
+interface TopPerformingSBU {
+  sbu_name: string;
+  average_score: number;
+  rank: number;
+}
+
 export function useTopSBUComparison(baseInstanceId?: string, comparisonInstanceId?: string) {
   return useQuery<TopSBUPerformer[], Error>({
     queryKey: ["top-sbu-comparison", baseInstanceId, comparisonInstanceId],
-    queryFn: async () => {
+    queryFn: async (): Promise<TopSBUPerformer[]> => {
       if (!baseInstanceId || !comparisonInstanceId) return [];
 
       // Try to fetch real data from top_performing_sbus if available
@@ -42,7 +49,7 @@ export function useTopSBUComparison(baseInstanceId?: string, comparisonInstanceI
       
       // Process base instance data
       if (baseResults) {
-        baseResults.forEach((sbu: any) => {
+        baseResults.forEach((sbu: TopPerformingSBU) => {
           sbuMap.set(sbu.sbu_name, {
             name: sbu.sbu_name,
             base_score: sbu.average_score || 0,
@@ -57,7 +64,7 @@ export function useTopSBUComparison(baseInstanceId?: string, comparisonInstanceI
       
       // Process comparison data
       if (comparisonResults) {
-        comparisonResults.forEach((sbu: any) => {
+        comparisonResults.forEach((sbu: TopPerformingSBU) => {
           if (sbuMap.has(sbu.sbu_name)) {
             // Update existing SBU
             const existing = sbuMap.get(sbu.sbu_name)!;

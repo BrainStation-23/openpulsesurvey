@@ -9,6 +9,12 @@ export interface DepartmentData {
   change: number;
 }
 
+// Define explicit interface for department performance data
+interface DepartmentPerformance {
+  sbu_name: string;
+  completion_rate: number;
+}
+
 export function useDepartmentComparison(baseInstanceId?: string, comparisonInstanceId?: string) {
   return useQuery<DepartmentData[], Error>({
     queryKey: ["department-comparison", baseInstanceId, comparisonInstanceId],
@@ -44,7 +50,7 @@ export function useDepartmentComparison(baseInstanceId?: string, comparisonInsta
       
       // Process base instance data
       if (baseResult.data) {
-        baseResult.data.forEach((dept: any) => {
+        baseResult.data.forEach((dept: DepartmentPerformance) => {
           departmentMap.set(dept.sbu_name, {
             name: dept.sbu_name,
             base_completion: dept.completion_rate || 0,
@@ -56,7 +62,7 @@ export function useDepartmentComparison(baseInstanceId?: string, comparisonInsta
       
       // Process comparison data
       if (comparisonResult.data) {
-        comparisonResult.data.forEach((dept: any) => {
+        comparisonResult.data.forEach((dept: DepartmentPerformance) => {
           if (departmentMap.has(dept.sbu_name)) {
             // Update existing department
             const existing = departmentMap.get(dept.sbu_name)!;
