@@ -16,7 +16,7 @@ interface DepartmentPerformance {
 }
 
 export function useDepartmentComparison(baseInstanceId?: string, comparisonInstanceId?: string) {
-  return useQuery<DepartmentData[], Error>({
+  return useQuery({
     queryKey: ["department-comparison", baseInstanceId, comparisonInstanceId],
     queryFn: async (): Promise<DepartmentData[]> => {
       if (!baseInstanceId || !comparisonInstanceId) return [];

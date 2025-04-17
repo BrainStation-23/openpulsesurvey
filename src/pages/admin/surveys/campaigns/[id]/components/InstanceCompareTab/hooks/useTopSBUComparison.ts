@@ -20,7 +20,7 @@ interface TopPerformingSBU {
 }
 
 export function useTopSBUComparison(baseInstanceId?: string, comparisonInstanceId?: string) {
-  return useQuery<TopSBUPerformer[], Error>({
+  return useQuery({
     queryKey: ["top-sbu-comparison", baseInstanceId, comparisonInstanceId],
     queryFn: async (): Promise<TopSBUPerformer[]> => {
       if (!baseInstanceId || !comparisonInstanceId) return [];
