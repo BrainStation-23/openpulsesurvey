@@ -27,7 +27,7 @@ const formSchema = z.object({
   startDateMax: z.string().optional(),
   endDateMin: z.string().optional(),
   endDateMax: z.string().optional(),
-  status: z.enum(['active', 'upcoming', 'completed', 'inactive'] as const).optional(),
+  status: z.enum(['active', 'upcoming', 'completed', 'inactive'] as const).optional().nullable(),
 });
 
 interface InstanceFiltersProps {
@@ -43,7 +43,7 @@ export function InstanceFilters({ onFilterChange, currentFilters }: InstanceFilt
       startDateMax: currentFilters.startDateMax || "",
       endDateMin: currentFilters.endDateMin || "",
       endDateMax: currentFilters.endDateMax || "",
-      status: currentFilters.status ? currentFilters.status[0] : undefined,
+      status: currentFilters.status && currentFilters.status[0] ? currentFilters.status[0] : null,
     },
   });
 
@@ -65,7 +65,7 @@ export function InstanceFilters({ onFilterChange, currentFilters }: InstanceFilt
       startDateMax: "",
       endDateMin: "",
       endDateMax: "",
-      status: undefined,
+      status: null,
     });
   };
 
@@ -180,11 +180,14 @@ export function InstanceFilters({ onFilterChange, currentFilters }: InstanceFilt
               <FormItem>
                 <Select
                   onValueChange={field.onChange}
-                  value={field.value}
+                  value={field.value || undefined}
+                  onOpenChange={() => {
+                    if (field.value === null) field.onChange(undefined);
+                  }}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a status" />
+                      <SelectValue placeholder="All Statuses" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
