@@ -21,6 +21,7 @@ export interface QuestionComparison {
   yes_percentage: number | null;
   question_key: string | null;
   text_responses: string[] | null;
+  // We'll make period_number optional to match our updated SQL function
   period_number?: number | null;
 }
 
