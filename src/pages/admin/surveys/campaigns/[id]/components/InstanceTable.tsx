@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { Pencil, Trash2, Plus, XCircle, ChevronDown, ChevronUp, Save } from "lucide-react";
 import { useState } from "react";
@@ -35,6 +34,7 @@ import {
   InstanceSortOptions, 
   PaginationOptions 
 } from "../hooks/useInstanceManagement";
+import { useToast } from "@/hooks/use-toast";
 
 interface InstanceTableProps {
   instances: Instance[];
@@ -49,6 +49,7 @@ interface InstanceTableProps {
   onPageSizeChange: (pageSize: number) => void;
   onSortChange: (sortBy: string, sortDirection: 'asc' | 'desc') => void;
   campaign: any;
+  hasActiveInstance: (currentInstanceId?: string) => boolean;
 }
 
 export function InstanceTable({ 
@@ -63,8 +64,10 @@ export function InstanceTable({
   onPageChange,
   onPageSizeChange,
   onSortChange,
-  campaign
+  campaign,
+  hasActiveInstance
 }: InstanceTableProps) {
+  const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Partial<Instance>>({});
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState<boolean>(false);
@@ -89,6 +92,15 @@ export function InstanceTable({
   };
 
   const handleChange = (field: keyof Instance, value: any) => {
+    if (field === 'status' && value === 'active' && hasActiveInstance(editingId)) {
+      toast({
+        variant: "destructive",
+        title: "Cannot activate instance",
+        description: "There is already an active instance for this campaign. Please mark it as completed or inactive first."
+      });
+      return;
+    }
+    
     setEditValues((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -217,6 +229,8 @@ export function InstanceTable({
           }
         };
 
+        const isThereActiveInstance = hasActiveInstance(row.original.id);
+
         return editingId === row.original.id ? (
           <Select 
             value={status} 
@@ -226,7 +240,9 @@ export function InstanceTable({
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="active" disabled={isThereActiveInstance}>
+                Active {isThereActiveInstance && "(Another instance is already active)"}
+              </SelectItem>
               <SelectItem value="upcoming">Upcoming</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>

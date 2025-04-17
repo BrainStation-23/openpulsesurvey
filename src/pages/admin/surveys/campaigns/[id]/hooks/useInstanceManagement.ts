@@ -175,11 +175,23 @@ export function useInstanceManagement(campaignId: string) {
     },
   });
 
+  // NEW FUNCTION: Check if there are any active instances for this campaign
+  const hasActiveInstance = (currentInstanceId?: string): boolean => {
+    return instancesData.data.some(instance => 
+      instance.status === 'active' && instance.id !== currentInstanceId
+    );
+  };
+
   // Check for status conflicts
   const validateStatusChange = (
     instance: Instance, 
     newStatus: InstanceStatus
   ): string | null => {
+    // Check if there is already an active instance for this campaign
+    if (newStatus === 'active' && hasActiveInstance(instance.id)) {
+      return "There is already an active instance for this campaign. Please mark it as completed or inactive first.";
+    }
+
     // Prevent completed instances from being changed to other statuses
     if (instance.status === 'completed' && newStatus !== 'completed') {
       return "Completed instances cannot be changed to other statuses";
@@ -221,6 +233,11 @@ export function useInstanceManagement(campaignId: string) {
   };
 
   const createInstance = async (newInstance: CreateInstanceData) => {
+    // If trying to create an active instance, check if one already exists
+    if (newInstance.status === 'active' && hasActiveInstance()) {
+      throw new Error("There is already an active instance for this campaign. Please mark it as completed or inactive first.");
+    }
+    
     return createInstanceMutation.mutateAsync(newInstance);
   };
 
@@ -295,6 +312,8 @@ export function useInstanceManagement(campaignId: string) {
     calculateCompletionRate,
     createInstance,
     deleteInstance,
+    // New function to check for active instances
+    hasActiveInstance,
     // Sort and pagination state and handlers
     sort,
     pagination,

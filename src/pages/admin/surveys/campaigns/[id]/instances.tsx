@@ -26,6 +26,7 @@ export default function CampaignInstancesPage() {
     calculateCompletionRate,
     createInstance,
     deleteInstance,
+    hasActiveInstance, // New function
   } = useInstanceManagement(campaignId);
 
   if (!campaignId) {
@@ -138,6 +139,7 @@ export default function CampaignInstancesPage() {
 
       <div className="text-muted-foreground mb-4">
         <p>Manage campaign instances - you can adjust the start and end dates, and change the status.</p>
+        <p className="mt-1 text-sm">Note: Only one instance can be active at a time.</p>
       </div>
 
       <InstanceTable 
@@ -153,6 +155,7 @@ export default function CampaignInstancesPage() {
         onPageSizeChange={handlePageSizeChange}
         onSortChange={handleSortChange}
         campaign={campaign}
+        hasActiveInstance={hasActiveInstance}
       />
     </div>
   );
