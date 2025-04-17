@@ -1,5 +1,15 @@
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Label,
+  Legend,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 interface BooleanComparisonChartProps {
   baseInstanceData: {
@@ -20,36 +30,39 @@ export function BooleanComparisonChart({
   comparisonInstanceData,
   questionKey,
   basePeriodNumber,
-  comparisonPeriodNumber
+  comparisonPeriodNumber,
 }: BooleanComparisonChartProps) {
-  const basePeriodLabel = basePeriodNumber ? `Period ${basePeriodNumber}` : 'Base';
-  const comparisonPeriodLabel = comparisonPeriodNumber ? `Period ${comparisonPeriodNumber}` : 'Comparison';
-  
+  const basePeriodLabel = basePeriodNumber ? `Period ${basePeriodNumber}` : "Base";
+  const comparisonPeriodLabel = comparisonPeriodNumber ? `Period ${comparisonPeriodNumber}` : "Comparison";
+
   const data = [
     {
-      name: 'Yes',
+      name: "Yes Responses",
       [basePeriodLabel]: baseInstanceData.yes_percentage,
+      [`${basePeriodLabel} Count`]: baseInstanceData.response_count,
       [comparisonPeriodLabel]: comparisonInstanceData.yes_percentage,
-    }
+      [`${comparisonPeriodLabel} Count`]: comparisonInstanceData.response_count,
+    },
   ];
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height={280}>
       <BarChart
         data={data}
-        margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
+        margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
         barSize={60}
         layout="vertical"
       >
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis type="number" domain={[0, 100]} tickCount={6} unit="%" />
-        <YAxis type="category" dataKey="name" hide />
-        <Tooltip 
-          formatter={(value: any) => [`${value.toFixed(2)}%`, 'Yes Percentage']}
-        />
+        <XAxis type="number" domain={[0, 100]} unit="%" />
+        <YAxis dataKey="name" type="category" />
         <Legend />
-        <Bar dataKey={basePeriodLabel} fill="#8884d8" name={basePeriodLabel} />
-        <Bar dataKey={comparisonPeriodLabel} fill="#82ca9d" name={comparisonPeriodLabel} />
+        <Bar dataKey={basePeriodLabel} fill="#8884d8">
+          <Label position="center" />
+        </Bar>
+        <Bar dataKey={comparisonPeriodLabel} fill="#82ca9d">
+          <Label position="center" />
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );

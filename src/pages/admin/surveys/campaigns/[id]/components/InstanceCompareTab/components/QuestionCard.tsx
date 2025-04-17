@@ -5,7 +5,7 @@ import { BooleanComparisonChart } from "./BooleanComparisonChart";
 import { Badge } from "@/components/ui/badge";
 
 interface QuestionData {
-  period_number: number | null;
+  period_number?: number | null;
   campaign_instance_id: string | null;
   response_count: number | null;
   avg_numeric_value: number | null;
