@@ -1,20 +1,20 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ComparisonDimension } from "../../types/comparison";
+import { ProcessedResult } from "../../types/responses";
 
 interface ComparisonViewProps {
-  dimension: ComparisonDimension;
-  questionData: any;
+  data: ProcessedResult;
+  isNps: boolean;
 }
 
-export function ComparisonView({ dimension, questionData }: ComparisonViewProps) {
+export function ComparisonView({ data, isNps }: ComparisonViewProps) {
   // This is a placeholder component for the ComparisonView
   // It will be implemented in the future when the comparison feature is revamped
   
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Comparison View ({dimension})</CardTitle>
+        <CardTitle>Comparison View ({isNps ? 'NPS' : 'Rating'})</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground">
