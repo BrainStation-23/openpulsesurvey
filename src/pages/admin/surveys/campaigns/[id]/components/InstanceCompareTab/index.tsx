@@ -9,7 +9,7 @@ export function InstanceCompareTab() {
         <AlertTitle className="ml-2">Campaign Comparison</AlertTitle>
         <AlertDescription>
           The campaign comparison feature is currently being reimplemented.
-          This functionality will be available in a future update.
+          This functionality will be available in a future update
         </AlertDescription>
       </Alert>
     </div>
