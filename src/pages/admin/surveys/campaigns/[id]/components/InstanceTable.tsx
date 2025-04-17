@@ -393,17 +393,8 @@ export function InstanceTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+      <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Campaign Instances</h3>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button 
-            onClick={onAdd} 
-            variant="outline"
-            className="flex items-center gap-1"
-          >
-            <Plus className="h-4 w-4" /> Add Instance
-          </Button>
-        </div>
       </div>
       
       <div className="p-4 border rounded-md mb-4">
@@ -411,6 +402,15 @@ export function InstanceTable({
           onFilterChange={onFilterChange}
           currentFilters={filters}
         />
+      </div>
+      
+      <div className="flex justify-end mb-4">
+        <Button 
+          onClick={onAdd} 
+          className="bg-primary text-primary-foreground flex items-center gap-1"
+        >
+          <Plus className="h-4 w-4" /> Add Instance
+        </Button>
       </div>
       
       <DataTable 
@@ -454,7 +454,6 @@ export function InstanceTable({
                 ) : (
                   <PaginationPrevious 
                     onClick={() => onPageChange(Math.max(1, pagination.page - 1))}
-                    className={pagination.page === 1 ? "pointer-events-none opacity-50" : ""}
                   />
                 )}
               </PaginationItem>
@@ -474,7 +473,6 @@ export function InstanceTable({
                 ) : (
                   <PaginationNext 
                     onClick={() => onPageChange(Math.min(totalPages, pagination.page + 1))}
-                    className={pagination.page === totalPages ? "pointer-events-none opacity-50" : ""}
                   />
                 )}
               </PaginationItem>

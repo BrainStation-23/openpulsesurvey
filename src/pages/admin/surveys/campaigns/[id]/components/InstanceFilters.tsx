@@ -20,6 +20,7 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { InstanceStatus } from "../hooks/useInstanceManagement";
+import { useEffect } from "react";
 
 const formSchema = z.object({
   startDateMin: z.string().optional(),
@@ -46,14 +47,17 @@ export function InstanceFilters({ onFilterChange, currentFilters }: InstanceFilt
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  // Watch form values and apply filters automatically when they change
+  const formValues = form.watch();
+  
+  useEffect(() => {
     // Process the status to be an array for the API
     const processedFilters = {
-      ...values,
-      status: values.status ? [values.status] : undefined,
+      ...formValues,
+      status: formValues.status ? [formValues.status] : undefined,
     };
     onFilterChange(processedFilters);
-  }
+  }, [formValues, onFilterChange]);
 
   const resetFilters = () => {
     form.reset({
@@ -61,13 +65,6 @@ export function InstanceFilters({ onFilterChange, currentFilters }: InstanceFilt
       startDateMax: "",
       endDateMin: "",
       endDateMax: "",
-      status: undefined,
-    });
-    onFilterChange({
-      startDateMin: undefined,
-      startDateMax: undefined,
-      endDateMin: undefined,
-      endDateMax: undefined,
       status: undefined,
     });
   };
@@ -79,7 +76,7 @@ export function InstanceFilters({ onFilterChange, currentFilters }: InstanceFilt
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="font-medium">Filter Instances</h3>
           
@@ -200,10 +197,6 @@ export function InstanceFilters({ onFilterChange, currentFilters }: InstanceFilt
               </FormItem>
             )}
           />
-        </div>
-
-        <div className="flex justify-end">
-          <Button type="submit">Apply Filters</Button>
         </div>
       </form>
     </Form>
