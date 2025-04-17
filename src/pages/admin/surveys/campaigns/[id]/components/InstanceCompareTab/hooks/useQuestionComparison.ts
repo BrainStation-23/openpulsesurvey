@@ -43,10 +43,14 @@ export function useQuestionComparison(
           }
         );
 
-        if (baseResponses.error || comparisonResponses.error) {
-          console.error("Error fetching question data:", 
-            baseResponses.error || comparisonResponses.error);
-          throw new Error("Failed to fetch question response data");
+        if (baseResponses.error) {
+          console.error("Error fetching base instance data:", baseResponses.error);
+          throw new Error(`Failed to fetch base instance data: ${baseResponses.error.message}`);
+        }
+
+        if (comparisonResponses.error) {
+          console.error("Error fetching comparison instance data:", comparisonResponses.error);
+          throw new Error(`Failed to fetch comparison instance data: ${comparisonResponses.error.message}`);
         }
 
         console.log("Question data fetched successfully:", {
