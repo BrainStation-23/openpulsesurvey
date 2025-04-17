@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Save, Trash2, Plus, XCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Pencil, Trash2, Plus, XCircle, ChevronDown, ChevronUp, Save } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -29,11 +29,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { 
   Instance, 
   InstanceFilters, 
@@ -79,7 +74,6 @@ export function InstanceTable({
   const [editValues, setEditValues] = useState<Partial<Instance>>({});
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState<boolean>(false);
   const [instanceToDelete, setInstanceToDelete] = useState<string | null>(null);
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const handleEdit = (instance: Instance) => {
     setEditingId(instance.id);
@@ -295,7 +289,7 @@ export function InstanceTable({
               onClick={() => handleEdit(row.original)}
               className="h-8 w-8"
             >
-              <Save className="h-4 w-4" />
+              <Pencil className="h-4 w-4" />
             </Button>
             <Button 
               variant="ghost" 
@@ -402,23 +396,6 @@ export function InstanceTable({
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <h3 className="text-lg font-medium">Campaign Instances</h3>
         <div className="flex flex-col sm:flex-row gap-2">
-          <Collapsible 
-            open={isFiltersOpen} 
-            onOpenChange={setIsFiltersOpen}
-            className="w-full md:w-auto"
-          >
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full md:w-auto">
-                {isFiltersOpen ? "Hide Filters" : "Show Filters"}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-4 p-4 border rounded-md">
-              <InstanceFiltersComponent 
-                onFilterChange={onFilterChange}
-                currentFilters={filters}
-              />
-            </CollapsibleContent>
-          </Collapsible>
           <Button 
             onClick={onAdd} 
             variant="outline"
@@ -427,6 +404,13 @@ export function InstanceTable({
             <Plus className="h-4 w-4" /> Add Instance
           </Button>
         </div>
+      </div>
+      
+      <div className="p-4 border rounded-md mb-4">
+        <InstanceFiltersComponent 
+          onFilterChange={onFilterChange}
+          currentFilters={filters}
+        />
       </div>
       
       <DataTable 

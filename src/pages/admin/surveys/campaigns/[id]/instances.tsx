@@ -85,7 +85,7 @@ export default function CampaignInstancesPage() {
       // Set default dates - start date tomorrow, end date a week later
       const startDate = new Date();
       startDate.setDate(startDate.getDate() + 1);
-      startDate.setHours(0, 0, 0, 0); // Fixed syntax error: removed extra comma
+      startDate.setHours(0, 0, 0, 0);
       
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 7);
@@ -144,9 +144,6 @@ export default function CampaignInstancesPage() {
 
       <div className="text-muted-foreground mb-4">
         <p>Manage campaign instances - you can adjust the start and end dates, and change the status.</p>
-        <p className="text-sm text-yellow-600 mt-2">
-          Note: Manual changes may override automated scheduling. Use with caution.
-        </p>
       </div>
 
       <InstanceTable 
