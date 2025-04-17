@@ -26,14 +26,7 @@ export function useQuestionComparison(
           campaignId, baseInstanceId, comparisonInstanceId 
         });
 
-        // First, drop the existing function
-        const dropResult = await supabase.rpc('drop_and_recreate_question_responses_function');
-        
-        if (dropResult.error) {
-          console.warn("Could not drop function, it might not exist yet:", dropResult.error);
-          // Continue anyway, as the function might not exist
-        }
-        
+
         // Fetch question responses from both instances using the RPC function
         const baseResponses = await supabase.rpc(
           'get_instance_question_responses',
