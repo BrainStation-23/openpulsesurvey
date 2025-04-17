@@ -16,7 +16,8 @@ import {
   ZAxis,
   ReferenceLine,
   LineChart,
-  Line
+  Line,
+  Cell
 } from "recharts";
 import { SBUPerformanceData } from "../types/instance-comparison";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
@@ -209,7 +210,7 @@ export function SBUPerformanceChartView({ data }: SBUPerformanceChartViewProps) 
                 fill="#8884d8"
               >
                 {matrixData.map((entry, index) => (
-                  <cell key={`cell-${index}`} fill={entry.fillColor} />
+                  <Cell key={`cell-${index}`} fill={entry.fillColor} />
                 ))}
               </Scatter>
               <Legend />
