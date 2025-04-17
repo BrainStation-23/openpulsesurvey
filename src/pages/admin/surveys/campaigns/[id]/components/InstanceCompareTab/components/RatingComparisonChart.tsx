@@ -34,10 +34,10 @@ export function RatingComparisonChart({
   ];
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height={280}>
       <BarChart
         data={data}
-        margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
+        margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
         barSize={60}
         layout="vertical"
       >

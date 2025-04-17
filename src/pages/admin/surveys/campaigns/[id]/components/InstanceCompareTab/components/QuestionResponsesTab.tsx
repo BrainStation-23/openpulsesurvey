@@ -20,11 +20,11 @@ export function QuestionResponsesTab({
 }: QuestionResponsesTabProps) {
   const [questionMappings, setQuestionMappings] = useState<Record<string, { title: string; type: string }>>();
   
-  const { data, isLoading, error } = useQuestionComparison({
+  const { data, isLoading, error } = useQuestionComparison(
     campaignId,
     baseInstanceId,
-    comparisonInstanceId,
-  });
+    comparisonInstanceId
+  );
 
   // Update question mappings from data
   useEffect(() => {
