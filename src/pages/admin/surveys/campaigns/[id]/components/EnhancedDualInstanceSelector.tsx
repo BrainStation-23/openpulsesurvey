@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
-import { EnhancedInstanceSelector } from "../EnhancedInstanceSelector";
+import { EnhancedInstanceSelector } from "./EnhancedInstanceSelector";
 import { Button } from "@/components/ui/button";
 import { ArrowLeftRight } from "lucide-react";
 

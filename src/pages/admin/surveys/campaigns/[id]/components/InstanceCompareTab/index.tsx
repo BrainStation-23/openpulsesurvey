@@ -16,14 +16,12 @@ export function InstanceCompareTab() {
   const { id: campaignId } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("sbu");
   
-  // Comparison state management
   const [comparison, setComparison] = useState<ComparisonState>({
     baseInstanceId: undefined,
     comparisonInstanceId: undefined,
     status: 'initial'
   });
   
-  // Get suggested instances for comparison
   const { 
     suggestedBase, 
     suggestedComparison, 
@@ -31,7 +29,6 @@ export function InstanceCompareTab() {
     instances 
   } = useInstancesForComparison(campaignId || '');
   
-  // Set initial suggested instances once loaded
   useEffect(() => {
     if (!isLoading && suggestedBase && suggestedComparison && comparison.status === 'initial') {
       if (suggestedBase.id !== suggestedComparison.id) {
@@ -44,9 +41,7 @@ export function InstanceCompareTab() {
     }
   }, [suggestedBase, suggestedComparison, isLoading, comparison.status]);
   
-  // Handle instance selection
   const handleBaseInstanceSelect = (instanceId: string) => {
-    // If selecting the same as comparison, show warning
     if (instanceId === comparison.comparisonInstanceId) {
       setComparison({
         ...comparison,
@@ -65,7 +60,6 @@ export function InstanceCompareTab() {
   };
   
   const handleComparisonInstanceSelect = (instanceId: string) => {
-    // If selecting the same as base, show warning
     if (instanceId === comparison.baseInstanceId) {
       setComparison({
         ...comparison,
@@ -83,10 +77,8 @@ export function InstanceCompareTab() {
     }
   };
   
-  // Handle swap functionality
   const handleSwapInstances = () => {
     if (comparison.baseInstanceId && comparison.comparisonInstanceId) {
-      // Create a temporary copy to avoid validation triggering
       const tempBaseId = comparison.baseInstanceId;
       const tempComparisonId = comparison.comparisonInstanceId;
       
@@ -99,7 +91,6 @@ export function InstanceCompareTab() {
     }
   };
   
-  // Generate appropriate UI based on comparison state
   const renderComparisonContent = () => {
     switch (comparison.status) {
       case 'initial':
@@ -193,7 +184,6 @@ export function InstanceCompareTab() {
     }
   };
   
-  // Reset comparison to selecting state
   const handleChangeSelection = () => {
     setComparison({
       ...comparison,
