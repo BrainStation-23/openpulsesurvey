@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -170,7 +169,7 @@ export function SBUPerformanceChartView({ data }: SBUPerformanceChartViewProps) 
         <TabsContent value="performanceMatrix" className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+              margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
@@ -178,14 +177,26 @@ export function SBUPerformanceChartView({ data }: SBUPerformanceChartViewProps) 
                 dataKey="x" 
                 name="Base Score" 
                 domain={[0, 5]}
-                label={{ value: 'Base Score', position: 'bottom', offset: 0 }}
+                label={{ 
+                  value: 'Base Score', 
+                  position: 'bottom', 
+                  offset: 10,
+                  style: { textAnchor: 'middle' }
+                }}
+                tickFormatter={(value) => value.toFixed(2)}
               />
               <YAxis 
                 type="number" 
                 dataKey="y" 
                 name="Comparison Score" 
                 domain={[0, 5]}
-                label={{ value: 'Comparison Score', angle: -90, position: 'insideLeft' }}
+                label={{ 
+                  value: 'Comparison Score', 
+                  angle: -90, 
+                  position: 'insideLeft',
+                  offset: 0
+                }}
+                tickFormatter={(value) => value.toFixed(2)}
               />
               <ZAxis 
                 type="number" 
@@ -195,15 +206,36 @@ export function SBUPerformanceChartView({ data }: SBUPerformanceChartViewProps) 
               />
               <Tooltip 
                 cursor={{ strokeDasharray: '3 3' }}
-                formatter={(value, name) => {
-                  if (name === "x") return [`${Number(value).toFixed(2)}`, "Base Score"];
-                  if (name === "y") return [`${Number(value).toFixed(2)}`, "Comparison Score"];
-                  return [value, name];
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-background p-2 border rounded-md shadow-md text-xs">
+                        <p className="font-medium">{data.name}</p>
+                        <p>Base Score: {data.x.toFixed(2)}</p>
+                        <p>Comparison Score: {data.y.toFixed(2)}</p>
+                        <p className={`font-medium ${
+                          data.change > 0 ? 'text-green-500' : 
+                          data.change < 0 ? 'text-red-500' : 
+                          'text-muted-foreground'
+                        }`}>
+                          Change: {data.change > 0 ? '+' : ''}{data.change.toFixed(2)}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
                 }}
-                labelFormatter={(label) => matrixData[label].name}
               />
               <ReferenceLine x={0} y={0} stroke="#666" />
               <ReferenceLine y="x" stroke="red" strokeDasharray="3 3" />
+              <Legend 
+                verticalAlign="bottom" 
+                height={36}
+                wrapperStyle={{
+                  paddingTop: '20px'
+                }}
+              />
               <Scatter 
                 name="SBUs" 
                 data={matrixData}
@@ -213,7 +245,6 @@ export function SBUPerformanceChartView({ data }: SBUPerformanceChartViewProps) 
                   <Cell key={`cell-${index}`} fill={entry.fillColor} />
                 ))}
               </Scatter>
-              <Legend />
             </ScatterChart>
           </ResponsiveContainer>
         </TabsContent>

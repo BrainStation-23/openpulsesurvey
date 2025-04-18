@@ -123,6 +123,17 @@ CREATE TYPE "public"."achievement_type" AS ENUM (
 ALTER TYPE "public"."achievement_type" OWNER TO "postgres";
 
 
+CREATE TYPE "public"."approval_status" AS ENUM (
+    'pending',
+    'approved',
+    'rejected',
+    'requested_changes'
+);
+
+
+ALTER TYPE "public"."approval_status" OWNER TO "postgres";
+
+
 CREATE TYPE "public"."assignment_status" AS ENUM (
     'pending',
     'completed',
@@ -142,6 +153,16 @@ CREATE TYPE "public"."campaign_status" AS ENUM (
 
 
 ALTER TYPE "public"."campaign_status" OWNER TO "postgres";
+
+
+CREATE TYPE "public"."check_in_status" AS ENUM (
+    'on_track',
+    'at_risk',
+    'behind'
+);
+
+
+ALTER TYPE "public"."check_in_status" OWNER TO "postgres";
 
 
 CREATE TYPE "public"."config_status" AS ENUM (
@@ -256,6 +277,19 @@ CREATE TYPE "public"."issue_status" AS ENUM (
 ALTER TYPE "public"."issue_status" OWNER TO "postgres";
 
 
+CREATE TYPE "public"."kr_status" AS ENUM (
+    'not_started',
+    'in_progress',
+    'at_risk',
+    'on_track',
+    'completed',
+    'abandoned'
+);
+
+
+ALTER TYPE "public"."kr_status" OWNER TO "postgres";
+
+
 CREATE TYPE "public"."level_status" AS ENUM (
     'active',
     'inactive'
@@ -263,6 +297,40 @@ CREATE TYPE "public"."level_status" AS ENUM (
 
 
 ALTER TYPE "public"."level_status" OWNER TO "postgres";
+
+
+CREATE TYPE "public"."objective_status" AS ENUM (
+    'draft',
+    'in_progress',
+    'at_risk',
+    'on_track',
+    'completed'
+);
+
+
+ALTER TYPE "public"."objective_status" OWNER TO "postgres";
+
+
+CREATE TYPE "public"."okr_cycle_status" AS ENUM (
+    'active',
+    'upcoming',
+    'completed',
+    'archived'
+);
+
+
+ALTER TYPE "public"."okr_cycle_status" OWNER TO "postgres";
+
+
+CREATE TYPE "public"."okr_visibility" AS ENUM (
+    'private',
+    'team',
+    'department',
+    'organization'
+);
+
+
+ALTER TYPE "public"."okr_visibility" OWNER TO "postgres";
 
 
 CREATE TYPE "public"."profile_status" AS ENUM (
@@ -368,6 +436,197 @@ CREATE TYPE "public"."user_role" AS ENUM (
 ALTER TYPE "public"."user_role" OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."analyze_okr_progress_logs"("p_objective_id" "uuid" DEFAULT NULL::"uuid", "p_limit" integer DEFAULT 100) RETURNS TABLE("event_time" timestamp with time zone, "entity_id" "uuid", "entity_type" "text", "change_type" "text", "details" "jsonb")
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    h.changed_at AS event_time,
+    h.entity_id,
+    h.entity_type,
+    h.change_type,
+    COALESCE(h.new_data, h.previous_data) AS details
+  FROM okr_history h
+  WHERE (p_objective_id IS NULL OR h.entity_id = p_objective_id)
+  AND (h.entity_type LIKE '%objective%' OR h.entity_type LIKE '%key_result%')
+  ORDER BY h.changed_at DESC
+  LIMIT p_limit;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."analyze_okr_progress_logs"("p_objective_id" "uuid", "p_limit" integer) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."calculate_cascaded_objective_progress"("objective_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+    total_weight NUMERIC := 0;
+    weighted_progress NUMERIC := 0;
+    kr_count INT := 0;
+    alignment_count INT := 0;
+    child_objective_record RECORD;
+    key_result_record RECORD;
+    alignment_record RECORD;
+    is_locked BOOLEAN;
+    v_calculation_method TEXT;
+BEGIN
+    -- Check if this objective is already being processed (to prevent infinite loops)
+    SELECT locked INTO is_locked FROM okr_progress_calculation_lock 
+    WHERE okr_progress_calculation_lock.objective_id = calculate_cascaded_objective_progress.objective_id
+    FOR UPDATE;
+    
+    IF is_locked THEN
+        -- Skip if already being processed
+        RAISE NOTICE 'Objective % is locked for progress calculation', calculate_cascaded_objective_progress.objective_id;
+        RETURN;
+    END IF;
+    
+    -- Try to get a lock or create the lock record if it doesn't exist
+    IF NOT FOUND THEN
+        INSERT INTO okr_progress_calculation_lock (objective_id, locked)
+        VALUES (calculate_cascaded_objective_progress.objective_id, TRUE);
+    ELSE
+        UPDATE okr_progress_calculation_lock SET locked = TRUE
+        WHERE okr_progress_calculation_lock.objective_id = calculate_cascaded_objective_progress.objective_id;
+    END IF;
+
+    -- Get calculation method
+    SELECT COALESCE(progress_calculation_method, 'weighted_sum') INTO v_calculation_method 
+    FROM objectives 
+    WHERE id = calculate_cascaded_objective_progress.objective_id;
+    
+    -- Get weight and progress from key results
+    FOR key_result_record IN 
+        SELECT weight, progress 
+        FROM key_results 
+        WHERE key_results.objective_id = calculate_cascaded_objective_progress.objective_id
+    LOOP
+        -- Normalize progress to 0-1 range (it's stored as 0-100 in the DB)
+        weighted_progress := weighted_progress + ((key_result_record.progress / 100) * key_result_record.weight);
+        total_weight := total_weight + key_result_record.weight;
+        kr_count := kr_count + 1;
+    END LOOP;
+    
+    -- Get weight and progress from child objectives (via alignments)
+    FOR alignment_record IN 
+        SELECT a.weight, o.progress
+        FROM okr_alignments a
+        JOIN objectives o ON a.aligned_objective_id = o.id
+        WHERE a.source_objective_id = calculate_cascaded_objective_progress.objective_id
+        AND a.alignment_type = 'parent_child'
+    LOOP
+        -- Normalize progress to 0-1 range (it's stored as 0-100 in the DB)
+        weighted_progress := weighted_progress + ((alignment_record.progress / 100) * alignment_record.weight);
+        total_weight := total_weight + alignment_record.weight;
+        alignment_count := alignment_count + 1;
+    END LOOP;
+    
+    -- Update the objective's progress based on the calculation method
+    IF total_weight > 0 THEN
+        -- Convert back to 0-100 range for storage
+        IF v_calculation_method = 'weighted_sum' THEN
+            -- For weighted sum, we just use the sum of weighted progress values
+            weighted_progress := weighted_progress * 100;
+        ELSE -- 'weighted_avg'
+            -- For weighted average, calculate the average - if all items are at 100%, result should be 100%
+            -- regardless of weights (as long as all weights are positive)
+            IF kr_count + alignment_count > 0 THEN
+                -- Calculate weighted average properly
+                IF kr_count > 0 AND alignment_count = 0 THEN
+                    -- If we only have key results, calculate their average
+                    SELECT AVG(progress) INTO weighted_progress
+                    FROM key_results
+                    WHERE key_results.objective_id = calculate_cascaded_objective_progress.objective_id;
+                ELSIF kr_count = 0 AND alignment_count > 0 THEN
+                    -- If we only have child objectives, calculate their average
+                    SELECT AVG(o.progress) INTO weighted_progress
+                    FROM okr_alignments a
+                    JOIN objectives o ON a.aligned_objective_id = o.id
+                    WHERE a.source_objective_id = calculate_cascaded_objective_progress.objective_id
+                    AND a.alignment_type = 'parent_child';
+                ELSE
+                    -- If we have both key results and child objectives, calculate their combined average
+                    -- This is a special case that needs custom handling
+                    SELECT (
+                        (SELECT COALESCE(AVG(progress), 0) FROM key_results 
+                         WHERE key_results.objective_id = calculate_cascaded_objective_progress.objective_id) * kr_count +
+                        (SELECT COALESCE(AVG(o.progress), 0) FROM okr_alignments a
+                         JOIN objectives o ON a.aligned_objective_id = o.id
+                         WHERE a.source_objective_id = calculate_cascaded_objective_progress.objective_id
+                         AND a.alignment_type = 'parent_child') * alignment_count
+                    ) / (kr_count + alignment_count) INTO weighted_progress;
+                END IF;
+            ELSE
+                weighted_progress := 0;
+            END IF;
+        END IF;
+    ELSE
+        weighted_progress := 0;
+    END IF;
+    
+    -- Update the objective's progress
+    UPDATE objectives
+    SET 
+        progress = LEAST(100, weighted_progress),
+        -- Auto-update status based on progress
+        status = CASE 
+            WHEN weighted_progress >= 100 THEN 'completed'::objective_status
+            WHEN status = 'draft' AND weighted_progress > 0 THEN 'in_progress'::objective_status
+            ELSE status
+        END
+    WHERE id = calculate_cascaded_objective_progress.objective_id;
+    
+    -- Release the lock
+    UPDATE okr_progress_calculation_lock 
+    SET locked = FALSE
+    WHERE okr_progress_calculation_lock.objective_id = calculate_cascaded_objective_progress.objective_id;
+    
+    -- Log the calculation
+    BEGIN
+        INSERT INTO okr_history (
+            entity_id, 
+            entity_type,
+            change_type,
+            changed_by,
+            new_data
+        ) VALUES (
+            calculate_cascaded_objective_progress.objective_id,
+            'objective',
+            'progress_calculation',
+            COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000000'),
+            jsonb_build_object(
+                'method', v_calculation_method,
+                'total_weight', total_weight,
+                'weighted_progress', weighted_progress,
+                'kr_count', kr_count,
+                'alignment_count', alignment_count
+            )
+        );
+    EXCEPTION WHEN OTHERS THEN
+        -- Ignore logging errors
+        NULL;
+    END;
+    
+    -- Finally, propagate the progress update to parent objectives
+    FOR child_objective_record IN
+        SELECT source_objective_id
+        FROM okr_alignments
+        WHERE aligned_objective_id = calculate_cascaded_objective_progress.objective_id
+        AND alignment_type = 'parent_child'
+    LOOP
+        -- Recursively update parent objectives
+        PERFORM calculate_cascaded_objective_progress(child_objective_record.source_objective_id);
+    END LOOP;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."calculate_cascaded_objective_progress"("objective_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."calculate_instance_completion_rate"("instance_id" "uuid") RETURNS numeric
     LANGUAGE "plpgsql"
     AS $$
@@ -428,8 +687,540 @@ $$;
 ALTER FUNCTION "public"."calculate_instance_completion_rate"("instance_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."check_and_award_achievements"("p_user_id" "uuid") RETURNS "void"
+CREATE OR REPLACE FUNCTION "public"."calculate_key_result_progress"("p_measurement_type" "text", "p_current_value" numeric, "p_start_value" numeric, "p_target_value" numeric, "p_boolean_value" boolean) RETURNS numeric
     LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+    v_progress numeric;
+BEGIN
+    -- Calculate progress based on measurement type
+    CASE p_measurement_type
+        WHEN 'boolean' THEN
+            v_progress := CASE WHEN p_boolean_value THEN 100 ELSE 0 END;
+        ELSE
+            -- For numeric types, calculate percentage of progress
+            IF p_target_value = p_start_value THEN
+                v_progress := CASE WHEN p_current_value >= p_target_value THEN 100 ELSE 0 END;
+            ELSE
+                v_progress := ((p_current_value - p_start_value) / (p_target_value - p_start_value)) * 100;
+                -- Ensure progress is between 0-100
+                v_progress := GREATEST(0, LEAST(100, v_progress));
+            END IF;
+    END CASE;
+    
+    RETURN v_progress;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."calculate_key_result_progress"("p_measurement_type" "text", "p_current_value" numeric, "p_start_value" numeric, "p_target_value" numeric, "p_boolean_value" boolean) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."calculate_objective_progress_for_single_objective"("objective_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+    v_total_weight NUMERIC := 0;
+    v_weighted_progress NUMERIC := 0;
+    v_error_message TEXT;
+    v_old_progress NUMERIC;
+BEGIN
+    -- Get current objective progress for logging
+    SELECT progress INTO v_old_progress
+    FROM objectives
+    WHERE id = objective_id;
+    
+    -- Log the operation for debugging
+    INSERT INTO okr_history (
+        entity_id,
+        entity_type,
+        change_type,
+        changed_by,
+        new_data
+    ) VALUES (
+        objective_id,
+        'objective_progress_update',
+        'progress_calculation_started',
+        auth.uid(),
+        jsonb_build_object(
+            'old_objective_progress', v_old_progress,
+            'calculation_type', 'single_objective'
+        )
+    );
+    
+    BEGIN
+        -- Calculate the total weight and weighted progress sum
+        -- Fix the ambiguous column reference by specifying the table name
+        SELECT 
+            COALESCE(SUM(weight), 0),
+            COALESCE(SUM(progress * weight), 0)
+        INTO
+            v_total_weight,
+            v_weighted_progress
+        FROM
+            key_results kr
+        WHERE
+            kr.objective_id = calculate_objective_progress_for_single_objective.objective_id;
+        
+        -- Update the objective progress
+        IF v_total_weight = 0 THEN
+            UPDATE objectives
+            SET progress = 0
+            WHERE id = objective_id;
+            
+            -- Log the update
+            INSERT INTO okr_history (
+                entity_id,
+                entity_type,
+                change_type,
+                changed_by,
+                new_data
+            ) VALUES (
+                objective_id,
+                'objective_progress_update',
+                'progress_updated_zero_weight',
+                auth.uid(),
+                jsonb_build_object(
+                    'new_progress', 0,
+                    'total_weight', v_total_weight
+                )
+            );
+        ELSE
+            -- Calculate weighted average and round to 2 decimal places
+            DECLARE
+                v_new_progress NUMERIC := ROUND((v_weighted_progress / v_total_weight)::NUMERIC, 2);
+            BEGIN
+                UPDATE objectives
+                SET 
+                    progress = v_new_progress,
+                    updated_at = NOW()
+                WHERE id = objective_id;
+                
+                -- Log the update
+                INSERT INTO okr_history (
+                    entity_id,
+                    entity_type,
+                    change_type,
+                    changed_by,
+                    new_data
+                ) VALUES (
+                    objective_id,
+                    'objective_progress_update',
+                    'progress_updated_success',
+                    auth.uid(),
+                    jsonb_build_object(
+                        'old_progress', v_old_progress,
+                        'new_progress', v_new_progress,
+                        'total_weight', v_total_weight,
+                        'weighted_progress', v_weighted_progress
+                    )
+                );
+            END;
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        -- Log any errors
+        GET STACKED DIAGNOSTICS v_error_message = MESSAGE_TEXT;
+        
+        INSERT INTO okr_history (
+            entity_id,
+            entity_type,
+            change_type,
+            changed_by,
+            previous_data
+        ) VALUES (
+            objective_id,
+            'objective_progress_error',
+            'calculation_error',
+            auth.uid(),
+            jsonb_build_object(
+                'error', v_error_message,
+                'calculation_type', 'single_objective'
+            )
+        );
+        
+        -- Continue without failing
+        RAISE WARNING 'Error calculating objective progress for objective %: %', objective_id, v_error_message;
+    END;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."calculate_objective_progress_for_single_objective"("objective_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."calculate_progress"("p_measurement_type" "text", "p_current_value" double precision, "p_start_value" double precision, "p_target_value" double precision, "p_boolean_value" boolean) RETURNS double precision
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+    v_progress float8;
+BEGIN
+    -- Calculate progress based on measurement type
+    CASE p_measurement_type
+        WHEN 'boolean' THEN
+            v_progress := CASE WHEN p_boolean_value THEN 100.0 ELSE 0.0 END;
+        ELSE
+            -- For numeric types, calculate percentage of progress
+            IF p_target_value = p_start_value THEN
+                v_progress := CASE WHEN p_current_value >= p_target_value THEN 100.0 ELSE 0.0 END;
+            ELSE
+                v_progress := ((p_current_value - p_start_value) / (p_target_value - p_start_value)) * 100.0;
+                -- Ensure progress is between 0-100
+                v_progress := GREATEST(0.0, LEAST(100.0, v_progress));
+            END IF;
+    END CASE;
+    
+    RETURN v_progress;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."calculate_progress"("p_measurement_type" "text", "p_current_value" double precision, "p_start_value" double precision, "p_target_value" double precision, "p_boolean_value" boolean) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."can_create_alignment"("p_user_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  v_is_admin BOOLEAN;
+  v_employee_role_id UUID;
+  v_can_create BOOLEAN := FALSE;
+BEGIN
+  -- Check if user is admin (admins always have permission)
+  SELECT EXISTS (
+    SELECT 1 
+    FROM user_roles 
+    WHERE user_id = p_user_id 
+    AND role = 'admin'
+  ) INTO v_is_admin;
+  
+  IF v_is_admin THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Get user's employee role
+  SELECT employee_role_id INTO v_employee_role_id
+  FROM profiles
+  WHERE id = p_user_id;
+  
+  -- If user has no employee role, they don't have permission
+  IF v_employee_role_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Check if the user's role is in any of the alignment permission arrays
+  -- or if the arrays are empty (which means anyone can create)
+  SELECT 
+    (
+      -- Either the array is empty (allows all)
+      array_length(can_create_alignments, 1) IS NULL OR
+      v_employee_role_id = ANY(can_create_alignments) OR
+      array_length(can_align_with_org_objectives, 1) IS NULL OR
+      v_employee_role_id = ANY(can_align_with_org_objectives) OR
+      array_length(can_align_with_dept_objectives, 1) IS NULL OR
+      v_employee_role_id = ANY(can_align_with_dept_objectives) OR
+      array_length(can_align_with_team_objectives, 1) IS NULL OR
+      v_employee_role_id = ANY(can_align_with_team_objectives)
+    )
+  INTO v_can_create
+  FROM okr_role_settings
+  LIMIT 1;
+  
+  RETURN COALESCE(v_can_create, FALSE);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."can_create_alignment"("p_user_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."can_create_alignment"("p_user_id" "uuid") IS 'Checks if a user has permission to create any type of alignment';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."can_create_alignment_by_visibility"("p_user_id" "uuid", "p_visibility" "text") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  v_is_admin BOOLEAN;
+  v_employee_role_id UUID;
+  v_can_create BOOLEAN := FALSE;
+  v_permission_array UUID[];
+BEGIN
+  -- Check if user is admin (admins always have permission)
+  SELECT EXISTS (
+    SELECT 1 
+    FROM user_roles 
+    WHERE user_id = p_user_id 
+    AND role = 'admin'
+  ) INTO v_is_admin;
+  
+  IF v_is_admin THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Get user's employee role
+  SELECT employee_role_id INTO v_employee_role_id
+  FROM profiles
+  WHERE id = p_user_id;
+  
+  -- If user has no employee role, they don't have permission
+  IF v_employee_role_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Get the appropriate permission array based on visibility
+  SELECT
+    CASE 
+      WHEN p_visibility = 'organization' THEN can_align_with_org_objectives
+      WHEN p_visibility = 'department' THEN can_align_with_dept_objectives
+      WHEN p_visibility = 'team' THEN can_align_with_team_objectives
+      ELSE can_create_alignments
+    END
+  INTO v_permission_array
+  FROM okr_role_settings
+  LIMIT 1;
+  
+  -- Check if the permission array is empty (anyone can create) or if the user's role is in it
+  RETURN array_length(v_permission_array, 1) IS NULL OR v_employee_role_id = ANY(v_permission_array);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."can_create_alignment_by_visibility"("p_user_id" "uuid", "p_visibility" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."can_create_alignment_by_visibility"("p_user_id" "uuid", "p_visibility" "text") IS 'Checks if a user has permission to create alignments with objectives of a specific visibility';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."can_create_key_result"("p_user_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  v_is_admin BOOLEAN;
+  v_employee_role_id UUID;
+  v_can_create BOOLEAN := FALSE;
+BEGIN
+  -- Check if user is admin (admins always have permission)
+  SELECT EXISTS (
+    SELECT 1 
+    FROM user_roles 
+    WHERE user_id = p_user_id 
+    AND role = 'admin'
+  ) INTO v_is_admin;
+  
+  IF v_is_admin THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Get user's employee role
+  SELECT employee_role_id INTO v_employee_role_id
+  FROM profiles
+  WHERE id = p_user_id;
+  
+  -- If user has no employee role, they don't have permission
+  IF v_employee_role_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Check if the user's role is in the key results permission array
+  -- or if the array is empty (which means anyone can create)
+  SELECT 
+    (
+      array_length(can_create_key_results, 1) IS NULL OR
+      v_employee_role_id = ANY(can_create_key_results)
+    )
+  INTO v_can_create
+  FROM okr_role_settings
+  LIMIT 1;
+  
+  RETURN COALESCE(v_can_create, FALSE);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."can_create_key_result"("p_user_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."can_create_key_result"("p_user_id" "uuid") IS 'Checks if a user has permission to create key results';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."can_create_objective"("p_user_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  v_is_admin BOOLEAN;
+  v_employee_role_id UUID;
+  v_can_create BOOLEAN := FALSE;
+BEGIN
+  -- Check if user is admin (admins always have permission)
+  SELECT EXISTS (
+    SELECT 1 
+    FROM user_roles 
+    WHERE user_id = p_user_id 
+    AND role = 'admin'
+  ) INTO v_is_admin;
+  
+  IF v_is_admin THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Get user's employee role
+  SELECT employee_role_id INTO v_employee_role_id
+  FROM profiles
+  WHERE id = p_user_id;
+  
+  -- If user has no employee role, they don't have permission
+  IF v_employee_role_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Check if the user's role is in any of the permission arrays
+  -- or if the arrays are empty (which means anyone can create)
+  SELECT 
+    (
+      -- Either the array is empty (allows all)
+      array_length(can_create_objectives, 1) IS NULL OR
+      v_employee_role_id = ANY(can_create_objectives) OR
+      array_length(can_create_org_objectives, 1) IS NULL OR
+      v_employee_role_id = ANY(can_create_org_objectives) OR
+      array_length(can_create_dept_objectives, 1) IS NULL OR
+      v_employee_role_id = ANY(can_create_dept_objectives) OR
+      array_length(can_create_team_objectives, 1) IS NULL OR
+      v_employee_role_id = ANY(can_create_team_objectives)
+    )
+  INTO v_can_create
+  FROM okr_role_settings
+  LIMIT 1;
+  
+  RETURN COALESCE(v_can_create, FALSE);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."can_create_objective"("p_user_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."can_create_objective"("p_user_id" "uuid") IS 'Checks if a user has permission to create any type of objective';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."can_create_objective_alignment"("p_user_id" "uuid", "p_source_objective_id" "uuid", "p_aligned_objective_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  v_is_admin BOOLEAN;
+  v_can_create_general BOOLEAN;
+  v_source_visibility TEXT;
+  v_aligned_visibility TEXT;
+  v_can_align_with_source BOOLEAN;
+  v_can_align_with_aligned BOOLEAN;
+BEGIN
+  -- Check if user is admin (admins always have permission)
+  SELECT EXISTS (
+    SELECT 1 
+    FROM user_roles 
+    WHERE user_id = p_user_id 
+    AND role = 'admin'
+  ) INTO v_is_admin;
+  
+  IF v_is_admin THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Check if user has general alignment creation permission
+  SELECT can_create_alignment(p_user_id) INTO v_can_create_general;
+  
+  IF NOT v_can_create_general THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Get visibility of both objectives
+  SELECT visibility INTO v_source_visibility
+  FROM objectives
+  WHERE id = p_source_objective_id;
+  
+  SELECT visibility INTO v_aligned_visibility
+  FROM objectives
+  WHERE id = p_aligned_objective_id;
+  
+  -- Check permission for each objective's visibility level
+  SELECT can_create_alignment_by_visibility(p_user_id, v_source_visibility) INTO v_can_align_with_source;
+  SELECT can_create_alignment_by_visibility(p_user_id, v_aligned_visibility) INTO v_can_align_with_aligned;
+  
+  -- User needs permission for both objectives
+  RETURN v_can_align_with_source AND v_can_align_with_aligned;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."can_create_objective_alignment"("p_user_id" "uuid", "p_source_objective_id" "uuid", "p_aligned_objective_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."can_create_objective_alignment"("p_user_id" "uuid", "p_source_objective_id" "uuid", "p_aligned_objective_id" "uuid") IS 'Checks if a user has permission to create an alignment between two specific objectives';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."can_create_objective_by_visibility"("p_user_id" "uuid", "p_visibility" "text") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  v_is_admin BOOLEAN;
+  v_employee_role_id UUID;
+  v_can_create BOOLEAN := FALSE;
+  v_permission_array UUID[];
+BEGIN
+  -- Check if user is admin (admins always have permission)
+  SELECT EXISTS (
+    SELECT 1 
+    FROM user_roles 
+    WHERE user_id = p_user_id 
+    AND role = 'admin'
+  ) INTO v_is_admin;
+  
+  IF v_is_admin THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Get user's employee role
+  SELECT employee_role_id INTO v_employee_role_id
+  FROM profiles
+  WHERE id = p_user_id;
+  
+  -- If user has no employee role, they don't have permission
+  IF v_employee_role_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Get the appropriate permission array based on visibility
+  SELECT
+    CASE 
+      WHEN p_visibility = 'organization' THEN can_create_org_objectives
+      WHEN p_visibility = 'department' THEN can_create_dept_objectives
+      WHEN p_visibility = 'team' THEN can_create_team_objectives
+      ELSE can_create_objectives
+    END
+  INTO v_permission_array
+  FROM okr_role_settings
+  LIMIT 1;
+  
+  -- Check if the permission array is empty (anyone can create) or if the user's role is in it
+  RETURN array_length(v_permission_array, 1) IS NULL OR v_employee_role_id = ANY(v_permission_array);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."can_create_objective_by_visibility"("p_user_id" "uuid", "p_visibility" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."can_create_objective_by_visibility"("p_user_id" "uuid", "p_visibility" "text") IS 'Checks if a user has permission to create objectives with a specific visibility';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."check_and_award_achievements"("p_user_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
     AS $$
 DECLARE
     v_last_submission timestamp with time zone;
@@ -550,6 +1341,178 @@ $$;
 ALTER FUNCTION "public"."check_and_award_achievements"("p_user_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."check_objective_owner_permission"("p_user_id" "uuid", "p_objective_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  v_is_admin BOOLEAN;
+  v_is_owner BOOLEAN;
+BEGIN
+  -- Check if user is admin
+  SELECT EXISTS (
+    SELECT 1 
+    FROM user_roles 
+    WHERE user_id = p_user_id 
+    AND role = 'admin'
+  ) INTO v_is_admin;
+  
+  IF v_is_admin THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Check if user is the owner of the objective
+  SELECT EXISTS (
+    SELECT 1 
+    FROM objectives 
+    WHERE id = p_objective_id 
+    AND owner_id = p_user_id
+  ) INTO v_is_owner;
+  
+  RETURN v_is_owner;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."check_objective_owner_permission"("p_user_id" "uuid", "p_objective_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."check_okr_create_permission"("p_user_id" "uuid", "p_permission_type" "text", "p_visibility" "text" DEFAULT NULL::"text") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  v_is_admin BOOLEAN;
+  v_employee_role_id UUID;
+  v_permission_array UUID[];
+BEGIN
+  -- Check if user is admin (admins always have permission)
+  SELECT EXISTS (
+    SELECT 1 
+    FROM user_roles 
+    WHERE user_id = p_user_id 
+    AND role = 'admin'
+  ) INTO v_is_admin;
+  
+  IF v_is_admin THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Get user's employee role
+  SELECT employee_role_id INTO v_employee_role_id
+  FROM profiles
+  WHERE id = p_user_id;
+  
+  -- If user has no employee role, they don't have permission
+  IF v_employee_role_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Get the appropriate permission array based on permission type and visibility
+  CASE 
+    WHEN p_permission_type = 'create_objectives' AND p_visibility IS NULL THEN
+      SELECT can_create_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
+    WHEN p_permission_type = 'create_objectives' AND p_visibility = 'organization' THEN
+      SELECT can_create_org_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
+    WHEN p_permission_type = 'create_objectives' AND p_visibility = 'department' THEN
+      SELECT can_create_dept_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
+    WHEN p_permission_type = 'create_objectives' AND p_visibility = 'team' THEN
+      SELECT can_create_team_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
+    WHEN p_permission_type = 'create_key_results' THEN
+      SELECT can_create_key_results INTO v_permission_array FROM okr_role_settings LIMIT 1;
+    WHEN p_permission_type = 'create_alignments' AND p_visibility IS NULL THEN
+      SELECT can_create_alignments INTO v_permission_array FROM okr_role_settings LIMIT 1;
+    WHEN p_permission_type = 'create_alignments' AND p_visibility = 'organization' THEN
+      SELECT can_align_with_org_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
+    WHEN p_permission_type = 'create_alignments' AND p_visibility = 'department' THEN
+      SELECT can_align_with_dept_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
+    WHEN p_permission_type = 'create_alignments' AND p_visibility = 'team' THEN
+      SELECT can_align_with_team_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
+    ELSE
+      RETURN FALSE;
+  END CASE;
+  
+  -- Check if the user's role is in the permission array
+  -- Empty array means no restrictions (all roles have permission)
+  RETURN array_length(v_permission_array, 1) IS NULL OR v_employee_role_id = ANY(v_permission_array);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."check_okr_create_permission"("p_user_id" "uuid", "p_permission_type" "text", "p_visibility" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."check_okr_create_permission"("p_user_id" "uuid", "p_permission_type" "text", "p_visibility" "text") IS 'Checks if a user has permission to perform specific OKR actions based on employee role';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."check_okr_objective_access"("p_user_id" "uuid", "p_objective_id" "uuid", "p_access_type" "text") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    v_profile RECORD;
+    v_has_access BOOLEAN;
+BEGIN
+    -- Get user profile information with admin status
+    SELECT 
+        p.*,
+        EXISTS (
+            SELECT 1 FROM user_roles ur 
+            WHERE ur.user_id = p_user_id 
+            AND ur.role = 'admin'
+        ) as is_admin
+    INTO v_profile
+    FROM profiles p
+    WHERE p.id = p_user_id;
+
+    -- Admins always have access
+    IF v_profile.is_admin THEN
+        RETURN TRUE;
+    END IF;
+
+    -- Check if user is the owner of the objective
+    SELECT EXISTS (
+        SELECT 1 FROM objectives o
+        WHERE o.id = p_objective_id
+        AND o.owner_id = p_user_id
+    ) INTO v_has_access;
+    
+    IF v_has_access THEN
+        RETURN TRUE;
+    END IF;
+
+    -- Check if user has explicit permission via okr_permissions
+    SELECT EXISTS (
+        SELECT 1
+        FROM okr_permissions op
+        WHERE op.objective_id = p_objective_id
+        AND (
+            -- User directly listed in user_ids
+            (p_user_id = ANY(op.user_ids))
+            OR
+            -- User's SBU listed in sbu_ids
+            (EXISTS (
+                SELECT 1 FROM user_sbus us 
+                WHERE us.user_id = p_user_id 
+                AND us.sbu_id = ANY(op.sbu_ids)
+            ))
+            OR
+            -- User's role listed in employee_role_ids
+            (v_profile.employee_role_id = ANY(op.employee_role_ids))
+        )
+        AND (
+            (p_access_type = 'view' AND op.can_view = TRUE) OR
+            (p_access_type = 'edit' AND op.can_edit = TRUE) OR
+            (p_access_type = 'comment' AND op.can_comment = TRUE)
+        )
+    ) INTO v_has_access;
+
+    RETURN v_has_access;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."check_okr_objective_access"("p_user_id" "uuid", "p_objective_id" "uuid", "p_access_type" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."check_user_board_access"("p_user_id" "uuid", "p_board_id" "uuid", "p_access_type" "text") RETURNS boolean
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -609,43 +1572,174 @@ $$;
 ALTER FUNCTION "public"."check_user_board_access"("p_user_id" "uuid", "p_board_id" "uuid", "p_access_type" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."cleanup_campaign_cron_jobs"("p_campaign_id" "uuid") RETURNS "void"
+CREATE OR REPLACE FUNCTION "public"."create_next_campaign_instance"("p_campaign_id" "uuid") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 DECLARE
-    v_job RECORD;
+    v_campaign RECORD;
+    v_last_instance RECORD;
+    v_next_period INTEGER;
+    v_next_start TIMESTAMPTZ;
+    v_next_end TIMESTAMPTZ;
+    v_next_instance_id UUID;
+    v_frequency TEXT;
+    v_duration_days INTEGER;
+    v_instance_end_time TIMESTAMPTZ;
 BEGIN
-    -- Unschedule all jobs for this campaign
-    FOR v_job IN 
-        SELECT * FROM campaign_cron_jobs 
-        WHERE campaign_id = p_campaign_id
-        AND is_active = true
-    LOOP
-        PERFORM cron.unschedule(v_job.job_name);
-        
-        -- Log successful cleanup
-        INSERT INTO campaign_cron_job_logs (
-            campaign_id,
-            job_name,
-            status
-        ) VALUES (
-            p_campaign_id,
-            v_job.job_name,
-            'CLEANUP_SUCCESS'
-        );
-    END LOOP;
+    -- Get campaign information
+    SELECT 
+        is_recurring,
+        recurring_frequency,
+        instance_duration_days,
+        instance_end_time
+    INTO v_campaign
+    FROM survey_campaigns
+    WHERE id = p_campaign_id;
     
-    -- Mark all jobs as inactive
-    UPDATE campaign_cron_jobs
-    SET 
-        is_active = false,
-        updated_at = timezone('utc', NOW())
-    WHERE campaign_id = p_campaign_id;
+    -- If campaign doesn't exist, raise an error
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Campaign with ID % not found', p_campaign_id;
+    END IF;
+    
+    -- Get the last instance for this campaign
+    SELECT 
+        id,
+        period_number,
+        starts_at,
+        ends_at
+    INTO v_last_instance
+    FROM campaign_instances
+    WHERE campaign_id = p_campaign_id
+    ORDER BY period_number DESC
+    LIMIT 1;
+    
+    -- If no instances exist yet, raise an exception (should never happen)
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'No existing instances found for campaign %', p_campaign_id;
+    END IF;
+    
+    -- Calculate next period number
+    v_next_period := v_last_instance.period_number + 1;
+    
+    -- Store campaign properties in local variables for clarity
+    v_frequency := v_campaign.recurring_frequency;
+    v_duration_days := COALESCE(v_campaign.instance_duration_days, 7); -- Default to 7 days if not set
+    v_instance_end_time := v_campaign.instance_end_time;
+    
+    -- Calculate next start date based on the last instance's start date and the campaign's frequency
+    CASE v_frequency
+        WHEN 'daily' THEN
+            v_next_start := v_last_instance.starts_at + INTERVAL '1 day';
+        WHEN 'weekly' THEN
+            v_next_start := v_last_instance.starts_at + INTERVAL '7 days';
+        WHEN 'monthly' THEN
+            -- For monthly, we add 1 month while preserving the day of month if possible
+            v_next_start := (
+                date_trunc('month', v_last_instance.starts_at) + INTERVAL '1 month' + 
+                (EXTRACT(DAY FROM v_last_instance.starts_at) - 1) * INTERVAL '1 day'
+            )::TIMESTAMPTZ;
+            
+            -- If we went past the end of month, adjust to the last day of the target month
+            IF EXTRACT(MONTH FROM v_next_start) <> EXTRACT(MONTH FROM date_trunc('month', v_next_start)) THEN
+                v_next_start := date_trunc('month', v_next_start + INTERVAL '1 month') - INTERVAL '1 day';
+            END IF;
+            
+            -- Preserve the time component
+            v_next_start := v_next_start + 
+                EXTRACT(HOUR FROM v_last_instance.starts_at) * INTERVAL '1 hour' +
+                EXTRACT(MINUTE FROM v_last_instance.starts_at) * INTERVAL '1 minute' +
+                EXTRACT(SECOND FROM v_last_instance.starts_at) * INTERVAL '1 second';
+            
+        WHEN 'quarterly' THEN
+            -- For quarterly, we add 3 months while preserving the day of month if possible
+            v_next_start := (
+                date_trunc('month', v_last_instance.starts_at) + INTERVAL '3 month' + 
+                (EXTRACT(DAY FROM v_last_instance.starts_at) - 1) * INTERVAL '1 day'
+            )::TIMESTAMPTZ;
+            
+            -- If we went past the end of month, adjust to the last day of the target month
+            IF EXTRACT(MONTH FROM v_next_start) <> EXTRACT(MONTH FROM date_trunc('month', v_next_start)) THEN
+                v_next_start := date_trunc('month', v_next_start + INTERVAL '1 month') - INTERVAL '1 day';
+            END IF;
+            
+            -- Preserve the time component
+            v_next_start := v_next_start + 
+                EXTRACT(HOUR FROM v_last_instance.starts_at) * INTERVAL '1 hour' +
+                EXTRACT(MINUTE FROM v_last_instance.starts_at) * INTERVAL '1 minute' +
+                EXTRACT(SECOND FROM v_last_instance.starts_at) * INTERVAL '1 second';
+            
+        WHEN 'yearly' THEN
+            -- For yearly, we add 1 year while preserving the month and day if possible
+            v_next_start := (
+                date_trunc('year', v_last_instance.starts_at) + INTERVAL '1 year' + 
+                (EXTRACT(DAY FROM v_last_instance.starts_at) - 1) * INTERVAL '1 day' +
+                (EXTRACT(MONTH FROM v_last_instance.starts_at) - 1) * INTERVAL '1 month'
+            )::TIMESTAMPTZ;
+            
+            -- Check if we landed on a valid day (for Feb 29 in leap years)
+            IF EXTRACT(MONTH FROM v_next_start) <> EXTRACT(MONTH FROM v_last_instance.starts_at) THEN
+                -- Adjust to the last day of the target month
+                v_next_start := (
+                    date_trunc('month', (
+                        date_trunc('year', v_last_instance.starts_at) + INTERVAL '1 year' +
+                        (EXTRACT(MONTH FROM v_last_instance.starts_at) - 1) * INTERVAL '1 month'
+                    )) + INTERVAL '1 month' - INTERVAL '1 day'
+                )::TIMESTAMPTZ;
+            END IF;
+            
+            -- Preserve the time component
+            v_next_start := v_next_start + 
+                EXTRACT(HOUR FROM v_last_instance.starts_at) * INTERVAL '1 hour' +
+                EXTRACT(MINUTE FROM v_last_instance.starts_at) * INTERVAL '1 minute' +
+                EXTRACT(SECOND FROM v_last_instance.starts_at) * INTERVAL '1 second';
+            
+        ELSE
+            -- For custom or unrecognized frequency, default to adding the duration days
+            v_next_start := v_last_instance.starts_at + (v_duration_days * INTERVAL '1 day');
+    END CASE;
+    
+    -- Calculate end date based on duration and end time
+    IF v_instance_end_time IS NOT NULL THEN
+        -- Use the instance end time but on the end date calculated from duration
+        v_next_end := date_trunc('day', v_next_start + (v_duration_days * INTERVAL '1 day')) +
+                      EXTRACT(HOUR FROM v_instance_end_time) * INTERVAL '1 hour' +
+                      EXTRACT(MINUTE FROM v_instance_end_time) * INTERVAL '1 minute' +
+                      EXTRACT(SECOND FROM v_instance_end_time) * INTERVAL '1 second';
+    ELSE
+        -- If no specific end time, just add the duration days to the start date
+        v_next_end := v_next_start + (v_duration_days * INTERVAL '1 day');
+    END IF;
+    
+    -- Insert the new instance
+    INSERT INTO campaign_instances (
+        campaign_id,
+        period_number,
+        starts_at,
+        ends_at,
+        status
+    ) VALUES (
+        p_campaign_id,
+        v_next_period,
+        v_next_start,
+        v_next_end,
+        CASE 
+            WHEN v_next_start <= NOW() AND v_next_end > NOW() THEN 'active'::instance_status
+            WHEN v_next_start > NOW() THEN 'upcoming'::instance_status
+            ELSE 'completed'::instance_status
+        END
+    ) RETURNING id INTO v_next_instance_id;
+    
+    -- Return the ID of the newly created instance
+    RETURN v_next_instance_id;
 END;
 $$;
 
 
-ALTER FUNCTION "public"."cleanup_campaign_cron_jobs"("p_campaign_id" "uuid") OWNER TO "postgres";
+ALTER FUNCTION "public"."create_next_campaign_instance"("p_campaign_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."create_next_campaign_instance"("p_campaign_id" "uuid") IS 'Creates the next campaign instance based on the last instance, considering the campaign frequency and duration settings';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."decrement_vote_count"("issue_id" "uuid") RETURNS "void"
@@ -874,6 +1968,120 @@ $$;
 ALTER FUNCTION "public"."delete_user_cascade"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."drop_and_recreate_question_responses_function"() RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $_$
+BEGIN
+    -- Drop the function if it exists
+    DROP FUNCTION IF EXISTS public.get_instance_question_responses(uuid, uuid);
+    
+    -- Recreate the function with the new signature
+    CREATE OR REPLACE FUNCTION public.get_instance_question_responses(
+        p_campaign_id UUID,
+        p_instance_id UUID
+    )
+    RETURNS TABLE(
+        campaign_instance_id UUID,
+        response_count INTEGER,
+        avg_numeric_value NUMERIC,
+        yes_percentage NUMERIC,
+        question_key TEXT,
+        text_responses TEXT[]
+    )
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+    AS $func$
+    BEGIN
+        RETURN QUERY
+        WITH survey_questions AS (
+            -- Get questions from survey data
+            SELECT 
+                q.value->>'name' AS question_key,
+                q.value->>'type' AS question_type
+            FROM 
+                survey_campaigns sc
+                JOIN surveys s ON s.id = sc.survey_id,
+                jsonb_array_elements(s.json_data->'pages') as pages,
+                jsonb_array_elements(pages->'elements') as q
+            WHERE 
+                sc.id = p_campaign_id
+                AND q.value->>'name' IS NOT NULL
+        ),
+        response_data AS (
+            -- Get responses for the instance
+            SELECT 
+                sr.campaign_instance_id,
+                sr.response_data
+            FROM 
+                survey_responses sr
+                JOIN survey_assignments sa ON sr.assignment_id = sa.id
+            WHERE 
+                sa.campaign_id = p_campaign_id
+                AND sr.campaign_instance_id = p_instance_id
+                AND sr.status = 'submitted'
+        ),
+        processed_responses AS (
+            -- Process each response by question type
+            SELECT 
+                rd.campaign_instance_id,
+                sq.question_key,
+                sq.question_type,
+                rd.response_data->>sq.question_key AS response_value
+            FROM 
+                survey_questions sq
+                CROSS JOIN response_data rd
+            WHERE 
+                rd.response_data ? sq.question_key
+                AND rd.response_data->>sq.question_key IS NOT NULL
+        )
+        -- Final aggregation
+        SELECT
+            pr.campaign_instance_id,
+            COUNT(*)::INTEGER AS response_count,
+            -- Handle rating questions
+            CASE 
+                WHEN pr.question_type = 'rating' 
+                AND pr.response_value ~ '^[0-9]+(\.[0-9]+)?$'
+                THEN AVG(pr.response_value::NUMERIC)
+                ELSE NULL 
+            END AS avg_numeric_value,
+            -- Handle boolean questions
+            CASE 
+                WHEN pr.question_type = 'boolean' 
+                THEN (
+                    SUM(
+                        CASE 
+                            WHEN LOWER(pr.response_value) IN ('true', '1', 'yes') THEN 1 
+                            ELSE 0 
+                        END
+                    )::NUMERIC / COUNT(*)::NUMERIC * 100
+                )
+                ELSE NULL 
+            END AS yes_percentage,
+            pr.question_key,
+            -- Handle text responses
+            CASE 
+                WHEN pr.question_type IN ('text', 'comment') 
+                THEN array_remove(array_agg(pr.response_value), NULL)
+                ELSE NULL 
+            END AS text_responses
+        FROM 
+            processed_responses pr
+        GROUP BY 
+            pr.campaign_instance_id,
+            pr.question_key,
+            pr.question_type
+        ORDER BY 
+            pr.question_key;
+    END;
+    $func$;
+END;
+$_$;
+
+
+ALTER FUNCTION "public"."drop_and_recreate_question_responses_function"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."fix_all_instance_completion_rates"() RETURNS "void"
     LANGUAGE "plpgsql"
     AS $$
@@ -893,137 +2101,6 @@ $$;
 
 
 ALTER FUNCTION "public"."fix_all_instance_completion_rates"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."fix_missing_campaign_jobs"() RETURNS "void"
-    LANGUAGE "plpgsql"
-    AS $$
-DECLARE
-    v_campaign RECORD;
-BEGIN
-    FOR v_campaign IN 
-        SELECT id 
-        FROM survey_campaigns 
-        WHERE status = 'active' 
-        AND NOT EXISTS (
-            SELECT 1 
-            FROM campaign_cron_jobs 
-            WHERE campaign_id = survey_campaigns.id
-        )
-    LOOP
-        BEGIN
-            PERFORM schedule_campaign_jobs(v_campaign.id);
-        EXCEPTION WHEN OTHERS THEN
-            -- Log error but continue with next campaign
-            RAISE NOTICE 'Failed to schedule jobs for campaign %: %', v_campaign.id, SQLERRM;
-        END;
-    END LOOP;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."fix_missing_campaign_jobs"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."generate_campaign_cron_schedule"("p_timestamp" timestamp with time zone, "p_recurring_frequency" "text", "p_job_type" "public"."cron_job_type") RETURNS "text"
-    LANGUAGE "plpgsql"
-    AS $$
-DECLARE
-    v_minute INT;
-    v_hour INT;
-    v_schedule text;
-BEGIN    
-    -- Extract time components from the timestamp
-    v_minute := EXTRACT(MINUTE FROM p_timestamp);
-    v_hour := EXTRACT(HOUR FROM p_timestamp);
-    
-    CASE p_job_type
-        WHEN 'instance_activation' THEN
-            -- Schedule based on frequency using the start time
-            CASE p_recurring_frequency
-                WHEN 'daily' THEN
-                    v_schedule := format('%s %s * * *', v_minute, v_hour);
-                WHEN 'weekly' THEN
-                    v_schedule := format('%s %s * * %s', 
-                        v_minute, 
-                        v_hour,
-                        EXTRACT(DOW FROM p_timestamp)
-                    );
-                WHEN 'monthly' THEN
-                    v_schedule := format('%s %s %s * *', 
-                        v_minute, 
-                        v_hour, 
-                        EXTRACT(DAY FROM p_timestamp)
-                    );
-                WHEN 'quarterly' THEN
-                    v_schedule := format('%s %s %s %s *',
-                        v_minute,
-                        v_hour,
-                        EXTRACT(DAY FROM p_timestamp),
-                        array_to_string(ARRAY[1,4,7,10], ',')
-                    );
-                WHEN 'yearly' THEN
-                    v_schedule := format('%s %s %s %s *',
-                        v_minute,
-                        v_hour,
-                        EXTRACT(DAY FROM p_timestamp),
-                        EXTRACT(MONTH FROM p_timestamp)
-                    );
-                ELSE
-                    v_schedule := format('%s %s * * *', v_minute, v_hour);
-            END CASE;
-            
-        WHEN 'instance_due_time' THEN
-            -- Use the same frequency logic as instance activation
-            CASE p_recurring_frequency
-                WHEN 'daily' THEN
-                    v_schedule := format('%s %s * * *', v_minute, v_hour);
-                WHEN 'weekly' THEN
-                    v_schedule := format('%s %s * * %s', 
-                        v_minute, 
-                        v_hour,
-                        EXTRACT(DOW FROM p_timestamp)
-                    );
-                WHEN 'monthly' THEN
-                    v_schedule := format('%s %s %s * *', 
-                        v_minute, 
-                        v_hour, 
-                        EXTRACT(DAY FROM p_timestamp)
-                    );
-                WHEN 'quarterly' THEN
-                    v_schedule := format('%s %s %s %s *',
-                        v_minute,
-                        v_hour,
-                        EXTRACT(DAY FROM p_timestamp),
-                        array_to_string(ARRAY[1,4,7,10], ',')
-                    );
-                WHEN 'yearly' THEN
-                    v_schedule := format('%s %s %s %s *',
-                        v_minute,
-                        v_hour,
-                        EXTRACT(DAY FROM p_timestamp),
-                        EXTRACT(MONTH FROM p_timestamp)
-                    );
-                ELSE
-                    v_schedule := format('%s %s * * *', v_minute, v_hour);
-            END CASE;
-            
-        WHEN 'campaign_end' THEN
-            -- Use the campaign end time directly
-            v_schedule := format('%s %s %s %s *',
-                v_minute,
-                v_hour,
-                EXTRACT(DAY FROM p_timestamp),
-                EXTRACT(MONTH FROM p_timestamp)
-            );
-    END CASE;
-    
-    RETURN v_schedule;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."generate_campaign_cron_schedule"("p_timestamp" timestamp with time zone, "p_recurring_frequency" "text", "p_job_type" "public"."cron_job_type") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."generate_initial_instances"() RETURNS "trigger"
@@ -1496,6 +2573,270 @@ $$;
 ALTER FUNCTION "public"."get_campaign_instance_status_distribution"("p_campaign_id" "uuid", "p_instance_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."get_campaign_instances"("p_campaign_id" "uuid", "p_start_date_min" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_start_date_max" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_end_date_min" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_end_date_max" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_status" "text"[] DEFAULT NULL::"text"[], "p_sort_by" "text" DEFAULT 'period_number'::"text", "p_sort_direction" "text" DEFAULT 'asc'::"text", "p_page" integer DEFAULT 1, "p_page_size" integer DEFAULT 10) RETURNS TABLE("id" "uuid", "campaign_id" "uuid", "period_number" integer, "starts_at" timestamp with time zone, "ends_at" timestamp with time zone, "status" "text", "completion_rate" numeric, "created_at" timestamp with time zone, "updated_at" timestamp with time zone, "total_count" bigint)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $_$
+DECLARE
+  v_offset INTEGER := (p_page - 1) * p_page_size;
+  v_sort_sql TEXT;
+  v_status_filter TEXT;
+BEGIN
+  -- Validate sort_by parameter
+  IF p_sort_by NOT IN ('period_number', 'starts_at', 'ends_at', 'status', 'completion_rate', 'created_at', 'updated_at') THEN
+    RAISE EXCEPTION 'Invalid sort_by parameter: %', p_sort_by;
+  END IF;
+
+  -- Validate sort_direction parameter
+  IF p_sort_direction NOT IN ('asc', 'desc') THEN
+    RAISE EXCEPTION 'Invalid sort_direction parameter: %', p_sort_direction;
+  END IF;
+
+  -- Convert status array to string for filtering if provided
+  IF p_status IS NOT NULL AND array_length(p_status, 1) > 0 THEN
+    v_status_filter := ' AND status::TEXT = ANY($7)';
+  ELSE
+    v_status_filter := '';
+  END IF;
+
+  -- Construct the basic query
+  RETURN QUERY EXECUTE 
+  'SELECT 
+    ci.id,
+    ci.campaign_id,
+    ci.period_number,
+    ci.starts_at,
+    ci.ends_at,
+    ci.status::TEXT,
+    ci.completion_rate,
+    ci.created_at,
+    ci.updated_at,
+    COUNT(*) OVER() AS total_count
+  FROM campaign_instances ci
+  WHERE ci.campaign_id = $1
+    AND ($2 IS NULL OR ci.starts_at >= $2)
+    AND ($3 IS NULL OR ci.starts_at <= $3)
+    AND ($4 IS NULL OR ci.ends_at >= $4)
+    AND ($5 IS NULL OR ci.ends_at <= $5)'
+    || v_status_filter ||
+  ' ORDER BY ' || p_sort_by || ' ' || p_sort_direction || '
+  LIMIT $8
+  OFFSET $9'
+  USING 
+    p_campaign_id, 
+    p_start_date_min, 
+    p_start_date_max, 
+    p_end_date_min, 
+    p_end_date_max, 
+    p_page_size, 
+    p_status, 
+    p_page_size, 
+    v_offset;
+END;
+$_$;
+
+
+ALTER FUNCTION "public"."get_campaign_instances"("p_campaign_id" "uuid", "p_start_date_min" timestamp with time zone, "p_start_date_max" timestamp with time zone, "p_end_date_min" timestamp with time zone, "p_end_date_max" timestamp with time zone, "p_status" "text"[], "p_sort_by" "text", "p_sort_direction" "text", "p_page" integer, "p_page_size" integer) OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."get_campaign_instances"("p_campaign_id" "uuid", "p_start_date_min" timestamp with time zone, "p_start_date_max" timestamp with time zone, "p_end_date_min" timestamp with time zone, "p_end_date_max" timestamp with time zone, "p_status" "text"[], "p_sort_by" "text", "p_sort_direction" "text", "p_page" integer, "p_page_size" integer) IS 'Returns paginated and filtered campaign instances with sorting options';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."get_campaign_sbu_performance"("p_campaign_id" "uuid", "p_instance_id" "uuid") RETURNS TABLE("rank" integer, "sbu_name" "text", "total_assigned" integer, "total_completed" integer, "avg_score" double precision, "completion_rate" double precision)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $_$
+BEGIN
+  RETURN QUERY
+  WITH 
+  -- Get all assignments for the campaign
+  assignments AS (
+    SELECT 
+      sa.id AS assignment_id,
+      sa.user_id,
+      us.sbu_id,
+      s.name AS sbu_name,
+      CASE WHEN sr.id IS NOT NULL AND sr.status = 'submitted' THEN 1 ELSE 0 END AS is_completed
+    FROM survey_assignments sa
+    JOIN user_sbus us ON us.user_id = sa.user_id AND us.is_primary = true
+    JOIN sbus s ON s.id = us.sbu_id
+    LEFT JOIN survey_responses sr ON sr.assignment_id = sa.id 
+                                 AND sr.campaign_instance_id = p_instance_id
+                                 AND sr.status = 'submitted'
+    WHERE sa.campaign_id = p_campaign_id
+  ),
+  -- Extract rating values and compute average per SBU
+  -- Specifically for 1-5 scale rating questions
+  ratings AS (
+    SELECT 
+      us.sbu_id,
+      AVG(r.value::FLOAT) AS avg_rating
+    FROM survey_responses sr
+    -- Re-join these tables within the ratings CTE
+    JOIN survey_assignments sa_inner ON sr.assignment_id = sa_inner.id
+    JOIN user_sbus us ON us.user_id = sa_inner.user_id AND us.is_primary = true
+    -- Join with surveys to get question types
+    JOIN survey_campaigns sc ON sc.id = p_campaign_id
+    JOIN surveys s ON s.id = sc.survey_id,
+    LATERAL jsonb_each_text(sr.response_data) AS r(key, value),
+    LATERAL jsonb_array_elements(s.json_data->'pages') AS page,
+    LATERAL jsonb_array_elements(page->'elements') AS question
+    WHERE sr.campaign_instance_id = p_instance_id
+      AND sr.status = 'submitted'
+      AND r.value ~ '^\d+(\.\d+)?$'  -- Ensure the value is numeric
+      AND question->>'type' = 'rating'  -- Ensure it's a rating question
+      AND (
+        (question->>'rateMax' IS NULL) OR  -- Default 1-5 scale when not specified
+        (question->>'rateMax' = '5')       -- Explicitly 1-5 scale
+      )
+      AND r.key = question->>'name'        -- Match response key to question name
+      AND r.value::FLOAT BETWEEN 1 AND 5     -- Additional validation for range
+    GROUP BY us.sbu_id
+  ),
+  -- Aggregate stats by SBU
+  sbu_stats AS (
+    SELECT 
+      a.sbu_id,
+      a.sbu_name,
+      COUNT(DISTINCT a.assignment_id) AS total_assigned,
+      SUM(a.is_completed)::INTEGER AS total_completed,
+      COALESCE(r.avg_rating, 0) AS avg_score,
+      CASE 
+        WHEN COUNT(DISTINCT a.assignment_id) > 0 
+        THEN (SUM(a.is_completed)::FLOAT / COUNT(DISTINCT a.assignment_id)::FLOAT) * 100
+        ELSE 0
+      END AS completion_rate
+    FROM assignments a
+    LEFT JOIN ratings r ON r.sbu_id = a.sbu_id
+    GROUP BY a.sbu_id, a.sbu_name, r.avg_rating
+  )
+  -- Rank SBUs by average score
+  SELECT 
+    ROW_NUMBER() OVER (ORDER BY ss.avg_score DESC)::INTEGER AS rank,
+    ss.sbu_name,
+    ss.total_assigned::INTEGER,
+    ss.total_completed::INTEGER,
+    ss.avg_score,
+    ss.completion_rate
+  FROM sbu_stats ss
+  WHERE ss.total_assigned > 0
+  ORDER BY ss.avg_score DESC, ss.total_completed DESC;
+END;
+$_$;
+
+
+ALTER FUNCTION "public"."get_campaign_sbu_performance"("p_campaign_id" "uuid", "p_instance_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."get_campaign_sbu_performance"("p_campaign_id" "uuid", "p_instance_id" "uuid") IS 'Returns performance metrics for top SBUs in a campaign instance, ranked by average rating score.';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."get_campaign_supervisor_performance"("p_campaign_id" "uuid", "p_instance_id" "uuid") RETURNS TABLE("rank" integer, "supervisor_name" "text", "sbu_name" "text", "total_assigned" integer, "total_completed" integer, "avg_score" double precision, "completion_rate" double precision)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $_$
+BEGIN
+  RETURN QUERY
+  WITH 
+  -- Get all assignments for the campaign with supervisor information
+  assignments AS (
+    SELECT 
+      sa.id AS assignment_id,
+      sa.user_id,
+      usup.supervisor_id,
+      CONCAT(sup.first_name, ' ', sup.last_name) AS supervisor_name,
+      us.sbu_id,
+      s.name AS sbu_name,
+      CASE WHEN sr.id IS NOT NULL AND sr.status = 'submitted' THEN 1 ELSE 0 END AS is_completed
+    FROM survey_assignments sa
+    -- Join to get the user's primary supervisor
+    JOIN user_supervisors usup ON usup.user_id = sa.user_id AND usup.is_primary = true
+    JOIN profiles sup ON sup.id = usup.supervisor_id
+    -- Join to get the user's primary SBU
+    JOIN user_sbus us ON us.user_id = sa.user_id AND us.is_primary = true
+    JOIN sbus s ON s.id = us.sbu_id
+    -- Join to check if there's a submitted response
+    LEFT JOIN survey_responses sr ON sr.assignment_id = sa.id 
+                                 AND sr.campaign_instance_id = p_instance_id
+                                 AND sr.status = 'submitted'
+    WHERE sa.campaign_id = p_campaign_id
+  ),
+  -- Extract rating values and compute average per supervisor
+  ratings AS (
+    SELECT 
+      usup.supervisor_id,
+      AVG(r.value::FLOAT) AS avg_rating
+    FROM survey_responses sr
+    -- Re-join these tables within the ratings CTE
+    JOIN survey_assignments sa_inner ON sr.assignment_id = sa_inner.id
+    JOIN user_supervisors usup ON usup.user_id = sa_inner.user_id AND usup.is_primary = true
+    -- Join with surveys to get question types
+    JOIN survey_campaigns sc ON sc.id = p_campaign_id
+    JOIN surveys s ON s.id = sc.survey_id,
+    LATERAL jsonb_each_text(sr.response_data) AS r(key, value),
+    LATERAL jsonb_array_elements(s.json_data->'pages') AS page,
+    LATERAL jsonb_array_elements(page->'elements') AS question
+    WHERE sr.campaign_instance_id = p_instance_id
+      AND sr.status = 'submitted'
+      AND r.value ~ '^\d+(\.\d+)?$'  -- Ensure the value is numeric
+      AND question->>'type' = 'rating'  -- Ensure it's a rating question
+      AND (
+        (question->>'rateMax' IS NULL) OR  -- Default 1-5 scale when not specified
+        (question->>'rateMax' = '5')       -- Explicitly 1-5 scale
+      )
+      AND r.key = question->>'name'        -- Match response key to question name
+      AND r.value::FLOAT BETWEEN 1 AND 5   -- Additional validation for range
+    GROUP BY usup.supervisor_id
+  ),
+  -- Get supervisor's primary SBU
+  supervisor_sbu AS (
+    SELECT
+      p.id AS supervisor_id,
+      s.name AS supervisor_sbu_name
+    FROM profiles p
+    JOIN user_sbus us ON us.user_id = p.id AND us.is_primary = true
+    JOIN sbus s ON s.id = us.sbu_id
+  ),
+  -- Aggregate stats by supervisor
+  supervisor_stats AS (
+    SELECT 
+      a.supervisor_id,
+      MAX(a.supervisor_name) AS supervisor_name,
+      COALESCE(ss.supervisor_sbu_name, 'Unknown SBU') AS sbu_name,
+      COUNT(DISTINCT a.assignment_id) AS total_assigned,
+      SUM(a.is_completed)::INTEGER AS total_completed,
+      COALESCE(r.avg_rating, 0) AS avg_score,
+      CASE 
+        WHEN COUNT(DISTINCT a.assignment_id) > 0 
+        THEN (SUM(a.is_completed)::FLOAT / COUNT(DISTINCT a.assignment_id)::FLOAT) * 100
+        ELSE 0
+      END AS completion_rate
+    FROM assignments a
+    LEFT JOIN ratings r ON r.supervisor_id = a.supervisor_id
+    LEFT JOIN supervisor_sbu ss ON ss.supervisor_id = a.supervisor_id
+    GROUP BY a.supervisor_id, ss.supervisor_sbu_name, r.avg_rating
+  )
+  -- Rank supervisors by average score
+  SELECT 
+    ROW_NUMBER() OVER (ORDER BY ss.avg_score DESC)::INTEGER AS rank,
+    ss.supervisor_name,
+    ss.sbu_name,
+    ss.total_assigned::INTEGER,
+    ss.total_completed::INTEGER,
+    ss.avg_score,
+    ss.completion_rate
+  FROM supervisor_stats ss
+  WHERE ss.total_assigned > 4;
+END;
+$_$;
+
+
+ALTER FUNCTION "public"."get_campaign_supervisor_performance"("p_campaign_id" "uuid", "p_instance_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."get_campaign_supervisor_performance"("p_campaign_id" "uuid", "p_instance_id" "uuid") IS 'Returns performance metrics for top supervisors in a campaign instance, ranked by average rating score';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."get_instance_analysis_data"("p_campaign_id" "uuid", "p_instance_id" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql"
     AS $$
@@ -1754,6 +3095,96 @@ $$;
 ALTER FUNCTION "public"."get_instance_assignment_status"("p_assignment_id" "uuid", "p_instance_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."get_instance_question_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") RETURNS TABLE("campaign_instance_id" "uuid", "response_count" integer, "avg_numeric_value" numeric, "yes_percentage" numeric, "question_key" "text", "text_responses" "text"[])
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $_$
+BEGIN
+    RETURN QUERY
+    WITH survey_questions AS (
+        -- Get questions from survey data
+        SELECT 
+            q.value->>'name' AS question_key,
+            q.value->>'type' AS question_type
+        FROM 
+            survey_campaigns sc
+            JOIN surveys s ON s.id = sc.survey_id,
+            jsonb_array_elements(s.json_data->'pages') as pages,
+            jsonb_array_elements(pages->'elements') as q
+        WHERE 
+            sc.id = p_campaign_id
+            AND q.value->>'name' IS NOT NULL
+    ),
+    response_data AS (
+        -- Get responses for the instance
+        SELECT 
+            sr.campaign_instance_id,
+            sr.response_data
+        FROM 
+            survey_responses sr
+            JOIN survey_assignments sa ON sr.assignment_id = sa.id
+        WHERE 
+            sa.campaign_id = p_campaign_id
+            AND sr.campaign_instance_id = p_instance_id
+            AND sr.status = 'submitted'
+    )
+    -- Final aggregation
+    SELECT
+        rd.campaign_instance_id,
+        COUNT(*)::INTEGER AS response_count,
+        -- Handle rating questions
+        CASE 
+            WHEN sq.question_type = 'rating' 
+            THEN AVG(
+                CASE 
+                    WHEN (rd.response_data->>sq.question_key) ~ '^[0-9]+(\.[0-9]+)?$'
+                    THEN (rd.response_data->>sq.question_key)::NUMERIC
+                    ELSE NULL
+                END
+            )
+            ELSE NULL 
+        END AS avg_numeric_value,
+        -- Handle boolean questions
+        CASE 
+            WHEN sq.question_type = 'boolean' 
+            THEN (
+                SUM(
+                    CASE 
+                        WHEN LOWER(rd.response_data->>sq.question_key) IN ('true', '1', 'yes') THEN 1 
+                        ELSE 0 
+                    END
+                )::NUMERIC / NULLIF(COUNT(*), 0)::NUMERIC * 100
+            )
+            ELSE NULL 
+        END AS yes_percentage,
+        sq.question_key,
+        -- Handle text responses
+        CASE 
+            WHEN sq.question_type IN ('text', 'comment') 
+            THEN array_remove(array_agg(NULLIF(rd.response_data->>sq.question_key, '')), NULL)
+            ELSE NULL 
+        END AS text_responses
+    FROM 
+        survey_questions sq
+        CROSS JOIN response_data rd
+    WHERE 
+        rd.response_data ? sq.question_key
+    GROUP BY 
+        rd.campaign_instance_id,
+        sq.question_key,
+        sq.question_type
+    ORDER BY 
+        sq.question_key;
+END;
+$_$;
+
+
+ALTER FUNCTION "public"."get_instance_question_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."get_instance_question_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") IS 'Returns processed question responses for campaign instance comparison with proper handling of different question types';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."get_my_survey_assignments"("p_user_id" "uuid") RETURNS TABLE("id" "uuid", "survey_id" "uuid", "campaign_id" "uuid", "user_id" "uuid", "public_access_token" "uuid", "last_reminder_sent" timestamp with time zone, "instance" "jsonb", "survey" "jsonb", "status" "text", "response" "jsonb")
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -1850,6 +3281,217 @@ $$;
 ALTER FUNCTION "public"."get_my_survey_assignments"("p_user_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."get_paginated_campaign_assignments"("p_campaign_id" "uuid", "p_instance_id" "uuid" DEFAULT NULL::"uuid", "p_status" "text" DEFAULT NULL::"text", "p_search_term" "text" DEFAULT NULL::"text", "p_page" integer DEFAULT 1, "p_page_size" integer DEFAULT 20) RETURNS TABLE("id" "uuid", "user_id" "uuid", "campaign_id" "uuid", "public_access_token" "uuid", "last_reminder_sent" timestamp with time zone, "status" "text", "user_details" "jsonb", "response" "jsonb", "total_count" bigint)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    v_offset INTEGER := (p_page - 1) * p_page_size;
+    v_total_count BIGINT;
+BEGIN
+    -- First, get the total count for pagination
+    SELECT COUNT(*) INTO v_total_count
+    FROM survey_assignments sa
+    LEFT JOIN profiles p ON p.id = sa.user_id
+    LEFT JOIN user_sbus us ON us.user_id = p.id
+    WHERE sa.campaign_id = p_campaign_id
+    AND (
+        p_search_term IS NULL
+        OR LOWER(p.email) LIKE '%' || LOWER(p_search_term) || '%'
+        OR LOWER(COALESCE(p.first_name, '')) LIKE '%' || LOWER(p_search_term) || '%'
+        OR LOWER(COALESCE(p.last_name, '')) LIKE '%' || LOWER(p_search_term) || '%'
+        OR LOWER(CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, ''))) LIKE '%' || LOWER(p_search_term) || '%'
+    );
+
+    -- Then get the assignments with pagination
+    RETURN QUERY
+    WITH assignment_status AS (
+        SELECT
+            sa.id AS assignment_id,
+            sa.user_id,
+            sa.campaign_id,
+            sa.public_access_token,
+            sa.last_reminder_sent,
+            -- Calculated status
+            CASE 
+                WHEN EXISTS (
+                    SELECT 1 
+                    FROM survey_responses sr 
+                    WHERE sr.assignment_id = sa.id 
+                    AND (p_instance_id IS NULL OR sr.campaign_instance_id = p_instance_id)
+                    AND sr.status = 'submitted'
+                ) THEN 'submitted'
+                WHEN EXISTS (
+                    SELECT 1 
+                    FROM survey_responses sr 
+                    WHERE sr.assignment_id = sa.id 
+                    AND (p_instance_id IS NULL OR sr.campaign_instance_id = p_instance_id)
+                    AND sr.status = 'in_progress'
+                ) THEN 'in_progress'
+                WHEN p_instance_id IS NOT NULL AND (
+                    SELECT ci.ends_at 
+                    FROM campaign_instances ci
+                    WHERE ci.id = p_instance_id
+                ) < NOW() THEN 'expired'
+                ELSE 'assigned'
+            END AS status,
+            (
+                SELECT jsonb_build_object(
+                    'id', p.id,
+                    'email', COALESCE(p.email, ''),
+                    'first_name', COALESCE(p.first_name, ''),
+                    'last_name', COALESCE(p.last_name, ''),
+                    'user_sbus', COALESCE(
+                        jsonb_agg(
+                            jsonb_build_object(
+                                'is_primary', us.is_primary,
+                                'sbu', jsonb_build_object(
+                                    'id', s.id,
+                                    'name', s.name
+                                )
+                            )
+                        ) FILTER (WHERE us.id IS NOT NULL),
+                        '[]'::jsonb
+                    )
+                )
+                FROM profiles p
+                LEFT JOIN user_sbus us ON us.user_id = p.id
+                LEFT JOIN sbus s ON s.id = us.sbu_id
+                WHERE p.id = sa.user_id
+                GROUP BY p.id
+            ) AS user_details,
+            (
+                SELECT jsonb_build_object(
+                    'status', sr.status,
+                    'campaign_instance_id', sr.campaign_instance_id,
+                    'data', sr.response_data
+                )
+                FROM survey_responses sr
+                WHERE sr.assignment_id = sa.id
+                AND (p_instance_id IS NULL OR sr.campaign_instance_id = p_instance_id)
+                LIMIT 1
+            ) AS response
+        FROM survey_assignments sa
+        JOIN profiles p ON p.id = sa.user_id
+        LEFT JOIN user_sbus us ON us.user_id = p.id
+        WHERE sa.campaign_id = p_campaign_id
+        AND (
+            p_search_term IS NULL
+            OR LOWER(p.email) LIKE '%' || LOWER(p_search_term) || '%'
+            OR LOWER(COALESCE(p.first_name, '')) LIKE '%' || LOWER(p_search_term) || '%'
+            OR LOWER(COALESCE(p.last_name, '')) LIKE '%' || LOWER(p_search_term) || '%'
+            OR LOWER(CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, ''))) LIKE '%' || LOWER(p_search_term) || '%'
+        )
+    )
+    SELECT 
+        a.assignment_id AS id,
+        a.user_id,
+        a.campaign_id,
+        a.public_access_token,
+        a.last_reminder_sent,
+        a.status,
+        a.user_details,
+        a.response,
+        v_total_count AS total_count
+    FROM assignment_status a
+    WHERE (p_status IS NULL OR a.status = p_status)
+    ORDER BY 
+        CASE 
+            WHEN a.status = 'submitted' THEN 1
+            WHEN a.status = 'in_progress' THEN 2
+            WHEN a.status = 'assigned' THEN 3
+            ELSE 4
+        END
+    LIMIT p_page_size
+    OFFSET v_offset;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_paginated_campaign_assignments"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_status" "text", "p_search_term" "text", "p_page" integer, "p_page_size" integer) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_paginated_campaign_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_search_term" "text" DEFAULT NULL::"text", "p_page" integer DEFAULT 1, "p_page_size" integer DEFAULT 10, "p_sort_by" "text" DEFAULT 'date'::"text", "p_sort_direction" "text" DEFAULT 'desc'::"text") RETURNS TABLE("id" "uuid", "assignment_id" "uuid", "user_id" "uuid", "campaign_instance_id" "uuid", "created_at" timestamp with time zone, "updated_at" timestamp with time zone, "submitted_at" timestamp with time zone, "status" "text", "response_data" "jsonb", "state_data" "jsonb", "total_count" bigint, "campaign_anonymous" boolean, "primary_sbu_name" "text", "primary_supervisor_name" "text")
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  v_offset INTEGER := (p_page - 1) * p_page_size;
+  v_sort_sql TEXT;
+  v_campaign_anonymous BOOLEAN;
+BEGIN
+  -- Get campaign anonymity setting - Fix the ambiguous reference by qualifying the id column
+  SELECT sc.anonymous INTO v_campaign_anonymous
+  FROM survey_campaigns sc
+  WHERE sc.id = p_campaign_id;
+  
+  -- Set up sorting SQL
+  IF p_sort_by = 'date' THEN
+    v_sort_sql := 'sr.submitted_at ' || p_sort_direction;
+  ELSIF p_sort_by = 'name' THEN
+    v_sort_sql := 'CONCAT(p.first_name, '' '', p.last_name) ' || p_sort_direction;
+  ELSE
+    -- Default to date sorting
+    v_sort_sql := 'sr.submitted_at ' || p_sort_direction;
+  END IF;
+
+  RETURN QUERY
+  SELECT 
+    sr.id,
+    sr.assignment_id,
+    sr.user_id,
+    sr.campaign_instance_id,
+    sr.created_at,
+    sr.updated_at,
+    sr.submitted_at,
+    sr.status::TEXT, -- Cast enum to text
+    sr.response_data,
+    sr.state_data,
+    COUNT(*) OVER() AS total_count,
+    v_campaign_anonymous, -- Return campaign anonymity setting
+    -- Get primary SBU name (if any)
+    (
+      SELECT s.name
+      FROM user_sbus us
+      JOIN sbus s ON s.id = us.sbu_id
+      WHERE us.user_id = sr.user_id AND us.is_primary = true
+      LIMIT 1
+    ) AS primary_sbu_name,
+    -- Get primary supervisor name (if any)
+    (
+      SELECT CONCAT(sup.first_name, ' ', sup.last_name)
+      FROM user_supervisors usup
+      JOIN profiles sup ON sup.id = usup.supervisor_id
+      WHERE usup.user_id = sr.user_id AND usup.is_primary = true
+      LIMIT 1
+    ) AS primary_supervisor_name
+  FROM survey_responses sr
+  JOIN survey_assignments sa ON sr.assignment_id = sa.id
+  JOIN profiles p ON p.id = sr.user_id
+  WHERE sa.campaign_id = p_campaign_id
+  AND sr.campaign_instance_id = p_instance_id
+  AND (
+    p_search_term IS NULL
+    OR LOWER(p.email) LIKE '%' || LOWER(p_search_term) || '%'
+    OR LOWER(COALESCE(p.first_name, '')) LIKE '%' || LOWER(p_search_term) || '%'
+    OR LOWER(COALESCE(p.last_name, '')) LIKE '%' || LOWER(p_search_term) || '%'
+    OR LOWER(CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, ''))) LIKE '%' || LOWER(p_search_term) || '%'
+  )
+  ORDER BY (CASE WHEN v_sort_sql = 'sr.submitted_at desc' THEN sr.submitted_at END) DESC,
+           (CASE WHEN v_sort_sql = 'sr.submitted_at asc' THEN sr.submitted_at END) ASC,
+           (CASE WHEN v_sort_sql = 'CONCAT(p.first_name, '' '', p.last_name) desc' THEN CONCAT(p.first_name, ' ', p.last_name) END) DESC,
+           (CASE WHEN v_sort_sql = 'CONCAT(p.first_name, '' '', p.last_name) asc' THEN CONCAT(p.first_name, ' ', p.last_name) END) ASC
+  LIMIT p_page_size
+  OFFSET v_offset;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_paginated_campaign_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_search_term" "text", "p_page" integer, "p_page_size" integer, "p_sort_by" "text", "p_sort_direction" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."get_paginated_campaign_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_search_term" "text", "p_page" integer, "p_page_size" integer, "p_sort_by" "text", "p_sort_direction" "text") IS 'Returns paginated and filtered survey responses for a specific campaign instance with primary SBU and supervisor information';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."get_pending_surveys_count"("p_user_id" "uuid") RETURNS integer
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -1888,6 +3530,141 @@ $$;
 
 
 ALTER FUNCTION "public"."get_pending_surveys_count"("p_user_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_supervisor_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") RETURNS TABLE("dimension" "text", "unsatisfied" bigint, "neutral" bigint, "satisfied" bigint, "total" bigint)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $_$
+BEGIN
+  RETURN QUERY
+  WITH supervisor_responses AS (
+    SELECT 
+      -- Get supervisor name
+      CONCAT(sup.first_name, ' ', sup.last_name) AS supervisor_name,
+      -- Get the rating value for the specific question
+      (sr.response_data->>p_question_name)::NUMERIC AS rating_value
+    FROM survey_responses sr
+    JOIN survey_assignments sa ON sr.assignment_id = sa.id
+    JOIN profiles p ON p.id = sa.user_id
+    -- Join to get the user's supervisor
+    JOIN user_supervisors us ON us.user_id = p.id AND us.is_primary = TRUE
+    JOIN profiles sup ON sup.id = us.supervisor_id
+    WHERE sa.campaign_id = p_campaign_id
+    AND (p_instance_id IS NULL OR sr.campaign_instance_id = p_instance_id)
+    AND sr.status = 'submitted'
+    -- Ensure we have a numeric rating
+    AND sr.response_data->>p_question_name ~ '^[0-9]+$'
+    AND (sr.response_data->>p_question_name)::NUMERIC BETWEEN 1 AND 5
+  ),
+  supervisor_stats AS (
+    SELECT
+      supervisor_name,
+      COUNT(*) AS total_responses,
+      SUM(CASE WHEN rating_value BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS unsatisfied_count,
+      SUM(CASE WHEN rating_value = 4 THEN 1 ELSE 0 END) AS neutral_count,
+      SUM(CASE WHEN rating_value = 5 THEN 1 ELSE 0 END) AS satisfied_count
+    FROM supervisor_responses
+    GROUP BY supervisor_name
+    -- Only include supervisors with at least 4 responses
+    HAVING COUNT(*) >= 4
+  )
+  SELECT 
+    supervisor_stats.supervisor_name AS dimension,
+    supervisor_stats.unsatisfied_count AS unsatisfied,
+    supervisor_stats.neutral_count AS neutral,
+    supervisor_stats.satisfied_count AS satisfied,
+    supervisor_stats.total_responses AS total
+  FROM supervisor_stats
+  ORDER BY supervisor_stats.unsatisfied_count DESC, supervisor_stats.total_responses DESC;
+END;
+$_$;
+
+
+ALTER FUNCTION "public"."get_supervisor_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."get_supervisor_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") IS 'Returns satisfaction metrics for supervisors based on employee ratings, filtering to supervisors with at least 4 responses';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."get_survey_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid" DEFAULT NULL::"uuid") RETURNS "json"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  v_campaign_data JSON;
+  v_responses_data JSON;
+BEGIN
+  -- Get the campaign and survey data
+  SELECT 
+    json_build_object(
+      'survey', json_build_object(
+        'id', s.id,
+        'name', s.name,
+        'json_data', s.json_data
+      )
+    )
+  INTO v_campaign_data
+  FROM survey_campaigns sc
+  JOIN surveys s ON s.id = sc.survey_id
+  WHERE sc.id = p_campaign_id;
+
+  -- Build a query for responses with user metadata
+  WITH response_data AS (
+    SELECT 
+      r.id,
+      r.response_data,
+      r.submitted_at,
+      json_build_object(
+        'first_name', p.first_name,
+        'last_name', p.last_name,
+        'email', p.email,
+        'gender', p.gender,
+        'location', CASE WHEN l.id IS NOT NULL THEN json_build_object('id', l.id, 'name', l.name) ELSE NULL END,
+        'employment_type', CASE WHEN et.id IS NOT NULL THEN json_build_object('id', et.id, 'name', et.name) ELSE NULL END,
+        'level', CASE WHEN lvl.id IS NOT NULL THEN json_build_object('id', lvl.id, 'name', lvl.name) ELSE NULL END,
+        'employee_type', CASE WHEN emp_t.id IS NOT NULL THEN json_build_object('id', emp_t.id, 'name', emp_t.name) ELSE NULL END,
+        'employee_role', CASE WHEN emp_r.id IS NOT NULL THEN json_build_object('id', emp_r.id, 'name', emp_r.name) ELSE NULL END,
+        'user_sbus', (
+          SELECT json_agg(
+            json_build_object(
+              'is_primary', us.is_primary,
+              'sbu', json_build_object('id', sbu.id, 'name', sbu.name)
+            )
+          )
+          FROM user_sbus us
+          JOIN sbus sbu ON sbu.id = us.sbu_id
+          WHERE us.user_id = p.id
+        )
+      ) AS user_data
+    FROM survey_responses r
+    JOIN profiles p ON p.id = r.user_id
+    LEFT JOIN locations l ON l.id = p.location_id
+    LEFT JOIN employment_types et ON et.id = p.employment_type_id
+    LEFT JOIN levels lvl ON lvl.id = p.level_id
+    LEFT JOIN employee_types emp_t ON emp_t.id = p.employee_type_id
+    LEFT JOIN employee_roles emp_r ON emp_r.id = p.employee_role_id
+    JOIN survey_assignments sa ON sa.id = r.assignment_id
+    WHERE sa.campaign_id = p_campaign_id
+    AND (p_instance_id IS NULL OR r.campaign_instance_id = p_instance_id)
+  )
+  SELECT json_agg(rd.*)
+  INTO v_responses_data
+  FROM response_data rd;
+
+  -- Combine the data and return
+  RETURN json_build_object(
+    'campaign', v_campaign_data,
+    'responses', COALESCE(v_responses_data, '[]'::json)
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_survey_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."get_survey_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") IS 'Get survey responses with all related demographic data for reporting';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."get_survey_responses_for_export"("p_campaign_id" "uuid", "p_instance_id" "uuid") RETURNS TABLE("primary_sbu" "text", "primary_manager" "text", "respondent_name" "text", "response_data" "jsonb", "submitted_at" timestamp with time zone)
@@ -1936,297 +3713,124 @@ $$;
 ALTER FUNCTION "public"."get_survey_responses_for_export"("p_campaign_id" "uuid", "p_instance_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."handle_campaign_completion"() RETURNS "trigger"
+CREATE OR REPLACE FUNCTION "public"."get_text_analysis"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") RETURNS "json"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  v_result JSON;
+BEGIN
+  WITH response_texts AS (
+    SELECT 
+      r.response_data->>p_question_name AS answer_text
+    FROM survey_responses r
+    JOIN survey_assignments sa ON sa.id = r.assignment_id
+    WHERE sa.campaign_id = p_campaign_id
+    AND (p_instance_id IS NULL OR r.campaign_instance_id = p_instance_id)
+    AND r.response_data->>p_question_name IS NOT NULL
+    AND LENGTH(r.response_data->>p_question_name) > 0
+  ),
+  -- This is a simple implementation of word frequency
+  -- For more advanced text analysis, consider using extensions like pg_trgm
+  word_counts AS (
+    SELECT 
+      word,
+      COUNT(*) AS frequency
+    FROM (
+      SELECT 
+        regexp_split_to_table(lower(answer_text), E'\\s+') AS word
+      FROM response_texts
+    ) AS words
+    WHERE length(word) > 2  -- Ignore very short words
+    AND word !~ '[^a-zA-Z]'  -- Only include alphabetic words
+    GROUP BY word
+    ORDER BY frequency DESC
+    LIMIT 50  -- Limit to top 50 words
+  )
+  SELECT json_agg(
+    json_build_object(
+      'text', word,
+      'value', frequency
+    )
+  )
+  INTO v_result
+  FROM word_counts;
+
+  RETURN COALESCE(v_result, '[]'::json);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_text_analysis"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."get_text_analysis"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") IS 'Perform word frequency analysis on text responses';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."handle_alignment_delete_progress"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
 BEGIN
-    -- If all instances are completed, cleanup the cron job
-    IF NOT EXISTS (
-        SELECT 1 
-        FROM campaign_instances 
-        WHERE campaign_id = NEW.id 
-        AND status NOT IN ('completed')
-    ) THEN
-        PERFORM cleanup_campaign_cron_job(NEW.id);
+    -- If it's a parent-child alignment, update the source (parent) objective
+    IF OLD.alignment_type = 'parent_child' THEN
+        PERFORM calculate_cascaded_objective_progress(OLD.source_objective_id);
     END IF;
+    
+    RETURN OLD;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_alignment_delete_progress"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."handle_key_result_changes"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    -- Calculate progress for the objective this key result belongs to
+    PERFORM calculate_cascaded_objective_progress(NEW.objective_id);
+    
     RETURN NEW;
 END;
 $$;
 
 
-ALTER FUNCTION "public"."handle_campaign_completion"() OWNER TO "postgres";
+ALTER FUNCTION "public"."handle_key_result_changes"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."handle_campaign_end"("p_campaign_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
+CREATE OR REPLACE FUNCTION "public"."handle_key_result_deletion"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
     AS $$
 BEGIN
-    -- Mark campaign as completed
-    UPDATE survey_campaigns
-    SET status = 'completed'
-    WHERE id = p_campaign_id
-    AND ends_at <= timezone('utc', NOW());
+    -- Calculate progress for the objective after a key result is deleted
+    PERFORM calculate_cascaded_objective_progress(OLD.objective_id);
     
-    -- Clean up all cron jobs
-    PERFORM cleanup_campaign_cron_jobs(p_campaign_id);
+    RETURN OLD;
 END;
 $$;
 
 
-ALTER FUNCTION "public"."handle_campaign_end"("p_campaign_id" "uuid") OWNER TO "postgres";
+ALTER FUNCTION "public"."handle_key_result_deletion"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."handle_campaign_scheduling"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
+CREATE OR REPLACE FUNCTION "public"."handle_kr_delete_cascaded_progress"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
     AS $$
 BEGIN
-    -- Schedule all three jobs for the campaign
-    PERFORM schedule_campaign_jobs(NEW.id);
-    RETURN NEW;
-EXCEPTION WHEN OTHERS THEN
-    RAISE WARNING 'Failed to schedule campaign jobs for campaign %: %', NEW.id, SQLERRM;
-    RETURN NEW;
+    -- Clean up any stale locks
+    DELETE FROM okr_progress_calculation_lock
+    WHERE updated_at < NOW() - INTERVAL '10 minutes';
+    
+    -- Update the objective progress for the objective that owned this key result
+    PERFORM calculate_cascaded_objective_progress(OLD.objective_id);
+    
+    RETURN OLD;
 END;
 $$;
 
 
-ALTER FUNCTION "public"."handle_campaign_scheduling"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-    v_count_before INTEGER;
-    v_count_after INTEGER;
-    v_now TIMESTAMPTZ;
-    v_instance RECORD;
-    v_buffer INTERVAL := '2 minutes';
-BEGIN
-    v_now := timezone('utc', NOW());
-    
-    -- Log start of execution with campaign details
-    RAISE NOTICE 'Starting instance activation check for campaign % at %', p_campaign_id, v_now;
-    
-    -- Count eligible instances before update (with buffer)
-    SELECT COUNT(*)
-    INTO v_count_before
-    FROM campaign_instances ci
-    WHERE ci.campaign_id = p_campaign_id
-    AND ci.status = 'upcoming'
-    AND ci.starts_at <= (v_now + v_buffer)
-    AND ci.ends_at > v_now;
-    
-    RAISE NOTICE 'Found % instances eligible for activation (including 2-minute buffer)', v_count_before;
-    
-    -- Log current instances status and evaluation conditions
-    FOR v_instance IN (
-        SELECT 
-            ci.id,
-            ci.status,
-            ci.starts_at,
-            ci.ends_at,
-            ci.starts_at <= (v_now + v_buffer) as meets_start_condition,
-            ci.ends_at > v_now as meets_end_condition,
-            ci.status = 'upcoming' as meets_status_condition
-        FROM campaign_instances ci
-        WHERE ci.campaign_id = p_campaign_id
-    ) LOOP
-        RAISE NOTICE 'Instance ID: %, Status: %, Starts: %, Ends: %, Meets conditions: (start: %, end: %, status: %)',
-            v_instance.id, 
-            v_instance.status, 
-            v_instance.starts_at, 
-            v_instance.ends_at,
-            v_instance.meets_start_condition,
-            v_instance.meets_end_condition,
-            v_instance.meets_status_condition;
-    END LOOP;
-
-    -- Create temporary table for tracking updates
-    CREATE TEMP TABLE temp_updated_instances (
-        id uuid,
-        starts_at timestamptz,
-        ends_at timestamptz
-    );
-    
-    -- Update eligible instances and capture in temp table
-    WITH updated AS (
-        UPDATE campaign_instances ci
-        SET 
-            status = 'active',
-            updated_at = v_now
-        WHERE ci.campaign_id = p_campaign_id
-        AND ci.status = 'upcoming'
-        AND ci.starts_at <= (v_now + v_buffer)
-        AND ci.ends_at > v_now
-        RETURNING ci.id, ci.starts_at, ci.ends_at
-    )
-    INSERT INTO temp_updated_instances
-    SELECT id, starts_at, ends_at FROM updated;
-    
-    -- Get count of actually updated records
-    SELECT COUNT(*) INTO v_count_after FROM temp_updated_instances;
-    
-    RAISE NOTICE 'Actually updated % instances to active', v_count_after;
-    
-    -- Log details of updated instances
-    FOR v_instance IN (
-        SELECT * FROM temp_updated_instances
-    ) LOOP
-        RAISE NOTICE 'Activated instance: ID %, Start time: %, End time: %',
-            v_instance.id, v_instance.starts_at, v_instance.ends_at;
-    END LOOP;
-
-    -- Insert into logs table with detailed information
-    INSERT INTO campaign_instance_status_logs (
-        updated_to_active,
-        updated_to_completed,
-        run_at,
-        details
-    )
-    SELECT 
-        v_count_after,
-        0,
-        v_now,
-        json_build_object(
-            'campaign_id', p_campaign_id,
-            'current_time', v_now,
-            'eligible_instances_before', v_count_before,
-            'instances_actually_updated', v_count_after,
-            'buffer_minutes', 2,
-            'execution_details', CASE 
-                WHEN v_count_before > 0 THEN 
-                    format('Found %s eligible instances, activated %s', v_count_before, v_count_after)
-                ELSE 
-                    'No eligible instances found'
-                END
-        );
-
-    -- Clean up temporary table
-    DROP TABLE IF EXISTS temp_updated_instances;
-
-    RAISE NOTICE 'Completed instance activation check for campaign % at %', p_campaign_id, v_now;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."handle_instance_due_time"("p_campaign_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-    v_count_before INTEGER;
-    v_count_after INTEGER;
-    v_now TIMESTAMPTZ;
-    v_instance RECORD;
-    v_buffer INTERVAL := '2 minutes';
-BEGIN
-    v_now := timezone('utc', NOW());
-    
-    -- Log start of execution with campaign details
-    RAISE NOTICE 'Starting instance completion check for campaign % at %', p_campaign_id, v_now;
-    
-    -- Count eligible instances before update (with buffer)
-    SELECT COUNT(*)
-    INTO v_count_before
-    FROM campaign_instances ci
-    WHERE ci.campaign_id = p_campaign_id
-    AND ci.status = 'active'
-    AND ci.ends_at <= (v_now + v_buffer);
-    
-    RAISE NOTICE 'Found % instances eligible for completion (including 2-minute buffer)', v_count_before;
-    
-    -- Log current instances status and evaluation conditions
-    FOR v_instance IN (
-        SELECT 
-            ci.id,
-            ci.status,
-            ci.starts_at,
-            ci.ends_at,
-            ci.ends_at <= (v_now + v_buffer) as meets_end_condition,
-            ci.status = 'active' as meets_status_condition
-        FROM campaign_instances ci
-        WHERE ci.campaign_id = p_campaign_id
-    ) LOOP
-        RAISE NOTICE 'Instance ID: %, Status: %, Starts: %, Ends: %, Meets conditions: (end: %, status: %)',
-            v_instance.id, 
-            v_instance.status, 
-            v_instance.starts_at, 
-            v_instance.ends_at,
-            v_instance.meets_end_condition,
-            v_instance.meets_status_condition;
-    END LOOP;
-
-    -- Create temporary table for tracking updates
-    CREATE TEMP TABLE temp_completed_instances (
-        id uuid,
-        starts_at timestamptz,
-        ends_at timestamptz
-    );
-    
-    -- Update eligible instances and capture in temp table
-    WITH updated AS (
-        UPDATE campaign_instances ci
-        SET 
-            status = 'completed',
-            updated_at = v_now
-        WHERE ci.campaign_id = p_campaign_id
-        AND ci.status = 'active'
-        AND ci.ends_at <= (v_now + v_buffer)
-        RETURNING ci.id, ci.starts_at, ci.ends_at
-    )
-    INSERT INTO temp_completed_instances
-    SELECT id, starts_at, ends_at FROM updated;
-    
-    -- Get count of actually updated records
-    SELECT COUNT(*) INTO v_count_after FROM temp_completed_instances;
-    
-    RAISE NOTICE 'Actually completed % instances', v_count_after;
-    
-    -- Log details of completed instances
-    FOR v_instance IN (
-        SELECT * FROM temp_completed_instances
-    ) LOOP
-        RAISE NOTICE 'Completed instance: ID %, Start time: %, End time: %',
-            v_instance.id, v_instance.starts_at, v_instance.ends_at;
-    END LOOP;
-
-    -- Insert into logs table with detailed information
-    INSERT INTO campaign_instance_status_logs (
-        updated_to_active,
-        updated_to_completed,
-        run_at,
-        details
-    )
-    SELECT 
-        0,
-        v_count_after,
-        v_now,
-        json_build_object(
-            'campaign_id', p_campaign_id,
-            'current_time', v_now,
-            'eligible_instances_before', v_count_before,
-            'instances_actually_completed', v_count_after,
-            'buffer_minutes', 2,
-            'execution_details', CASE 
-                WHEN v_count_before > 0 THEN 
-                    format('Found %s eligible instances, completed %s', v_count_before, v_count_after)
-                ELSE 
-                    'No eligible instances found'
-                END
-        );
-
-    -- Clean up temporary table
-    DROP TABLE IF EXISTS temp_completed_instances;
-
-    RAISE NOTICE 'Completed instance completion check for campaign % at %', p_campaign_id, v_now;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."handle_instance_due_time"("p_campaign_id" "uuid") OWNER TO "postgres";
+ALTER FUNCTION "public"."handle_kr_delete_cascaded_progress"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."handle_live_session_questions"() RETURNS "trigger"
@@ -2303,6 +3907,154 @@ $$;
 
 
 ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."handle_objective_cascade_to_parent"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    -- If parent objective ID changed or progress changed significantly
+    IF (OLD.parent_objective_id IS DISTINCT FROM NEW.parent_objective_id) OR 
+       (ABS(COALESCE(OLD.progress, 0) - COALESCE(NEW.progress, 0)) > 0.01) THEN
+        
+        -- Update the old parent if it exists
+        IF OLD.parent_objective_id IS NOT NULL THEN
+            PERFORM calculate_cascaded_objective_progress(OLD.parent_objective_id);
+        END IF;
+        
+        -- Update the new parent if it exists
+        IF NEW.parent_objective_id IS NOT NULL THEN
+            PERFORM calculate_cascaded_objective_progress(NEW.parent_objective_id);
+        END IF;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_objective_cascade_to_parent"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."handle_objective_delete_alignments"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    -- Delete all alignments where this objective is the source
+    DELETE FROM okr_alignments 
+    WHERE source_objective_id = OLD.id;
+    
+    -- Delete all alignments where this objective is the target
+    DELETE FROM okr_alignments 
+    WHERE aligned_objective_id = OLD.id;
+    
+    -- Now we can proceed with deleting the objective itself
+    -- (this happens automatically after the trigger)
+    
+    -- Log the cascade deletion
+    INSERT INTO okr_history (
+        entity_id,
+        entity_type,
+        change_type,
+        changed_by,
+        previous_data
+    ) VALUES (
+        OLD.id,
+        'objective_alignment_cascade',
+        'delete_cascade',
+        auth.uid(),
+        jsonb_build_object(
+            'objective_id', OLD.id,
+            'objective_title', OLD.title,
+            'cascade_type', 'alignments'
+        )
+    );
+    
+    RETURN OLD;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_objective_delete_alignments"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."handle_objective_delete_cascade"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    -- First, update any child objectives to remove the parent reference
+    -- This addresses the foreign key constraint issue
+    UPDATE objectives
+    SET parent_objective_id = NULL
+    WHERE parent_objective_id = OLD.id;
+    
+    -- Delete all alignments where this objective is the source
+    DELETE FROM okr_alignments 
+    WHERE source_objective_id = OLD.id;
+    
+    -- Delete all alignments where this objective is the target
+    DELETE FROM okr_alignments 
+    WHERE aligned_objective_id = OLD.id;
+    
+    -- Log the cascade deletion
+    INSERT INTO okr_history (
+        entity_id,
+        entity_type,
+        change_type,
+        changed_by,
+        previous_data
+    ) VALUES (
+        OLD.id,
+        'objective_cascade_deletion',
+        'delete_cascade',
+        auth.uid(),
+        jsonb_build_object(
+            'objective_id', OLD.id,
+            'objective_title', OLD.title,
+            'cascade_types', jsonb_build_array('parent_child_relationships', 'alignments')
+        )
+    );
+    
+    RETURN OLD;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_objective_delete_cascade"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."handle_objective_deletion"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    -- Log the objective deletion in okr_history
+    INSERT INTO okr_history (
+        entity_id,
+        entity_type,
+        change_type,
+        changed_by,
+        previous_data
+    ) VALUES (
+        OLD.id,
+        'objective',
+        'delete',
+        auth.uid(),
+        jsonb_build_object(
+            'id', OLD.id,
+            'title', OLD.title,
+            'description', OLD.description,
+            'status', OLD.status,
+            'progress', OLD.progress,
+            'visibility', OLD.visibility
+        )
+    );
+    
+    RETURN OLD;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_objective_deletion"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."handle_question_activation"() RETURNS "trigger"
@@ -2490,6 +4242,117 @@ $$;
 ALTER FUNCTION "public"."prevent_modifying_submitted_responses"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."propagate_alignment_progress"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+    v_source_objective_id UUID;
+    v_aligned_objective_id UUID;
+    v_alignment_type TEXT;
+BEGIN
+    -- Get the alignment details
+    SELECT 
+        a.source_objective_id,
+        a.aligned_objective_id,
+        a.alignment_type
+    INTO 
+        v_source_objective_id,
+        v_aligned_objective_id,
+        v_alignment_type
+    FROM okr_alignments a
+    WHERE a.id = NEW.id;
+    
+    -- Only handle progress updates for parent-child alignments
+    IF v_alignment_type = 'parent_child' THEN
+        -- The source is the parent, so update its progress
+        PERFORM calculate_cascaded_objective_progress(v_source_objective_id);
+    END IF;
+    
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."propagate_alignment_progress"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."recalculate_all_cascaded_objective_progress"() RETURNS "void"
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+    v_objective RECORD;
+BEGIN
+    -- First clean up any locks that might be left from failed calculations
+    UPDATE okr_progress_calculation_lock SET locked = FALSE;
+    
+    -- First process leaf objectives (those without children)
+    FOR v_objective IN 
+        SELECT o.id 
+        FROM objectives o
+        WHERE NOT EXISTS (
+            SELECT 1 FROM objectives child 
+            WHERE child.parent_objective_id = o.id
+        )
+        ORDER BY o.id
+    LOOP
+        PERFORM calculate_cascaded_objective_progress(v_objective.id);
+    END LOOP;
+    
+    -- Then process any remaining objectives that have children
+    -- but haven't been processed yet (because their children changed them)
+    FOR v_objective IN 
+        SELECT o.id 
+        FROM objectives o
+        WHERE EXISTS (
+            SELECT 1 FROM objectives child 
+            WHERE child.parent_objective_id = o.id
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM okr_progress_calculation_lock
+            WHERE objective_id = o.id AND locked = TRUE
+        )
+        ORDER BY o.id
+    LOOP
+        PERFORM calculate_cascaded_objective_progress(v_objective.id);
+    END LOOP;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."recalculate_all_cascaded_objective_progress"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."recalculate_all_objective_progress"() RETURNS integer
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+    obj_record RECORD;  -- Changed to RECORD type
+    count INTEGER := 0;
+BEGIN
+    -- First, clear all locks to prevent issues
+    DELETE FROM okr_progress_calculation_lock;
+    
+    -- Start with root objectives (those without parents)
+    FOR obj_record IN 
+        SELECT id FROM objectives 
+        WHERE parent_objective_id IS NULL
+    LOOP
+        PERFORM calculate_cascaded_objective_progress(obj_record.id);
+        count := count + 1;
+    END LOOP;
+    
+    RETURN count;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."recalculate_all_objective_progress"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."recalculate_all_objective_progress"() IS 'Recalculates progress for all objectives in the system, starting with root objectives.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."reorder_questions"("p_session_id" "uuid", "p_question_id" "uuid", "p_old_order" integer, "p_new_order" integer, "p_direction" "text") RETURNS boolean
     LANGUAGE "plpgsql"
     AS $$
@@ -2532,228 +4395,6 @@ $$;
 ALTER FUNCTION "public"."reorder_questions"("p_session_id" "uuid", "p_question_id" "uuid", "p_old_order" integer, "p_new_order" integer, "p_direction" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."schedule_campaign_cron_job"("p_campaign_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
-    AS $$
-DECLARE
-    v_campaign RECORD;
-    v_cron_schedule TEXT;
-    v_job_name TEXT;
-    v_error_message TEXT;
-BEGIN
-    -- Get campaign details
-    SELECT * INTO v_campaign 
-    FROM survey_campaigns 
-    WHERE id = p_campaign_id;
-    
-    -- Generate job name with schema qualification
-    v_job_name := 'update_campaign_' || p_campaign_id::text;
-    
-    -- Generate cron schedule
-    v_cron_schedule := generate_campaign_cron_schedule(
-        v_campaign.starts_at,
-        v_campaign.recurring_frequency,
-        v_campaign.recurring_days
-    );
-    
-    BEGIN
-        -- Schedule the cron job with fully qualified function name
-        PERFORM cron.schedule(
-            v_job_name, 
-            v_cron_schedule, 
-            format(
-                'SELECT public.update_campaign_instances(%L)',
-                p_campaign_id
-            )
-        );
-        
-        -- Record successful job creation
-        INSERT INTO campaign_cron_jobs (
-            campaign_id,
-            job_name,
-            cron_schedule,
-            is_active
-        ) VALUES (
-            p_campaign_id,
-            v_job_name,
-            v_cron_schedule,
-            true
-        );
-
-        -- Log successful attempt
-        INSERT INTO campaign_cron_job_logs (
-            campaign_id,
-            job_name,
-            cron_schedule,
-            status,
-            error_message
-        ) VALUES (
-            p_campaign_id,
-            v_job_name,
-            v_cron_schedule,
-            'SUCCESS',
-            NULL
-        );
-
-    EXCEPTION WHEN OTHERS THEN
-        -- Capture error message
-        GET STACKED DIAGNOSTICS v_error_message = MESSAGE_TEXT;
-        
-        -- Log failed attempt
-        INSERT INTO campaign_cron_job_logs (
-            campaign_id,
-            job_name,
-            cron_schedule,
-            status,
-            error_message
-        ) VALUES (
-            p_campaign_id,
-            v_job_name,
-            v_cron_schedule,
-            'ERROR',
-            v_error_message
-        );
-        
-        -- Re-raise the error
-        RAISE NOTICE 'Failed to schedule cron job for campaign %: %', p_campaign_id, v_error_message;
-    END;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."schedule_campaign_cron_job"("p_campaign_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."schedule_campaign_jobs"("p_campaign_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-    v_campaign RECORD;
-    v_schedule TEXT;
-    v_job_name TEXT;
-    v_error_message TEXT;
-BEGIN
-    -- Get campaign details
-    SELECT * INTO v_campaign 
-    FROM survey_campaigns 
-    WHERE id = p_campaign_id;
-    
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'Campaign not found: %', p_campaign_id;
-    END IF;
-
-    -- Schedule instance activation job using campaign start time
-    v_job_name := 'campaign_' || p_campaign_id::text || '_instance_activation';
-    v_schedule := generate_campaign_cron_schedule(
-        v_campaign.starts_at,
-        v_campaign.recurring_frequency,
-        'instance_activation'::cron_job_type
-    );
-    
-    PERFORM cron.schedule(
-        v_job_name,
-        v_schedule,
-        format('SELECT handle_instance_activation(%L)', p_campaign_id)
-    );
-    
-    INSERT INTO campaign_cron_jobs (
-        campaign_id,
-        job_name,
-        job_type,
-        cron_schedule,
-        is_active
-    ) VALUES (
-        p_campaign_id,
-        v_job_name,
-        'instance_activation',
-        v_schedule,
-        true
-    );
-    
-    -- Schedule instance due time job using instance_end_time
-    IF v_campaign.instance_end_time IS NOT NULL THEN
-        v_job_name := 'campaign_' || p_campaign_id::text || '_instance_due_check';
-        v_schedule := generate_campaign_cron_schedule(
-            v_campaign.instance_end_time,
-            v_campaign.recurring_frequency, -- Pass the recurring_frequency here instead of null
-            'instance_due_time'::cron_job_type
-        );
-        
-        PERFORM cron.schedule(
-            v_job_name,
-            v_schedule,
-            format('SELECT handle_instance_due_time(%L)', p_campaign_id)
-        );
-        
-        INSERT INTO campaign_cron_jobs (
-            campaign_id,
-            job_name,
-            job_type,
-            cron_schedule,
-            is_active
-        ) VALUES (
-            p_campaign_id,
-            v_job_name,
-            'instance_due_time',
-            v_schedule,
-            true
-        );
-    END IF;
-    
-    -- Schedule campaign end job
-    IF v_campaign.ends_at IS NOT NULL THEN
-        v_job_name := 'campaign_' || p_campaign_id::text || '_end_check';
-        v_schedule := generate_campaign_cron_schedule(
-            v_campaign.ends_at,
-            null,
-            'campaign_end'::cron_job_type
-        );
-        
-        PERFORM cron.schedule(
-            v_job_name,
-            v_schedule,
-            format('SELECT handle_campaign_end(%L)', p_campaign_id)
-        );
-        
-        INSERT INTO campaign_cron_jobs (
-            campaign_id,
-            job_name,
-            job_type,
-            cron_schedule,
-            is_active
-        ) VALUES (
-            p_campaign_id,
-            v_job_name,
-            'campaign_end',
-            v_schedule,
-            true
-        );
-    END IF;
-
-EXCEPTION WHEN OTHERS THEN
-    GET STACKED DIAGNOSTICS v_error_message = MESSAGE_TEXT;
-    
-    INSERT INTO campaign_cron_job_logs (
-        campaign_id,
-        job_name,
-        status,
-        error_message
-    ) VALUES (
-        p_campaign_id,
-        v_job_name,
-        'ERROR',
-        v_error_message
-    );
-    
-    RAISE EXCEPTION 'Failed to schedule campaign jobs: %', v_error_message;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."schedule_campaign_jobs"("p_campaign_id" "uuid") OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."search_live_sessions"("search_text" "text", "status_filters" "text"[], "created_by_user" "uuid") RETURNS TABLE("id" "uuid", "name" "text", "join_code" "text", "status" "public"."session_status", "created_at" timestamp with time zone, "description" "text", "survey_id" "uuid", "created_by" "uuid")
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -2791,6 +4432,269 @@ $$;
 
 
 ALTER FUNCTION "public"."search_live_sessions"("search_text" "text", "status_filters" "text"[], "created_by_user" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."search_objectives"("p_search_text" "text" DEFAULT ''::"text", "p_status_filters" "text"[] DEFAULT NULL::"text"[], "p_visibility_filters" "text"[] DEFAULT NULL::"text"[], "p_cycle_id" "uuid" DEFAULT NULL::"uuid", "p_sbu_id" "uuid" DEFAULT NULL::"uuid", "p_is_admin" boolean DEFAULT false, "p_user_id" "uuid" DEFAULT NULL::"uuid", "p_page_number" integer DEFAULT 1, "p_page_size" integer DEFAULT 10, "p_sort_column" "text" DEFAULT 'created_at'::"text", "p_sort_direction" "text" DEFAULT 'desc'::"text") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  v_offset INTEGER := (p_page_number - 1) * p_page_size;
+  v_results JSONB;
+  v_total_count INTEGER;
+  v_sort_column TEXT := p_sort_column;
+  v_sort_direction TEXT := p_sort_direction;
+BEGIN
+  -- Log function call for debugging
+  INSERT INTO okr_history (
+    entity_id,
+    entity_type,
+    change_type,
+    changed_by,
+    new_data
+  ) VALUES (
+    '00000000-0000-0000-0000-000000000000',
+    'search_objectives_function',
+    'function_call',
+    p_user_id,
+    jsonb_build_object(
+      'search_text', p_search_text,
+      'status_filters', p_status_filters,
+      'visibility_filters', p_visibility_filters,
+      'cycle_id', p_cycle_id,
+      'sbu_id', p_sbu_id,
+      'is_admin', p_is_admin,
+      'page_number', p_page_number,
+      'page_size', p_page_size,
+      'sort_column', p_sort_column,
+      'sort_direction', p_sort_direction
+    )
+  );
+
+  -- Validate and sanitize sort inputs
+  IF v_sort_column NOT IN ('title', 'owner', 'status', 'progress', 'created_at') THEN
+    v_sort_column := 'created_at';
+  END IF;
+  
+  IF v_sort_direction NOT IN ('asc', 'desc') THEN
+    v_sort_direction := 'desc';
+  END IF;
+
+  -- Calculate total count first
+  SELECT COUNT(DISTINCT o.id) INTO v_total_count
+  FROM objectives o
+  LEFT JOIN profiles p ON o.owner_id = p.id
+  WHERE (
+    p_is_admin -- Admin can see all objectives
+    OR
+    o.owner_id = p_user_id -- User can see their own objectives
+    OR
+    o.visibility = 'organization' -- Public objectives are visible to everyone
+    OR
+    (
+      o.visibility = 'department' -- SBU objectives visible to members of the same SBU
+      AND EXISTS (
+        SELECT 1 FROM user_sbus us 
+        WHERE us.user_id = p_user_id AND us.sbu_id = o.sbu_id
+      )
+    )
+    OR
+    ( -- User has explicit permission via okr_permissions
+      EXISTS (
+        SELECT 1 
+        FROM okr_permissions op 
+        WHERE op.objective_id = o.id 
+        AND (
+          p_user_id = ANY(op.user_ids)
+          OR EXISTS (
+            SELECT 1 FROM user_sbus us 
+            WHERE us.user_id = p_user_id AND us.sbu_id = ANY(op.sbu_ids)
+          )
+          OR EXISTS (
+            SELECT 1 FROM profiles prof 
+            WHERE prof.id = p_user_id AND prof.employee_role_id = ANY(op.employee_role_ids)
+          )
+        )
+        AND op.can_view = true
+      )
+    )
+  )
+  -- Apply search filter if provided
+  AND (
+    p_search_text = '' 
+    OR o.title ILIKE '%' || p_search_text || '%' 
+    OR o.description ILIKE '%' || p_search_text || '%'
+    OR p.first_name ILIKE '%' || p_search_text || '%'
+    OR p.last_name ILIKE '%' || p_search_text || '%'
+    OR CONCAT(p.first_name, ' ', p.last_name) ILIKE '%' || p_search_text || '%'
+  )
+  -- Apply status filter if provided
+  AND (p_status_filters IS NULL OR o.status::TEXT = ANY(p_status_filters))
+  -- Apply visibility filter if provided
+  AND (p_visibility_filters IS NULL OR o.visibility::TEXT = ANY(p_visibility_filters))
+  -- Apply cycle filter if provided
+  AND (p_cycle_id IS NULL OR o.cycle_id = p_cycle_id)
+  -- Apply SBU filter if provided
+  AND (p_sbu_id IS NULL OR o.sbu_id = p_sbu_id);
+
+  -- Check if there are any results before proceeding
+  IF v_total_count = 0 THEN
+    -- Return empty result structure
+    RETURN jsonb_build_array(
+      jsonb_build_object(
+        'objectives', jsonb_build_array(),
+        'total_count', 0
+      )
+    );
+  END IF;
+
+  -- Now get the actual results with sorting and pagination
+  WITH filtered_objectives AS (
+    SELECT 
+      o.*,
+      -- Owner details
+      p.first_name AS owner_first_name,
+      p.last_name AS owner_last_name,
+      -- Child count (for hierarchical view)
+      (SELECT COUNT(*) FROM objectives child WHERE child.parent_objective_id = o.id) AS child_count,
+      -- Key results count
+      (SELECT COUNT(*) FROM key_results kr WHERE kr.objective_id = o.id) AS key_results_count
+    FROM 
+      objectives o
+    LEFT JOIN 
+      profiles p ON o.owner_id = p.id
+    WHERE 
+      (
+        p_is_admin -- Admin can see all objectives
+        OR
+        o.owner_id = p_user_id -- User can see their own objectives
+        OR
+        o.visibility = 'organization'
+        OR
+        (
+          o.visibility = 'department' -- SBU objectives visible to members of the same SBU
+          AND EXISTS (
+            SELECT 1 FROM user_sbus us 
+            WHERE us.user_id = p_user_id AND us.sbu_id = o.sbu_id
+          )
+        )
+        OR
+        ( -- User has explicit permission via okr_permissions
+          EXISTS (
+            SELECT 1 
+            FROM okr_permissions op 
+            WHERE op.objective_id = o.id 
+            AND (
+              p_user_id = ANY(op.user_ids)
+              OR EXISTS (
+                SELECT 1 FROM user_sbus us 
+                WHERE us.user_id = p_user_id AND us.sbu_id = ANY(op.sbu_ids)
+              )
+              OR EXISTS (
+                SELECT 1 FROM profiles prof 
+                WHERE prof.id = p_user_id AND prof.employee_role_id = ANY(op.employee_role_ids)
+              )
+            )
+            AND op.can_view = true
+          )
+        )
+      )
+      -- Apply search filter if provided
+      AND (
+        p_search_text = '' 
+        OR o.title ILIKE '%' || p_search_text || '%' 
+        OR o.description ILIKE '%' || p_search_text || '%'
+        OR p.first_name ILIKE '%' || p_search_text || '%'
+        OR p.last_name ILIKE '%' || p_search_text || '%'
+        OR CONCAT(p.first_name, ' ', p.last_name) ILIKE '%' || p_search_text || '%'
+      )
+      -- Apply status filter if provided
+      AND (p_status_filters IS NULL OR o.status::TEXT = ANY(p_status_filters))
+      -- Apply visibility filter if provided
+      AND (p_visibility_filters IS NULL OR o.visibility::TEXT = ANY(p_visibility_filters))
+      -- Apply cycle filter if provided
+      AND (p_cycle_id IS NULL OR o.cycle_id = p_cycle_id)
+      -- Apply SBU filter if provided
+      AND (p_sbu_id IS NULL OR o.sbu_id = p_sbu_id)
+  ),
+  prepared_data AS (
+    SELECT * FROM filtered_objectives
+    ORDER BY
+      CASE WHEN v_sort_column = 'title' AND v_sort_direction = 'asc' THEN title END,
+      CASE WHEN v_sort_column = 'title' AND v_sort_direction = 'desc' THEN title END DESC,
+      CASE WHEN v_sort_column = 'owner' AND v_sort_direction = 'asc' THEN CONCAT(owner_first_name, ' ', owner_last_name) END,
+      CASE WHEN v_sort_column = 'owner' AND v_sort_direction = 'desc' THEN CONCAT(owner_first_name, ' ', owner_last_name) END DESC,
+      CASE WHEN v_sort_column = 'status' AND v_sort_direction = 'asc' THEN status END,
+      CASE WHEN v_sort_column = 'status' AND v_sort_direction = 'desc' THEN status END DESC,
+      CASE WHEN v_sort_column = 'progress' AND v_sort_direction = 'asc' THEN progress END,
+      CASE WHEN v_sort_column = 'progress' AND v_sort_direction = 'desc' THEN progress END DESC,
+      CASE WHEN v_sort_column = 'created_at' AND v_sort_direction = 'asc' THEN created_at END,
+      CASE WHEN v_sort_column = 'created_at' AND v_sort_direction = 'desc' THEN created_at END DESC
+    LIMIT p_page_size
+    OFFSET v_offset
+  )
+  SELECT 
+    jsonb_build_object(
+      'objectives', COALESCE(
+        jsonb_agg(
+          jsonb_build_object(
+            'id', f.id,
+            'title', f.title,
+            'description', f.description,
+            'status', f.status,
+            'progress', f.progress,
+            'visibility', f.visibility,
+            'ownerId', f.owner_id,
+            'cycleId', f.cycle_id,
+            'parentObjectiveId', f.parent_objective_id,
+            'sbuId', f.sbu_id,
+            'createdAt', f.created_at,
+            'updatedAt', f.updated_at,
+            'approvalStatus', f.approval_status,
+            'ownerName', CASE WHEN f.owner_first_name IS NOT NULL 
+                            THEN CONCAT(f.owner_first_name, ' ', f.owner_last_name) 
+                            ELSE NULL END,
+            'keyResultsCount', f.key_results_count,
+            'childCount', f.child_count
+          )
+        ),
+        '[]'::jsonb  -- Return empty array if no rows found
+      ),
+      'total_count', v_total_count
+    ) INTO v_results
+  FROM prepared_data f;
+
+  -- Log successful execution with result size
+  INSERT INTO okr_history (
+    entity_id,
+    entity_type,
+    change_type,
+    changed_by,
+    new_data
+  ) VALUES (
+    '00000000-0000-0000-0000-000000000000',
+    'search_objectives_function',
+    'execution_result',
+    p_user_id,
+    jsonb_build_object(
+      'total_count', v_total_count,
+      'result_size', CASE 
+                        WHEN v_results->'objectives' IS NULL THEN 0
+                        ELSE jsonb_array_length(v_results->'objectives')
+                      END,
+      'execution_time', clock_timestamp()
+    )
+  );
+
+  RETURN jsonb_build_array(v_results);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."search_objectives"("p_search_text" "text", "p_status_filters" "text"[], "p_visibility_filters" "text"[], "p_cycle_id" "uuid", "p_sbu_id" "uuid", "p_is_admin" boolean, "p_user_id" "uuid", "p_page_number" integer, "p_page_size" integer, "p_sort_column" "text", "p_sort_direction" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."search_objectives"("p_search_text" "text", "p_status_filters" "text"[], "p_visibility_filters" "text"[], "p_cycle_id" "uuid", "p_sbu_id" "uuid", "p_is_admin" boolean, "p_user_id" "uuid", "p_page_number" integer, "p_page_size" integer, "p_sort_column" "text", "p_sort_direction" "text") IS 'Searches and filters objectives based on provided parameters with pagination, visibility rules and sorting';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."search_users"("search_text" "text", "page_number" integer, "page_size" integer, "sbu_filter" "uuid" DEFAULT NULL::"uuid") RETURNS TABLE("profile" "json", "total_count" bigint)
@@ -3101,6 +5005,25 @@ $$;
 ALTER FUNCTION "public"."update_campaign_completion_rate"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."update_cascaded_objective_progress"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    -- Clean up any stale locks
+    DELETE FROM okr_progress_calculation_lock
+    WHERE updated_at < NOW() - INTERVAL '10 minutes';
+    
+    -- Update the direct objective progress
+    PERFORM calculate_cascaded_objective_progress(NEW.objective_id);
+    
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_cascaded_objective_progress"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."update_instance_completion_rate"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -3215,6 +5138,76 @@ $$;
 
 
 ALTER FUNCTION "public"."validate_campaign_dates"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."validate_kr_values"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    -- Handle boolean type specifically
+    IF NEW.measurement_type = 'boolean' THEN
+        -- For boolean type, set progress based on boolean_value
+        NEW.progress := CASE WHEN NEW.boolean_value THEN 100.0 ELSE 0.0 END;
+    ELSE
+        -- For numeric types, calculate percentage of progress
+        IF NEW.target_value != NEW.start_value THEN
+            NEW.progress := ((NEW.current_value - NEW.start_value) / (NEW.target_value - NEW.start_value)) * 100.0;
+            -- Ensure progress is between 0-100
+            NEW.progress := GREATEST(0.0, LEAST(100.0, NEW.progress));
+        ELSE
+            NEW.progress := CASE WHEN NEW.current_value >= NEW.target_value THEN 100.0 ELSE 0.0 END;
+        END IF;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."validate_kr_values"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."validate_kr_values_old"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    -- Validation only applies to numeric measurement types
+    IF NEW.measurement_type IN ('numeric', 'percentage', 'currency') THEN
+        -- Validate numeric ranges
+        IF NEW.start_value IS NOT NULL AND (NEW.start_value < -999.99 OR NEW.start_value > 999.99) THEN
+            RAISE EXCEPTION 'Start value must be between -999.99 and 999.99';
+        END IF;
+        
+        IF NEW.current_value IS NOT NULL AND (NEW.current_value < -999.99 OR NEW.current_value > 999.99) THEN
+            RAISE EXCEPTION 'Current value must be between -999.99 and 999.99';
+        END IF;
+        
+        IF NEW.target_value IS NOT NULL AND (NEW.target_value < -999.99 OR NEW.target_value > 999.99) THEN
+            RAISE EXCEPTION 'Target value must be between -999.99 and 999.99';
+        END IF;
+    END IF;
+    
+    -- Handle boolean type specifically - this calculation will be kept
+    IF NEW.measurement_type = 'boolean' THEN
+        -- For boolean type, set progress based on boolean_value
+        NEW.progress := CASE WHEN NEW.boolean_value THEN 100.0 ELSE 0.0 END;
+    ELSE
+        -- For numeric types, calculate percentage of progress
+        IF NEW.target_value != NEW.start_value THEN
+            NEW.progress := ((NEW.current_value - NEW.start_value) / (NEW.target_value - NEW.start_value)) * 100.0;
+            -- Ensure progress is between 0-100
+            NEW.progress := GREATEST(0.0, LEAST(100.0, NEW.progress));
+        ELSE
+            NEW.progress := CASE WHEN NEW.current_value >= NEW.target_value THEN 100.0 ELSE 0.0 END;
+        END IF;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."validate_kr_values_old"() OWNER TO "postgres";
 
 SET default_tablespace = '';
 
@@ -3412,15 +5405,14 @@ COMMENT ON COLUMN "public"."survey_responses"."state_data" IS 'Stores UI state i
 
 
 
-CREATE MATERIALIZED VIEW "public"."demographic_employee_role_analysis" AS
+CREATE OR REPLACE VIEW "public"."demographic_employee_role_analysis" WITH ("security_invoker"='on') AS
  SELECT COALESCE("er"."name", 'Not Specified'::"text") AS "employee_role",
     "count"(DISTINCT "sr"."id") AS "response_count"
    FROM (("public"."survey_responses" "sr"
      JOIN "public"."profiles" "p" ON (("p"."id" = "sr"."user_id")))
      LEFT JOIN "public"."employee_roles" "er" ON (("er"."id" = "p"."employee_role_id")))
   GROUP BY "er"."name"
-  ORDER BY ("count"(DISTINCT "sr"."id")) DESC
-  WITH NO DATA;
+  ORDER BY ("count"(DISTINCT "sr"."id")) DESC;
 
 
 ALTER TABLE "public"."demographic_employee_role_analysis" OWNER TO "postgres";
@@ -3443,15 +5435,14 @@ COMMENT ON TABLE "public"."employee_types" IS 'Stores different types of employe
 
 
 
-CREATE MATERIALIZED VIEW "public"."demographic_employee_type_analysis" AS
+CREATE OR REPLACE VIEW "public"."demographic_employee_type_analysis" WITH ("security_invoker"='on') AS
  SELECT COALESCE("et"."name", 'Not Specified'::"text") AS "employee_type",
     "count"(DISTINCT "sr"."id") AS "response_count"
    FROM (("public"."survey_responses" "sr"
      JOIN "public"."profiles" "p" ON (("p"."id" = "sr"."user_id")))
      LEFT JOIN "public"."employee_types" "et" ON (("et"."id" = "p"."employee_type_id")))
   GROUP BY "et"."name"
-  ORDER BY ("count"(DISTINCT "sr"."id")) DESC
-  WITH NO DATA;
+  ORDER BY ("count"(DISTINCT "sr"."id")) DESC;
 
 
 ALTER TABLE "public"."demographic_employee_type_analysis" OWNER TO "postgres";
@@ -3470,7 +5461,7 @@ CREATE TABLE IF NOT EXISTS "public"."employment_types" (
 ALTER TABLE "public"."employment_types" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."demographic_employment_analysis" AS
+CREATE OR REPLACE VIEW "public"."demographic_employment_analysis" WITH ("security_invoker"='on') AS
  SELECT COALESCE("et"."name", 'Not Specified'::"text") AS "employment_type",
     "count"(DISTINCT "sr"."id") AS "response_count"
    FROM (("public"."survey_responses" "sr"
@@ -3483,7 +5474,7 @@ CREATE OR REPLACE VIEW "public"."demographic_employment_analysis" AS
 ALTER TABLE "public"."demographic_employment_analysis" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."demographic_gender_analysis" AS
+CREATE OR REPLACE VIEW "public"."demographic_gender_analysis" WITH ("security_invoker"='on') AS
  SELECT COALESCE(("p"."gender")::"text", 'Not Specified'::"text") AS "gender",
     "count"(DISTINCT "sr"."id") AS "response_count"
    FROM ("public"."survey_responses" "sr"
@@ -3501,22 +5492,22 @@ CREATE TABLE IF NOT EXISTS "public"."levels" (
     "status" "public"."config_status" DEFAULT 'active'::"public"."config_status",
     "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "color_code" "text" DEFAULT '#CBD5E1'::"text"
+    "color_code" "text" DEFAULT '#CBD5E1'::"text",
+    "rank" integer
 );
 
 
 ALTER TABLE "public"."levels" OWNER TO "postgres";
 
 
-CREATE MATERIALIZED VIEW "public"."demographic_level_analysis" AS
+CREATE OR REPLACE VIEW "public"."demographic_level_analysis" WITH ("security_invoker"='on') AS
  SELECT COALESCE("l"."name", 'Not Specified'::"text") AS "level",
     "count"(DISTINCT "sr"."id") AS "response_count"
    FROM (("public"."survey_responses" "sr"
      JOIN "public"."profiles" "p" ON (("p"."id" = "sr"."user_id")))
      LEFT JOIN "public"."levels" "l" ON (("l"."id" = "p"."level_id")))
   GROUP BY "l"."name"
-  ORDER BY ("count"(DISTINCT "sr"."id")) DESC
-  WITH NO DATA;
+  ORDER BY ("count"(DISTINCT "sr"."id")) DESC;
 
 
 ALTER TABLE "public"."demographic_level_analysis" OWNER TO "postgres";
@@ -3535,7 +5526,7 @@ CREATE TABLE IF NOT EXISTS "public"."locations" (
 ALTER TABLE "public"."locations" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."demographic_location_analysis" AS
+CREATE OR REPLACE VIEW "public"."demographic_location_analysis" WITH ("security_invoker"='on') AS
  SELECT COALESCE("l"."name", 'Not Specified'::"text") AS "location",
     "count"(DISTINCT "sr"."id") AS "response_count"
    FROM (("public"."survey_responses" "sr"
@@ -3591,7 +5582,7 @@ CREATE TABLE IF NOT EXISTS "public"."user_sbus" (
 ALTER TABLE "public"."user_sbus" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."department_performance" AS
+CREATE OR REPLACE VIEW "public"."department_performance" WITH ("security_invoker"='on') AS
  SELECT "sbu"."name" AS "sbu_name",
     "count"(DISTINCT "sa"."id") AS "total_assignments",
     "count"(DISTINCT "sr"."id") AS "completed_responses",
@@ -3635,90 +5626,6 @@ CREATE TABLE IF NOT EXISTS "public"."email_responses" (
 
 
 ALTER TABLE "public"."email_responses" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."instance_comparison_metrics" AS
- WITH "response_metrics" AS (
-         SELECT "sr"."campaign_instance_id",
-            "ci"."period_number",
-            "ci"."starts_at",
-            "ci"."ends_at",
-            "count"(DISTINCT "sr"."id") AS "total_responses",
-            "count"(DISTINCT "sr"."user_id") AS "unique_respondents",
-            "ci"."completion_rate",
-            "avg"(
-                CASE
-                    WHEN ("value_data"."value" ~ '^\d+(\.\d+)?$'::"text") THEN ("value_data"."value")::numeric
-                    ELSE NULL::numeric
-                END) AS "avg_rating"
-           FROM (("public"."survey_responses" "sr"
-             CROSS JOIN LATERAL "jsonb_each_text"("sr"."response_data") "value_data"("key", "value"))
-             JOIN "public"."campaign_instances" "ci" ON (("sr"."campaign_instance_id" = "ci"."id")))
-          WHERE ("sr"."status" = 'submitted'::"public"."response_status")
-          GROUP BY "sr"."campaign_instance_id", "ci"."period_number", "ci"."starts_at", "ci"."ends_at", "ci"."completion_rate"
-        ), "demographic_changes" AS (
-         SELECT "sr"."campaign_instance_id",
-            "p"."location_id",
-            "l"."name" AS "location_name",
-            "count"(DISTINCT "sr"."id") AS "location_responses",
-            "p"."gender",
-            "count"(DISTINCT
-                CASE
-                    WHEN ("p"."gender" IS NOT NULL) THEN "sr"."id"
-                    ELSE NULL::"uuid"
-                END) AS "gender_responses"
-           FROM (("public"."survey_responses" "sr"
-             JOIN "public"."profiles" "p" ON (("sr"."user_id" = "p"."id")))
-             LEFT JOIN "public"."locations" "l" ON (("p"."location_id" = "l"."id")))
-          WHERE ("sr"."status" = 'submitted'::"public"."response_status")
-          GROUP BY "sr"."campaign_instance_id", "p"."location_id", "l"."name", "p"."gender"
-        )
- SELECT "rm"."campaign_instance_id",
-    "rm"."period_number",
-    "rm"."starts_at",
-    "rm"."ends_at",
-    "rm"."total_responses",
-    "rm"."unique_respondents",
-    "rm"."completion_rate",
-    "rm"."avg_rating",
-    "jsonb_agg"("jsonb_build_object"('location_id', "dc"."location_id", 'location_name', "dc"."location_name", 'response_count', "dc"."location_responses")) AS "location_breakdown",
-    "jsonb_agg"("jsonb_build_object"('gender', "dc"."gender", 'response_count', "dc"."gender_responses")) AS "gender_breakdown"
-   FROM ("response_metrics" "rm"
-     LEFT JOIN "demographic_changes" "dc" ON (("rm"."campaign_instance_id" = "dc"."campaign_instance_id")))
-  GROUP BY "rm"."campaign_instance_id", "rm"."period_number", "rm"."starts_at", "rm"."ends_at", "rm"."total_responses", "rm"."unique_respondents", "rm"."completion_rate", "rm"."avg_rating";
-
-
-ALTER TABLE "public"."instance_comparison_metrics" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."instance_question_comparison" AS
- SELECT "sr"."campaign_instance_id",
-    "ci"."period_number",
-    "value_data"."key" AS "question_key",
-    "count"(*) AS "response_count",
-    "avg"(
-        CASE
-            WHEN ("value_data"."value" ~ '^\d+(\.\d+)?$'::"text") THEN ("value_data"."value")::numeric
-            ELSE NULL::numeric
-        END) AS "avg_numeric_value",
-    ((("sum"(
-        CASE
-            WHEN ("value_data"."value" = 'true'::"text") THEN 1
-            ELSE 0
-        END))::double precision / ("count"(*))::double precision) * (100)::double precision) AS "yes_percentage",
-    "array_agg"(
-        CASE
-            WHEN ((NOT ("value_data"."value" ~ '^\d+(\.\d+)?$'::"text")) AND ("value_data"."value" <> 'true'::"text") AND ("value_data"."value" <> 'false'::"text")) THEN "value_data"."value"
-            ELSE NULL::"text"
-        END) FILTER (WHERE ("value_data"."value" IS NOT NULL)) AS "text_responses"
-   FROM (("public"."survey_responses" "sr"
-     CROSS JOIN LATERAL "jsonb_each_text"("sr"."response_data") "value_data"("key", "value"))
-     JOIN "public"."campaign_instances" "ci" ON (("sr"."campaign_instance_id" = "ci"."id")))
-  WHERE ("sr"."status" = 'submitted'::"public"."response_status")
-  GROUP BY "sr"."campaign_instance_id", "ci"."period_number", "value_data"."key";
-
-
-ALTER TABLE "public"."instance_question_comparison" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."issue_board_permissions" (
@@ -3792,6 +5699,146 @@ CREATE TABLE IF NOT EXISTS "public"."issues" (
 
 
 ALTER TABLE "public"."issues" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."key_results" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "title" "text" NOT NULL,
+    "description" "text",
+    "objective_id" "uuid" NOT NULL,
+    "owner_id" "uuid" NOT NULL,
+    "kr_type" "text" NOT NULL,
+    "start_value" double precision DEFAULT 0,
+    "current_value" double precision DEFAULT 0,
+    "target_value" double precision NOT NULL,
+    "unit" "text",
+    "weight" double precision DEFAULT 1,
+    "status" "public"."kr_status" DEFAULT 'not_started'::"public"."kr_status" NOT NULL,
+    "progress" double precision DEFAULT 0,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "measurement_type" "text" DEFAULT 'numeric'::"text",
+    "boolean_value" boolean,
+    "due_date" timestamp with time zone,
+    CONSTRAINT "key_results_measurement_type_check" CHECK (("measurement_type" = ANY (ARRAY['numeric'::"text", 'percentage'::"text", 'currency'::"text", 'boolean'::"text"]))),
+    CONSTRAINT "key_results_progress_check" CHECK ((("progress" >= ((0)::numeric)::double precision) AND ("progress" <= ((100)::numeric)::double precision))),
+    CONSTRAINT "key_results_weight_check" CHECK (("weight" > ((0)::numeric)::double precision))
+);
+
+
+ALTER TABLE "public"."key_results" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."objectives" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "title" "text" NOT NULL,
+    "description" "text",
+    "cycle_id" "uuid" NOT NULL,
+    "owner_id" "uuid" NOT NULL,
+    "status" "public"."objective_status" DEFAULT 'draft'::"public"."objective_status" NOT NULL,
+    "progress" double precision DEFAULT 0,
+    "visibility" "public"."okr_visibility" DEFAULT 'team'::"public"."okr_visibility" NOT NULL,
+    "parent_objective_id" "uuid",
+    "sbu_id" "uuid",
+    "approval_status" "public"."approval_status" DEFAULT 'pending'::"public"."approval_status",
+    "approved_by" "uuid",
+    "approved_at" timestamp with time zone,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "progress_calculation_method" character varying(20) DEFAULT 'weighted_sum'::character varying,
+    CONSTRAINT "objectives_progress_calculation_method_check" CHECK ((("progress_calculation_method")::"text" = ANY ((ARRAY['weighted_sum'::character varying, 'weighted_avg'::character varying])::"text"[]))),
+    CONSTRAINT "objectives_progress_check" CHECK ((("progress" IS NULL) OR (("progress" >= (0)::double precision) AND ("progress" <= (100)::double precision))))
+);
+
+
+ALTER TABLE "public"."objectives" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."okr_check_ins" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "key_result_id" "uuid" NOT NULL,
+    "previous_value" numeric,
+    "new_value" numeric NOT NULL,
+    "notes" "text",
+    "status" "public"."check_in_status",
+    "confidence_level" integer,
+    "check_in_date" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "created_by" "uuid" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "okr_check_ins_confidence_level_check" CHECK ((("confidence_level" >= 1) AND ("confidence_level" <= 10)))
+);
+
+
+ALTER TABLE "public"."okr_check_ins" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."okr_comments" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "content" "text" NOT NULL,
+    "parent_comment_id" "uuid",
+    "objective_id" "uuid",
+    "key_result_id" "uuid",
+    "created_by" "uuid" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "comment_target_check" CHECK (((("objective_id" IS NOT NULL) AND ("key_result_id" IS NULL)) OR (("objective_id" IS NULL) AND ("key_result_id" IS NOT NULL))))
+);
+
+
+ALTER TABLE "public"."okr_comments" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."okr_cycles" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "description" "text",
+    "start_date" timestamp with time zone NOT NULL,
+    "end_date" timestamp with time zone NOT NULL,
+    "status" "public"."okr_cycle_status" DEFAULT 'upcoming'::"public"."okr_cycle_status" NOT NULL,
+    "created_by" "uuid" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."okr_cycles" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."key_result_statistics" WITH ("security_invoker"='on') AS
+ SELECT "kr"."id",
+    "kr"."title",
+    "kr"."description",
+    "kr"."kr_type",
+    "kr"."measurement_type",
+    "kr"."unit",
+    "kr"."start_value",
+    "kr"."current_value",
+    "kr"."target_value",
+    "kr"."weight",
+    "kr"."status",
+    "kr"."progress",
+    "kr"."objective_id",
+    "kr"."owner_id",
+    "o"."title" AS "objective_title",
+    "oc"."id" AS "cycle_id",
+    "oc"."name" AS "cycle_name",
+    (("p"."first_name" || ' '::"text") || "p"."last_name") AS "owner_name",
+    ( SELECT "max"("ci"."created_at") AS "max"
+           FROM "public"."okr_check_ins" "ci"
+          WHERE ("ci"."key_result_id" = "kr"."id")) AS "last_check_in",
+    ( SELECT "count"(*) AS "count"
+           FROM "public"."okr_check_ins" "ci"
+          WHERE ("ci"."key_result_id" = "kr"."id")) AS "check_ins_count",
+    ( SELECT "count"(*) AS "count"
+           FROM "public"."okr_comments" "cmt"
+          WHERE ("cmt"."key_result_id" = "kr"."id")) AS "comments_count"
+   FROM ((("public"."key_results" "kr"
+     JOIN "public"."objectives" "o" ON (("kr"."objective_id" = "o"."id")))
+     JOIN "public"."okr_cycles" "oc" ON (("o"."cycle_id" = "oc"."id")))
+     LEFT JOIN "public"."profiles" "p" ON (("kr"."owner_id" = "p"."id")));
+
+
+ALTER TABLE "public"."key_result_statistics" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."live_session_participants" (
@@ -3901,7 +5948,7 @@ CREATE TABLE IF NOT EXISTS "public"."user_supervisors" (
 ALTER TABLE "public"."user_supervisors" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."managers_needing_improvement" AS
+CREATE OR REPLACE VIEW "public"."managers_needing_improvement" WITH ("security_invoker"='on') AS
  WITH "rating_responses" AS (
          SELECT "sr"."user_id" AS "respondent_id",
             "us"."supervisor_id" AS "manager_id",
@@ -3958,6 +6005,151 @@ These managers may need additional support or training to improve their performa
 
 
 
+CREATE TABLE IF NOT EXISTS "public"."okr_alignments" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "source_objective_id" "uuid" NOT NULL,
+    "aligned_objective_id" "uuid" NOT NULL,
+    "alignment_type" "text" NOT NULL,
+    "weight" numeric(5,2) DEFAULT 1,
+    "created_by" "uuid" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "no_self_alignment" CHECK (("source_objective_id" <> "aligned_objective_id")),
+    CONSTRAINT "okr_alignment_weight_check" CHECK (("weight" > (0)::numeric))
+);
+
+
+ALTER TABLE "public"."okr_alignments" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."objective_statistics" WITH ("security_invoker"='on') AS
+ SELECT "o"."id",
+    "o"."title",
+    "o"."description",
+    "o"."status",
+    "o"."progress",
+    "o"."visibility",
+    "o"."parent_objective_id",
+    "o"."sbu_id",
+    "o"."approval_status",
+    "o"."owner_id",
+    "o"."cycle_id",
+    "oc"."name" AS "cycle_name",
+    (("p"."first_name" || ' '::"text") || "p"."last_name") AS "owner_name",
+    "s"."name" AS "sbu_name",
+    ( SELECT "count"(*) AS "count"
+           FROM "public"."key_results" "kr"
+          WHERE ("kr"."objective_id" = "o"."id")) AS "key_results_count",
+    ( SELECT "count"(*) AS "count"
+           FROM "public"."key_results" "kr"
+          WHERE (("kr"."objective_id" = "o"."id") AND ("kr"."status" = 'completed'::"public"."kr_status"))) AS "completed_key_results",
+    ( SELECT "count"(*) AS "count"
+           FROM "public"."okr_alignments" "al"
+          WHERE (("al"."source_objective_id" = "o"."id") OR ("al"."aligned_objective_id" = "o"."id"))) AS "alignments_count",
+    ( SELECT "count"(*) AS "count"
+           FROM "public"."okr_comments" "c"
+          WHERE ("c"."objective_id" = "o"."id")) AS "comments_count",
+    ( SELECT "count"(*) AS "count"
+           FROM ("public"."okr_check_ins" "ci"
+             JOIN "public"."key_results" "kr" ON (("ci"."key_result_id" = "kr"."id")))
+          WHERE ("kr"."objective_id" = "o"."id")) AS "check_ins_count"
+   FROM ((("public"."objectives" "o"
+     JOIN "public"."okr_cycles" "oc" ON (("o"."cycle_id" = "oc"."id")))
+     LEFT JOIN "public"."profiles" "p" ON (("o"."owner_id" = "p"."id")))
+     LEFT JOIN "public"."sbus" "s" ON (("o"."sbu_id" = "s"."id")));
+
+
+ALTER TABLE "public"."objective_statistics" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."okr_default_settings" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "default_progress_calculation_method" character varying(20) DEFAULT 'weighted_sum'::character varying
+);
+
+
+ALTER TABLE "public"."okr_default_settings" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."okr_history" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "entity_type" "text" NOT NULL,
+    "entity_id" "uuid" NOT NULL,
+    "change_type" "text" NOT NULL,
+    "previous_data" "jsonb",
+    "new_data" "jsonb",
+    "changed_by" "uuid" NOT NULL,
+    "changed_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."okr_history" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."okr_notifications" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "title" "text" NOT NULL,
+    "message" "text" NOT NULL,
+    "link" "text",
+    "read" boolean DEFAULT false,
+    "notification_type" "text" NOT NULL,
+    "entity_type" "text" NOT NULL,
+    "entity_id" "uuid" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."okr_notifications" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."okr_permissions" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "objective_id" "uuid" NOT NULL,
+    "sbu_ids" "uuid"[] DEFAULT ARRAY[]::"uuid"[],
+    "user_ids" "uuid"[] DEFAULT ARRAY[]::"uuid"[],
+    "employee_role_ids" "uuid"[] DEFAULT ARRAY[]::"uuid"[],
+    "can_view" boolean DEFAULT true,
+    "can_comment" boolean DEFAULT false,
+    "can_edit" boolean DEFAULT false,
+    "created_by" "uuid" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."okr_permissions" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."okr_progress_calculation_lock" (
+    "objective_id" "uuid" NOT NULL,
+    "locked" boolean DEFAULT false NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."okr_progress_calculation_lock" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."okr_role_settings" (
+    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    "can_create_objectives" "uuid"[] DEFAULT '{}'::"uuid"[],
+    "can_create_org_objectives" "uuid"[] DEFAULT '{}'::"uuid"[],
+    "can_create_dept_objectives" "uuid"[] DEFAULT '{}'::"uuid"[],
+    "can_create_team_objectives" "uuid"[] DEFAULT '{}'::"uuid"[],
+    "can_create_key_results" "uuid"[] DEFAULT '{}'::"uuid"[],
+    "can_create_alignments" "uuid"[] DEFAULT '{}'::"uuid"[],
+    "can_align_with_org_objectives" "uuid"[] DEFAULT '{}'::"uuid"[],
+    "can_align_with_dept_objectives" "uuid"[] DEFAULT '{}'::"uuid"[],
+    "can_align_with_team_objectives" "uuid"[] DEFAULT '{}'::"uuid"[]
+);
+
+
+ALTER TABLE "public"."okr_role_settings" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."survey_campaigns" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "name" "text" NOT NULL,
@@ -3986,7 +6178,7 @@ COMMENT ON COLUMN "public"."survey_campaigns"."anonymous" IS 'When true, respons
 
 
 
-CREATE OR REPLACE VIEW "public"."recent_activities" AS
+CREATE OR REPLACE VIEW "public"."recent_activities" WITH ("security_invoker"='on') AS
  SELECT "sr"."id",
     'response'::"text" AS "activity_type",
     "sr"."created_at" AS "activity_time",
@@ -4004,7 +6196,7 @@ CREATE OR REPLACE VIEW "public"."recent_activities" AS
 ALTER TABLE "public"."recent_activities" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."response_trends" AS
+CREATE OR REPLACE VIEW "public"."response_trends" WITH ("security_invoker"='on') AS
  SELECT "date_trunc"('day'::"text", "sr"."created_at") AS "response_date",
     "count"(*) AS "response_count",
     "count"(DISTINCT "sr"."user_id") AS "unique_respondents"
@@ -4016,7 +6208,36 @@ CREATE OR REPLACE VIEW "public"."response_trends" AS
 ALTER TABLE "public"."response_trends" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."silent_employees" AS
+CREATE TABLE IF NOT EXISTS "public"."shared_presentations" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "campaign_id" "uuid" NOT NULL,
+    "instance_id" "uuid",
+    "access_token" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "created_by" "uuid" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "expires_at" timestamp with time zone,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "title" "text",
+    "description" "text"
+);
+
+
+ALTER TABLE "public"."shared_presentations" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."shared_presentations" IS 'Table for storing public shareable presentation links';
+
+
+
+COMMENT ON COLUMN "public"."shared_presentations"."access_token" IS 'Secure token for public access without authentication';
+
+
+
+COMMENT ON COLUMN "public"."shared_presentations"."expires_at" IS 'Optional expiration date for the shared link';
+
+
+
+CREATE OR REPLACE VIEW "public"."silent_employees" WITH ("security_invoker"='on') AS
  WITH "employee_participation" AS (
          SELECT "p"."id",
             "p"."first_name",
@@ -4070,7 +6291,7 @@ Limited to top 10 cases that need attention.';
 
 
 
-CREATE OR REPLACE VIEW "public"."survey_overview_metrics" AS
+CREATE OR REPLACE VIEW "public"."survey_overview_metrics" WITH ("security_invoker"='on') AS
  WITH "metrics" AS (
          SELECT "count"(DISTINCT "s"."id") AS "total_surveys",
             "count"(DISTINCT
@@ -4106,7 +6327,7 @@ CREATE OR REPLACE VIEW "public"."survey_overview_metrics" AS
 ALTER TABLE "public"."survey_overview_metrics" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."survey_response_trends" AS
+CREATE OR REPLACE VIEW "public"."survey_response_trends" WITH ("security_invoker"='on') AS
  SELECT ("survey_responses"."created_at")::"date" AS "date",
     "count"(*) AS "response_count",
     "count"(DISTINCT "survey_responses"."user_id") AS "unique_respondents"
@@ -4118,7 +6339,7 @@ CREATE OR REPLACE VIEW "public"."survey_response_trends" AS
 ALTER TABLE "public"."survey_response_trends" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."top_performing_managers" AS
+CREATE OR REPLACE VIEW "public"."top_performing_managers" WITH ("security_invoker"='on') AS
  WITH "rating_responses" AS (
          SELECT "sr"."user_id" AS "respondent_id",
             "us"."supervisor_id" AS "manager_id",
@@ -4174,7 +6395,7 @@ Requires minimum 3 respondents per manager. Scores are normalized to percentage 
 
 
 
-CREATE OR REPLACE VIEW "public"."top_performing_sbus" AS
+CREATE OR REPLACE VIEW "public"."top_performing_sbus" WITH ("security_invoker"='on') AS
  WITH RECURSIVE "rating_responses" AS (
          SELECT "sr"."user_id",
             "us"."sbu_id",
@@ -4213,7 +6434,7 @@ CREATE OR REPLACE VIEW "public"."top_performing_sbus" AS
 ALTER TABLE "public"."top_performing_sbus" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."top_performing_surveys" AS
+CREATE OR REPLACE VIEW "public"."top_performing_surveys" WITH ("security_invoker"='on') AS
  WITH "latest_instances" AS (
          SELECT DISTINCT ON ("sc"."id") "sc"."id" AS "campaign_id",
             "sc"."name" AS "campaign_name",
@@ -4252,7 +6473,7 @@ CREATE OR REPLACE VIEW "public"."top_performing_surveys" AS
 ALTER TABLE "public"."top_performing_surveys" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."upcoming_survey_deadlines" AS
+CREATE OR REPLACE VIEW "public"."upcoming_survey_deadlines" WITH ("security_invoker"='on') AS
  SELECT "ci"."id",
     "ci"."campaign_id",
     "s"."name" AS "survey_name",
@@ -4414,6 +6635,11 @@ ALTER TABLE ONLY "public"."issues"
 
 
 
+ALTER TABLE ONLY "public"."key_results"
+    ADD CONSTRAINT "key_results_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."levels"
     ADD CONSTRAINT "levels_pkey" PRIMARY KEY ("id");
 
@@ -4449,6 +6675,61 @@ ALTER TABLE ONLY "public"."locations"
 
 
 
+ALTER TABLE ONLY "public"."objectives"
+    ADD CONSTRAINT "objectives_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_alignments"
+    ADD CONSTRAINT "okr_alignments_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_check_ins"
+    ADD CONSTRAINT "okr_check_ins_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_comments"
+    ADD CONSTRAINT "okr_comments_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_cycles"
+    ADD CONSTRAINT "okr_cycles_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_default_settings"
+    ADD CONSTRAINT "okr_default_settings_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_history"
+    ADD CONSTRAINT "okr_history_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_notifications"
+    ADD CONSTRAINT "okr_notifications_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_permissions"
+    ADD CONSTRAINT "okr_permissions_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_progress_calculation_lock"
+    ADD CONSTRAINT "okr_progress_calculation_lock_pkey" PRIMARY KEY ("objective_id");
+
+
+
+ALTER TABLE ONLY "public"."okr_role_settings"
+    ADD CONSTRAINT "okr_role_settings_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_pkey" PRIMARY KEY ("id");
 
@@ -4456,6 +6737,11 @@ ALTER TABLE ONLY "public"."profiles"
 
 ALTER TABLE ONLY "public"."sbus"
     ADD CONSTRAINT "sbus_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."shared_presentations"
+    ADD CONSTRAINT "shared_presentations_pkey" PRIMARY KEY ("id");
 
 
 
@@ -4481,6 +6767,16 @@ ALTER TABLE ONLY "public"."survey_responses"
 
 ALTER TABLE ONLY "public"."surveys"
     ADD CONSTRAINT "surveys_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_alignments"
+    ADD CONSTRAINT "unique_alignment" UNIQUE ("source_objective_id", "aligned_objective_id");
+
+
+
+ALTER TABLE ONLY "public"."shared_presentations"
+    ADD CONSTRAINT "unique_campaign_instance_token" UNIQUE ("campaign_id", "instance_id", "access_token");
 
 
 
@@ -4529,6 +6825,30 @@ ALTER TABLE ONLY "public"."user_supervisors"
 
 
 
+CREATE INDEX "idx_alignments_aligned" ON "public"."okr_alignments" USING "btree" ("aligned_objective_id");
+
+
+
+CREATE INDEX "idx_alignments_source" ON "public"."okr_alignments" USING "btree" ("source_objective_id");
+
+
+
+CREATE INDEX "idx_check_ins_key_result" ON "public"."okr_check_ins" USING "btree" ("key_result_id");
+
+
+
+CREATE INDEX "idx_comments_key_result" ON "public"."okr_comments" USING "btree" ("key_result_id");
+
+
+
+CREATE INDEX "idx_comments_objective" ON "public"."okr_comments" USING "btree" ("objective_id");
+
+
+
+CREATE INDEX "idx_history_entity_type_id" ON "public"."okr_history" USING "btree" ("entity_type", "entity_id");
+
+
+
 CREATE INDEX "idx_issue_board_permissions_board_id" ON "public"."issue_board_permissions" USING "btree" ("board_id");
 
 
@@ -4542,6 +6862,14 @@ CREATE INDEX "idx_issue_votes_user_id" ON "public"."issue_votes" USING "btree" (
 
 
 CREATE INDEX "idx_issues_board_id" ON "public"."issues" USING "btree" ("board_id");
+
+
+
+CREATE INDEX "idx_key_results_objective" ON "public"."key_results" USING "btree" ("objective_id");
+
+
+
+CREATE INDEX "idx_key_results_owner" ON "public"."key_results" USING "btree" ("owner_id");
 
 
 
@@ -4562,6 +6890,30 @@ CREATE INDEX "idx_live_session_responses_question_key" ON "public"."live_session
 
 
 CREATE INDEX "idx_live_survey_sessions_join_code" ON "public"."live_survey_sessions" USING "btree" ("join_code");
+
+
+
+CREATE INDEX "idx_notifications_user" ON "public"."okr_notifications" USING "btree" ("user_id");
+
+
+
+CREATE INDEX "idx_objectives_cycle" ON "public"."objectives" USING "btree" ("cycle_id");
+
+
+
+CREATE INDEX "idx_objectives_owner" ON "public"."objectives" USING "btree" ("owner_id");
+
+
+
+CREATE INDEX "idx_objectives_sbu" ON "public"."objectives" USING "btree" ("sbu_id");
+
+
+
+CREATE INDEX "idx_okr_progress_calculation_lock_locked" ON "public"."okr_progress_calculation_lock" USING "btree" ("locked");
+
+
+
+CREATE INDEX "idx_permissions_objective" ON "public"."okr_permissions" USING "btree" ("objective_id");
 
 
 
@@ -4589,6 +6941,10 @@ CREATE INDEX "idx_profiles_last_name_pattern" ON "public"."profiles" USING "btre
 
 
 
+CREATE INDEX "idx_profiles_name_search" ON "public"."profiles" USING "btree" ("email", "first_name", "last_name");
+
+
+
 CREATE INDEX "idx_profiles_org_id" ON "public"."profiles" USING "btree" ("org_id");
 
 
@@ -4598,6 +6954,10 @@ CREATE INDEX "idx_profiles_org_id_pattern" ON "public"."profiles" USING "btree" 
 
 
 CREATE INDEX "idx_sbus_head_id" ON "public"."sbus" USING "btree" ("head_id");
+
+
+
+CREATE INDEX "idx_shared_presentations_token" ON "public"."shared_presentations" USING "btree" ("access_token");
 
 
 
@@ -4629,6 +6989,10 @@ CREATE INDEX "idx_survey_responses_assignment_id" ON "public"."survey_responses"
 
 
 
+CREATE INDEX "idx_survey_responses_assignment_instance" ON "public"."survey_responses" USING "btree" ("assignment_id", "campaign_instance_id");
+
+
+
 CREATE UNIQUE INDEX "unique_user_assignment_instance" ON "public"."survey_responses" USING "btree" ("assignment_id", "user_id", "campaign_instance_id") WHERE ("status" <> 'submitted'::"public"."response_status");
 
 
@@ -4637,11 +7001,15 @@ CREATE OR REPLACE TRIGGER "before_delete_campaign" BEFORE DELETE ON "public"."su
 
 
 
-CREATE OR REPLACE TRIGGER "campaign_completion_trigger" AFTER UPDATE ON "public"."campaign_instances" FOR EACH ROW WHEN ((("old"."status" <> 'completed'::"public"."instance_status") AND ("new"."status" = 'completed'::"public"."instance_status"))) EXECUTE FUNCTION "public"."handle_campaign_completion"();
+CREATE OR REPLACE TRIGGER "cascade_kr_delete_progress" AFTER DELETE ON "public"."key_results" FOR EACH ROW EXECUTE FUNCTION "public"."handle_kr_delete_cascaded_progress"();
 
 
 
-CREATE OR REPLACE TRIGGER "campaign_scheduling_trigger" AFTER INSERT ON "public"."survey_campaigns" FOR EACH ROW EXECUTE FUNCTION "public"."handle_campaign_scheduling"();
+CREATE OR REPLACE TRIGGER "cascade_kr_progress_update" AFTER INSERT OR UPDATE ON "public"."key_results" FOR EACH ROW EXECUTE FUNCTION "public"."update_cascaded_objective_progress"();
+
+
+
+CREATE OR REPLACE TRIGGER "cascade_objective_to_parent" AFTER UPDATE ON "public"."objectives" FOR EACH ROW EXECUTE FUNCTION "public"."handle_objective_cascade_to_parent"();
 
 
 
@@ -4661,7 +7029,35 @@ CREATE OR REPLACE TRIGGER "generate_instances_trigger" AFTER INSERT ON "public".
 
 
 
+CREATE OR REPLACE TRIGGER "handle_alignment_delete_trigger" AFTER DELETE ON "public"."okr_alignments" FOR EACH ROW EXECUTE FUNCTION "public"."handle_alignment_delete_progress"();
+
+
+
+CREATE OR REPLACE TRIGGER "handle_key_result_changes_trigger" AFTER INSERT OR UPDATE ON "public"."key_results" FOR EACH ROW EXECUTE FUNCTION "public"."handle_key_result_changes"();
+
+
+
+CREATE OR REPLACE TRIGGER "handle_key_result_deletion_trigger" AFTER DELETE ON "public"."key_results" FOR EACH ROW EXECUTE FUNCTION "public"."handle_key_result_deletion"();
+
+
+
+CREATE OR REPLACE TRIGGER "handle_objective_delete_cascade_trigger" BEFORE DELETE ON "public"."objectives" FOR EACH ROW EXECUTE FUNCTION "public"."handle_objective_delete_cascade"();
+
+
+
+COMMENT ON TRIGGER "handle_objective_delete_cascade_trigger" ON "public"."objectives" IS 'Trigger to handle cascading deletions when an objective is deleted - updates child objectives and removes alignments';
+
+
+
+CREATE OR REPLACE TRIGGER "handle_objective_deletion_trigger" BEFORE DELETE ON "public"."objectives" FOR EACH ROW EXECUTE FUNCTION "public"."handle_objective_deletion"();
+
+
+
 CREATE OR REPLACE TRIGGER "issue_downvote_count_trigger" AFTER INSERT OR DELETE ON "public"."issue_downvotes" FOR EACH ROW EXECUTE FUNCTION "public"."update_issue_downvote_count"();
+
+
+
+CREATE OR REPLACE TRIGGER "key_results_validate_trigger" BEFORE INSERT OR UPDATE ON "public"."key_results" FOR EACH ROW EXECUTE FUNCTION "public"."validate_kr_values"();
 
 
 
@@ -4674,6 +7070,10 @@ CREATE OR REPLACE TRIGGER "prevent_duplicate_responses_trigger" BEFORE INSERT ON
 
 
 CREATE OR REPLACE TRIGGER "prevent_submitted_response_modification" BEFORE UPDATE ON "public"."survey_responses" FOR EACH ROW EXECUTE FUNCTION "public"."prevent_modifying_submitted_responses"();
+
+
+
+CREATE OR REPLACE TRIGGER "propagate_alignment_progress_trigger" AFTER INSERT ON "public"."okr_alignments" FOR EACH ROW EXECUTE FUNCTION "public"."propagate_alignment_progress"();
 
 
 
@@ -4737,6 +7137,10 @@ CREATE OR REPLACE TRIGGER "update_issues_updated_at" BEFORE UPDATE ON "public"."
 
 
 
+CREATE OR REPLACE TRIGGER "update_key_results_updated_at" BEFORE UPDATE ON "public"."key_results" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+
+
+
 CREATE OR REPLACE TRIGGER "update_levels_updated_at" BEFORE UPDATE ON "public"."levels" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
@@ -4758,6 +7162,26 @@ CREATE OR REPLACE TRIGGER "update_live_survey_sessions_updated_at" BEFORE UPDATE
 
 
 CREATE OR REPLACE TRIGGER "update_locations_updated_at" BEFORE UPDATE ON "public"."locations" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+
+
+
+CREATE OR REPLACE TRIGGER "update_objectives_updated_at" BEFORE UPDATE ON "public"."objectives" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+
+
+
+CREATE OR REPLACE TRIGGER "update_okr_comments_updated_at" BEFORE UPDATE ON "public"."okr_comments" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+
+
+
+CREATE OR REPLACE TRIGGER "update_okr_cycles_updated_at" BEFORE UPDATE ON "public"."okr_cycles" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+
+
+
+CREATE OR REPLACE TRIGGER "update_okr_permissions_updated_at" BEFORE UPDATE ON "public"."okr_permissions" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+
+
+
+CREATE OR REPLACE TRIGGER "update_okr_role_settings_updated_at" BEFORE UPDATE ON "public"."okr_role_settings" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
 
@@ -4876,6 +7300,16 @@ ALTER TABLE ONLY "public"."issues"
 
 
 
+ALTER TABLE ONLY "public"."key_results"
+    ADD CONSTRAINT "key_results_objective_id_fkey" FOREIGN KEY ("objective_id") REFERENCES "public"."objectives"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."key_results"
+    ADD CONSTRAINT "key_results_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "public"."profiles"("id");
+
+
+
 ALTER TABLE ONLY "public"."live_session_participants"
     ADD CONSTRAINT "live_session_participants_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "public"."live_survey_sessions"("id") ON DELETE CASCADE;
 
@@ -4898,6 +7332,101 @@ ALTER TABLE ONLY "public"."live_survey_sessions"
 
 ALTER TABLE ONLY "public"."live_survey_sessions"
     ADD CONSTRAINT "live_survey_sessions_survey_id_fkey" FOREIGN KEY ("survey_id") REFERENCES "public"."surveys"("id");
+
+
+
+ALTER TABLE ONLY "public"."objectives"
+    ADD CONSTRAINT "objectives_approved_by_fkey" FOREIGN KEY ("approved_by") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."objectives"
+    ADD CONSTRAINT "objectives_cycle_id_fkey" FOREIGN KEY ("cycle_id") REFERENCES "public"."okr_cycles"("id");
+
+
+
+ALTER TABLE ONLY "public"."objectives"
+    ADD CONSTRAINT "objectives_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."objectives"
+    ADD CONSTRAINT "objectives_parent_objective_id_fkey" FOREIGN KEY ("parent_objective_id") REFERENCES "public"."objectives"("id");
+
+
+
+ALTER TABLE ONLY "public"."objectives"
+    ADD CONSTRAINT "objectives_sbu_id_fkey" FOREIGN KEY ("sbu_id") REFERENCES "public"."sbus"("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_alignments"
+    ADD CONSTRAINT "okr_alignments_aligned_objective_id_fkey" FOREIGN KEY ("aligned_objective_id") REFERENCES "public"."objectives"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."okr_alignments"
+    ADD CONSTRAINT "okr_alignments_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_alignments"
+    ADD CONSTRAINT "okr_alignments_source_objective_id_fkey" FOREIGN KEY ("source_objective_id") REFERENCES "public"."objectives"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."okr_check_ins"
+    ADD CONSTRAINT "okr_check_ins_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_check_ins"
+    ADD CONSTRAINT "okr_check_ins_key_result_id_fkey" FOREIGN KEY ("key_result_id") REFERENCES "public"."key_results"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."okr_comments"
+    ADD CONSTRAINT "okr_comments_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_comments"
+    ADD CONSTRAINT "okr_comments_key_result_id_fkey" FOREIGN KEY ("key_result_id") REFERENCES "public"."key_results"("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_comments"
+    ADD CONSTRAINT "okr_comments_objective_id_fkey" FOREIGN KEY ("objective_id") REFERENCES "public"."objectives"("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_comments"
+    ADD CONSTRAINT "okr_comments_parent_comment_id_fkey" FOREIGN KEY ("parent_comment_id") REFERENCES "public"."okr_comments"("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_cycles"
+    ADD CONSTRAINT "okr_cycles_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_history"
+    ADD CONSTRAINT "okr_history_changed_by_fkey" FOREIGN KEY ("changed_by") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_notifications"
+    ADD CONSTRAINT "okr_notifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_permissions"
+    ADD CONSTRAINT "okr_permissions_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."okr_permissions"
+    ADD CONSTRAINT "okr_permissions_objective_id_fkey" FOREIGN KEY ("objective_id") REFERENCES "public"."objectives"("id") ON DELETE CASCADE;
 
 
 
@@ -4933,6 +7462,21 @@ ALTER TABLE ONLY "public"."profiles"
 
 ALTER TABLE ONLY "public"."sbus"
     ADD CONSTRAINT "sbus_head_id_fkey" FOREIGN KEY ("head_id") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."shared_presentations"
+    ADD CONSTRAINT "shared_presentations_campaign_id_fkey" FOREIGN KEY ("campaign_id") REFERENCES "public"."survey_campaigns"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."shared_presentations"
+    ADD CONSTRAINT "shared_presentations_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."shared_presentations"
+    ADD CONSTRAINT "shared_presentations_instance_id_fkey" FOREIGN KEY ("instance_id") REFERENCES "public"."campaign_instances"("id") ON DELETE CASCADE;
 
 
 
@@ -5037,6 +7581,12 @@ COMMENT ON CONSTRAINT "user_supervisors_user_id_fkey" ON "public"."user_supervis
 
 
 
+CREATE POLICY "Administrators have full access to key results" ON "public"."key_results" USING ((EXISTS ( SELECT 1
+   FROM "public"."user_roles"
+  WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role")))));
+
+
+
 CREATE POLICY "Admins can delete prompts" ON "public"."analysis_prompts" FOR DELETE TO "authenticated" USING ("public"."is_admin"("auth"."uid"()));
 
 
@@ -5119,6 +7669,12 @@ CREATE POLICY "Admins can insert roles" ON "public"."user_roles" FOR INSERT WITH
 
 
 
+CREATE POLICY "Admins can manage all objectives" ON "public"."objectives" USING ((EXISTS ( SELECT 1
+   FROM "public"."user_roles"
+  WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role")))));
+
+
+
 CREATE POLICY "Admins can manage issue boards" ON "public"."issue_boards" TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."user_roles"
   WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role")))));
@@ -5126,6 +7682,12 @@ CREATE POLICY "Admins can manage issue boards" ON "public"."issue_boards" TO "au
 
 
 CREATE POLICY "Admins can manage permissions" ON "public"."issue_board_permissions" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."user_roles"
+  WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role")))));
+
+
+
+CREATE POLICY "Admins can manage shared presentations" ON "public"."shared_presentations" TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."user_roles"
   WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role")))));
 
@@ -5185,6 +7747,18 @@ CREATE POLICY "Allow participants to submit responses" ON "public"."live_session
 
 
 
+CREATE POLICY "Allow public access to response aggregated data via token" ON "public"."survey_responses" FOR SELECT TO "anon" USING ((EXISTS ( SELECT 1
+   FROM "public"."shared_presentations" "sp"
+  WHERE ((("survey_responses"."campaign_instance_id" = "sp"."instance_id") OR ("sp"."instance_id" IS NULL)) AND (EXISTS ( SELECT 1
+           FROM "public"."survey_assignments" "sa"
+          WHERE (("sa"."id" = "survey_responses"."assignment_id") AND ("sa"."campaign_id" = "sp"."campaign_id")))) AND ("sp"."is_active" = true) AND (("sp"."expires_at" IS NULL) OR ("sp"."expires_at" > "now"()))))));
+
+
+
+CREATE POLICY "Allow public access to shared presentations via token" ON "public"."shared_presentations" FOR SELECT TO "anon" USING ((("is_active" = true) AND (("expires_at" IS NULL) OR ("expires_at" > "now"()))));
+
+
+
 CREATE POLICY "Allow public access to survey assignments with token" ON "public"."survey_assignments" FOR SELECT USING ((("public_access_token" IS NOT NULL) OR ("user_id" = "auth"."uid"()) OR ("created_by" = "auth"."uid"())));
 
 
@@ -5192,6 +7766,13 @@ CREATE POLICY "Allow public access to survey assignments with token" ON "public"
 CREATE POLICY "Allow public access to surveys via assignment token" ON "public"."surveys" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."survey_assignments"
   WHERE (("survey_assignments"."survey_id" = "surveys"."id") AND ("survey_assignments"."public_access_token" IS NOT NULL)))));
+
+
+
+CREATE POLICY "Allow public access to surveys via presentation token" ON "public"."surveys" FOR SELECT TO "anon" USING ((EXISTS ( SELECT 1
+   FROM ("public"."shared_presentations" "sp"
+     JOIN "public"."survey_campaigns" "sc" ON (("sp"."campaign_id" = "sc"."id")))
+  WHERE (("sc"."survey_id" = "surveys"."id") AND ("sp"."is_active" = true) AND (("sp"."expires_at" IS NULL) OR ("sp"."expires_at" > "now"()))))));
 
 
 
@@ -5241,6 +7822,10 @@ CREATE POLICY "Allow users to view responses in their sessions" ON "public"."liv
 
 
 
+CREATE POLICY "Anyone can create notifications" ON "public"."okr_notifications" FOR INSERT TO "authenticated" WITH CHECK (true);
+
+
+
 CREATE POLICY "Can insert own responses" ON "public"."live_session_responses" FOR INSERT WITH CHECK (((EXISTS ( SELECT 1
    FROM "public"."live_session_participants" "lsp"
   WHERE (("lsp"."session_id" = "live_session_responses"."session_id") AND ("lsp"."participant_id" = "live_session_responses"."participant_id")))) AND (EXISTS ( SELECT 1
@@ -5267,7 +7852,7 @@ CREATE POLICY "Enable read access for all users" ON "public"."issue_boards" FOR 
 
 
 
-CREATE POLICY "Enable read access for all users" ON "public"."issue_votes" FOR SELECT USING (true);
+CREATE POLICY "Enable read access for all users" ON "public"."key_results" FOR SELECT USING (true);
 
 
 
@@ -5279,7 +7864,27 @@ CREATE POLICY "Enable read access for all users" ON "public"."live_session_respo
 
 
 
-CREATE POLICY "Enable system to insert achievement progress" ON "public"."achievement_progress" FOR INSERT TO "authenticated" WITH CHECK (true);
+CREATE POLICY "Enable read access for all users" ON "public"."okr_role_settings" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "Enable read access for all users" ON "public"."profiles" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "Enable read access for all users" ON "public"."sbus" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "Enable read access for all users" ON "public"."survey_campaigns" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "Enable read access for all users" ON "public"."user_sbus" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "Enable read access for all users" ON "public"."user_supervisors" FOR SELECT USING (true);
 
 
 
@@ -5287,11 +7892,16 @@ CREATE POLICY "Enable system to insert achievements" ON "public"."user_achieveme
 
 
 
-CREATE POLICY "Enable system to update achievement progress" ON "public"."achievement_progress" FOR UPDATE TO "authenticated" USING (true) WITH CHECK (true);
-
-
-
 CREATE POLICY "Enable system to update achievements" ON "public"."user_achievements" FOR UPDATE TO "authenticated" USING (true) WITH CHECK (true);
+
+
+
+CREATE POLICY "Enable users to view permitted data" ON "public"."issue_downvotes" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."issues" "i"
+  WHERE (("i"."id" = "issue_downvotes"."issue_id") AND (EXISTS ( SELECT 1
+           FROM (("public"."issue_board_permissions" "ibp"
+             JOIN "public"."profiles" "p" ON (("auth"."uid"() = "p"."id")))
+             LEFT JOIN "public"."user_sbus" "us" ON (("p"."id" = "us"."user_id")))))))));
 
 
 
@@ -5309,6 +7919,18 @@ CREATE POLICY "Enable write access for session creators" ON "public"."live_sessi
 
 
 
+CREATE POLICY "Everyone can view OKR cycles" ON "public"."okr_cycles" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "Only admins can create OKR cycles" ON "public"."okr_cycles" FOR INSERT WITH CHECK ("public"."is_admin"("auth"."uid"()));
+
+
+
+CREATE POLICY "Only admins can delete OKR cycles" ON "public"."okr_cycles" FOR DELETE USING ("public"."is_admin"("auth"."uid"()));
+
+
+
 CREATE POLICY "Only admins can modify campaign instances" ON "public"."campaign_instances" USING ((EXISTS ( SELECT 1
    FROM "public"."user_roles"
   WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role"))))) WITH CHECK ((EXISTS ( SELECT 1
@@ -5317,7 +7939,34 @@ CREATE POLICY "Only admins can modify campaign instances" ON "public"."campaign_
 
 
 
+CREATE POLICY "Only admins can update OKR cycles" ON "public"."okr_cycles" FOR UPDATE USING ("public"."is_admin"("auth"."uid"()));
+
+
+
+CREATE POLICY "Policy with security definer functions" ON "public"."issue_downvotes" USING (("auth"."uid"() = "user_id")) WITH CHECK ((("auth"."uid"() = "user_id") AND (EXISTS ( SELECT 1
+   FROM ("public"."issues" "i"
+     JOIN "public"."issue_board_permissions" "ibp" ON (("i"."board_id" = "ibp"."board_id")))
+  WHERE (("i"."id" = "issue_downvotes"."issue_id") AND ("ibp"."can_vote" = true))))));
+
+
+
 CREATE POLICY "System can manage user achievements" ON "public"."user_achievements" TO "authenticated" USING ("public"."is_admin"("auth"."uid"()));
+
+
+
+CREATE POLICY "Users can create alignments" ON "public"."okr_alignments" FOR INSERT TO "authenticated" WITH CHECK (("auth"."uid"() = "created_by"));
+
+
+
+CREATE POLICY "Users can create check-ins" ON "public"."okr_check_ins" FOR INSERT TO "authenticated" WITH CHECK (("auth"."uid"() = "created_by"));
+
+
+
+CREATE POLICY "Users can create comments" ON "public"."okr_comments" FOR INSERT TO "authenticated" WITH CHECK (("auth"."uid"() = "created_by"));
+
+
+
+CREATE POLICY "Users can create history entries" ON "public"."okr_history" FOR INSERT TO "authenticated" WITH CHECK (true);
 
 
 
@@ -5331,17 +7980,71 @@ CREATE POLICY "Users can create issues in boards they have access to" ON "public
 
 
 
+CREATE POLICY "Users can create key results" ON "public"."key_results" FOR INSERT WITH CHECK ((("auth"."uid"() = "owner_id") AND (EXISTS ( SELECT 1
+   FROM "public"."objectives"
+  WHERE (("objectives"."id" = "key_results"."objective_id") AND (("objectives"."owner_id" = "auth"."uid"()) OR ("objectives"."visibility" = 'organization'::"public"."okr_visibility") OR (("objectives"."visibility" = 'team'::"public"."okr_visibility") AND (EXISTS ( SELECT 1
+           FROM "public"."user_sbus"
+          WHERE (("user_sbus"."user_id" = "auth"."uid"()) AND ("user_sbus"."sbu_id" = "objectives"."sbu_id")))))))))));
+
+
+
+CREATE POLICY "Users can create key results for objectives they own" ON "public"."key_results" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
+   FROM "public"."objectives"
+  WHERE (("objectives"."id" = "key_results"."objective_id") AND ("objectives"."owner_id" = "auth"."uid"())))));
+
+
+
+CREATE POLICY "Users can create permissions" ON "public"."okr_permissions" FOR INSERT TO "authenticated" WITH CHECK (("auth"."uid"() = "created_by"));
+
+
+
+CREATE POLICY "Users can delete key results for objectives they own" ON "public"."key_results" FOR DELETE USING ((EXISTS ( SELECT 1
+   FROM "public"."objectives"
+  WHERE (("objectives"."id" = "key_results"."objective_id") AND ("objectives"."owner_id" = "auth"."uid"())))));
+
+
+
+CREATE POLICY "Users can delete permissions they created" ON "public"."okr_permissions" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "created_by"));
+
+
+
+CREATE POLICY "Users can delete their alignments" ON "public"."okr_alignments" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "created_by"));
+
+
+
+CREATE POLICY "Users can delete their check-ins" ON "public"."okr_check_ins" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "created_by"));
+
+
+
+CREATE POLICY "Users can delete their comments" ON "public"."okr_comments" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "created_by"));
+
+
+
+CREATE POLICY "Users can delete their key results" ON "public"."key_results" FOR DELETE USING ((("auth"."uid"() = "owner_id") OR (EXISTS ( SELECT 1
+   FROM "public"."objectives"
+  WHERE (("objectives"."id" = "key_results"."objective_id") AND ("objectives"."owner_id" = "auth"."uid"()))))));
+
+
+
+CREATE POLICY "Users can delete their notifications" ON "public"."okr_notifications" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "user_id"));
+
+
+
 CREATE POLICY "Users can delete their own issues or if admin" ON "public"."issues" FOR DELETE USING ((("auth"."uid"() = "created_by") OR (EXISTS ( SELECT 1
    FROM "public"."user_roles"
   WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role"))))));
 
 
 
-CREATE POLICY "Users can delete their own votes" ON "public"."issue_votes" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "user_id"));
+CREATE POLICY "Users can delete their own objectives" ON "public"."objectives" FOR DELETE USING (("auth"."uid"() = "owner_id"));
 
 
 
-CREATE POLICY "Users can insert their own votes" ON "public"."issue_votes" FOR INSERT TO "authenticated" WITH CHECK (("auth"."uid"() = "user_id"));
+CREATE POLICY "Users can insert their own objectives" ON "public"."objectives" FOR INSERT WITH CHECK (("auth"."uid"() = "owner_id"));
+
+
+
+CREATE POLICY "Users can manage their own shared presentations" ON "public"."shared_presentations" TO "authenticated" USING (("created_by" = "auth"."uid"()));
 
 
 
@@ -5349,10 +8052,6 @@ CREATE POLICY "Users can manage their own votes" ON "public"."issue_votes" TO "a
    FROM ("public"."issues" "i"
      JOIN "public"."issue_board_permissions" "ibp" ON (("i"."board_id" = "ibp"."board_id")))
   WHERE (("i"."id" = "issue_votes"."issue_id") AND ("ibp"."can_vote" = true))))));
-
-
-
-CREATE POLICY "Users can only view their own achievement progress" ON "public"."achievement_progress" FOR SELECT TO "authenticated" USING (("user_id" = "auth"."uid"()));
 
 
 
@@ -5388,6 +8087,28 @@ CREATE POLICY "Users can read votes on accessible issues" ON "public"."issue_vot
 
 
 
+CREATE POLICY "Users can update key results for objectives they own" ON "public"."key_results" FOR UPDATE USING ((EXISTS ( SELECT 1
+   FROM "public"."objectives"
+  WHERE (("objectives"."id" = "key_results"."objective_id") AND ("objectives"."owner_id" = "auth"."uid"())))));
+
+
+
+CREATE POLICY "Users can update permissions they created" ON "public"."okr_permissions" FOR UPDATE TO "authenticated" USING (("auth"."uid"() = "created_by"));
+
+
+
+CREATE POLICY "Users can update their alignments" ON "public"."okr_alignments" FOR UPDATE TO "authenticated" USING (("auth"."uid"() = "created_by"));
+
+
+
+CREATE POLICY "Users can update their check-ins" ON "public"."okr_check_ins" FOR UPDATE TO "authenticated" USING (("auth"."uid"() = "created_by"));
+
+
+
+CREATE POLICY "Users can update their comments" ON "public"."okr_comments" FOR UPDATE TO "authenticated" USING (("auth"."uid"() = "created_by"));
+
+
+
 CREATE POLICY "Users can update their extended profile fields" ON "public"."profiles" FOR UPDATE TO "authenticated" USING ((("auth"."uid"() = "id") OR (EXISTS ( SELECT 1
    FROM "public"."user_roles"
   WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role")))))) WITH CHECK ((("auth"."uid"() = "id") OR (EXISTS ( SELECT 1
@@ -5396,7 +8117,21 @@ CREATE POLICY "Users can update their extended profile fields" ON "public"."prof
 
 
 
+CREATE POLICY "Users can update their key results" ON "public"."key_results" FOR UPDATE USING ((("auth"."uid"() = "owner_id") OR (EXISTS ( SELECT 1
+   FROM "public"."objectives"
+  WHERE (("objectives"."id" = "key_results"."objective_id") AND ("objectives"."owner_id" = "auth"."uid"()))))));
+
+
+
+CREATE POLICY "Users can update their notifications" ON "public"."okr_notifications" FOR UPDATE TO "authenticated" USING (("auth"."uid"() = "user_id"));
+
+
+
 CREATE POLICY "Users can update their own issues" ON "public"."issues" FOR UPDATE TO "authenticated" USING (("created_by" = "auth"."uid"()));
+
+
+
+CREATE POLICY "Users can update their own objectives" ON "public"."objectives" FOR UPDATE USING (("auth"."uid"() = "owner_id"));
 
 
 
@@ -5426,13 +8161,23 @@ CREATE POLICY "Users can view active levels" ON "public"."levels" FOR SELECT USI
 
 
 
+CREATE POLICY "Users can view alignments" ON "public"."okr_alignments" FOR SELECT TO "authenticated" USING (true);
+
+
+
 CREATE POLICY "Users can view all locations" ON "public"."locations" FOR SELECT TO "authenticated" USING (true);
 
 
 
-CREATE POLICY "Users can view campaigns they're assigned to" ON "public"."survey_campaigns" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM "public"."survey_assignments"
-  WHERE (("survey_assignments"."campaign_id" = "survey_campaigns"."id") AND ("survey_assignments"."user_id" = "auth"."uid"())))));
+CREATE POLICY "Users can view check-ins" ON "public"."okr_check_ins" FOR SELECT TO "authenticated" USING (true);
+
+
+
+CREATE POLICY "Users can view comments" ON "public"."okr_comments" FOR SELECT TO "authenticated" USING (true);
+
+
+
+CREATE POLICY "Users can view history" ON "public"."okr_history" FOR SELECT TO "authenticated" USING (true);
 
 
 
@@ -5442,9 +8187,11 @@ CREATE POLICY "Users can view instances of campaigns they're assigned to" ON "pu
 
 
 
-CREATE POLICY "Users can view profiles with extended fields" ON "public"."profiles" FOR SELECT TO "authenticated" USING ((("auth"."uid"() = "id") OR (EXISTS ( SELECT 1
-   FROM "public"."user_roles"
-  WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role"))))));
+CREATE POLICY "Users can view organization objectives" ON "public"."objectives" FOR SELECT USING (("visibility" = ANY (ARRAY['team'::"public"."okr_visibility", 'organization'::"public"."okr_visibility", 'department'::"public"."okr_visibility"])));
+
+
+
+CREATE POLICY "Users can view permissions" ON "public"."okr_permissions" FOR SELECT TO "authenticated" USING (true);
 
 
 
@@ -5461,6 +8208,10 @@ CREATE POLICY "Users can view surveys assigned to them" ON "public"."surveys" FO
 
 
 
+CREATE POLICY "Users can view their notifications" ON "public"."okr_notifications" FOR SELECT TO "authenticated" USING (("auth"."uid"() = "user_id"));
+
+
+
 CREATE POLICY "Users can view their own achievement progress" ON "public"."achievement_progress" FOR SELECT TO "authenticated" USING (("auth"."uid"() = "user_id"));
 
 
@@ -5469,7 +8220,7 @@ CREATE POLICY "Users can view their own achievements" ON "public"."user_achievem
 
 
 
-CREATE POLICY "Users can view their own profile" ON "public"."profiles" FOR SELECT USING (("auth"."uid"() = "id"));
+CREATE POLICY "Users can view their own objectives" ON "public"."objectives" FOR SELECT USING (("auth"."uid"() = "owner_id"));
 
 
 
@@ -5501,10 +8252,23 @@ CREATE POLICY "admin_all_user_supervisors" ON "public"."user_supervisors" TO "au
 
 
 
+CREATE POLICY "admin_view_objectives" ON "public"."objectives" FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM "public"."user_roles"
+  WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role")))));
+
+
+
 ALTER TABLE "public"."analysis_prompts" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."campaign_instances" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "department_visibility_objectives" ON "public"."objectives" FOR SELECT USING ((("visibility" = 'department'::"public"."okr_visibility") AND (EXISTS ( SELECT 1
+   FROM ("public"."sbus" "s"
+     JOIN "public"."user_sbus" "us" ON (("us"."sbu_id" = "s"."id")))
+  WHERE (("s"."id" = "objectives"."sbu_id") AND ("us"."user_id" = "auth"."uid"()))))));
+
 
 
 ALTER TABLE "public"."email_config" ENABLE ROW LEVEL SECURITY;
@@ -5522,16 +8286,32 @@ ALTER TABLE "public"."employee_types" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."employment_types" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "granted_permissions_objectives" ON "public"."objectives" FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM "public"."okr_permissions"
+  WHERE (("okr_permissions"."objective_id" = "objectives"."id") AND (("auth"."uid"() = ANY ("okr_permissions"."user_ids")) OR (EXISTS ( SELECT 1
+           FROM "public"."user_sbus" "us"
+          WHERE (("us"."user_id" = "auth"."uid"()) AND ("us"."sbu_id" = ANY ("okr_permissions"."sbu_ids"))))) OR (EXISTS ( SELECT 1
+           FROM "public"."profiles" "p"
+          WHERE (("p"."id" = "auth"."uid"()) AND ("p"."employee_role_id" = ANY ("okr_permissions"."employee_role_ids")))))) AND ("okr_permissions"."can_view" = true)))));
+
+
+
 ALTER TABLE "public"."issue_board_permissions" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."issue_boards" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."issue_downvotes" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."issue_votes" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."issues" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."key_results" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."levels" ENABLE ROW LEVEL SECURITY;
@@ -5560,6 +8340,45 @@ CREATE POLICY "manage_own_responses" ON "public"."survey_responses" TO "authenti
 
 
 
+ALTER TABLE "public"."objectives" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."okr_alignments" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."okr_check_ins" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."okr_comments" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."okr_cycles" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."okr_history" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."okr_notifications" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."okr_permissions" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."okr_role_settings" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "okr_role_settings_admin_policy" ON "public"."okr_role_settings" USING ("public"."is_admin"("auth"."uid"()));
+
+
+
+CREATE POLICY "organization_visibility_objectives" ON "public"."objectives" FOR SELECT USING (("visibility" = 'organization'::"public"."okr_visibility"));
+
+
+
+CREATE POLICY "own_view_objectives" ON "public"."objectives" FOR SELECT USING (("owner_id" = "auth"."uid"()));
+
+
+
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
 
@@ -5568,6 +8387,15 @@ CREATE POLICY "read_issues_policy" ON "public"."issues" FOR SELECT USING (true);
 
 
 ALTER TABLE "public"."sbus" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."shared_presentations" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "supervisor_view_objectives" ON "public"."objectives" FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM "public"."user_supervisors"
+  WHERE (("user_supervisors"."supervisor_id" = "auth"."uid"()) AND ("user_supervisors"."user_id" = "objectives"."owner_id")))));
+
 
 
 ALTER TABLE "public"."survey_assignments" ENABLE ROW LEVEL SECURITY;
@@ -5580,6 +8408,13 @@ ALTER TABLE "public"."survey_responses" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."surveys" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "team_visibility_objectives" ON "public"."objectives" FOR SELECT USING ((("visibility" = 'team'::"public"."okr_visibility") AND (EXISTS ( SELECT 1
+   FROM ("public"."user_sbus" "us1"
+     JOIN "public"."user_sbus" "us2" ON (("us1"."sbu_id" = "us2"."sbu_id")))
+  WHERE (("us1"."user_id" = "objectives"."owner_id") AND ("us2"."user_id" = "auth"."uid"()))))));
+
 
 
 CREATE POLICY "update_own_assignments" ON "public"."survey_assignments" FOR UPDATE TO "authenticated" USING (("user_id" = "auth"."uid"())) WITH CHECK (("user_id" = "auth"."uid"()));
@@ -5612,10 +8447,6 @@ CREATE POLICY "view_own_responses" ON "public"."survey_responses" FOR SELECT TO 
 
 
 
-CREATE POLICY "view_own_supervisors" ON "public"."user_supervisors" FOR SELECT TO "authenticated" USING ((("auth"."uid"() = "user_id") OR ("auth"."uid"() = "supervisor_id")));
-
-
-
 
 
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
@@ -5637,10 +8468,6 @@ ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."live_session_resp
 
 
 
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
 
 
 
@@ -5662,52 +8489,24 @@ GRANT ALL ON TYPE "public"."achievement_condition_type" TO "authenticated";
 
 
 
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
 
 
 
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
 
 
 
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
 
 
 
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
 
 
 
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
 
 
 
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
 
 
 
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION "postgres";
-RESET SESSION AUTHORIZATION;
 
 
 
@@ -5885,6 +8684,18 @@ RESET SESSION AUTHORIZATION;
 
 
 
+
+
+
+GRANT ALL ON FUNCTION "public"."analyze_okr_progress_logs"("p_objective_id" "uuid", "p_limit" integer) TO "anon";
+GRANT ALL ON FUNCTION "public"."analyze_okr_progress_logs"("p_objective_id" "uuid", "p_limit" integer) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."analyze_okr_progress_logs"("p_objective_id" "uuid", "p_limit" integer) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."calculate_cascaded_objective_progress"("objective_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."calculate_cascaded_objective_progress"("objective_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."calculate_cascaded_objective_progress"("objective_id" "uuid") TO "service_role";
 
 
 
@@ -5894,9 +8705,81 @@ GRANT ALL ON FUNCTION "public"."calculate_instance_completion_rate"("instance_id
 
 
 
+GRANT ALL ON FUNCTION "public"."calculate_key_result_progress"("p_measurement_type" "text", "p_current_value" numeric, "p_start_value" numeric, "p_target_value" numeric, "p_boolean_value" boolean) TO "anon";
+GRANT ALL ON FUNCTION "public"."calculate_key_result_progress"("p_measurement_type" "text", "p_current_value" numeric, "p_start_value" numeric, "p_target_value" numeric, "p_boolean_value" boolean) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."calculate_key_result_progress"("p_measurement_type" "text", "p_current_value" numeric, "p_start_value" numeric, "p_target_value" numeric, "p_boolean_value" boolean) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."calculate_objective_progress_for_single_objective"("objective_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."calculate_objective_progress_for_single_objective"("objective_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."calculate_objective_progress_for_single_objective"("objective_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."calculate_progress"("p_measurement_type" "text", "p_current_value" double precision, "p_start_value" double precision, "p_target_value" double precision, "p_boolean_value" boolean) TO "anon";
+GRANT ALL ON FUNCTION "public"."calculate_progress"("p_measurement_type" "text", "p_current_value" double precision, "p_start_value" double precision, "p_target_value" double precision, "p_boolean_value" boolean) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."calculate_progress"("p_measurement_type" "text", "p_current_value" double precision, "p_start_value" double precision, "p_target_value" double precision, "p_boolean_value" boolean) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."can_create_alignment"("p_user_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."can_create_alignment"("p_user_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."can_create_alignment"("p_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."can_create_alignment_by_visibility"("p_user_id" "uuid", "p_visibility" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."can_create_alignment_by_visibility"("p_user_id" "uuid", "p_visibility" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."can_create_alignment_by_visibility"("p_user_id" "uuid", "p_visibility" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."can_create_key_result"("p_user_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."can_create_key_result"("p_user_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."can_create_key_result"("p_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."can_create_objective"("p_user_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."can_create_objective"("p_user_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."can_create_objective"("p_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."can_create_objective_alignment"("p_user_id" "uuid", "p_source_objective_id" "uuid", "p_aligned_objective_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."can_create_objective_alignment"("p_user_id" "uuid", "p_source_objective_id" "uuid", "p_aligned_objective_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."can_create_objective_alignment"("p_user_id" "uuid", "p_source_objective_id" "uuid", "p_aligned_objective_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."can_create_objective_by_visibility"("p_user_id" "uuid", "p_visibility" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."can_create_objective_by_visibility"("p_user_id" "uuid", "p_visibility" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."can_create_objective_by_visibility"("p_user_id" "uuid", "p_visibility" "text") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."check_and_award_achievements"("p_user_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."check_and_award_achievements"("p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."check_and_award_achievements"("p_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."check_objective_owner_permission"("p_user_id" "uuid", "p_objective_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."check_objective_owner_permission"("p_user_id" "uuid", "p_objective_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."check_objective_owner_permission"("p_user_id" "uuid", "p_objective_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."check_okr_create_permission"("p_user_id" "uuid", "p_permission_type" "text", "p_visibility" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."check_okr_create_permission"("p_user_id" "uuid", "p_permission_type" "text", "p_visibility" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."check_okr_create_permission"("p_user_id" "uuid", "p_permission_type" "text", "p_visibility" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."check_okr_objective_access"("p_user_id" "uuid", "p_objective_id" "uuid", "p_access_type" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."check_okr_objective_access"("p_user_id" "uuid", "p_objective_id" "uuid", "p_access_type" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."check_okr_objective_access"("p_user_id" "uuid", "p_objective_id" "uuid", "p_access_type" "text") TO "service_role";
 
 
 
@@ -5906,9 +8789,9 @@ GRANT ALL ON FUNCTION "public"."check_user_board_access"("p_user_id" "uuid", "p_
 
 
 
-GRANT ALL ON FUNCTION "public"."cleanup_campaign_cron_jobs"("p_campaign_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."cleanup_campaign_cron_jobs"("p_campaign_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."cleanup_campaign_cron_jobs"("p_campaign_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."create_next_campaign_instance"("p_campaign_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."create_next_campaign_instance"("p_campaign_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_next_campaign_instance"("p_campaign_id" "uuid") TO "service_role";
 
 
 
@@ -5943,21 +8826,15 @@ GRANT ALL ON FUNCTION "public"."delete_user_cascade"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."drop_and_recreate_question_responses_function"() TO "anon";
+GRANT ALL ON FUNCTION "public"."drop_and_recreate_question_responses_function"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."drop_and_recreate_question_responses_function"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."fix_all_instance_completion_rates"() TO "anon";
 GRANT ALL ON FUNCTION "public"."fix_all_instance_completion_rates"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."fix_all_instance_completion_rates"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."fix_missing_campaign_jobs"() TO "anon";
-GRANT ALL ON FUNCTION "public"."fix_missing_campaign_jobs"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."fix_missing_campaign_jobs"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."generate_campaign_cron_schedule"("p_timestamp" timestamp with time zone, "p_recurring_frequency" "text", "p_job_type" "public"."cron_job_type") TO "anon";
-GRANT ALL ON FUNCTION "public"."generate_campaign_cron_schedule"("p_timestamp" timestamp with time zone, "p_recurring_frequency" "text", "p_job_type" "public"."cron_job_type") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."generate_campaign_cron_schedule"("p_timestamp" timestamp with time zone, "p_recurring_frequency" "text", "p_job_type" "public"."cron_job_type") TO "service_role";
 
 
 
@@ -5997,6 +8874,24 @@ GRANT ALL ON FUNCTION "public"."get_campaign_instance_status_distribution"("p_ca
 
 
 
+GRANT ALL ON FUNCTION "public"."get_campaign_instances"("p_campaign_id" "uuid", "p_start_date_min" timestamp with time zone, "p_start_date_max" timestamp with time zone, "p_end_date_min" timestamp with time zone, "p_end_date_max" timestamp with time zone, "p_status" "text"[], "p_sort_by" "text", "p_sort_direction" "text", "p_page" integer, "p_page_size" integer) TO "anon";
+GRANT ALL ON FUNCTION "public"."get_campaign_instances"("p_campaign_id" "uuid", "p_start_date_min" timestamp with time zone, "p_start_date_max" timestamp with time zone, "p_end_date_min" timestamp with time zone, "p_end_date_max" timestamp with time zone, "p_status" "text"[], "p_sort_by" "text", "p_sort_direction" "text", "p_page" integer, "p_page_size" integer) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_campaign_instances"("p_campaign_id" "uuid", "p_start_date_min" timestamp with time zone, "p_start_date_max" timestamp with time zone, "p_end_date_min" timestamp with time zone, "p_end_date_max" timestamp with time zone, "p_status" "text"[], "p_sort_by" "text", "p_sort_direction" "text", "p_page" integer, "p_page_size" integer) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_campaign_sbu_performance"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_campaign_sbu_performance"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_campaign_sbu_performance"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_campaign_supervisor_performance"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_campaign_supervisor_performance"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_campaign_supervisor_performance"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_instance_analysis_data"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_instance_analysis_data"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_instance_analysis_data"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "service_role";
@@ -6009,9 +8904,27 @@ GRANT ALL ON FUNCTION "public"."get_instance_assignment_status"("p_assignment_id
 
 
 
+GRANT ALL ON FUNCTION "public"."get_instance_question_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_instance_question_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_instance_question_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_my_survey_assignments"("p_user_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_my_survey_assignments"("p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_my_survey_assignments"("p_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_paginated_campaign_assignments"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_status" "text", "p_search_term" "text", "p_page" integer, "p_page_size" integer) TO "anon";
+GRANT ALL ON FUNCTION "public"."get_paginated_campaign_assignments"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_status" "text", "p_search_term" "text", "p_page" integer, "p_page_size" integer) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_paginated_campaign_assignments"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_status" "text", "p_search_term" "text", "p_page" integer, "p_page_size" integer) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_paginated_campaign_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_search_term" "text", "p_page" integer, "p_page_size" integer, "p_sort_by" "text", "p_sort_direction" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_paginated_campaign_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_search_term" "text", "p_page" integer, "p_page_size" integer, "p_sort_by" "text", "p_sort_direction" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_paginated_campaign_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_search_term" "text", "p_page" integer, "p_page_size" integer, "p_sort_by" "text", "p_sort_direction" "text") TO "service_role";
 
 
 
@@ -6021,39 +8934,51 @@ GRANT ALL ON FUNCTION "public"."get_pending_surveys_count"("p_user_id" "uuid") T
 
 
 
+GRANT ALL ON FUNCTION "public"."get_supervisor_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_supervisor_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_supervisor_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_survey_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_survey_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_survey_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_survey_responses_for_export"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_survey_responses_for_export"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_survey_responses_for_export"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."handle_campaign_completion"() TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_campaign_completion"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_campaign_completion"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_text_analysis"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_text_analysis"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_text_analysis"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."handle_campaign_end"("p_campaign_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_campaign_end"("p_campaign_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_campaign_end"("p_campaign_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."handle_alignment_delete_progress"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_alignment_delete_progress"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_alignment_delete_progress"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."handle_campaign_scheduling"() TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_campaign_scheduling"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_campaign_scheduling"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."handle_key_result_changes"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_key_result_changes"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_key_result_changes"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."handle_key_result_deletion"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_key_result_deletion"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_key_result_deletion"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."handle_instance_due_time"("p_campaign_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_instance_due_time"("p_campaign_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_instance_due_time"("p_campaign_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."handle_kr_delete_cascaded_progress"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_kr_delete_cascaded_progress"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_kr_delete_cascaded_progress"() TO "service_role";
 
 
 
@@ -6066,6 +8991,30 @@ GRANT ALL ON FUNCTION "public"."handle_live_session_questions"() TO "service_rol
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "anon";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."handle_objective_cascade_to_parent"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_objective_cascade_to_parent"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_objective_cascade_to_parent"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."handle_objective_delete_alignments"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_objective_delete_alignments"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_objective_delete_alignments"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."handle_objective_delete_cascade"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_objective_delete_cascade"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_objective_delete_cascade"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."handle_objective_deletion"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_objective_deletion"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_objective_deletion"() TO "service_role";
 
 
 
@@ -6111,27 +9060,39 @@ GRANT ALL ON FUNCTION "public"."prevent_modifying_submitted_responses"() TO "ser
 
 
 
+GRANT ALL ON FUNCTION "public"."propagate_alignment_progress"() TO "anon";
+GRANT ALL ON FUNCTION "public"."propagate_alignment_progress"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."propagate_alignment_progress"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."recalculate_all_cascaded_objective_progress"() TO "anon";
+GRANT ALL ON FUNCTION "public"."recalculate_all_cascaded_objective_progress"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."recalculate_all_cascaded_objective_progress"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."recalculate_all_objective_progress"() TO "anon";
+GRANT ALL ON FUNCTION "public"."recalculate_all_objective_progress"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."recalculate_all_objective_progress"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."reorder_questions"("p_session_id" "uuid", "p_question_id" "uuid", "p_old_order" integer, "p_new_order" integer, "p_direction" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."reorder_questions"("p_session_id" "uuid", "p_question_id" "uuid", "p_old_order" integer, "p_new_order" integer, "p_direction" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."reorder_questions"("p_session_id" "uuid", "p_question_id" "uuid", "p_old_order" integer, "p_new_order" integer, "p_direction" "text") TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."schedule_campaign_cron_job"("p_campaign_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."schedule_campaign_cron_job"("p_campaign_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."schedule_campaign_cron_job"("p_campaign_id" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."schedule_campaign_jobs"("p_campaign_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."schedule_campaign_jobs"("p_campaign_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."schedule_campaign_jobs"("p_campaign_id" "uuid") TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."search_live_sessions"("search_text" "text", "status_filters" "text"[], "created_by_user" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."search_live_sessions"("search_text" "text", "status_filters" "text"[], "created_by_user" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."search_live_sessions"("search_text" "text", "status_filters" "text"[], "created_by_user" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."search_objectives"("p_search_text" "text", "p_status_filters" "text"[], "p_visibility_filters" "text"[], "p_cycle_id" "uuid", "p_sbu_id" "uuid", "p_is_admin" boolean, "p_user_id" "uuid", "p_page_number" integer, "p_page_size" integer, "p_sort_column" "text", "p_sort_direction" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."search_objectives"("p_search_text" "text", "p_status_filters" "text"[], "p_visibility_filters" "text"[], "p_cycle_id" "uuid", "p_sbu_id" "uuid", "p_is_admin" boolean, "p_user_id" "uuid", "p_page_number" integer, "p_page_size" integer, "p_sort_column" "text", "p_sort_direction" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."search_objectives"("p_search_text" "text", "p_status_filters" "text"[], "p_visibility_filters" "text"[], "p_cycle_id" "uuid", "p_sbu_id" "uuid", "p_is_admin" boolean, "p_user_id" "uuid", "p_page_number" integer, "p_page_size" integer, "p_sort_column" "text", "p_sort_direction" "text") TO "service_role";
 
 
 
@@ -6156,6 +9117,12 @@ GRANT ALL ON FUNCTION "public"."trigger_check_achievements"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."update_campaign_completion_rate"() TO "anon";
 GRANT ALL ON FUNCTION "public"."update_campaign_completion_rate"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_campaign_completion_rate"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."update_cascaded_objective_progress"() TO "anon";
+GRANT ALL ON FUNCTION "public"."update_cascaded_objective_progress"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_cascaded_objective_progress"() TO "service_role";
 
 
 
@@ -6186,6 +9153,18 @@ GRANT ALL ON FUNCTION "public"."update_updated_at_column"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."validate_campaign_dates"() TO "anon";
 GRANT ALL ON FUNCTION "public"."validate_campaign_dates"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."validate_campaign_dates"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."validate_kr_values"() TO "anon";
+GRANT ALL ON FUNCTION "public"."validate_kr_values"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."validate_kr_values"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."validate_kr_values_old"() TO "anon";
+GRANT ALL ON FUNCTION "public"."validate_kr_values_old"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."validate_kr_values_old"() TO "service_role";
 
 
 
@@ -6372,18 +9351,6 @@ GRANT ALL ON TABLE "public"."email_responses" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."instance_comparison_metrics" TO "anon";
-GRANT ALL ON TABLE "public"."instance_comparison_metrics" TO "authenticated";
-GRANT ALL ON TABLE "public"."instance_comparison_metrics" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."instance_question_comparison" TO "anon";
-GRANT ALL ON TABLE "public"."instance_question_comparison" TO "authenticated";
-GRANT ALL ON TABLE "public"."instance_question_comparison" TO "service_role";
-
-
-
 GRANT ALL ON TABLE "public"."issue_board_permissions" TO "anon";
 GRANT ALL ON TABLE "public"."issue_board_permissions" TO "authenticated";
 GRANT ALL ON TABLE "public"."issue_board_permissions" TO "service_role";
@@ -6414,9 +9381,45 @@ GRANT ALL ON TABLE "public"."issues" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."key_results" TO "anon";
+GRANT ALL ON TABLE "public"."key_results" TO "authenticated";
+GRANT ALL ON TABLE "public"."key_results" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."objectives" TO "anon";
+GRANT ALL ON TABLE "public"."objectives" TO "authenticated";
+GRANT ALL ON TABLE "public"."objectives" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."okr_check_ins" TO "anon";
+GRANT ALL ON TABLE "public"."okr_check_ins" TO "authenticated";
+GRANT ALL ON TABLE "public"."okr_check_ins" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."okr_comments" TO "anon";
+GRANT ALL ON TABLE "public"."okr_comments" TO "authenticated";
+GRANT ALL ON TABLE "public"."okr_comments" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."okr_cycles" TO "anon";
+GRANT ALL ON TABLE "public"."okr_cycles" TO "authenticated";
+GRANT ALL ON TABLE "public"."okr_cycles" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."key_result_statistics" TO "anon";
+GRANT ALL ON TABLE "public"."key_result_statistics" TO "authenticated";
+GRANT ALL ON TABLE "public"."key_result_statistics" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."live_session_participants" TO "anon";
+GRANT ALL ON TABLE "public"."live_session_participants" TO "authenticated";
 GRANT ALL ON TABLE "public"."live_session_participants" TO "service_role";
-GRANT SELECT,INSERT ON TABLE "public"."live_session_participants" TO "anon";
-GRANT SELECT,INSERT ON TABLE "public"."live_session_participants" TO "authenticated";
 
 
 
@@ -6456,6 +9459,54 @@ GRANT ALL ON TABLE "public"."managers_needing_improvement" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."okr_alignments" TO "anon";
+GRANT ALL ON TABLE "public"."okr_alignments" TO "authenticated";
+GRANT ALL ON TABLE "public"."okr_alignments" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."objective_statistics" TO "anon";
+GRANT ALL ON TABLE "public"."objective_statistics" TO "authenticated";
+GRANT ALL ON TABLE "public"."objective_statistics" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."okr_default_settings" TO "anon";
+GRANT ALL ON TABLE "public"."okr_default_settings" TO "authenticated";
+GRANT ALL ON TABLE "public"."okr_default_settings" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."okr_history" TO "anon";
+GRANT ALL ON TABLE "public"."okr_history" TO "authenticated";
+GRANT ALL ON TABLE "public"."okr_history" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."okr_notifications" TO "anon";
+GRANT ALL ON TABLE "public"."okr_notifications" TO "authenticated";
+GRANT ALL ON TABLE "public"."okr_notifications" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."okr_permissions" TO "anon";
+GRANT ALL ON TABLE "public"."okr_permissions" TO "authenticated";
+GRANT ALL ON TABLE "public"."okr_permissions" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."okr_progress_calculation_lock" TO "anon";
+GRANT ALL ON TABLE "public"."okr_progress_calculation_lock" TO "authenticated";
+GRANT ALL ON TABLE "public"."okr_progress_calculation_lock" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."okr_role_settings" TO "anon";
+GRANT ALL ON TABLE "public"."okr_role_settings" TO "authenticated";
+GRANT ALL ON TABLE "public"."okr_role_settings" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."survey_campaigns" TO "anon";
 GRANT ALL ON TABLE "public"."survey_campaigns" TO "authenticated";
 GRANT ALL ON TABLE "public"."survey_campaigns" TO "service_role";
@@ -6471,6 +9522,12 @@ GRANT ALL ON TABLE "public"."recent_activities" TO "service_role";
 GRANT ALL ON TABLE "public"."response_trends" TO "anon";
 GRANT ALL ON TABLE "public"."response_trends" TO "authenticated";
 GRANT ALL ON TABLE "public"."response_trends" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."shared_presentations" TO "anon";
+GRANT ALL ON TABLE "public"."shared_presentations" TO "authenticated";
+GRANT ALL ON TABLE "public"."shared_presentations" TO "service_role";
 
 
 

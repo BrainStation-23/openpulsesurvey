@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,14 +16,12 @@ export function InstanceCompareTab() {
   const { id: campaignId } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("sbu");
   
-  // Comparison state management
   const [comparison, setComparison] = useState<ComparisonState>({
     baseInstanceId: undefined,
     comparisonInstanceId: undefined,
     status: 'initial'
   });
   
-  // Get suggested instances for comparison (will automatically handle logic for smart defaults)
   const { 
     suggestedBase, 
     suggestedComparison, 
@@ -32,20 +29,19 @@ export function InstanceCompareTab() {
     instances 
   } = useInstancesForComparison(campaignId || '');
   
-  // Set initial suggested instances once loaded
   useEffect(() => {
     if (!isLoading && suggestedBase && suggestedComparison && comparison.status === 'initial') {
-      setComparison({
-        baseInstanceId: suggestedBase.id,
-        comparisonInstanceId: suggestedComparison.id,
-        status: 'selecting' // We now have suggestions but user hasn't confirmed
-      });
+      if (suggestedBase.id !== suggestedComparison.id) {
+        setComparison({
+          baseInstanceId: suggestedBase.id,
+          comparisonInstanceId: suggestedComparison.id,
+          status: 'selecting'
+        });
+      }
     }
   }, [suggestedBase, suggestedComparison, isLoading, comparison.status]);
   
-  // Handle instance selection
   const handleBaseInstanceSelect = (instanceId: string) => {
-    // If selecting the same as comparison, show warning
     if (instanceId === comparison.comparisonInstanceId) {
       setComparison({
         ...comparison,
@@ -64,7 +60,6 @@ export function InstanceCompareTab() {
   };
   
   const handleComparisonInstanceSelect = (instanceId: string) => {
-    // If selecting the same as base, show warning
     if (instanceId === comparison.baseInstanceId) {
       setComparison({
         ...comparison,
@@ -82,25 +77,20 @@ export function InstanceCompareTab() {
     }
   };
   
-  // Handle comparison confirmation
-  const handleConfirmComparison = () => {
+  const handleSwapInstances = () => {
     if (comparison.baseInstanceId && comparison.comparisonInstanceId) {
+      const tempBaseId = comparison.baseInstanceId;
+      const tempComparisonId = comparison.comparisonInstanceId;
+      
       setComparison({
-        ...comparison,
-        status: 'ready'
+        baseInstanceId: tempComparisonId,
+        comparisonInstanceId: tempBaseId,
+        status: comparison.status,
+        errorMessage: undefined
       });
     }
   };
   
-  // Reset comparison to selecting state
-  const handleChangeSelection = () => {
-    setComparison({
-      ...comparison,
-      status: 'selecting'
-    });
-  };
-
-  // Generate appropriate UI based on comparison state
   const renderComparisonContent = () => {
     switch (comparison.status) {
       case 'initial':
@@ -185,6 +175,22 @@ export function InstanceCompareTab() {
     }
   };
 
+  const handleConfirmComparison = () => {
+    if (comparison.baseInstanceId && comparison.comparisonInstanceId) {
+      setComparison({
+        ...comparison,
+        status: 'ready'
+      });
+    }
+  };
+  
+  const handleChangeSelection = () => {
+    setComparison({
+      ...comparison,
+      status: 'selecting'
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -198,6 +204,7 @@ export function InstanceCompareTab() {
             comparisonInstanceId={comparison.comparisonInstanceId}
             onBaseInstanceSelect={handleBaseInstanceSelect}
             onComparisonInstanceSelect={handleComparisonInstanceSelect}
+            onSwapInstances={handleSwapInstances}
             disableSameSelection={true}
             instancesData={instances}
             isLoading={isLoading}

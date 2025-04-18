@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,7 @@ interface EnhancedDualInstanceSelectorProps {
   comparisonInstanceId?: string;
   onBaseInstanceSelect: (instanceId: string) => void;
   onComparisonInstanceSelect: (instanceId: string) => void;
+  onSwapInstances: () => void;
   disableSameSelection?: boolean;
   instancesData?: CampaignInstance[];
   isLoading?: boolean;
@@ -34,6 +35,7 @@ export function EnhancedDualInstanceSelector({
   comparisonInstanceId,
   onBaseInstanceSelect,
   onComparisonInstanceSelect,
+  onSwapInstances,
   disableSameSelection = false,
   instancesData,
   isLoading: externalLoading,
@@ -82,14 +84,6 @@ export function EnhancedDualInstanceSelector({
   const baseInstance = instances?.find(i => i.id === baseInstanceId);
   const comparisonInstance = instances?.find(i => i.id === comparisonInstanceId);
 
-  // Function to swap base and comparison instances
-  const handleSwapInstances = () => {
-    if (baseInstanceId && comparisonInstanceId) {
-      onBaseInstanceSelect(comparisonInstanceId);
-      onComparisonInstanceSelect(baseInstanceId);
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -130,7 +124,7 @@ export function EnhancedDualInstanceSelector({
       <div className="flex justify-center">
         <Button 
           variant="outline" 
-          onClick={handleSwapInstances}
+          onClick={onSwapInstances}
           disabled={!baseInstanceId || !comparisonInstanceId || isLoading}
           className="flex items-center gap-2"
         >
