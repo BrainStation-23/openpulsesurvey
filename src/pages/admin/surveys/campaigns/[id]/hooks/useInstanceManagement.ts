@@ -105,22 +105,28 @@ export function useInstanceManagement(campaignId: string) {
 
   const updateInstanceMutation = useMutation({
     mutationFn: async (updatedInstance: Partial<Instance> & { id: string }) => {
-      const { id, ...updateData } = updatedInstance;
-      
-      const finalUpdateData = {
-        ...updateData,
-        status: updateData.status === 'inactive' ? 'upcoming' : updateData.status
-      };
-      
-      const { data, error } = await supabase
-        .from('campaign_instances')
-        .update(finalUpdateData)
-        .eq('id', id)
-        .select()
-        .single();
-        
+      const { id, starts_at, ends_at, status } = updatedInstance;
+
+      if (!starts_at || !ends_at || !status) throw new Error("Start/end date and status are required");
+
+      const updateStatus = status === 'inactive' ? 'upcoming' : status;
+
+      const { data, error } = await supabase.rpc('update_campaign_instance', {
+        p_instance_id: id,
+        p_new_starts_at: starts_at,
+        p_new_ends_at: ends_at,
+        p_new_status: updateStatus
+      });
+
       if (error) throw error;
-      return data;
+      if (!data || !Array.isArray(data) || data.length === 0)
+        throw new Error("No data returned from update operation");
+
+      const updatedResult = data[0];
+      if (updatedResult?.error_message) {
+        throw new Error(updatedResult.error_message);
+      }
+      return updatedResult;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaign-instances', campaignId] });
@@ -168,22 +174,6 @@ export function useInstanceManagement(campaignId: string) {
   ): string | null => {
     if (newStatus === 'active' && hasActiveInstance(instance.id)) {
       return "There is already an active instance for this campaign. Please mark it as completed or inactive first.";
-    }
-
-    if (instance.status === 'completed' && newStatus !== 'completed') {
-      return "Completed instances cannot be changed to other statuses";
-    }
-
-    const now = new Date();
-    const startDate = new Date(instance.starts_at);
-    const endDate = new Date(instance.ends_at);
-
-    if (newStatus === 'active' && endDate < now) {
-      return "Cannot set an instance to active if its end date has passed";
-    }
-
-    if (newStatus === 'upcoming' && startDate < now) {
-      return "Cannot set an instance to upcoming if its start date has passed";
     }
 
     return null;

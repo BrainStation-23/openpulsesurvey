@@ -130,99 +130,6 @@ export type Database = {
         }
         Relationships: []
       }
-      campaign_cron_job_logs: {
-        Row: {
-          campaign_id: string | null
-          created_at: string | null
-          cron_schedule: string | null
-          error_message: string | null
-          id: string
-          job_name: string | null
-          status: string | null
-        }
-        Insert: {
-          campaign_id?: string | null
-          created_at?: string | null
-          cron_schedule?: string | null
-          error_message?: string | null
-          id?: string
-          job_name?: string | null
-          status?: string | null
-        }
-        Update: {
-          campaign_id?: string | null
-          created_at?: string | null
-          cron_schedule?: string | null
-          error_message?: string | null
-          id?: string
-          job_name?: string | null
-          status?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "campaign_cron_job_logs_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "survey_campaigns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "campaign_cron_job_logs_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["campaign_id"]
-          },
-        ]
-      }
-      campaign_cron_jobs: {
-        Row: {
-          campaign_id: string | null
-          created_at: string | null
-          cron_schedule: string
-          id: string
-          is_active: boolean | null
-          job_name: string
-          job_type: Database["public"]["Enums"]["cron_job_type"]
-          updated_at: string | null
-        }
-        Insert: {
-          campaign_id?: string | null
-          created_at?: string | null
-          cron_schedule: string
-          id?: string
-          is_active?: boolean | null
-          job_name: string
-          job_type?: Database["public"]["Enums"]["cron_job_type"]
-          updated_at?: string | null
-        }
-        Update: {
-          campaign_id?: string | null
-          created_at?: string | null
-          cron_schedule?: string
-          id?: string
-          is_active?: boolean | null
-          job_name?: string
-          job_type?: Database["public"]["Enums"]["cron_job_type"]
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "campaign_cron_jobs_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "survey_campaigns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "campaign_cron_jobs_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["campaign_id"]
-          },
-        ]
-      }
       campaign_instance_status_logs: {
         Row: {
           created_at: string | null
@@ -3092,6 +2999,20 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      get_supervisor_ratings: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+        }
+        Returns: {
+          dimension: string
+          unsatisfied: number
+          neutral: number
+          satisfied: number
+          total: number
+        }[]
+      }
       get_supervisor_satisfaction: {
         Args: {
           p_campaign_id: string
@@ -3209,6 +3130,26 @@ export type Database = {
         Returns: {
           profile: Json
           total_count: number
+        }[]
+      }
+      update_campaign_instance: {
+        Args: {
+          p_instance_id: string
+          p_new_starts_at: string
+          p_new_ends_at: string
+          p_new_status: string
+        }
+        Returns: {
+          id: string
+          campaign_id: string
+          period_number: number
+          starts_at: string
+          ends_at: string
+          status: string
+          completion_rate: number
+          created_at: string
+          updated_at: string
+          error_message: string
         }[]
       }
     }

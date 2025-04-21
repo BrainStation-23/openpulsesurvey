@@ -15,17 +15,23 @@ export function GroupedBarChart({
   data, 
   keys, 
   colors = ["#3b82f6", "#22c55e", "#eab308"], 
-  height = 180 
+  height = 200 
 }: GroupedBarChartProps) {
   return (
     <ChartContainer config={{}}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart 
           data={data} 
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 75 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
+          <XAxis 
+            dataKey="name" 
+            angle={-35} 
+            textAnchor="end"
+            interval={0}
+            dy={10}
+          />
           <YAxis allowDecimals={false} />
           <ChartTooltip
             content={({ active, payload, label }) => {
@@ -39,7 +45,6 @@ export function GroupedBarChart({
               );
             }}
           />
-          <Legend />
           {keys.map((key, index) => (
             <Bar 
               key={key} 
