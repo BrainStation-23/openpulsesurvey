@@ -88,7 +88,8 @@ export function useInstanceManagement(campaignId: string) {
         
       if (error) throw error;
       
-      const totalCount = data.length > 0 ? Number(data[0].total_count) : 0;
+      const totalCount = data.length > 0 && data[0].hasOwnProperty('total_count') 
+        ? Number(data[0].total_count) : 0;
       
       const processedData = data.map(instance => ({
         ...instance,
