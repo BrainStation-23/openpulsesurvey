@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -104,17 +103,14 @@ export function useInstanceManagement(campaignId: string) {
     },
   });
 
-  // --- This is the main update: replace direct update call with new RPC ---
   const updateInstanceMutation = useMutation({
     mutationFn: async (updatedInstance: Partial<Instance> & { id: string }) => {
       const { id, starts_at, ends_at, status } = updatedInstance;
 
       if (!starts_at || !ends_at || !status) throw new Error("Start/end date and status are required");
 
-      // Map 'inactive' to 'upcoming' if needed (mirroring previous logic)
       const updateStatus = status === 'inactive' ? 'upcoming' : status;
 
-      // Use new RPC function
       const { data, error } = await supabase.rpc('update_campaign_instance', {
         p_instance_id: id,
         p_new_starts_at: starts_at,
@@ -136,7 +132,6 @@ export function useInstanceManagement(campaignId: string) {
       queryClient.invalidateQueries({ queryKey: ['campaign-instances', campaignId] });
     },
   });
-  // --- end of main update ---
 
   const createNextInstanceMutation = useMutation({
     mutationFn: async () => {
@@ -179,22 +174,6 @@ export function useInstanceManagement(campaignId: string) {
   ): string | null => {
     if (newStatus === 'active' && hasActiveInstance(instance.id)) {
       return "There is already an active instance for this campaign. Please mark it as completed or inactive first.";
-    }
-
-    if (instance.status === 'completed' && newStatus !== 'completed') {
-      return "Completed instances cannot be changed to other statuses";
-    }
-
-    const now = new Date();
-    const startDate = new Date(instance.starts_at);
-    const endDate = new Date(instance.ends_at);
-
-    if (newStatus === 'active' && endDate < now) {
-      return "Cannot set an instance to active if its end date has passed";
-    }
-
-    if (newStatus === 'upcoming' && startDate < now) {
-      return "Cannot set an instance to upcoming if its start date has passed";
     }
 
     return null;
@@ -290,4 +269,3 @@ export function useInstanceManagement(campaignId: string) {
     updatePagination,
   };
 }
-
