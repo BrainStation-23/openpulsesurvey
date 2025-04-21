@@ -106,17 +106,24 @@ export function useInstanceManagement(campaignId: string) {
 
   const updateInstanceMutation = useMutation({
     mutationFn: async (updatedInstance: Partial<Instance> & { id: string }) => {
-      const { id, starts_at, ends_at, status, period_number } = updatedInstance;
+      const { id, starts_at, ends_at, status } = updatedInstance;
 
       const { data, error } = await supabase.rpc("update_campaign_instance", {
         p_instance_id: id,
-        p_starts_at: starts_at,
-        p_ends_at: ends_at,
-        p_status: status,
-        p_period_number: period_number,
+        p_new_starts_at: starts_at,
+        p_new_ends_at: ends_at,
+        p_new_status: status === 'inactive' ? 'upcoming' : status,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Update instance error:", error);
+        throw new Error(error.message);
+      }
+      
+      if (data && data.length > 0 && data[0].error_message) {
+        throw new Error(data[0].error_message);
+      }
+      
       return data;
     },
     onSuccess: () => {
