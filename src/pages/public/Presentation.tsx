@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -21,6 +22,7 @@ import { SlideOverviewPanel } from "./components/SlideOverviewPanel";
 import { PresentationTimer } from "./components/PresentationTimer";
 import { NotesPanel } from "./components/NotesPanel";
 import { JumpToSlideDropdown } from "./components/JumpToSlideDropdown";
+// Note: Removed `Note` import - it does not exist in lucide-react
 
 export default function Presentation() {
   const { token } = useParams();
@@ -57,7 +59,6 @@ export default function Presentation() {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
-    
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
@@ -171,14 +172,17 @@ export default function Presentation() {
   const slideAnimation =
     "transition ease-out duration-300 animate-fade-in";
 
+  // LAYOUT -- all controls grouped at the top and overlays positioned with stacking context
   return (
-    <div className="min-h-screen h-screen flex flex-col bg-background relative" {...swipeHandlers}>
+    <div className="relative min-h-screen h-screen flex flex-col bg-background" {...swipeHandlers}>
       <Helmet>
         <title>{campaign.name} - Presentation</title>
       </Helmet>
 
+      {/* Keyboard shortcuts popover/help */}
       {showShortcuts && <KeyboardShortcutsHint onClose={() => setShowShortcuts(false)} />}
 
+      {/* Slide overview sidebar */}
       <SlideOverviewPanel
         totalSlides={totalSlides}
         currentSlide={currentSlide}
@@ -188,6 +192,7 @@ export default function Presentation() {
         onClose={() => setShowOverview(false)}
       />
 
+      {/* Notes panel */}
       <NotesPanel
         visible={showNotes}
         notes={slideNotes[currentSlide] || ""}
@@ -195,11 +200,13 @@ export default function Presentation() {
         onClose={() => setShowNotes(false)}
       />
 
+      {/* Timer in top right */}
       <div className="fixed z-40 top-2 right-2">
         <PresentationTimer running={timerRunning} />
       </div>
 
-      <div className="flex items-center gap-2 px-4 pt-3 pb-2 bg-white/80 rounded shadow-sm mx-auto mt-2">
+      {/* Top controls: back, overview, jump, zoom, export, notes, fullscreen, minimap */}
+      <div className="sticky z-30 flex items-center gap-2 top-0 px-4 pt-3 pb-2 bg-white/80 rounded shadow-sm mx-auto mt-2 w-fit">
         <Button
           variant="ghost"
           size="sm"
@@ -274,6 +281,7 @@ export default function Presentation() {
         <MiniMap />
       </div>
 
+      {/* Animated slide content with correct stacking and zoom */}
       <div
         className={slideAnimation}
         style={{ transform: `scale(${zoom})`, transition: "transform 200ms" }}
@@ -300,3 +308,5 @@ export default function Presentation() {
     </div>
   );
 }
+
+// ... END FILE
