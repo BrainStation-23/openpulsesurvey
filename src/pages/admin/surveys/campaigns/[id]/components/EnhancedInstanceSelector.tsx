@@ -74,24 +74,12 @@ export function EnhancedInstanceSelector({
     enabled: !!campaignId,
   });
 
-  // Default instance selection logic (active, else most recent completed, else first)
   useEffect(() => {
     if (instances?.length && !selectedInstanceId) {
-      let defaultInstance = undefined;
-      // Find active instance
-      const active = instances.find(instance => instance.status === "active");
-      if (active) {
-        defaultInstance = active;
-      } else {
-        // Most recent completed (period_number descending order)
-        const completed = instances.find(instance => instance.status === "completed");
-        if (completed) {
-          defaultInstance = completed;
-        } else {
-          // Fallback: first instance in the list
-          defaultInstance = instances[0];
-        }
-      }
+      const activeInstance = instances.find(
+        (instance) => instance.status === "active"
+      );
+      const defaultInstance = activeInstance || instances[0];
       if (defaultInstance) {
         onInstanceSelect(defaultInstance.id);
       }
