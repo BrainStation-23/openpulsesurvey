@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -32,12 +31,13 @@ export default function Presentation() {
   const [timerRunning, setTimerRunning] = useState(true);
 
   const { 
-    data: presentation, 
+    data, 
     isLoading, 
     error 
   } = useSharedPresentation(token as string);
 
-  const campaign = presentation?.campaign;
+  const presentation = data?.presentation;
+  const campaign = data?.campaign;
 
   useEffect(() => {
     if (error) {
@@ -188,14 +188,16 @@ export default function Presentation() {
         totalSlides={totalSlides}
       />
 
-      <MainContent
-        campaign={campaign}
-        presentation={presentation as SharedPresentation}
-        currentSlide={currentSlide}
-        totalSlides={totalSlides}
-        isFullscreen={isFullscreen}
-        zoom={zoom}
-      />
+      {presentation && (
+        <MainContent
+          campaign={campaign}
+          presentation={presentation}
+          currentSlide={currentSlide}
+          totalSlides={totalSlides}
+          isFullscreen={isFullscreen}
+          zoom={zoom}
+        />
+      )}
     </div>
   );
 }

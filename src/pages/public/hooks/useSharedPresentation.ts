@@ -1,11 +1,10 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CampaignData } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types";
 import { SharedPresentation } from "@/types/shared-presentations";
 import { SurveyJsonData } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types";
 
-interface SharedPresentationData {
+export interface SharedPresentationData {
   presentation: SharedPresentation;
   campaign: CampaignData;
   instance_id: string | null;
