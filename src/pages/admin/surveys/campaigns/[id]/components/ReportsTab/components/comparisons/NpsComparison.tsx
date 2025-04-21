@@ -7,8 +7,6 @@ import { ComparisonDimension } from "../../types/comparison";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { NpsComparisonTable } from "./NpsComparisonTable";
-import { SatisfactionComparisonTable } from "./SatisfactionComparisonTable";
 
 interface NpsComparisonProps {
   responses: ProcessedResponse[];
@@ -45,7 +43,6 @@ export function NpsComparison({
   const [data, setData] = useState<HeatMapData[] | NpsData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
 
   const getDimensionTitle = (dim: string) => {
     const titles: Record<string, string> = {
@@ -252,67 +249,17 @@ export function NpsComparison({
   if (isNps && dimension !== "supervisor") {
     return (
       <div className={layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-4'}>
-        <div className="flex justify-end mb-2">
-          <button
-            className={`mr-2 px-3 py-1 rounded ${viewMode === 'chart' ? 'bg-blue-100' : 'bg-gray-100'}`}
-            onClick={() => setViewMode('chart')}
-          >
-            Chart View
-          </button>
-          <button
-            className={`px-3 py-1 rounded ${viewMode === 'table' ? 'bg-blue-100' : 'bg-gray-100'}`}
-            onClick={() => setViewMode('table')}
-          >
-            Table View
-          </button>
-        </div>
-        {viewMode === 'chart' ? (
-          (data as NpsData[]).map((groupData) => (
-            <Card key={groupData.dimension}>
-              <CardHeader>
-                <CardTitle className="text-lg">{groupData.dimension}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <NpsChart data={groupData.ratings} />
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <NpsComparisonTable data={data as NpsData[]} />
-        )}
+        {(data as NpsData[]).map((groupData) => (
+          <Card key={groupData.dimension}>
+            <CardHeader>
+              <CardTitle className="text-lg">{groupData.dimension}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <NpsChart data={groupData.ratings} />
+            </CardContent>
+          </Card>
+        ))}
       </div>
-    );
-  }
-
-  if (!isNps && (data.length > 0 && typeof data[0] === "object" && "unsatisfied" in data[0])) {
-    const [viewModeSatis, setViewModeSatis] = useState<'chart' | 'table'>('chart');
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{getDimensionTitle(dimension)}</CardTitle>
-          <div className="flex justify-end">
-            <button
-              className={`mr-2 px-3 py-1 rounded ${viewModeSatis === 'chart' ? 'bg-blue-100' : 'bg-gray-100'}`}
-              onClick={() => setViewModeSatis('chart')}
-            >
-              Chart View
-            </button>
-            <button
-              className={`px-3 py-1 rounded ${viewModeSatis === 'table' ? 'bg-blue-100' : 'bg-gray-100'}`}
-              onClick={() => setViewModeSatis('table')}
-            >
-              Table View
-            </button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {viewModeSatis === 'chart' ? (
-            <HeatMapChart data={data as HeatMapData[]} />
-          ) : (
-            <SatisfactionComparisonTable data={data as HeatMapData[]} />
-          )}
-        </CardContent>
-      </Card>
     );
   }
 

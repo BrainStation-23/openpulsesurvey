@@ -1,125 +1,88 @@
 
-import { useState } from "react";
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
-import { BooleanCharts } from "../../charts/BooleanCharts";
+import { GroupedBarChart } from "../../charts/GroupedBarChart";
+import { ProcessedResponse } from "../../hooks/useResponseProcessing";
+import { ComparisonDimension } from "../../types/comparison";
 
 interface BooleanComparisonProps {
-  responses: any[];
+  responses: ProcessedResponse[];
   questionName: string;
-  dimension: string;
+  dimension: ComparisonDimension;
+  layout?: 'grid' | 'vertical';
 }
 
-// Add a defined interface for the group data
-interface GroupData {
-  yes: number;
-  no: number;
-}
+export function BooleanComparison({
+  responses,
+  questionName,
+  dimension,
+}: BooleanComparisonProps) {
+  // Aggregate yes/no counts for each group (SBU, gender, etc)
+  const groupedMap = new Map<string, { Yes: number; No: number }>();
 
-export function BooleanComparison({ responses, questionName, dimension }: BooleanComparisonProps) {
-  const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
-
-  const groupedData = responses.reduce((acc, response) => {
-    const questionData = response.answers[questionName];
-    if (!questionData || typeof questionData.answer !== "boolean") return acc;
-
-    const answer = questionData.answer;
-    let dimensionValue = "Unknown";
-
+  responses.forEach((response) => {
+    const answer = response.answers[questionName]?.answer;
+    let groupKey = "Unknown";
     switch (dimension) {
       case "sbu":
-        dimensionValue = response.respondent.sbu?.name || "Unknown";
+        groupKey = response.respondent.sbu?.name || "No SBU";
         break;
       case "gender":
-        dimensionValue = response.respondent.gender || "Unknown";
+        groupKey = response.respondent.gender || "Not Specified";
         break;
       case "location":
-        dimensionValue = response.respondent.location?.name || "Unknown";
+        groupKey = response.respondent.location?.name || "No Location";
         break;
       case "employment_type":
-        dimensionValue = response.respondent.employment_type?.name || "Unknown";
+        groupKey = response.respondent.employment_type?.name || "Not Specified";
         break;
       case "level":
-        dimensionValue = response.respondent.level?.name || "Unknown";
+        groupKey = response.respondent.level?.name || "Not Specified";
         break;
       case "employee_type":
-        dimensionValue = response.respondent.employee_type?.name || "Unknown";
+        groupKey = response.respondent.employee_type?.name || "Not Specified";
         break;
       case "employee_role":
-        dimensionValue = response.respondent.employee_role?.name || "Unknown";
+        groupKey = response.respondent.employee_role?.name || "Not Specified";
         break;
     }
 
-    if (!acc[dimensionValue]) {
-      acc[dimensionValue] = { yes: 0, no: 0 };
+    if (!groupedMap.has(groupKey)) {
+      groupedMap.set(groupKey, { Yes: 0, No: 0 });
     }
-
+    const groupData = groupedMap.get(groupKey)!;
     if (answer === true) {
-      acc[dimensionValue].yes += 1;
-    } else {
-      acc[dimensionValue].no += 1;
+      groupData.Yes++;
+    } else if (answer === false) {
+      groupData.No++;
     }
+  });
 
-    return acc;
-  }, {} as Record<string, GroupData>);
+  // Prepare chart data format
+  const chartData = Array.from(groupedMap.entries()).map(([name, data]) => ({
+    name,
+    Yes: data.Yes,
+    No: data.No,
+  }));
+
+  if (!chartData.length) {
+    return (
+      <div className="text-center text-muted-foreground p-4">
+        No comparison data available
+      </div>
+    );
+  }
+
+  // Use Yes (green) / No (red) coloring
+  const keys = ["Yes", "No"];
+  const colors = ["#22c55e", "#ef4444"]; 
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{dimension ? `By ${dimension}` : "Comparison"}</CardTitle>
-        <div className="flex justify-end mt-2">
-          <button
-            className={`mr-2 px-3 py-1 rounded ${viewMode === "chart" ? "bg-blue-100" : "bg-gray-100"}`}
-            onClick={() => setViewMode("chart")}
-          >
-            Chart View
-          </button>
-          <button
-            className={`px-3 py-1 rounded ${viewMode === "table" ? "bg-blue-100" : "bg-gray-100"}`}
-            onClick={() => setViewMode("table")}
-          >
-            Table View
-          </button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {viewMode === "chart" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(groupedData).map(([group, data]) => (
-              <Card key={group}>
-                <CardHeader>
-                  <CardTitle>{group}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <BooleanCharts data={data} />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Group</TableHead>
-                <TableHead>Yes</TableHead>
-                <TableHead>No</TableHead>
-                <TableHead>Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Object.entries(groupedData).map(([group, data]) => (
-                <TableRow key={group}>
-                  <TableCell>{group}</TableCell>
-                  <TableCell>{data.yes}</TableCell>
-                  <TableCell>{data.no}</TableCell>
-                  <TableCell>{data.yes + data.no}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
-  )
+    <div className="w-full overflow-x-auto max-w-full">
+      <GroupedBarChart 
+        data={chartData} 
+        keys={keys}
+        colors={colors}
+        height={320}
+      />
+    </div>
+  );
 }
