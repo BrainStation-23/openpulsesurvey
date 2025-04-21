@@ -169,10 +169,6 @@ export default function Presentation() {
     );
   }
 
-  const slideAnimation =
-    "transition ease-out duration-300 animate-fade-in";
-
-  // LAYOUT -- all controls grouped at the top and overlays positioned with stacking context
   return (
     <div className="relative min-h-screen h-screen flex flex-col bg-background" {...swipeHandlers}>
       <Helmet>
@@ -281,32 +277,35 @@ export default function Presentation() {
         <MiniMap />
       </div>
 
-      {/* Animated slide content with correct stacking and zoom */}
-      <div
-        className={slideAnimation}
-        style={{ transform: `scale(${zoom})`, transition: "transform 200ms" }}
-      >
-        <PresentationLayout 
-          progress={((currentSlide + 1) / totalSlides) * 100}
-          isFullscreen={isFullscreen}
+      {/* Main content area - Add flex-1 to ensure it takes available space */}
+      <div className="flex-1 relative overflow-hidden">
+        {/* Animated slide content with correct stacking and zoom */}
+        <div
+          className="absolute inset-0 flex items-center justify-center p-4"
+          style={{ transform: `scale(${zoom})`, transition: "transform 200ms" }}
         >
-          <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
-          <ResponseDistributionSlide 
-            campaignId={campaign.id} 
-            instanceId={presentation.instance_id || undefined} 
-            isActive={currentSlide === 1}
-            campaign={campaign}
-          />
-          <ResponseTrendsSlide campaign={campaign} isActive={currentSlide === 2} />
-          <QuestionSlidesRenderer 
-            campaign={campaign}
-            currentSlide={currentSlide}
-            filterTypes={["text", "comment"]} // Only render non text/comment slides
-          />
-        </PresentationLayout>
+          <div className="w-full h-full max-w-6xl mx-auto">
+            <PresentationLayout 
+              progress={((currentSlide + 1) / totalSlides) * 100}
+              isFullscreen={isFullscreen}
+            >
+              <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
+              <ResponseDistributionSlide 
+                campaignId={campaign.id} 
+                instanceId={presentation.instance_id || undefined} 
+                isActive={currentSlide === 1}
+                campaign={campaign}
+              />
+              <ResponseTrendsSlide campaign={campaign} isActive={currentSlide === 2} />
+              <QuestionSlidesRenderer 
+                campaign={campaign}
+                currentSlide={currentSlide}
+                filterTypes={["text", "comment"]} // Only render non text/comment slides
+              />
+            </PresentationLayout>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
-// ... END FILE
