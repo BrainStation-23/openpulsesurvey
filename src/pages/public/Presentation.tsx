@@ -167,10 +167,7 @@ export default function Presentation() {
 
       {/* Top controls: back, overview, jump, zoom, export, notes, fullscreen, minimap */}
       <div className="sticky z-30 flex items-center gap-2 top-0 px-4 pt-3 pb-2 bg-white/80 rounded shadow-sm mx-auto mt-2 w-fit">
-        <Button variant="ghost" size="sm" onClick={handleBack} className="text-black hover:bg-black/20 hover:text-black">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
+        
         <Button variant="ghost" size="icon" onClick={() => setShowOverview(s => !s)} className={showOverview ? "text-primary" : "text-black"} aria-label="Slides overview" title="Toggle Slide Overview (O)">
           <ChevronsRight className="h-4 w-4" />
         </Button>
