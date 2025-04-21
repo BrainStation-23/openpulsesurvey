@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -269,6 +268,7 @@ export default function Presentation() {
               isFullscreen={isFullscreen}
             >
               <PublicPresentationControls
+                campaign={campaign!}
                 onBack={handleBack}
                 onPrevious={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
                 onNext={() => setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1))}
