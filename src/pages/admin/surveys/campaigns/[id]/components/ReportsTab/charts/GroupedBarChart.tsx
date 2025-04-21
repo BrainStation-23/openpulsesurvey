@@ -15,7 +15,7 @@ export function GroupedBarChart({
   data, 
   keys, 
   colors = ["#3b82f6", "#22c55e", "#eab308"], 
-  height = 180 
+  height = 200 
 }: GroupedBarChartProps) {
   return (
     <ChartContainer config={{}}>
