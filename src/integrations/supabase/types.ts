@@ -3118,6 +3118,26 @@ export type Database = {
           total_count: number
         }[]
       }
+      update_campaign_instance: {
+        Args: {
+          p_instance_id: string
+          p_new_starts_at: string
+          p_new_ends_at: string
+          p_new_status: string
+        }
+        Returns: {
+          id: string
+          campaign_id: string
+          period_number: number
+          starts_at: string
+          ends_at: string
+          status: string
+          completion_rate: number
+          created_at: string
+          updated_at: string
+          error_message: string
+        }[]
+      }
     }
     Enums: {
       achievement_category:

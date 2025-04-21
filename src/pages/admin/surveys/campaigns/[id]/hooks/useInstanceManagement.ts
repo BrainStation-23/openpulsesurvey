@@ -106,21 +106,18 @@ export function useInstanceManagement(campaignId: string) {
 
   const updateInstanceMutation = useMutation({
     mutationFn: async (updatedInstance: Partial<Instance> & { id: string }) => {
-      const { id, ...updateData } = updatedInstance;
-      
-      const finalUpdateData = {
-        ...updateData,
-        status: updateData.status === 'inactive' ? 'upcoming' : updateData.status
-      };
-      
-      const { error } = await supabase
-        .from('campaign_instances')
-        .update(finalUpdateData)
-        .eq('id', id);
-        
+      const { id, starts_at, ends_at, status, period_number } = updatedInstance;
+
+      const { data, error } = await supabase.rpc("update_campaign_instance", {
+        p_instance_id: id,
+        p_starts_at: starts_at,
+        p_ends_at: ends_at,
+        p_status: status,
+        p_period_number: period_number,
+      });
+
       if (error) throw error;
-      
-      return id;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaign-instances', campaignId] });
