@@ -1,4 +1,3 @@
-
 import { memo } from "react";
 import { SlideProps } from "../../types";
 import { ComparisonDimension } from "../../types/comparison";
@@ -9,9 +8,8 @@ import { ComparisonView } from "./ComparisonView";
 import { useQuestionData } from "./useQuestionData";
 import { usePresentationResponses } from "../../hooks/usePresentationResponses";
 import { ComparisonLayout } from "../../components/ComparisonLayout";
-import { BooleanComparison } from "../../../ReportsTab/components/comparisons/BooleanComparison";
-import { NpsComparison } from "../../../ReportsTab/components/comparisons/NpsComparison";
 import { BooleanResponseData, RatingResponseData, SatisfactionData } from "../../types/responses";
+import { GroupedBarChart } from "../../../ReportsTab/charts/GroupedBarChart";
 
 interface QuestionSlideProps extends SlideProps {
   questionName: string;
@@ -28,13 +26,11 @@ const QuestionSlideComponent = ({
   questionType,
   slideType = 'main'
 }: QuestionSlideProps) => {
-  // Always fetch data regardless of isActive to prevent hook count changes
   const { data } = usePresentationResponses(campaign.id, campaign.instance?.id);
   const processedData = useQuestionData(data, questionName, questionType, slideType);
   const question = data?.questions.find(q => q.name === questionName);
   const isNps = question?.type === 'rating' && question?.rateCount === 10;
 
-  // Don't render anything if the slide is not active
   if (!isActive) {
     return null;
   }
@@ -82,11 +78,10 @@ const QuestionSlideComponent = ({
       ) : (
         <ComparisonLayout title={getDimensionTitle(slideType)}>
           {questionType === "boolean" && (
-            <BooleanComparison 
+            <BooleanGroupedComparison 
               responses={data.responses} 
               questionName={questionName}
               dimension={slideType}
-              layout="grid"
             />
           )}
           {questionType === "rating" && (
@@ -113,5 +108,6 @@ const QuestionSlideComponent = ({
   );
 };
 
+import { BooleanComparison as BooleanGroupedComparison } from "../../../ReportsTab/components/comparisons/BooleanComparison";
 // Memoize the component to prevent unnecessary re-renders
 export const QuestionSlide = memo(QuestionSlideComponent);
