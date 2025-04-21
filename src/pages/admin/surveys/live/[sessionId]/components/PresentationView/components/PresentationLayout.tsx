@@ -15,8 +15,8 @@ export function PresentationLayout({ children, progress, isFullscreen, className
 
   return (
     <div className={cn(
-      "fixed inset-0 bg-background transition-colors duration-300",
-      isFullscreen && "z-50",
+      "relative h-full w-full bg-background transition-colors duration-300 rounded-lg overflow-hidden shadow-lg",
+      isFullscreen && "fixed inset-0 z-50",
       className
     )}>
       {/* Progress bar */}
@@ -29,8 +29,8 @@ export function PresentationLayout({ children, progress, isFullscreen, className
 
       {/* Controls container */}
       <div className={cn(
-        "absolute top-0 left-0 right-0 p-4 flex justify-between items-center transition-opacity duration-300 bg-gradient-to-b from-black/20 to-transparent z-[55]",
-        isFullscreen ? "opacity-0 hover:opacity-100" : "opacity-100"
+        "absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-[55]",
+        "bg-gradient-to-b from-black/20 to-transparent"
       )}>
         <div className="flex-1">
           {controls}
@@ -39,8 +39,8 @@ export function PresentationLayout({ children, progress, isFullscreen, className
 
       {/* Main content */}
       <div className="h-full overflow-hidden pt-4">
-        <div className="h-full p-8">
-          <div className="relative max-w-full mx-auto h-full">
+        <div className="h-full flex items-center justify-center p-8">
+          <div className="relative max-w-full w-full h-full flex items-center justify-center">
             {content}
           </div>
         </div>

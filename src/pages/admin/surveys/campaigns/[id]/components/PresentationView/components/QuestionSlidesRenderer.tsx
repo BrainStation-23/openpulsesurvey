@@ -6,24 +6,27 @@ import { COMPARISON_DIMENSIONS } from "../constants";
 interface QuestionSlidesRendererProps {
   campaign: CampaignData;
   currentSlide: number;
+  filterTypes?: string[];  // Optional: skip question types (e.g. ["text", "comment"])
 }
 
-export function QuestionSlidesRenderer({ campaign, currentSlide }: QuestionSlidesRendererProps) {
+export function QuestionSlidesRenderer({ campaign, currentSlide, filterTypes }: QuestionSlidesRendererProps) {
   const surveyQuestions = (campaign?.survey.json_data.pages || []).flatMap(
     (page) => page.elements || []
   );
 
-  // Filter out text and comment questions
+  // By default, filter out text and comment questions
+  const skipTypes = filterTypes ?? ["text", "comment"];
   const filteredQuestions = surveyQuestions.filter(
-    question => question.type !== "text" && question.type !== "comment"
+    question => !skipTypes.includes(question.type)
   );
 
-  let slideIndex = 3; // Start after the first 3 slides (title, distribution, trends)
+  let slideIndex = 3;
 
-  return filteredQuestions.map((question, index) => {
+  // Flatten all slides to a flat array (for correct index math)
+  const allSlides: React.ReactNode[] = [];
+  for (const question of filteredQuestions) {
     const baseSlideIndex = slideIndex;
-    
-    const slides = [(
+    allSlides.push(
       <QuestionSlide
         key={`${question.name}-main`}
         campaign={campaign}
@@ -33,28 +36,22 @@ export function QuestionSlidesRenderer({ campaign, currentSlide }: QuestionSlide
         questionType={question.type}
         slideType="main"
       />
-    )];
-
-    // Increment slide index for the main slide
+    );
     slideIndex++;
-
-    COMPARISON_DIMENSIONS.forEach((dimension, dimIndex) => {
-      slides.push(
+    for (const dimension of COMPARISON_DIMENSIONS) {
+      allSlides.push(
         <QuestionSlide
           key={`${question.name}-${dimension}`}
           campaign={campaign}
-          isActive={currentSlide === baseSlideIndex + dimIndex + 1}
+          isActive={currentSlide === slideIndex}
           questionName={question.name}
           questionTitle={question.title}
           questionType={question.type}
           slideType={dimension}
         />
       );
-      
-      // Increment slide index for each comparison dimension
       slideIndex++;
-    });
-
-    return slides;
-  });
+    }
+  }
+  return <>{allSlides}</>;
 }

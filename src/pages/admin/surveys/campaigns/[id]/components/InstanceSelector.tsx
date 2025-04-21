@@ -41,15 +41,23 @@ export function InstanceSelector({
     enabled: !!campaignId,
   });
 
-  // Set default instance when instances are loaded
   useEffect(() => {
     if (instances?.length && !selectedInstanceId) {
+      let defaultInstance = undefined;
       // Find active instance
-      const activeInstance = instances.find(
-        (instance) => instance.status === "active"
-      );
-      // If no active instance, use most recent
-      const defaultInstance = activeInstance || instances[0];
+      const active = instances.find(instance => instance.status === "active");
+      if (active) {
+        defaultInstance = active;
+      } else {
+        // Most recent completed (period_number descending order)
+        const completed = instances.find(instance => instance.status === "completed");
+        if (completed) {
+          defaultInstance = completed;
+        } else {
+          // Fallback: first instance in the list
+          defaultInstance = instances[0];
+        }
+      }
       if (defaultInstance) {
         console.log("Setting default instance:", defaultInstance.id);
         onInstanceSelect(defaultInstance.id);
