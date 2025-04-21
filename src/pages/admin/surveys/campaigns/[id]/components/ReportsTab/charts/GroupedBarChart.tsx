@@ -19,10 +19,10 @@ export function GroupedBarChart({
 }: GroupedBarChartProps) {
   return (
     <ChartContainer config={{}}>
-      <ResponsiveContainer width="100%" height="80%">
+      <ResponsiveContainer width="100%" height="100%">
         <BarChart 
           data={data} 
-          margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 75 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis 
