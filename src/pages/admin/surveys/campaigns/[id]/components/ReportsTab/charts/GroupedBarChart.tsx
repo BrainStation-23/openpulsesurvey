@@ -45,7 +45,6 @@ export function GroupedBarChart({
               );
             }}
           />
-          <Legend />
           {keys.map((key, index) => (
             <Bar 
               key={key} 
