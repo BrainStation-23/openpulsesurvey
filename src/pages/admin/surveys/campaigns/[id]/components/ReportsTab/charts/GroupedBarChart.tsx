@@ -45,6 +45,14 @@ export function GroupedBarChart({
               );
             }}
           />
+          <Legend />
+          {keys.map((key, index) => (
+            <Bar 
+              key={key} 
+              dataKey={key} 
+              fill={colors[index % colors.length]}
+              radius={[4, 4, 0, 0]}
+            />
           ))}
         </BarChart>
       </ResponsiveContainer>
