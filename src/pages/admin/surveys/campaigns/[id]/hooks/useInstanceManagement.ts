@@ -113,15 +113,14 @@ export function useInstanceManagement(campaignId: string) {
         status: updateData.status === 'inactive' ? 'upcoming' : updateData.status
       };
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('campaign_instances')
         .update(finalUpdateData)
-        .eq('id', id)
-        .select()
-        .single();
+        .eq('id', id);
         
       if (error) throw error;
-      return data;
+      
+      return id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaign-instances', campaignId] });
