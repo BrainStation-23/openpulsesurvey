@@ -7,6 +7,7 @@ import { ComparisonDimension } from "../../types/comparison";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { NpsComparisonTable } from "./NpsComparisonTable";
 
 interface NpsComparisonProps {
   responses: ProcessedResponse[];
@@ -248,17 +249,8 @@ export function NpsComparison({
 
   if (isNps && dimension !== "supervisor") {
     return (
-      <div className={layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-4'}>
-        {(data as NpsData[]).map((groupData) => (
-          <Card key={groupData.dimension}>
-            <CardHeader>
-              <CardTitle className="text-lg">{groupData.dimension}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <NpsChart data={groupData.ratings} />
-            </CardContent>
-          </Card>
-        ))}
+      <div className="w-full">
+        <NpsComparisonTable data={data as NpsData[]} />
       </div>
     );
   }
