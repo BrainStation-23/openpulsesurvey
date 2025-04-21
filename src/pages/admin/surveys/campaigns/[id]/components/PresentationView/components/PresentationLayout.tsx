@@ -39,8 +39,8 @@ export function PresentationLayout({ children, progress, isFullscreen, className
 
       {/* Main content */}
       <div className="h-full overflow-hidden pt-4">
-        <div className="h-full p-8">
-          <div className="relative max-w-full mx-auto h-full">
+        <div className="h-full flex items-center justify-center p-8">
+          <div className="relative max-w-full w-full h-full flex items-center justify-center">
             {content}
           </div>
         </div>
