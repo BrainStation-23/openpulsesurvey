@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -15,7 +14,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Maximize, Minimize, ArrowLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize, Minimize, ArrowLeft, ChevronsRight, ZoomIn, Download as Export, Note } from "lucide-react";
+import { useSwipeable } from "react-swipeable";
+import { KeyboardShortcutsHint } from "./components/KeyboardShortcutsHint";
+import { SlideOverviewPanel } from "./components/SlideOverviewPanel";
+import { PresentationTimer } from "./components/PresentationTimer";
+import { NotesPanel } from "./components/NotesPanel";
+import { JumpToSlideDropdown } from "./components/JumpToSlideDropdown";
 
 export default function Presentation() {
   const { token } = useParams();
@@ -23,7 +28,13 @@ export default function Presentation() {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  
+  const [showShortcuts, setShowShortcuts] = useState(true);
+  const [showOverview, setShowOverview] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [slideNotes, setSlideNotes] = useState<{ [idx: number]: string }>({});
+  const [zoom, setZoom] = useState(1);
+  const [timerRunning, setTimerRunning] = useState(true);
+
   const { 
     data: presentation, 
     isLoading, 
@@ -51,14 +62,33 @@ export default function Presentation() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Filter out text and comment questions
+  // Filter out text and comment questions (for slides)
   const surveyQuestions = (campaign?.survey.json_data.pages || []).flatMap(
     (page) => page.elements || []
   ).filter(q => q.type !== "text" && q.type !== "comment");
 
+  // Slide index 0: TitleSlide / 1: ResponseDist / 2: ResponseTrends / then per-question/compare
   const totalSlides = 3 + (surveyQuestions.length * (1 + COMPARISON_DIMENSIONS.length));
 
-  // Keyboard navigation and fullscreen support
+  // Memoized titles for slide minimap, overview, and dropdown
+  const slideTitles: string[] = [
+    "Title",
+    "Response Distribution",
+    "Response Trends",
+    ...surveyQuestions.flatMap(q => [
+      q.title?.substring(0, 40) || q.name,
+      ...COMPARISON_DIMENSIONS.map(dim => `${q.title?.substring(0, 22) || q.name} (${dim[0].toUpperCase() + dim.substring(1)})`)
+    ])
+  ];
+
+  // Swipe gesture handlers (mobile)
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1)),
+    onSwipedRight: () => setCurrentSlide((prev) => Math.max(0, prev - 1)),
+    trackMouse: true,
+  });
+
+  // Keyboard navigation and helpers
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
@@ -67,9 +97,16 @@ export default function Presentation() {
         setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1));
       } else if (e.key === "f") {
         toggleFullscreen();
+      } else if (e.key === "n") {
+        setShowNotes(v => !v);
+      } else if (e.key === "o") {
+        setShowOverview((v) => !v);
+      } else if (e.key === "z") {
+        setZoom(z => (z < 2 ? z + 0.2 : 1));
+      } else if (e.key === "j") {
+        document.getElementById("jump-slide-trigger")?.click();
       }
     };
-
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [totalSlides, setCurrentSlide]);
@@ -97,6 +134,29 @@ export default function Presentation() {
     navigate(-1);
   };
 
+  // Mini-map dots (shows slide progress/where you are)
+  function MiniMap() {
+    return (
+      <div className="flex gap-1 items-center px-2">
+        {Array.from({ length: totalSlides }).map((_, i) => (
+          <span
+            key={i}
+            className={`inline-block w-2 h-2 rounded-full transition-all mx-0.5 ${currentSlide === i ? "bg-primary scale-125" : "bg-gray-300"}`}
+            style={{ opacity: currentSlide === i ? 1 : 0.4 }}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  // Export functionality (copied from admin PresentationControls)
+  // We'll add a simple export button (e.g., PPTX export placeholder)
+  // TODO: Hook into actual export function if available.
+  function handleExport() {
+    toast({ title: "Export", description: "Export to PPTX coming soon!", variant: "default" });
+  }
+
+  // Main rendering
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -119,70 +179,135 @@ export default function Presentation() {
     );
   }
 
+  // Animation: fades/slides in slides
+  const slideAnimation =
+    "transition ease-out duration-300 animate-fade-in";
+
   return (
-    <div className="min-h-screen h-screen flex flex-col bg-background">
+    <div className="min-h-screen h-screen flex flex-col bg-background relative" {...swipeHandlers}>
       <Helmet>
         <title>{campaign.name} - Presentation</title>
       </Helmet>
 
-      <div className="flex-1 relative">
+      {/* Keyboard Shortcuts Hint */}
+      {showShortcuts && <KeyboardShortcutsHint onClose={() => setShowShortcuts(false)} />}
+
+      {/* Slide Overview Panel (thumbnails/minimap/Present from here) */}
+      <SlideOverviewPanel
+        totalSlides={totalSlides}
+        currentSlide={currentSlide}
+        onJump={(s) => { setCurrentSlide(s); setShowOverview(false); }}
+        slideTitles={slideTitles}
+        visible={showOverview}
+        onClose={() => setShowOverview(false)}
+      />
+
+      {/* Notes Panel */}
+      <NotesPanel
+        visible={showNotes}
+        notes={slideNotes[currentSlide] || ""}
+        onChange={val => setSlideNotes({ ...slideNotes, [currentSlide]: val })}
+        onClose={() => setShowNotes(false)}
+      />
+
+      {/* Timer/Clock (top-right) */}
+      <div className="fixed z-40 top-2 right-2">
+        <PresentationTimer running={timerRunning} />
+      </div>
+
+      {/* Controls: Overview, Export, Jump, Zoom, Notes, Fullscreen, Back */}
+      <div className="flex items-center gap-2 px-4 pt-3 pb-2 bg-white/80 rounded shadow-sm mx-auto mt-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBack}
+          className="text-black hover:bg-black/20 hover:text-black"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        {/* Overview */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowOverview(s => !s)}
+          className={showOverview ? "text-primary" : "text-black"}
+          aria-label="Slides overview"
+          title="Toggle Slide Overview (O)"
+        >
+          <ChevronsRight className="h-4 w-4" />
+        </Button>
+        {/* Jump to slide dropdown */}
+        <div id="jump-slide-trigger">
+          <JumpToSlideDropdown
+            totalSlides={totalSlides}
+            currentSlide={currentSlide}
+            onJump={(idx) => setCurrentSlide(idx)}
+            slideTitles={slideTitles}
+          />
+        </div>
+        {/* Zoom controls */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setZoom(z => (z < 2 ? z + 0.2 : 1))}
+          className="text-black"
+          aria-label="Zoom"
+          title="Zoom In (Z)"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </Button>
+        {/* Export (for now, shows a toast) */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleExport}
+          className="text-black"
+          aria-label="Export"
+          title="Export to PPTX"
+        >
+          <Export className="h-4 w-4" />
+        </Button>
+        {/* Notes */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowNotes((v) => !v)}
+          className={showNotes ? "text-primary" : "text-black"}
+          aria-label="Notes"
+          title="Toggle Notes Panel (N)"
+        >
+          <Note className="h-4 w-4" />
+        </Button>
+        {/* Fullscreen */}
+        <Button 
+          variant="ghost"
+          size="icon"
+          onClick={toggleFullscreen}
+          className="text-black"
+          aria-label="Fullscreen"
+          title="Toggle Fullscreen (F)"
+        >
+          {isFullscreen ? (
+            <Minimize className="h-4 w-4" />
+          ) : (
+            <Maximize className="h-4 w-4" />
+          )}
+        </Button>
+        {/* MiniMap (visual navigation dots) */}
+        <MiniMap />
+      </div>
+
+      {/* Slides */}
+      <div
+        className={slideAnimation}
+        style={{ transform: `scale(${zoom})`, transition: "transform 200ms" }}
+      >
         <PresentationLayout 
           progress={((currentSlide + 1) / totalSlides) * 100}
           isFullscreen={isFullscreen}
         >
-          {/* Enhanced Controls */}
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBack}
-              className="text-black hover:bg-black/20 hover:text-black"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <div className="flex items-center gap-2 ml-auto">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
-                disabled={currentSlide === 0}
-                className="text-black hover:bg-black/20 hover:text-black"
-                aria-label="Previous"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm font-medium text-black">
-                {currentSlide + 1} / {totalSlides}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1))}
-                disabled={currentSlide === totalSlides - 1}
-                className="text-black hover:bg-black/20 hover:text-black"
-                aria-label="Next"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="ghost"
-                size="icon"
-                onClick={toggleFullscreen}
-                className="text-black hover:bg-black/20 hover:text-black"
-                aria-label="Fullscreen"
-                title="Toggle Fullscreen (f)"
-              >
-                {isFullscreen ? (
-                  <Minimize className="h-4 w-4" />
-                ) : (
-                  <Maximize className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-
-          {/* Slides */}
+          {/* Slides injected */}
           <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
           <ResponseDistributionSlide 
             campaignId={campaign.id} 
