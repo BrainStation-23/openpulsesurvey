@@ -2,6 +2,7 @@
 import { SlideProps } from "../types";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { SlideWrapper } from "../components/SlideWrapper";
 
 export function TitleSlide({ campaign, isActive }: SlideProps) {
   // Use instance dates and completion rate if available, otherwise use campaign data
@@ -10,14 +11,7 @@ export function TitleSlide({ campaign, isActive }: SlideProps) {
   const completionRate = campaign.instance?.completion_rate ?? campaign.completion_rate;
 
   return (
-    <div 
-      className={cn(
-        "absolute inset-0 flex flex-col justify-center transition-opacity duration-500 ease-in-out",
-        "bg-gradient-to-br from-white to-gray-50",
-        "rounded-lg shadow-lg p-8",
-        isActive ? "opacity-100" : "opacity-0 pointer-events-none"
-      )}
-    >
+    <SlideWrapper isActive={isActive}>
       <div className="h-full flex flex-col justify-center space-y-8">
         <div className="space-y-4">
           <h1 className="text-4xl font-bold text-gray-900">{campaign.name}</h1>
@@ -44,6 +38,6 @@ export function TitleSlide({ campaign, isActive }: SlideProps) {
           </div>
         </div>
       </div>
-    </div>
+    </SlideWrapper>
   );
 }
