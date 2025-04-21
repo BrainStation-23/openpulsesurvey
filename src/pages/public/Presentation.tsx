@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -117,12 +118,6 @@ export default function Presentation() {
       </div>
     );
   }
-
-  const surveyQuestions = (campaign?.survey.json_data.pages || []).flatMap(
-    (page) => page.elements || []
-  );
-
-  const totalSlides = 3 + (surveyQuestions.length * (1 + COMPARISON_DIMENSIONS.length));
 
   return (
     <div className="min-h-screen h-screen flex flex-col bg-background">
