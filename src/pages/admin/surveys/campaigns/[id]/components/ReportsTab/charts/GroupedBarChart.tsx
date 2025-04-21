@@ -22,7 +22,7 @@ export function GroupedBarChart({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart 
           data={data} 
-          margin={{ top: 20, right: 30, left: 20, bottom: 25 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 45 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis 
