@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Maximize, Minimize, ArrowLeft, ChevronsRight, ZoomIn, Download as Export, Note } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize, Minimize, ArrowLeft, ChevronsRight, ZoomIn, Download as Export, FileText } from "lucide-react";
 import { useSwipeable } from "react-swipeable";
 import { KeyboardShortcutsHint } from "./components/KeyboardShortcutsHint";
 import { SlideOverviewPanel } from "./components/SlideOverviewPanel";
@@ -62,15 +62,12 @@ export default function Presentation() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Filter out text and comment questions (for slides)
   const surveyQuestions = (campaign?.survey.json_data.pages || []).flatMap(
     (page) => page.elements || []
   ).filter(q => q.type !== "text" && q.type !== "comment");
 
-  // Slide index 0: TitleSlide / 1: ResponseDist / 2: ResponseTrends / then per-question/compare
   const totalSlides = 3 + (surveyQuestions.length * (1 + COMPARISON_DIMENSIONS.length));
 
-  // Memoized titles for slide minimap, overview, and dropdown
   const slideTitles: string[] = [
     "Title",
     "Response Distribution",
@@ -81,14 +78,12 @@ export default function Presentation() {
     ])
   ];
 
-  // Swipe gesture handlers (mobile)
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1)),
     onSwipedRight: () => setCurrentSlide((prev) => Math.max(0, prev - 1)),
     trackMouse: true,
   });
 
-  // Keyboard navigation and helpers
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
@@ -125,7 +120,6 @@ export default function Presentation() {
     }
   };
 
-  // Navigate back to dashboard/home
   const handleBack = () => {
     if (isFullscreen && document.fullscreenElement) {
       document.exitFullscreen();
@@ -134,7 +128,6 @@ export default function Presentation() {
     navigate(-1);
   };
 
-  // Mini-map dots (shows slide progress/where you are)
   function MiniMap() {
     return (
       <div className="flex gap-1 items-center px-2">
@@ -149,14 +142,10 @@ export default function Presentation() {
     );
   }
 
-  // Export functionality (copied from admin PresentationControls)
-  // We'll add a simple export button (e.g., PPTX export placeholder)
-  // TODO: Hook into actual export function if available.
   function handleExport() {
     toast({ title: "Export", description: "Export to PPTX coming soon!", variant: "default" });
   }
 
-  // Main rendering
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -179,7 +168,6 @@ export default function Presentation() {
     );
   }
 
-  // Animation: fades/slides in slides
   const slideAnimation =
     "transition ease-out duration-300 animate-fade-in";
 
@@ -189,10 +177,8 @@ export default function Presentation() {
         <title>{campaign.name} - Presentation</title>
       </Helmet>
 
-      {/* Keyboard Shortcuts Hint */}
       {showShortcuts && <KeyboardShortcutsHint onClose={() => setShowShortcuts(false)} />}
 
-      {/* Slide Overview Panel (thumbnails/minimap/Present from here) */}
       <SlideOverviewPanel
         totalSlides={totalSlides}
         currentSlide={currentSlide}
@@ -202,7 +188,6 @@ export default function Presentation() {
         onClose={() => setShowOverview(false)}
       />
 
-      {/* Notes Panel */}
       <NotesPanel
         visible={showNotes}
         notes={slideNotes[currentSlide] || ""}
@@ -210,12 +195,10 @@ export default function Presentation() {
         onClose={() => setShowNotes(false)}
       />
 
-      {/* Timer/Clock (top-right) */}
       <div className="fixed z-40 top-2 right-2">
         <PresentationTimer running={timerRunning} />
       </div>
 
-      {/* Controls: Overview, Export, Jump, Zoom, Notes, Fullscreen, Back */}
       <div className="flex items-center gap-2 px-4 pt-3 pb-2 bg-white/80 rounded shadow-sm mx-auto mt-2">
         <Button
           variant="ghost"
@@ -226,7 +209,6 @@ export default function Presentation() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        {/* Overview */}
         <Button
           variant="ghost"
           size="icon"
@@ -237,7 +219,6 @@ export default function Presentation() {
         >
           <ChevronsRight className="h-4 w-4" />
         </Button>
-        {/* Jump to slide dropdown */}
         <div id="jump-slide-trigger">
           <JumpToSlideDropdown
             totalSlides={totalSlides}
@@ -246,7 +227,6 @@ export default function Presentation() {
             slideTitles={slideTitles}
           />
         </div>
-        {/* Zoom controls */}
         <Button
           variant="ghost"
           size="icon"
@@ -257,7 +237,6 @@ export default function Presentation() {
         >
           <ZoomIn className="h-4 w-4" />
         </Button>
-        {/* Export (for now, shows a toast) */}
         <Button
           variant="ghost"
           size="icon"
@@ -268,7 +247,6 @@ export default function Presentation() {
         >
           <Export className="h-4 w-4" />
         </Button>
-        {/* Notes */}
         <Button
           variant="ghost"
           size="icon"
@@ -277,9 +255,8 @@ export default function Presentation() {
           aria-label="Notes"
           title="Toggle Notes Panel (N)"
         >
-          <Note className="h-4 w-4" />
+          <FileText className="h-4 w-4" />
         </Button>
-        {/* Fullscreen */}
         <Button 
           variant="ghost"
           size="icon"
@@ -294,11 +271,9 @@ export default function Presentation() {
             <Maximize className="h-4 w-4" />
           )}
         </Button>
-        {/* MiniMap (visual navigation dots) */}
         <MiniMap />
       </div>
 
-      {/* Slides */}
       <div
         className={slideAnimation}
         style={{ transform: `scale(${zoom})`, transition: "transform 200ms" }}
@@ -307,7 +282,6 @@ export default function Presentation() {
           progress={((currentSlide + 1) / totalSlides) * 100}
           isFullscreen={isFullscreen}
         >
-          {/* Slides injected */}
           <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
           <ResponseDistributionSlide 
             campaignId={campaign.id} 
