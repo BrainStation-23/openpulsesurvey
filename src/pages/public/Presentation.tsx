@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -22,7 +21,6 @@ import { SlideOverviewPanel } from "./components/SlideOverviewPanel";
 import { PresentationTimer } from "./components/PresentationTimer";
 import { NotesPanel } from "./components/NotesPanel";
 import { JumpToSlideDropdown } from "./components/JumpToSlideDropdown";
-// Note: Removed `Note` import - it does not exist in lucide-react
 
 export default function Presentation() {
   const { token } = useParams();
@@ -97,8 +95,6 @@ export default function Presentation() {
         setShowNotes(v => !v);
       } else if (e.key === "o") {
         setShowOverview((v) => !v);
-      } else if (e.key === "z") {
-        setZoom(z => (z < 2 ? z + 0.2 : 1));
       } else if (e.key === "j") {
         document.getElementById("jump-slide-trigger")?.click();
       }
@@ -221,24 +217,6 @@ export default function Presentation() {
           title="Toggle Slide Overview (O)"
         >
           <ChevronsRight className="h-4 w-4" />
-        </Button>
-        <div id="jump-slide-trigger">
-          <JumpToSlideDropdown
-            totalSlides={totalSlides}
-            currentSlide={currentSlide}
-            onJump={(idx) => setCurrentSlide(idx)}
-            slideTitles={slideTitles}
-          />
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setZoom(z => (z < 2 ? z + 0.2 : 1))}
-          className="text-black"
-          aria-label="Zoom"
-          title="Zoom In (Z)"
-        >
-          <ZoomIn className="h-4 w-4" />
         </Button>
         <Button
           variant="ghost"
