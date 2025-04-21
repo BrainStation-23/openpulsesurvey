@@ -1,5 +1,6 @@
-
 import { Card } from "@/components/ui/card";
+import { HeatMapRow } from "./HeatMapRow";
+import { Badge } from "@/components/ui/badge";
 
 interface HeatMapData {
   dimension: string;
@@ -61,90 +62,46 @@ export function HeatMapChart({ data = [], title }: HeatMapChartProps) {
         <h3 className="text-lg font-semibold mb-4">{title}</h3>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[700px]">
+        <table className="w-full min-w-[720px] rounded-xl border shadow-sm bg-white">
           <thead>
             <tr>
-              <th className="text-left p-2">Group</th>
-              <th className="text-center p-2">Unsatisfied (1-3)</th>
-              <th className="text-center p-2">Neutral (4)</th>
-              <th className="text-center p-2">Satisfied (5)</th>
-              <th className="text-center p-2">Total</th>
-              <th className="text-center p-2">Avg</th>
+              <th className="text-left p-3 bg-gray-50">Group</th>
+              <th className="text-center p-3 bg-gray-50 border-l">Unsatisfied <span className="text-xs">(1-3)</span></th>
+              <th className="text-center p-3 bg-gray-50 border-l">Neutral <span className="text-xs">(4)</span></th>
+              <th className="text-center p-3 bg-gray-50 border-l">Satisfied <span className="text-xs">(5)</span></th>
+              <th className="text-center p-3 bg-gray-50 border-l">Total</th>
+              <th className="text-center p-3 bg-gray-50 border-l">Avg</th>
             </tr>
           </thead>
           <tbody>
             {data.map((row) => (
-              <tr 
-                key={row.dimension} 
-                className={needsAttention(row) ? "bg-red-50" : ""}
-              >
-                <td className={`p-2 font-medium ${needsAttention(row) ? "text-red-600" : ""}`}>
-                  {row.dimension}
-                  {needsAttention(row) && (
-                    <span className="ml-2 text-xs font-normal text-red-500 whitespace-nowrap">
-                      (Needs Attention)
-                    </span>
-                  )}
-                </td>
-                <td className="p-2">
-                  <div
-                    className="w-full h-10 flex items-center justify-center text-sm rounded"
-                    style={{
-                      backgroundColor: `#ef4444${getColorIntensity(
-                        getPercentage(row.unsatisfied, row.total)
-                      )}`,
-                    }}
-                  >
-                    <span>
-                      {row.unsatisfied} / {getPercentage(row.unsatisfied, row.total)}%
-                    </span>
-                  </div>
-                </td>
-                <td className="p-2">
-                  <div
-                    className="w-full h-10 flex items-center justify-center text-sm rounded"
-                    style={{
-                      backgroundColor: `#eab308${getColorIntensity(
-                        getPercentage(row.neutral, row.total)
-                      )}`,
-                    }}
-                  >
-                    <span>
-                      {row.neutral} / {getPercentage(row.neutral, row.total)}%
-                    </span>
-                  </div>
-                </td>
-                <td className="p-2">
-                  <div
-                    className="w-full h-10 flex items-center justify-center text-sm rounded"
-                    style={{
-                      backgroundColor: `#22c55e${getColorIntensity(
-                        getPercentage(row.satisfied, row.total)
-                      )}`,
-                    }}
-                  >
-                    <span>
-                      {row.satisfied} / {getPercentage(row.satisfied, row.total)}%
-                    </span>
-                  </div>
-                </td>
-                <td className="p-2 text-center">
-                  <span className="font-semibold">{row.total}</span>
-                </td>
-                <td className="p-2 text-center">
-                  <span 
-                    className={
-                      "font-semibold " +
-                      (getAverage(row) < 3 ? "text-red-500" : getAverage(row) < 4 ? "text-yellow-600" : "text-green-600")
-                    }
-                  >
-                    {getAverage(row).toFixed(2)}
-                  </span>
-                </td>
-              </tr>
+              <HeatMapRow
+                key={row.dimension}
+                row={row}
+                getPercentage={getPercentage}
+                getAverage={getAverage}
+                needsAttention={needsAttention}
+              />
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="text-xs text-muted-foreground mt-4 flex gap-6 flex-wrap px-1">
+        <span>
+          <Badge className="scale-75 bg-[#ef4444]/80 mr-1"></Badge>
+          Unsatisfied (1-3)
+        </span>
+        <span>
+          <Badge className="scale-75 bg-[#eab308]/80 mr-1"></Badge>
+          Neutral (4)
+        </span>
+        <span>
+          <Badge className="scale-75 bg-[#22c55e]/80 mr-1"></Badge>
+          Satisfied (5)
+        </span>
+        <span className="pl-2">
+          <strong>Note:</strong> Bar length represents percentage in each group. Row highlight means &gt; 50% unsatisfied.
+        </span>
       </div>
     </div>
   );
