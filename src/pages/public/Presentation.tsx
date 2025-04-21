@@ -178,9 +178,7 @@ export default function Presentation() {
         <Button variant="ghost" size="icon" onClick={() => setShowNotes(v => !v)} className={showNotes ? "text-primary" : "text-black"} aria-label="Notes" title="Toggle Notes Panel (N)">
           <FileText className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="text-black" aria-label="Fullscreen" title="Toggle Fullscreen (F)">
-          {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-        </Button>
+        
         <MiniMap />
       </div>
 
