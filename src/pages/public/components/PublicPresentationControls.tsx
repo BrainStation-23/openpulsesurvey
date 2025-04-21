@@ -1,12 +1,13 @@
 
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Maximize, Minimize } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize, Minimize, ArrowLeft } from "lucide-react";
 import { CampaignData } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types";
 
 interface PublicPresentationControlsProps {
   onPrevious: () => void;
   onNext: () => void;
   onFullscreen: () => void;
+  onBack: () => void;
   isFirstSlide: boolean;
   isLastSlide: boolean;
   isFullscreen: boolean;
@@ -19,6 +20,7 @@ export function PublicPresentationControls({
   onPrevious,
   onNext,
   onFullscreen,
+  onBack,
   isFirstSlide,
   isLastSlide,
   isFullscreen,
@@ -29,6 +31,16 @@ export function PublicPresentationControls({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onBack}
+          className="mr-2 text-black hover:bg-black/20 hover:text-black"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back
+        </Button>
+
         <div className="text-lg font-semibold text-black truncate">
           {campaign.name}
         </div>
@@ -45,7 +57,7 @@ export function PublicPresentationControls({
           </Button>
 
           <span className="text-sm font-medium text-black">
-            {currentSlide + 1} / {totalSlides}
+            {currentSlide} / {totalSlides}
           </span>
 
           <Button
