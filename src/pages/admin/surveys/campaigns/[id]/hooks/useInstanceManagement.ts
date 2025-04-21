@@ -1,38 +1,16 @@
+
+// Refactored to use: instanceTypes.ts, statusValidation.ts, completionRate.ts
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
-export type InstanceStatus = 'upcoming' | 'active' | 'completed' | 'inactive';
-
-export interface Instance {
-  id: string;
-  campaign_id: string;
-  starts_at: string;
-  ends_at: string;
-  status: InstanceStatus;
-  period_number: number;
-  created_at: string;
-  updated_at: string;
-  completion_rate?: number;
-}
-
-export interface CreateInstanceData {
-  campaign_id: string;
-  starts_at: string;
-  ends_at: string;
-  status: InstanceStatus;
-  period_number: number;
-}
-
-export interface InstanceSortOptions {
-  sortBy: 'period_number' | 'starts_at' | 'ends_at' | 'status' | 'completion_rate';
-  sortDirection: 'asc' | 'desc';
-}
-
-export interface PaginationOptions {
-  page: number;
-  pageSize: number;
-}
+import { 
+  InstanceStatus, 
+  Instance, 
+  InstanceSortOptions, 
+  PaginationOptions 
+} from "./instanceTypes";
+import { validateStatusChange } from "./statusValidation";
+import { calculateCompletionRateForInstance } from "./completionRate";
 
 export function useInstanceManagement(campaignId: string) {
   const queryClient = useQueryClient();
@@ -91,7 +69,7 @@ export function useInstanceManagement(campaignId: string) {
       const totalCount = data.length > 0 && data[0].hasOwnProperty('total_count') 
         ? Number(data[0].total_count) : 0;
       
-      const processedData = data.map(instance => ({
+      const processedData = data.map((instance: any) => ({
         ...instance,
         status: instance.status === 'upcoming' && new Date(instance.starts_at) > new Date() ? 
           'inactive' as InstanceStatus : instance.status as InstanceStatus
@@ -161,45 +139,19 @@ export function useInstanceManagement(campaignId: string) {
   });
 
   const hasActiveInstance = (currentInstanceId?: string): boolean => {
-    return instancesData.data.some(instance => 
+    return instancesData.data.some((instance: Instance) => 
       instance.status === 'active' && instance.id !== currentInstanceId
     );
   };
 
-  const validateStatusChange = (
-    instance: Instance, 
-    newStatus: InstanceStatus
-  ): string | null => {
-    if (newStatus === 'active' && hasActiveInstance(instance.id)) {
-      return "There is already an active instance for this campaign. Please mark it as completed or inactive first.";
-    }
-
-    if (instance.status === 'completed' && newStatus !== 'completed') {
-      return "Completed instances cannot be changed to other statuses";
-    }
-
-    const now = new Date();
-    const startDate = new Date(instance.starts_at);
-    const endDate = new Date(instance.ends_at);
-
-    if (newStatus === 'active' && endDate < now) {
-      return "Cannot set an instance to active if its end date has passed";
-    }
-
-    if (newStatus === 'upcoming' && startDate < now) {
-      return "Cannot set an instance to upcoming if its start date has passed";
-    }
-
-    return null;
-  };
-
   const updateInstance = async (updatedInstance: Partial<Instance> & { id: string }) => {
     if (updatedInstance.status) {
-      const instance = instancesData.data.find(i => i.id === updatedInstance.id);
+      const instance = instancesData.data.find((i: Instance) => i.id === updatedInstance.id);
       if (instance) {
         const validationError = validateStatusChange(
           instance, 
-          updatedInstance.status as InstanceStatus
+          updatedInstance.status as InstanceStatus,
+          hasActiveInstance
         );
         
         if (validationError) {
@@ -220,42 +172,7 @@ export function useInstanceManagement(campaignId: string) {
   };
 
   const calculateCompletionRate = async (instanceId: string) => {
-    try {
-      const { data: assignments, error: assignmentError } = await supabase
-        .from('survey_assignments')
-        .select('id')
-        .eq('campaign_id', campaignId);
-        
-      if (assignmentError) throw assignmentError;
-      
-      const { data: responses, error: responseError } = await supabase
-        .from('survey_responses')
-        .select('id')
-        .eq('campaign_instance_id', instanceId)
-        .eq('status', 'submitted');
-        
-      if (responseError) throw responseError;
-      
-      const totalAssignments = assignments?.length || 0;
-      const completedResponses = responses?.length || 0;
-      const completionRate = totalAssignments > 0 
-        ? (completedResponses / totalAssignments) * 100 
-        : 0;
-      
-      const { error: updateError } = await supabase
-        .from('campaign_instances')
-        .update({ completion_rate: completionRate })
-        .eq('id', instanceId);
-        
-      if (updateError) throw updateError;
-      
-      refreshInstances();
-      
-      return completionRate;
-    } catch (error) {
-      console.error("Error calculating completion rate:", error);
-      throw error;
-    }
+    return calculateCompletionRateForInstance(campaignId, instanceId, refreshInstances);
   };
 
   const updateSort = (newSort: Partial<InstanceSortOptions>) => {
