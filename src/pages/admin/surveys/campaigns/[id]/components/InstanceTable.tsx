@@ -1,3 +1,4 @@
+
 import { format } from "date-fns";
 import { Pencil, Trash2, Plus, XCircle, ChevronDown, ChevronUp, Save } from "lucide-react";
 import { useState } from "react";
@@ -33,7 +34,7 @@ import {
   Instance, 
   InstanceSortOptions, 
   PaginationOptions 
-} from "../hooks/useInstanceManagement";
+} from "../hooks/instanceTypes";
 import { useToast } from "@/hooks/use-toast";
 
 interface InstanceTableProps {
