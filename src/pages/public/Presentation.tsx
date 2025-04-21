@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -168,7 +169,7 @@ export default function Presentation() {
   return (
     <div className="relative min-h-screen h-screen flex flex-col bg-background" {...swipeHandlers}>
       <Helmet>
-        <title>{campaign.name} - Presentation</title>
+        <title>{campaign?.name || "Presentation"} - Presentation</title>
       </Helmet>
 
       {/* Keyboard shortcuts popover/help */}
@@ -267,19 +268,36 @@ export default function Presentation() {
               progress={((currentSlide + 1) / totalSlides) * 100}
               isFullscreen={isFullscreen}
             >
-              <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
-              <ResponseDistributionSlide 
-                campaignId={campaign.id} 
-                instanceId={presentation.instance_id || undefined} 
-                isActive={currentSlide === 1}
-                campaign={campaign}
+              <PublicPresentationControls
+                onBack={handleBack}
+                onPrevious={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
+                onNext={() => setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1))}
+                onFullscreen={toggleFullscreen}
+                isFirstSlide={currentSlide === 0}
+                isLastSlide={currentSlide === totalSlides - 1}
+                isFullscreen={isFullscreen}
+                currentSlide={currentSlide + 1}
+                totalSlides={totalSlides}
               />
-              <ResponseTrendsSlide campaign={campaign} isActive={currentSlide === 2} />
-              <QuestionSlidesRenderer 
-                campaign={campaign}
-                currentSlide={currentSlide}
-                filterTypes={["text", "comment"]} // Only render non text/comment slides
-              />
+              
+              {/* All slides are now inside the PresentationLayout */}
+              {campaign && (
+                <>
+                  <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
+                  <ResponseDistributionSlide 
+                    campaignId={campaign.id} 
+                    instanceId={presentation?.instance_id || undefined} 
+                    isActive={currentSlide === 1}
+                    campaign={campaign}
+                  />
+                  <ResponseTrendsSlide campaign={campaign} isActive={currentSlide === 2} />
+                  <QuestionSlidesRenderer 
+                    campaign={campaign}
+                    currentSlide={currentSlide}
+                    filterTypes={["text", "comment"]} // Only render non text/comment slides
+                  />
+                </>
+              )}
             </PresentationLayout>
           </div>
         </div>
