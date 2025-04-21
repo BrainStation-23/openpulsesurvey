@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -103,29 +104,39 @@ export function useInstanceManagement(campaignId: string) {
     },
   });
 
+  // --- This is the main update: replace direct update call with new RPC ---
   const updateInstanceMutation = useMutation({
     mutationFn: async (updatedInstance: Partial<Instance> & { id: string }) => {
-      const { id, ...updateData } = updatedInstance;
-      
-      const finalUpdateData = {
-        ...updateData,
-        status: updateData.status === 'inactive' ? 'upcoming' : updateData.status
-      };
-      
-      const { data, error } = await supabase
-        .from('campaign_instances')
-        .update(finalUpdateData)
-        .eq('id', id)
-        .select()
-        .single();
-        
+      const { id, starts_at, ends_at, status } = updatedInstance;
+
+      if (!starts_at || !ends_at || !status) throw new Error("Start/end date and status are required");
+
+      // Map 'inactive' to 'upcoming' if needed (mirroring previous logic)
+      const updateStatus = status === 'inactive' ? 'upcoming' : status;
+
+      // Use new RPC function
+      const { data, error } = await supabase.rpc('update_campaign_instance', {
+        p_instance_id: id,
+        p_new_starts_at: starts_at,
+        p_new_ends_at: ends_at,
+        p_new_status: updateStatus
+      });
+
       if (error) throw error;
-      return data;
+      if (!data || !Array.isArray(data) || data.length === 0)
+        throw new Error("No data returned from update operation");
+
+      const updatedResult = data[0];
+      if (updatedResult?.error_message) {
+        throw new Error(updatedResult.error_message);
+      }
+      return updatedResult;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaign-instances', campaignId] });
     },
   });
+  // --- end of main update ---
 
   const createNextInstanceMutation = useMutation({
     mutationFn: async () => {
@@ -279,3 +290,4 @@ export function useInstanceManagement(campaignId: string) {
     updatePagination,
   };
 }
+
