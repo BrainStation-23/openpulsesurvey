@@ -19,7 +19,7 @@ import {
   FormItem,
   FormLabel,
 } from "@/components/ui/form";
-import { InstanceStatus } from "../hooks/instanceTypes";
+import { InstanceStatus } from "../hooks/useInstanceManagement";
 import { useEffect } from "react";
 
 const formSchema = z.object({
