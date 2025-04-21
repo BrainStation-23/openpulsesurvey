@@ -43,19 +43,33 @@ export function HeatMapChart({ data = [], title }: HeatMapChartProps) {
     return unsatisfiedPercentage > 50;
   };
 
+  // Compute weighted average: unsatisfied (avg 2), neutral (4), satisfied (5)
+  const getAverage = (row: HeatMapData) => {
+    if (row.total === 0) return 0;
+    // Assume unsatisfied response is average of 1-3 = 2
+    // neutral = 4, satisfied = 5
+    const totalScore =
+      row.unsatisfied * 2 +
+      row.neutral * 4 +
+      row.satisfied * 5;
+    return totalScore / row.total;
+  };
+
   return (
     <div className="w-full">
       {title && (
         <h3 className="text-lg font-semibold mb-4">{title}</h3>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[500px]">
+        <table className="w-full min-w-[700px]">
           <thead>
             <tr>
               <th className="text-left p-2">Group</th>
               <th className="text-center p-2">Unsatisfied (1-3)</th>
               <th className="text-center p-2">Neutral (4)</th>
               <th className="text-center p-2">Satisfied (5)</th>
+              <th className="text-center p-2">Total</th>
+              <th className="text-center p-2">Avg</th>
             </tr>
           </thead>
           <tbody>
@@ -74,39 +88,58 @@ export function HeatMapChart({ data = [], title }: HeatMapChartProps) {
                 </td>
                 <td className="p-2">
                   <div
-                    className="w-full h-10 flex items-center justify-center text-sm"
+                    className="w-full h-10 flex items-center justify-center text-sm rounded"
                     style={{
                       backgroundColor: `#ef4444${getColorIntensity(
                         getPercentage(row.unsatisfied, row.total)
                       )}`,
                     }}
                   >
-                    {getPercentage(row.unsatisfied, row.total)}%
+                    <span>
+                      {row.unsatisfied} / {getPercentage(row.unsatisfied, row.total)}%
+                    </span>
                   </div>
                 </td>
                 <td className="p-2">
                   <div
-                    className="w-full h-10 flex items-center justify-center text-sm"
+                    className="w-full h-10 flex items-center justify-center text-sm rounded"
                     style={{
                       backgroundColor: `#eab308${getColorIntensity(
                         getPercentage(row.neutral, row.total)
                       )}`,
                     }}
                   >
-                    {getPercentage(row.neutral, row.total)}%
+                    <span>
+                      {row.neutral} / {getPercentage(row.neutral, row.total)}%
+                    </span>
                   </div>
                 </td>
                 <td className="p-2">
                   <div
-                    className="w-full h-10 flex items-center justify-center text-sm"
+                    className="w-full h-10 flex items-center justify-center text-sm rounded"
                     style={{
                       backgroundColor: `#22c55e${getColorIntensity(
                         getPercentage(row.satisfied, row.total)
                       )}`,
                     }}
                   >
-                    {getPercentage(row.satisfied, row.total)}%
+                    <span>
+                      {row.satisfied} / {getPercentage(row.satisfied, row.total)}%
+                    </span>
                   </div>
+                </td>
+                <td className="p-2 text-center">
+                  <span className="font-semibold">{row.total}</span>
+                </td>
+                <td className="p-2 text-center">
+                  <span 
+                    className={
+                      "font-semibold " +
+                      (getAverage(row) < 3 ? "text-red-500" : getAverage(row) < 4 ? "text-yellow-600" : "text-green-600")
+                    }
+                  >
+                    {getAverage(row).toFixed(2)}
+                  </span>
                 </td>
               </tr>
             ))}
