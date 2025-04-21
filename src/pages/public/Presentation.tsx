@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -13,6 +14,9 @@ import { PresentationTimer } from "./components/PresentationTimer";
 import { NotesPanel } from "./components/NotesPanel";
 import { TopControls } from "./components/TopControls";
 import { MainContent } from "./components/MainContent";
+import { useSwipeable } from "react-swipeable";
+import { COMPARISON_DIMENSIONS } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/constants";
+import { SharedPresentation } from "@/types/shared-presentations";
 
 export default function Presentation() {
   const { token } = useParams();
@@ -117,20 +121,6 @@ export default function Presentation() {
     navigate(-1);
   };
 
-  function MiniMap() {
-    return (
-      <div className="flex gap-1 items-center px-2">
-        {Array.from({ length: totalSlides }).map((_, i) => (
-          <span
-            key={i}
-            className={`inline-block w-2 h-2 rounded-full transition-all mx-0.5 ${currentSlide === i ? "bg-primary scale-125" : "bg-gray-300"}`}
-            style={{ opacity: currentSlide === i ? 1 : 0.4 }}
-          />
-        ))}
-      </div>
-    );
-  }
-
   function handleExport() {
     toast({ title: "Export", description: "Export to PPTX coming soon!", variant: "default" });
   }
@@ -200,7 +190,7 @@ export default function Presentation() {
 
       <MainContent
         campaign={campaign}
-        presentation={presentation}
+        presentation={presentation as SharedPresentation}
         currentSlide={currentSlide}
         totalSlides={totalSlides}
         isFullscreen={isFullscreen}

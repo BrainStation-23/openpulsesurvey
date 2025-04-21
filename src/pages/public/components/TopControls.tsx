@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronsRight, Maximize, Minimize, Export, FileText } from "lucide-react";
+import { ArrowLeft, ChevronsRight, Maximize, Minimize, FileDown, FileText } from "lucide-react";
 import React from "react";
 import { MiniMap } from "./MiniMap";
 
@@ -58,7 +58,7 @@ export function TopControls({
         aria-label="Export"
         title="Export to PPTX"
       >
-        <Export className="h-4 w-4" />
+        <FileDown className="h-4 w-4" />
       </Button>
       <Button
         variant="ghost"
