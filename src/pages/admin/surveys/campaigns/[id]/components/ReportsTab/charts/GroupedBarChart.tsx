@@ -25,7 +25,13 @@ export function GroupedBarChart({
           margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
+          <XAxis 
+            dataKey="name" 
+            angle={-90} 
+            textAnchor="end"
+            interval={0}
+            dy={10}
+          />
           <YAxis allowDecimals={false} />
           <ChartTooltip
             content={({ active, payload, label }) => {
