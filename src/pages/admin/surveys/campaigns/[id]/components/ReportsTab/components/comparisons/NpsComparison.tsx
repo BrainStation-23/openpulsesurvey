@@ -1,4 +1,4 @@
-import { useState as useReactState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
 import { NpsChart } from "../../charts/NpsChart";
@@ -45,7 +45,7 @@ export function NpsComparison({
   const [data, setData] = useState<HeatMapData[] | NpsData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [viewMode, setViewMode] = useReactState<'chart' | 'table'>('chart');
+  const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
 
   const getDimensionTitle = (dim: string) => {
     const titles: Record<string, string> = {
@@ -285,7 +285,7 @@ export function NpsComparison({
   }
 
   if (!isNps && (data.length > 0 && typeof data[0] === "object" && "unsatisfied" in data[0])) {
-    const [viewModeSatis, setViewModeSatis] = useReactState<'chart' | 'table'>('chart');
+    const [viewModeSatis, setViewModeSatis] = useState<'chart' | 'table'>('chart');
     return (
       <Card>
         <CardHeader>

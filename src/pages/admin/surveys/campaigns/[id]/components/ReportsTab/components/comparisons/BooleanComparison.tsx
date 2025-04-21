@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,6 +9,12 @@ interface BooleanComparisonProps {
   responses: any[];
   questionName: string;
   dimension: string;
+}
+
+// Add a defined interface for the group data
+interface GroupData {
+  yes: number;
+  no: number;
 }
 
 export function BooleanComparison({ responses, questionName, dimension }: BooleanComparisonProps) {
@@ -55,7 +62,7 @@ export function BooleanComparison({ responses, questionName, dimension }: Boolea
     }
 
     return acc;
-  }, {});
+  }, {} as Record<string, GroupData>);
 
   return (
     <Card>
@@ -85,7 +92,7 @@ export function BooleanComparison({ responses, questionName, dimension }: Boolea
                   <CardTitle>{group}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <BooleanCharts data={data as { yes: number; no: number }} />
+                  <BooleanCharts data={data} />
                 </CardContent>
               </Card>
             ))}
