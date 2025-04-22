@@ -1,14 +1,11 @@
-
 import { useCallback, useRef, useEffect, useState } from "react";
 import Wordcloud from "@visx/wordcloud/lib/Wordcloud";
-import { ChartExportMenu } from "@/components/ui/chart-export-menu";
 
 interface WordCloudProps {
   words: Array<{
     text: string;
     value: number;
   }>;
-  questionTitle?: string;
 }
 
 interface WordData {
@@ -16,7 +13,7 @@ interface WordData {
   size: number;
 }
 
-export function WordCloud({ words, questionTitle = "Question" }: WordCloudProps) {
+export function WordCloud({ words }: WordCloudProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 600, height: 300 });
   const colors = [
@@ -68,46 +65,44 @@ export function WordCloud({ words, questionTitle = "Question" }: WordCloudProps)
   }, [words, dimensions]);
 
   const getColor = useCallback((word: WordData) => {
+
     const index = Math.abs(word.text.split('').reduce((acc, char) => {
       return char.charCodeAt(0) + ((acc << 5) - acc);
     }, 0)) % colors.length;
     return colors[index];
   }, []);
 
-  const filename = `${questionTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_word_cloud`;
-
   return (
-    <ChartExportMenu data={words} chartType="wordcloud" filename={filename}>
-      <div ref={containerRef} className="w-full h-full min-h-[200px]">
-        <Wordcloud
-          words={formattedWords}
-          width={dimensions.width}
-          height={dimensions.height}
-          fontSize={(w) => getFontSize(w as WordData)}
-          font={"Inter"}
-          padding={3}
-          rotate={getRotation}
-          spiral="archimedean"
-        >
-          {(cloudWords) => (
-            <g>
-              {cloudWords.map((w, i) => (
-                <text
-                  key={i}
-                  fill={getColor(w as WordData)}
-                  textAnchor="middle"
-                  transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
-                  fontSize={w.size}
-                  fontFamily={w.font}
-                  style={{ userSelect: "none" }}
-                >
-                  {w.text}
-                </text>
-              ))}
-            </g>
-          )}
-        </Wordcloud>
-      </div>
-    </ChartExportMenu>
+    <div ref={containerRef} className="w-full h-full min-h-[200px]">
+      <Wordcloud
+        words={formattedWords}
+        width={dimensions.width}
+        height={dimensions.height}
+
+        fontSize={(w) => getFontSize(w as WordData)}
+        font={"Inter"}
+        padding={3}
+        rotate={getRotation}
+        spiral="archimedean"
+      >
+        {(cloudWords) => (
+          <g>
+            {cloudWords.map((w, i) => (
+              <text
+                key={i}
+                fill={getColor(w as WordData)}
+                textAnchor="middle"
+                transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
+                fontSize={w.size}
+                fontFamily={w.font}
+                style={{ userSelect: "none" }}
+              >
+                {w.text}
+              </text>
+            ))}
+          </g>
+        )}
+      </Wordcloud>
+    </div>
   );
 }
