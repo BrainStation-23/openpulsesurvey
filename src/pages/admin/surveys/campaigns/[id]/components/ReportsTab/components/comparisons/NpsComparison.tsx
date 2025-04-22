@@ -203,7 +203,7 @@ export function NpsComparison({
       }
     });
 
-    return Array.from(dimensionData.values());
+    return Array.from(dimensionData.values()).sort(([a], [b]) => a.localeCompare(b));
   };
 
   useEffect(() => {
