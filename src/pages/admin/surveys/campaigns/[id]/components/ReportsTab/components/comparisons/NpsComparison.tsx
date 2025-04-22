@@ -140,11 +140,13 @@ export function NpsComparison({
         }
       });
 
-      return Array.from(dimensionData.entries()).map(([dimension, ratings]) => ({
-        dimension,
-        ratings: ratings.map((count, rating) => ({ rating, count }))
-      })) as NpsData[];
-    }
+      return Array.from(dimensionData.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([dimension, ratings]) => ({
+          dimension,
+          ratings: ratings.map((count, rating) => ({ rating, count }))
+        })) as NpsData[];
+      }
 
     const dimensionData = new Map<string, HeatMapData>();
 
