@@ -126,13 +126,14 @@ export function EnhancedRatingChart({
       <div className="h-[180px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
+            layout="vertical"
             data={data}
             margin={{ top: 20, right: 30, left: 30, bottom: 5 }}
             barGap={10}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} />
+            <XAxis type="number" domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} />
+            <YAxis type="category" dataKey="name" />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={3} stroke="#666" strokeDasharray="3 3" label={{ value: "Neutral", position: "left", fill: "#666", fontSize: 12 }} />
             <Bar dataKey="base" name={`Period ${basePeriodNumber || '-'}`} fill={getColor(baseAvg)} radius={[4, 4, 0, 0]} barSize={40}>
