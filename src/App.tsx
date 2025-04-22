@@ -1,4 +1,3 @@
-
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -102,6 +101,7 @@ const App = () => (
               <Route path="/features" element={<Features />} />
               <Route path="/tech-stack" element={<TechStack />} />
               <Route path="/why-us" element={<WhyUs />} />
+              <Route path="/changelog" element={<Changelog />} />
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
