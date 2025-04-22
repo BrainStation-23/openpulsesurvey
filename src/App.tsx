@@ -1,3 +1,4 @@
+
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +12,7 @@ import Index from "./pages/Index";
 import Features from "./pages/Features";
 import TechStack from "./pages/TechStack";
 import WhyUs from "./pages/WhyUs";
+import Changelog from "./pages/Changelog";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/auth/AuthCallback";
 import ResetPassword from "./pages/auth/ResetPassword";
