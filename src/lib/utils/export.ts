@@ -1,5 +1,5 @@
 
-import { Parser } from "papaparse";
+import { unparse } from "papaparse";
 import html2canvas from "html2canvas";
 
 export async function exportToImage(element: HTMLElement, type: "png" | "svg", filename: string) {
@@ -20,7 +20,7 @@ export async function exportToImage(element: HTMLElement, type: "png" | "svg", f
 }
 
 export function exportToCSV(data: any[], filename: string) {
-  const csv = Parser.unparse(data);
+  const csv = unparse(data);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   downloadFile(URL.createObjectURL(blob), `${filename}.csv`);
 }
