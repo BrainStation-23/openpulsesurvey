@@ -12,7 +12,6 @@ import Index from "./pages/Index";
 import Features from "./pages/Features";
 import TechStack from "./pages/TechStack";
 import WhyUs from "./pages/WhyUs";
-import Changelog from "./pages/Changelog";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/auth/AuthCallback";
 import ResetPassword from "./pages/auth/ResetPassword";
@@ -103,7 +102,6 @@ const App = () => (
               <Route path="/features" element={<Features />} />
               <Route path="/tech-stack" element={<TechStack />} />
               <Route path="/why-us" element={<WhyUs />} />
-              <Route path="/changelog" element={<Changelog />} />
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
