@@ -1,9 +1,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RatingComparisonChart } from "./RatingComparisonChart";
-import { BooleanComparisonChart } from "./BooleanComparisonChart";
+import { EnhancedRatingChart } from "./EnhancedRatingChart";
+import { EnhancedBooleanChart } from "./EnhancedBooleanChart";
 import { Badge } from "@/components/ui/badge";
-import { TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus, Sparkles } from "lucide-react";
 
 interface QuestionData {
   period_number: number | null;
@@ -80,11 +80,18 @@ export function QuestionCard({
   const responseChange = comparisonResponses - baseResponses;
 
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-2">
+    <Card className="w-full overflow-hidden transition-all hover:shadow-md">
+      <CardHeader className="pb-2 bg-gradient-to-r from-slate-50 to-white">
         <CardTitle className="flex items-center justify-between">
-          <span className="text-base">{questionTitle}</span>
-          <Badge variant="outline">{questionType}</Badge>
+          <div className="flex items-center gap-2">
+            <span className="text-base font-semibold">{questionTitle}</span>
+            {isSignificantChange && <Sparkles size={16} className={scoreChange > 0 ? "text-amber-500" : "text-blue-500"} />}
+          </div>
+          <Badge className={`${questionType === 'rating' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' : 
+                             questionType === 'boolean' ? 'bg-purple-100 text-purple-800 hover:bg-purple-200' : 
+                             'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}>
+            {questionType}
+          </Badge>
         </CardTitle>
         {hasScoreData && (
           <div className="mt-2 flex items-center gap-2">
@@ -109,15 +116,15 @@ export function QuestionCard({
                 )}
               </span>
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground bg-gray-100 px-2 py-0.5 rounded-full">
               Period {basePeriod} → {comparisonPeriod}
             </div>
           </div>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4">
         {questionType === "rating" && baseData.avg_numeric_value !== null && comparisonData.avg_numeric_value !== null && (
-          <RatingComparisonChart
+          <EnhancedRatingChart
             baseInstanceData={{
               avg_numeric_value: baseData.avg_numeric_value,
               response_count: baseData.response_count || 0,
@@ -133,7 +140,7 @@ export function QuestionCard({
         )}
 
         {questionType === "boolean" && baseData.yes_percentage !== null && comparisonData.yes_percentage !== null && (
-          <BooleanComparisonChart
+          <EnhancedBooleanChart
             baseInstanceData={{
               yes_percentage: baseData.yes_percentage,
               response_count: baseData.response_count || 0,
@@ -149,54 +156,27 @@ export function QuestionCard({
         )}
 
         {questionType === "text" && (
-          <div className="text-center text-muted-foreground py-4">
+          <div className="text-center text-muted-foreground py-4 bg-gray-50 rounded-lg border border-gray-100">
             <p className="mb-2 font-medium">Text Response Summary</p>
-            <p>Base: {baseData.response_count || 0} responses</p>
-            <p>Comparison: {comparisonData.response_count || 0} responses</p>
-            <p className="mt-2">
-              {responseChange > 0 ? `+${responseChange}` : responseChange} response change
+            <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+              <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200">
+                <p className="text-sm font-medium text-gray-600">Period {basePeriod}</p>
+                <p className="text-lg font-bold">{baseData.response_count || 0}</p>
+                <p className="text-xs text-gray-500">responses</p>
+              </div>
+              <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200">
+                <p className="text-sm font-medium text-gray-600">Period {comparisonPeriod}</p>
+                <p className="text-lg font-bold">{comparisonData.response_count || 0}</p>
+                <p className="text-xs text-gray-500">responses</p>
+              </div>
+            </div>
+            <p className="mt-4 text-sm">
+              <span className={responseChange > 0 ? "text-green-600" : responseChange < 0 ? "text-red-600" : "text-gray-600"}>
+                {responseChange > 0 ? `+${responseChange}` : responseChange} response change
+              </span>
             </p>
           </div>
         )}
-
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-muted-foreground">Period {basePeriod}:</p>
-            <div className="font-medium">
-              {questionType === "rating" && baseData.avg_numeric_value !== null ? (
-                <div className="flex items-center">
-                  <span className="text-lg">{baseData.avg_numeric_value.toFixed(2)}</span>
-                  <span className="ml-2 text-xs text-muted-foreground">({baseData.response_count || 0} responses)</span>
-                </div>
-              ) : questionType === "boolean" && baseData.yes_percentage !== null ? (
-                <div className="flex items-center">
-                  <span className="text-lg">{baseData.yes_percentage.toFixed(1)}%</span>
-                  <span className="ml-2 text-xs text-muted-foreground">({baseData.response_count || 0} responses)</span>
-                </div>
-              ) : (
-                <span>{baseData.response_count || 0} responses</span>
-              )}
-            </div>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Period {comparisonPeriod}:</p>
-            <div className="font-medium">
-              {questionType === "rating" && comparisonData.avg_numeric_value !== null ? (
-                <div className="flex items-center">
-                  <span className="text-lg">{comparisonData.avg_numeric_value.toFixed(2)}</span>
-                  <span className="ml-2 text-xs text-muted-foreground">({comparisonData.response_count || 0} responses)</span>
-                </div>
-              ) : questionType === "boolean" && comparisonData.yes_percentage !== null ? (
-                <div className="flex items-center">
-                  <span className="text-lg">{comparisonData.yes_percentage.toFixed(1)}%</span>
-                  <span className="ml-2 text-xs text-muted-foreground">({comparisonData.response_count || 0} responses)</span>
-                </div>
-              ) : (
-                <span>{comparisonData.response_count || 0} responses</span>
-              )}
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
