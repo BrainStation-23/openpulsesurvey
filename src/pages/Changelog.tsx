@@ -8,7 +8,7 @@ const Changelog = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/CHANGELOG.md')
+    fetch('https://raw.githubusercontent.com/BrainStation-23/openofficesurvey/refs/heads/main/CHANGELOG.md')
       .then((response) => response.text())
       .then((text) => {
         setContent(text);
