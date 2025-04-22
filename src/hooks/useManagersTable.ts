@@ -1,27 +1,30 @@
 
 import { useState } from "react";
-import { SupervisorPerformer } from "@/pages/admin/surveys/campaigns/[id]/components/InstanceCompareTab/types/instance-comparison";
 import { useDebounce } from "@/hooks/use-debounce";
 
-export function useManagersTable(data: SupervisorPerformer[]) {
+// This type is more flexible and will work with different table data structures
+export function useManagersTable<T extends Record<string, any>>(data: T[]) {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortConfig, setSortConfig] = useState<{
-    key: keyof SupervisorPerformer | null;
+    key: keyof T | null;
     direction: "asc" | "desc";
-  }>({ key: "base_rank", direction: "asc" });
+  }>({ key: null, direction: "asc" });
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   // Filter data based on search query
-  const filteredData = data.filter((manager) => {
+  const filteredData = data.filter((item) => {
     if (!debouncedSearchQuery) return true;
+    
     const searchTerm = debouncedSearchQuery.toLowerCase();
-    return (
-      manager.name.toLowerCase().includes(searchTerm) ||
-      manager.department?.toLowerCase().includes(searchTerm)
-    );
+    
+    // Search across all string properties
+    return Object.entries(item).some(([key, value]) => {
+      // Only search through string values
+      return typeof value === 'string' && value.toLowerCase().includes(searchTerm);
+    });
   });
 
   // Sort data
@@ -51,7 +54,7 @@ export function useManagersTable(data: SupervisorPerformer[]) {
     currentPage * pageSize
   );
 
-  const handleSort = (key: keyof SupervisorPerformer) => {
+  const handleSort = (key: keyof T) => {
     setSortConfig((current) => ({
       key,
       direction:

@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,7 +82,7 @@ export function TopPerformingManagersChart({ campaignId, instanceId }: TopPerfor
     setCurrentPage,
     setPageSize,
     handleSort,
-  } = useManagersTable(managerPerformance || []);
+  } = useManagersTable<ManagerPerformance>(managerPerformance || []);
 
   if (isLoading) {
     return (
@@ -117,7 +118,7 @@ export function TopPerformingManagersChart({ campaignId, instanceId }: TopPerfor
     );
   }
 
-  const renderSortIcon = (key: string) => {
+  const renderSortIcon = (key: keyof ManagerPerformance) => {
     if (sortConfig.key !== key) return null;
     return sortConfig.direction === "asc" ? (
       <ChevronUp className="ml-1 h-4 w-4" />
@@ -164,10 +165,10 @@ export function TopPerformingManagersChart({ campaignId, instanceId }: TopPerfor
                   <Button
                     variant="ghost"
                     className="h-8 px-2"
-                    onClick={() => handleSort("base_rank")}
+                    onClick={() => handleSort("rank")}
                   >
                     Rank
-                    {renderSortIcon("base_rank")}
+                    {renderSortIcon("rank")}
                   </Button>
                 </TableHead>
                 <TableHead>
