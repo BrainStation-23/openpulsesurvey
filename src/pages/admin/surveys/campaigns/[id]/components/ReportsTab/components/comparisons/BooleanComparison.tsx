@@ -57,11 +57,14 @@ export function BooleanComparison({
   });
 
   // Prepare chart data format
-  const chartData = Array.from(groupedMap.entries()).map(([name, data]) => ({
+  const chartData = Array.from(groupedMap.entries())
+  .map(([name, data]) => ({
     name,
     Yes: data.Yes,
     No: data.No,
-  }));
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name));
+
 
   if (!chartData.length) {
     return (
