@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
@@ -203,7 +204,7 @@ export function NpsComparison({
       }
     });
 
-    return Array.from(dimensionData.values()).sort(([a], [b]) => a.localeCompare(b));
+    return Array.from(dimensionData.values()).sort((a, b) => a.dimension.localeCompare(b.dimension));
   };
 
   useEffect(() => {

@@ -25,9 +25,9 @@ export function BooleanComparisonChart({
 }: BooleanComparisonChartProps) {
 
   // Calculate percentages
-  const baseYes = baseInstanceData.yes_percentage;
+  const baseYes = Number(baseInstanceData.yes_percentage);
   const baseNo = 100 - baseYes;
-  const comparisonYes = comparisonInstanceData.yes_percentage;
+  const comparisonYes = Number(comparisonInstanceData.yes_percentage);
   const comparisonNo = 100 - comparisonYes;
   
   // Change metrics

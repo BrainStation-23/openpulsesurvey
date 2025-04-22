@@ -45,12 +45,12 @@ export function QuestionComparisonTable({
                 question.baseData.avg_numeric_value !== null && 
                 question.comparisonData.avg_numeric_value !== null) {
               
-              baseValue = question.baseData.avg_numeric_value;
-              comparisonValue = question.comparisonData.avg_numeric_value;
-              change = comparisonValue - baseValue;
+              baseValue = Number(question.baseData.avg_numeric_value);
+              comparisonValue = Number(question.comparisonData.avg_numeric_value);
+              change = Number(comparisonValue) - Number(baseValue);
               
-              if (baseValue > 0) {
-                changePercentage = (change / baseValue) * 100;
+              if (Number(baseValue) > 0) {
+                changePercentage = (change / Number(baseValue)) * 100;
               }
               
               isSignificant = Math.abs(changePercentage || 0) > 5 || Math.abs(change) > 0.5;
@@ -59,9 +59,9 @@ export function QuestionComparisonTable({
                       question.baseData.yes_percentage !== null && 
                       question.comparisonData.yes_percentage !== null) {
               
-              baseValue = question.baseData.yes_percentage;
-              comparisonValue = question.comparisonData.yes_percentage;
-              change = comparisonValue - baseValue;
+              baseValue = Number(question.baseData.yes_percentage);
+              comparisonValue = Number(question.comparisonData.yes_percentage);
+              change = Number(comparisonValue) - Number(baseValue);
               isSignificant = Math.abs(change) > 5;
             }
             
@@ -83,14 +83,14 @@ export function QuestionComparisonTable({
                 <TableCell className="text-right font-mono">
                   {question.type === "rating" && typeof baseValue === "number" ? (
                     <div>
-                      <span className="font-medium">{baseValue.toFixed(2)}</span>
+                      <span className="font-medium">{Number(baseValue).toFixed(2)}</span>
                       <span className="text-xs text-muted-foreground ml-1">
                         ({question.baseData.response_count || 0})
                       </span>
                     </div>
                   ) : question.type === "boolean" && typeof baseValue === "number" ? (
                     <div>
-                      <span className="font-medium">{baseValue.toFixed(1)}%</span>
+                      <span className="font-medium">{Number(baseValue).toFixed(1)}%</span>
                       <span className="text-xs text-muted-foreground ml-1">
                         ({question.baseData.response_count || 0})
                       </span>
@@ -102,14 +102,14 @@ export function QuestionComparisonTable({
                 <TableCell className="text-right font-mono">
                   {question.type === "rating" && typeof comparisonValue === "number" ? (
                     <div>
-                      <span className="font-medium">{comparisonValue.toFixed(2)}</span>
+                      <span className="font-medium">{Number(comparisonValue).toFixed(2)}</span>
                       <span className="text-xs text-muted-foreground ml-1">
                         ({question.comparisonData.response_count || 0})
                       </span>
                     </div>
                   ) : question.type === "boolean" && typeof comparisonValue === "number" ? (
                     <div>
-                      <span className="font-medium">{comparisonValue.toFixed(1)}%</span>
+                      <span className="font-medium">{Number(comparisonValue).toFixed(1)}%</span>
                       <span className="text-xs text-muted-foreground ml-1">
                         ({question.comparisonData.response_count || 0})
                       </span>
