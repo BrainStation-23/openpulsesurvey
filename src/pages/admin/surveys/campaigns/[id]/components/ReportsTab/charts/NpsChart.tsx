@@ -1,138 +1,147 @@
-import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+
+import { CardContent } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from "recharts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ChartExportMenu } from "@/components/ui/chart-export-menu";
 
 interface NpsChartProps {
   data: Array<{
     rating: number;
     count: number;
-    group?: string;
   }>;
-  showComparison?: boolean;
+  questionTitle?: string;
 }
 
-export function NpsChart({ data, showComparison = false }: NpsChartProps) {
-  const calculateAverage = (groupData: typeof data) => {
-    const totalResponses = groupData.reduce((sum, item) => sum + item.count, 0);
-    const weightedSum = groupData.reduce((sum, item) => sum + (item.rating * item.count), 0);
-    return totalResponses ? Number((weightedSum / totalResponses).toFixed(1)) : 0;
+export function NpsChart({ data, questionTitle = "Question" }: NpsChartProps) {
+  const npsCategories = (rating: number) => {
+    if (rating <= 6) return "Detractors";
+    if (rating <= 8) return "Passives";
+    return "Promoters";
   };
 
-  const getScoreColor = (score: number) => {
-    return score >= 8 ? 'text-green-500' : 'text-red-500';
+  const colorByRating = (rating: number) => {
+    if (rating <= 6) return "#ef4444"; // red
+    if (rating <= 8) return "#f59e0b"; // amber
+    return "#22c55e"; // green
   };
 
-  // Group data by dimension if it exists
-  const groupedData = data.reduce((acc, item) => {
-    const group = item.group || 'Overall';
-    if (!acc[group]) {
-      acc[group] = [];
-    }
-    acc[group].push(item);
-    return acc;
-  }, {} as Record<string, typeof data>);
+  // Calculate NPS score
+  const totalResponses = data.reduce((sum, item) => sum + item.count, 0);
+  const promoters = data.filter(item => item.rating >= 9).reduce((sum, item) => sum + item.count, 0);
+  const detractors = data.filter(item => item.rating <= 6).reduce((sum, item) => sum + item.count, 0);
+  
+  let npsScore = 0;
+  if (totalResponses > 0) {
+    npsScore = Math.round(((promoters / totalResponses) - (detractors / totalResponses)) * 100);
+  }
+
+  // Prepare category data for export
+  const categoryData = [
+    { category: "Detractors (0-6)", count: detractors, percentage: `${Math.round((detractors / totalResponses) * 100)}%` },
+    { category: "Passives (7-8)", count: data.filter(item => item.rating >= 7 && item.rating <= 8).reduce((sum, item) => sum + item.count, 0), percentage: `${Math.round((data.filter(item => item.rating >= 7 && item.rating <= 8).reduce((sum, item) => sum + item.count, 0) / totalResponses) * 100)}%` },
+    { category: "Promoters (9-10)", count: promoters, percentage: `${Math.round((promoters / totalResponses) * 100)}%` }
+  ];
+
+  const filename = `${questionTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_nps_responses`;
 
   return (
-    <div className={showComparison ? "space-y-8" : "space-y-6"}>
-      {Object.entries(groupedData).map(([group, groupData]) => {
-        const totalResponses = groupData.reduce((sum, item) => sum + item.count, 0);
-        const averageScore = calculateAverage(groupData);
-        
-        const segments = groupData.reduce((acc, item) => {
-          if (item.rating <= 6) {
-            acc.detractors += item.count;
-          } else if (item.rating <= 8) {
-            acc.passives += item.count;
-          } else {
-            acc.promoters += item.count;
-          }
-          return acc;
-        }, { detractors: 0, passives: 0, promoters: 0 });
-
-        const percentages = {
-          detractors: (segments.detractors / totalResponses) * 100,
-          passives: (segments.passives / totalResponses) * 100,
-          promoters: (segments.promoters / totalResponses) * 100,
-        };
-
-        const npsScore = Math.round(percentages.promoters - percentages.detractors);
-
-        return (
-          <div key={group} className="space-y-6">
-            <div className="flex items-center justify-between">
-              {showComparison && (
-                <div className="text-lg font-semibold">{group}</div>
-              )}
-              <div className="flex items-center gap-6">
-                <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">eNPS Score</div>
-                  <div className={cn("text-2xl font-bold", getScoreColor(npsScore))}>
-                    {npsScore}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">Average Rating</div>
-                  <div className={cn("text-2xl font-bold", getScoreColor(averageScore))}>
-                    {averageScore}
-                  </div>
-                </div>
-              </div>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-muted rounded-lg p-4 text-center">
+          <div className="text-4xl font-bold">{npsScore}</div>
+          <div className="text-sm text-muted-foreground">NPS Score</div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="bg-red-100 rounded-lg p-2">
+            <div className="text-red-600 font-medium">
+              {Math.round((detractors / totalResponses) * 100)}%
             </div>
-
-            {/* Segments */}
-            <div className="space-y-4">
-              {/* Promoters */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Promoters</span>
-                  <span className="font-medium">
-                    {Math.round(percentages.promoters)}% ({segments.promoters})
-                  </span>
-                </div>
-                <Progress 
-                  value={percentages.promoters} 
-                  className="bg-gray-100 h-2"
-                  indicatorClassName="bg-[#22c55e]"
-                />
-              </div>
-
-              {/* Passives */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Passives</span>
-                  <span className="font-medium">
-                    {Math.round(percentages.passives)}% ({segments.passives})
-                  </span>
-                </div>
-                <Progress 
-                  value={percentages.passives} 
-                  className="bg-gray-100 h-2"
-                  indicatorClassName="bg-[#eab308]"
-                />
-              </div>
-
-              {/* Detractors */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Detractors</span>
-                  <span className="font-medium">
-                    {Math.round(percentages.detractors)}% ({segments.detractors})
-                  </span>
-                </div>
-                <Progress 
-                  value={percentages.detractors} 
-                  className="bg-gray-100 h-2"
-                  indicatorClassName="bg-[#ef4444]"
-                />
-              </div>
-            </div>
-
-            {/* Total Responses */}
-            <div className="text-center text-sm text-muted-foreground">
-              Total Responses: {totalResponses}
-            </div>
+            <div className="text-xs text-muted-foreground">Detractors</div>
           </div>
-        );
-      })}
+          <div className="bg-amber-100 rounded-lg p-2">
+            <div className="text-amber-600 font-medium">
+              {Math.round((data.filter(item => item.rating >= 7 && item.rating <= 8).reduce((sum, item) => sum + item.count, 0) / totalResponses) * 100)}%
+            </div>
+            <div className="text-xs text-muted-foreground">Passives</div>
+          </div>
+          <div className="bg-green-100 rounded-lg p-2">
+            <div className="text-green-600 font-medium">
+              {Math.round((promoters / totalResponses) * 100)}%
+            </div>
+            <div className="text-xs text-muted-foreground">Promoters</div>
+          </div>
+        </div>
+      </div>
+
+      <Tabs defaultValue="chart" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="chart">Chart</TabsTrigger>
+          <TabsTrigger value="table">Table</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="chart">
+          <ChartExportMenu data={data} chartType="nps" filename={filename}>
+            <ChartContainer config={{}}>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="rating" />
+                  <YAxis allowDecimals={false} />
+                  <ChartTooltip
+                    cursor={false}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const rating = payload[0].payload.rating;
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-md">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="text-muted-foreground">Rating:</div>
+                            <div>{rating}</div>
+                            <div className="text-muted-foreground">Count:</div>
+                            <div>{payload[0].value}</div>
+                            <div className="text-muted-foreground">Category:</div>
+                            <div>{npsCategories(rating)}</div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    {data.map((entry) => (
+                      <Cell key={`cell-${entry.rating}`} fill={colorByRating(entry.rating)} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </ChartExportMenu>
+        </TabsContent>
+
+        <TabsContent value="table">
+          <ChartExportMenu data={data} chartType="table" filename={filename}>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Rating</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">Count</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.map((item) => (
+                  <TableRow key={item.rating}>
+                    <TableCell>{item.rating}</TableCell>
+                    <TableCell>{npsCategories(item.rating)}</TableCell>
+                    <TableCell className="text-right">{item.count}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ChartExportMenu>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
