@@ -1,7 +1,5 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { ChartExportMenu } from "@/components/ui/chart-export-menu";
 
 type ResponseData = {
   date: string;
@@ -15,9 +13,8 @@ type ResponseRateChartProps = {
 export function ResponseRateChart({ data }: ResponseRateChartProps) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle>Response Rate Over Time</CardTitle>
-        <ChartExportMenu data={data} filename="response-rate" />
       </CardHeader>
       <CardContent className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
