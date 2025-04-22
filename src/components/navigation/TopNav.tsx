@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu } from "lucide-react";
@@ -15,6 +14,7 @@ const TopNav = () => {
     { path: "/features", label: "Features" },
     { path: "/why-us", label: "Why Us?" },
     { path: "/tech-stack", label: "Tech Stack" },
+    { path: "/changelog", label: "Changelog" },
   ];
 
   return (
@@ -55,7 +55,6 @@ const TopNav = () => {
         </div>
       </div>
       
-      {/* Mobile Navigation Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b z-50">
           <nav className="container mx-auto px-4 py-4">
