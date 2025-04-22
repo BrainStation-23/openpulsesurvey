@@ -1,6 +1,6 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { ChartExportMenu } from "@/components/ui/chart-export-menu";
 
 const COLORS = {
   'Submitted': '#10B981', // green
@@ -19,7 +19,6 @@ type StatusDistributionChartProps = {
 };
 
 export function StatusDistributionChart({ data }: StatusDistributionChartProps) {
-  // If data is undefined or empty, return early with a placeholder
   if (!data || data.length === 0) {
     return (
       <Card>
@@ -33,13 +32,13 @@ export function StatusDistributionChart({ data }: StatusDistributionChartProps) 
     );
   }
   
-  // Calculate total for percentages
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Status Distribution</CardTitle>
+        <ChartExportMenu data={data} filename="status-distribution" />
       </CardHeader>
       <CardContent className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
