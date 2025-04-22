@@ -1,5 +1,4 @@
-
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine, Tooltip, TooltipProps } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, ReferenceLine } from "recharts";
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 
 interface RatingComparisonChartProps {
@@ -93,22 +92,23 @@ export function RatingComparisonChart({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
+          layout="vertical"
           margin={{ top: 10, right: 30, left: 30, bottom: 5 }}
           barGap={16}
         >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" hide />
-          <YAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} />
+          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+          <XAxis type="number" domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} />
+          <YAxis type="category" dataKey="name" hide />
           <Tooltip content={<CustomTooltip />} />
-          <ReferenceLine y={3} stroke="#666" strokeDasharray="3 3" label={{ value: "Neutral", position: "left", fill: "#666", fontSize: 12 }} />
+          <ReferenceLine x={3} stroke="#666" strokeDasharray="3 3" label={{ value: "Neutral", position: "top", fill: "#666", fontSize: 12 }} />
           <Bar 
             dataKey="base" 
             name={`Period ${basePeriodNumber || '-'}`} 
             fill={getBaseColor(baseAvg)} 
-            radius={[4, 4, 0, 0]} 
-            barSize={60}
+            radius={[0, 4, 4, 0]} 
+            barSize={40}
             label={{ 
-              position: 'top', 
+              position: 'right', 
               fill: '#666', 
               fontSize: 12,
               formatter: () => baseAvg.toFixed(2)
@@ -118,10 +118,10 @@ export function RatingComparisonChart({
             dataKey="comparison" 
             name={`Period ${comparisonPeriodNumber || '-'}`} 
             fill={getComparisonColor(comparisonAvg)} 
-            radius={[4, 4, 0, 0]} 
-            barSize={60}
+            radius={[0, 4, 4, 0]} 
+            barSize={40}
             label={{ 
-              position: 'top', 
+              position: 'right', 
               fill: '#666', 
               fontSize: 12,
               formatter: () => comparisonAvg.toFixed(2)
