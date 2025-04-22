@@ -131,8 +131,8 @@ export function EnhancedRatingChart({
             barGap={10}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <YAxis dataKey="name" />
-            <XAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} />
+            <XAxis dataKey="name" />
+            <YAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={3} stroke="#666" strokeDasharray="3 3" label={{ value: "Neutral", position: "left", fill: "#666", fontSize: 12 }} />
             <Bar dataKey="base" name={`Period ${basePeriodNumber || '-'}`} fill={getColor(baseAvg)} radius={[4, 4, 0, 0]} barSize={40}>
