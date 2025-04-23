@@ -222,42 +222,6 @@ export type Database = {
           },
         ]
       }
-      contact_messages: {
-        Row: {
-          created_at: string
-          email: string
-          error_message: string | null
-          id: string
-          message: string
-          name: string
-          sent_to: string[] | null
-          status: Database["public"]["Enums"]["contact_message_status"]
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          error_message?: string | null
-          id?: string
-          message: string
-          name: string
-          sent_to?: string[] | null
-          status?: Database["public"]["Enums"]["contact_message_status"]
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          error_message?: string | null
-          id?: string
-          message?: string
-          name?: string
-          sent_to?: string[] | null
-          status?: Database["public"]["Enums"]["contact_message_status"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
       email_config: {
         Row: {
           created_at: string

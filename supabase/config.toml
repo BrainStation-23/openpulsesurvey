@@ -1,1 +1,7 @@
-project_id = "bdnbcaiqgumzsujkbsmp"
+
+project_id = "OpenOfficeSurvey"
+
+[functions]
+# No send-contact-email function
+
+# keep all other configuration the same.
