@@ -69,6 +69,11 @@ export function ConfigTable<T extends ConfigItem>({
     return <LoadingSpinner />;
   }
   
+  // Function to handle setting the item to delete
+  const handleSetItemToDelete = (item: T) => {
+    setItemToDelete(item);
+  };
+  
   return (
     <>
       <div className="rounded-md border">
@@ -106,7 +111,7 @@ export function ConfigTable<T extends ConfigItem>({
                         <ItemActions
                           item={item}
                           onEdit={onEdit}
-                          onDelete={setItemToDelete}
+                          onDelete={handleSetItemToDelete}
                           onToggleStatus={onToggleStatus}
                         />
                       </TableCell>
@@ -134,7 +139,7 @@ export function ConfigTable<T extends ConfigItem>({
                     <ItemActions
                       item={item}
                       onEdit={onEdit}
-                      onDelete={setItemToDelete}
+                      onDelete={handleSetItemToDelete}
                       onToggleStatus={onToggleStatus}
                     />
                   </TableCell>
