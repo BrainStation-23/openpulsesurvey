@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useInstanceManagement } from "./hooks/useInstanceManagement";
 import { InstanceTable } from "./components/InstanceTable";
+import { CronJobManager, StatusLogs } from "./components/InstanceAutomation";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function CampaignInstancesPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,7 +28,7 @@ export default function CampaignInstancesPage() {
     calculateCompletionRate,
     createInstance,
     deleteInstance,
-    hasActiveInstance, // New function
+    hasActiveInstance,
   } = useInstanceManagement(campaignId);
 
   if (!campaignId) {
@@ -123,22 +125,64 @@ export default function CampaignInstancesPage() {
         <p>Manage campaign instances - you can adjust the start and end dates, and change the status.</p>
         <p className="mt-1 text-sm">Note: Only one instance can be active at a time.</p>
       </div>
-
-      <InstanceTable 
-        instances={instances} 
-        totalCount={totalCount}
-        pagination={pagination}
-        sort={sort}
-        isLoading={isLoading}
-        onSave={handleSave}
-        onDelete={handleDelete}
-        onAdd={handleAddInstance}
-        onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
-        onSortChange={handleSortChange}
-        campaign={campaign}
-        hasActiveInstance={hasActiveInstance}
-      />
+      
+      <Tabs defaultValue="instances" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="instances">Instances</TabsTrigger>
+          <TabsTrigger value="automation">Automation</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="instances">
+          <InstanceTable 
+            instances={instances} 
+            totalCount={totalCount}
+            pagination={pagination}
+            sort={sort}
+            isLoading={isLoading}
+            onSave={handleSave}
+            onDelete={handleDelete}
+            onAdd={handleAddInstance}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            onSortChange={handleSortChange}
+            campaign={campaign}
+            hasActiveInstance={hasActiveInstance}
+          />
+        </TabsContent>
+        
+        <TabsContent value="automation">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <CronJobManager 
+                campaignId={campaignId} 
+                onUpdated={refreshInstances}
+              />
+            </div>
+            
+            <div className="lg:col-span-1">
+              <StatusLogs />
+            </div>
+          </div>
+          
+          <div className="mt-6 bg-muted/50 border rounded-lg p-4">
+            <h3 className="text-lg font-medium mb-2">About Automation</h3>
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p>
+                <strong>Activation:</strong> Automatically changes instance status from 'upcoming' to 'active' when the start date is reached.
+              </p>
+              <p>
+                <strong>Completion:</strong> Automatically changes instance status from 'active' to 'completed' when the end date is reached.
+              </p>
+              <p>
+                <strong>Cron Schedule:</strong> Uses standard cron format (minute hour day month day_of_week). You can select from presets or enter a custom schedule.
+              </p>
+              <p>
+                <strong>Run Now:</strong> Manually trigger a job to immediately update any instances that meet the criteria.
+              </p>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
