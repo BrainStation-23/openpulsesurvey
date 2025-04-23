@@ -12,9 +12,10 @@ import {
 interface TourButtonProps {
   tourId: string;
   title: string;
+  className?: string; // Add optional className prop
 }
 
-export function TourButton({ tourId, title }: TourButtonProps) {
+export function TourButton({ tourId, title, className }: TourButtonProps) {
   const { startTour, getTourCompletion } = useTour();
   const isCompleted = getTourCompletion(tourId);
 
@@ -31,7 +32,7 @@ export function TourButton({ tourId, title }: TourButtonProps) {
             variant="ghost"
             size="icon"
             onClick={handleStartTour}
-            className={isCompleted ? "text-muted-foreground" : "text-blue-500"}
+            className={className || (isCompleted ? "text-muted-foreground" : "text-blue-500")}
           >
             <HelpCircle className="h-5 w-5" />
           </Button>
