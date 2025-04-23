@@ -34,5 +34,11 @@ export async function fetchResponseBasicData(
     throw new Error(`Failed to fetch responses: ${error.message}`);
   }
 
-  return data || [];
+  // Explicitly cast the response data to ensure it matches the expected type
+  return (data || []).map(item => ({
+    id: item.id,
+    response_data: item.response_data as Record<string, any>,
+    submitted_at: item.submitted_at,
+    user_id: item.user_id
+  }));
 }
