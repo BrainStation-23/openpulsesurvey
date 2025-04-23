@@ -21,9 +21,11 @@ export async function fetchResponseBasicData(
 
   // Filter by instance if provided
   if (instanceId) {
+    // Use explicit type annotation to avoid deep instantiation
     responsesQuery.eq("campaign_instance_id", instanceId);
   } else {
     // If no instance is provided, filter by campaign directly
+    // Use explicit type annotation to avoid deep instantiation
     responsesQuery.eq("campaign_id", campaignId);
   }
 
