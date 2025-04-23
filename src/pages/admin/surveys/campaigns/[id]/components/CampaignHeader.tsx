@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { PresentationActionsDropdown } from "./PresentationView/components/PresentationActionsDropdown";
 
 interface CampaignHeaderProps {
   campaign: {
@@ -41,7 +41,6 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
   const [editedDescription, setEditedDescription] = useState("");
   const [editedStatus, setEditedStatus] = useState("");
 
-  // Update local state when campaign data changes
   useEffect(() => {
     if (campaign) {
       setEditedName(campaign.name);
@@ -162,6 +161,7 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
             <Play className="h-4 w-4" />
             Present
           </Button>
+          <PresentationActionsDropdown campaign={campaign} />
           {isEditing ? (
             <>
               <Button onClick={handleCancel} variant="outline" size="sm">
