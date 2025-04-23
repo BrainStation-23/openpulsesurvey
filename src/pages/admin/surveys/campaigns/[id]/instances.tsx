@@ -1,11 +1,10 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useInstanceManagement } from "./hooks/useInstanceManagement";
 import { InstanceTable } from "./components/InstanceTable";
-import { CronJobManager, StatusLogs } from "./components/InstanceAutomation";
+import { CronJobManager } from "./components/InstanceAutomation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function CampaignInstancesPage() {
@@ -151,16 +150,12 @@ export default function CampaignInstancesPage() {
         </TabsContent>
         
         <TabsContent value="automation">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+            <div>
               <CronJobManager 
                 campaignId={campaignId} 
                 onUpdated={refreshInstances}
               />
-            </div>
-            
-            <div className="lg:col-span-1">
-              <StatusLogs />
             </div>
           </div>
           

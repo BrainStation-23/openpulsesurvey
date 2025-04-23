@@ -239,32 +239,33 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
     const startDT = new Date(nextUpcomingInstance.starts_at);
     const endDT = new Date(nextUpcomingInstance.ends_at);
 
-    // Format as 24h for cron, but pick hour/min in local time
     const startHour = startDT.getHours().toString().padStart(2, '0');
     const startMinute = startDT.getMinutes().toString().padStart(2, '0');
     const endHour = endDT.getHours().toString().padStart(2, '0');
     const endMinute = endDT.getMinutes().toString().padStart(2, '0');
 
-    // Set activation to start time, completion to end time
     const activationTime = `${startHour}:${startMinute}`;
     const completionTime = `${endHour}:${endMinute}`;
+    // Now also enable activation/completion (set is_active to true)
     setActivationJob(prev => ({
       ...prev,
       daily_check_time: activationTime,
-      cron_schedule: formatTimeToCron(activationTime)
+      cron_schedule: formatTimeToCron(activationTime),
+      is_active: true,
     }));
     setCompletionJob(prev => ({
       ...prev,
       daily_check_time: completionTime,
-      cron_schedule: formatTimeToCron(completionTime)
+      cron_schedule: formatTimeToCron(completionTime),
+      is_active: true,
     }));
 
-    // Save both. (In parallel)
-    updateCronJobMutation.mutate({ ...activationJob, daily_check_time: activationTime });
-    updateCronJobMutation.mutate({ ...completionJob, job_type: "completion", daily_check_time: completionTime });
+    // Save and enable both jobs in parallel
+    updateCronJobMutation.mutate({ ...activationJob, daily_check_time: activationTime, is_active: true });
+    updateCronJobMutation.mutate({ ...completionJob, job_type: "completion", daily_check_time: completionTime, is_active: true });
     toast({
       title: "Quick Configured!",
-      description: "Automation check times set to upcoming instance's start and end time."
+      description: "Automation enabled and times set to upcoming instance's start/end.",
     });
   };
 
