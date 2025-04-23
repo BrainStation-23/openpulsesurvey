@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
@@ -81,7 +82,7 @@ export function TimePicker({ value, onChange, className, disabled = false }: Tim
             checked={use24Hour}
             onCheckedChange={handleFormatChange}
             disabled={disabled}
-            size="sm"
+            className="scale-75"
           />
           <span>{use24Hour ? "24h" : "12h"}</span>
         </div>
