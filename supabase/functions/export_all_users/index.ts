@@ -1,7 +1,7 @@
 
 // Edge function to fetch all users & return CSV
 import { serve } from "std/server";
-import Papa from "papaparse";
+import Papa from "npm:papaparse";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
