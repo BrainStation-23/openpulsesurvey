@@ -11,8 +11,6 @@ export interface ExportProgress {
   isComplete: boolean;
 }
 
-const SUPABASE_EDGE_URL = "https://bdnbcaiqgumzsujkbsmp.functions.supabase.co/export_all_users";
-
 export function useExportOperations() {
   const [exportProgress, setExportProgress] = useState<ExportProgress>({
     isOpen: false,
@@ -34,46 +32,52 @@ export function useExportOperations() {
 
       // Get the current user session for authentication
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         throw new Error("You must be logged in to export users");
       }
 
-      // Call the edge function and handle download
-      const resp = await fetch(SUPABASE_EDGE_URL, {
+      // Use supabase.functions.invoke for the edge function call
+      const { data, error } = await supabase.functions.invoke("export_all_users", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
         },
+        responseType: "blob", // <- important for CSV or file downloads!
       });
 
-      if (!resp.ok) {
-        const error = await resp.text();
+      if (error) {
         setExportProgress(prev => ({
           ...prev,
-          error: error || "Failed to export users"
+          error: error.message || "Failed to export users"
         }));
         toast.error("Failed to export all users");
         return;
       }
 
-      const blob = await resp.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `users_export_${new Date().toISOString()}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // For file download, data will be a Blob when using responseType: "blob"
+      if (data instanceof Blob) {
+        const url = window.URL.createObjectURL(data);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `users_export_${new Date().toISOString()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
 
-      setExportProgress(prev => ({
-        ...prev,
-        isComplete: true
-      }));
-
-      toast.success("Successfully exported all users");
+        setExportProgress(prev => ({
+          ...prev,
+          isComplete: true
+        }));
+        toast.success("Successfully exported all users");
+      } else {
+        setExportProgress(prev => ({
+          ...prev,
+          error: "Export failed: Unexpected response format"
+        }));
+        toast.error("Failed to export all users");
+      }
     } catch (error: any) {
       setExportProgress(prev => ({
         ...prev,
