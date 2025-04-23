@@ -136,6 +136,8 @@ export async function fetchPresentationData(
   }
 
   // Fetch supervisor information separately
+  const userIds = responses?.map(r => r.user?.id).filter(Boolean) || [];
+  
   const { data: supervisorData, error: supervisorError } = await supabase
     .from("user_supervisors")
     .select(`
@@ -147,7 +149,7 @@ export async function fetchPresentationData(
         last_name
       )
     `)
-    .in('user_id', responses?.map(r => r.user?.id) || []);
+    .in('user_id', userIds);
 
   if (supervisorError) {
     console.error("Error fetching supervisor data:", supervisorError);
