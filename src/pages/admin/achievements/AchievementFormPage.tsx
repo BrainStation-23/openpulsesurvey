@@ -27,6 +27,7 @@ import { useAchievementForm } from "./hooks/useAchievementForm";
 import { AchievementPreview } from "./components/AchievementPreview";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { Separator } from "@/components/ui/separator";
 
 export default function AchievementFormPage() {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ export default function AchievementFormPage() {
   const typeConfig = ACHIEVEMENT_TYPE_CONFIG[selectedType];
 
   return (
-    <div className="p-8 max-w-[1400px] mx-auto">
+    <div className="p-8 max-w-[800px] mx-auto">
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -62,53 +63,90 @@ export default function AchievementFormPage() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              className="lg:col-span-2 space-y-6"
-            >
-              <Card className="border-2 shadow-lg bg-card/50 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    Basic Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="achievement_type"
-                    render={({ field }) => (
-                      <FormItem className="achievement-type-select">
-                        <FormLabel className="text-base font-semibold">Achievement Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-12">
-                              <SelectValue placeholder="Select achievement type" className="text-left" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Object.entries(ACHIEVEMENT_TYPE_CONFIG).map(([type, config]) => (
-                              <SelectItem key={type} value={type} className="w-full py-3 focus:bg-primary/10">
-                                <div className="flex flex-col w-full text-left">
-                                  <span className="font-medium">{config.label}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {config.description}
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription className="text-sm">
-                          {typeConfig?.description}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="achievement-type-select">
+              <CardHeader>
+                <CardTitle>Achievement Type</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="achievement_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-12">
+                            <SelectValue placeholder="Select achievement type" className="text-left" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {Object.entries(ACHIEVEMENT_TYPE_CONFIG).map(([type, config]) => (
+                            <SelectItem key={type} value={type} className="w-full py-3 focus:bg-primary/10">
+                              <div className="flex flex-col w-full text-left">
+                                <span className="font-medium">{config.label}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {config.description}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription className="text-sm">
+                        {typeConfig?.description}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Achievement Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-semibold">Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} className="h-12" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-semibold">Description</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} className="min-h-[100px] resize-none" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
                   <div className="icon-picker">
                     <FormField
                       control={form.control}
@@ -132,34 +170,6 @@ export default function AchievementFormPage() {
 
                   <FormField
                     control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-base font-semibold">Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-12" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-base font-semibold">Description</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} className="min-h-[100px] resize-none" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
                     name="points"
                     render={({ field }) => (
                       <FormItem>
@@ -171,71 +181,73 @@ export default function AchievementFormPage() {
                       </FormItem>
                     )}
                   />
+                </div>
 
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-base font-semibold">Status</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-12">
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="active" className="py-3">Active</SelectItem>
-                            <SelectItem value="inactive" className="py-3">Inactive</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Inactive achievements won't be awarded to users
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-semibold">Status</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-12">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="active" className="py-3">Active</SelectItem>
+                          <SelectItem value="inactive" className="py-3">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Inactive achievements won't be awarded to users
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="sticky top-4"
+          >
+            <AchievementPreview form={form} />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="achievement-conditions">
+              <CardHeader>
+                <CardTitle>Achievement Conditions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg p-6 bg-muted/30 backdrop-blur-sm">
+                  <ConditionForm 
+                    form={form} 
+                    achievementType={selectedType}
+                    typeConfig={typeConfig}
                   />
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <AchievementPreview form={form} />
-              </motion.div>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="lg:col-span-3"
-            >
-              <Card className="achievement-conditions border-2 shadow-lg bg-card/50 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle>Achievement Conditions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="border rounded-lg p-6 bg-muted/30 backdrop-blur-sm">
-                    <ConditionForm 
-                      form={form} 
-                      achievementType={selectedType}
-                      typeConfig={typeConfig}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
+          <Separator className="my-8" />
 
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-6 flex justify-end gap-4"
+            transition={{ delay: 0.5 }}
+            className="flex justify-end gap-4 sticky bottom-4 bg-background/80 backdrop-blur-sm p-4 rounded-lg shadow-lg"
           >
             <Button 
               type="button" 
