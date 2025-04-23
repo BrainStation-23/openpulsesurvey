@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -127,11 +126,30 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
     }
   }, [cronJobs]);
 
-  // Format time to cron
-  const formatTimeToCron = (timeString: string) => {
-    const [hours, minutes] = timeString.split(':').map(Number);
-    return `${minutes} ${hours} * * *`;
-  };
+  // Helper: Convert a "HH:mm" string picked in the browser/local time to UTC-based cron string
+  function localTimeToCron(timeString: string, referenceDate?: string | Date) {
+    // If referenceDate is provided (for nextUpcomingInstance), use its timezone offset
+    let [localHours, localMinutes] = timeString.split(':').map(Number);
+
+    let utcHours = localHours;
+    let utcMinutes = localMinutes;
+
+    if (referenceDate) {
+      // Use the timezone offset at the reference date
+      const ref = typeof referenceDate === "string" ? new Date(referenceDate) : referenceDate;
+      utcHours = ref.getUTCHours();
+      utcMinutes = ref.getUTCMinutes();
+    } else {
+      // Assume browser local time
+      const now = new Date();
+      const tzOffset = now.getTimezoneOffset(); // in minutes, behind UTC (e.g. 330 for +5:30)
+      const totalMinutesUTC = (localHours * 60 + localMinutes) - tzOffset;
+      utcHours = Math.floor((totalMinutesUTC / 60) % 24);
+      if (utcHours < 0) utcHours += 24;
+      utcMinutes = ((totalMinutesUTC % 60) + 60) % 60;
+    }
+    return `${utcMinutes} ${utcHours} * * *`;
+  }
 
   // --- Mutations ---
   const updateCronJobMutation = useMutation({
@@ -209,13 +227,13 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
       setActivationJob(prev => ({ 
         ...prev, 
         daily_check_time: time,
-        cron_schedule: formatTimeToCron(time)
+        cron_schedule: formatTimeToCron(time, nextUpcomingInstance?.starts_at)
       }));
     } else {
       setCompletionJob(prev => ({ 
         ...prev, 
         daily_check_time: time,
-        cron_schedule: formatTimeToCron(time)
+        cron_schedule: formatTimeToCron(time, nextUpcomingInstance?.ends_at)
       }));
     }
   };
@@ -235,37 +253,49 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
   // Quick Configure Automation for upcoming instance
   const handleQuickAutomation = () => {
     if (!nextUpcomingInstance) return;
-    // Start and end time in ISO: "2025-04-29T15:45:00Z"
+    // Use instance's TZ to set correct UTC-based cron
     const startDT = new Date(nextUpcomingInstance.starts_at);
     const endDT = new Date(nextUpcomingInstance.ends_at);
 
+    // Local time selection
     const startHour = startDT.getHours().toString().padStart(2, '0');
     const startMinute = startDT.getMinutes().toString().padStart(2, '0');
     const endHour = endDT.getHours().toString().padStart(2, '0');
     const endMinute = endDT.getMinutes().toString().padStart(2, '0');
-
     const activationTime = `${startHour}:${startMinute}`;
     const completionTime = `${endHour}:${endMinute}`;
-    // Now also enable activation/completion (set is_active to true)
+
+    // Set on state and set as active
     setActivationJob(prev => ({
       ...prev,
       daily_check_time: activationTime,
-      cron_schedule: formatTimeToCron(activationTime),
+      cron_schedule: formatTimeToCron(activationTime, startDT),
       is_active: true,
     }));
     setCompletionJob(prev => ({
       ...prev,
       daily_check_time: completionTime,
-      cron_schedule: formatTimeToCron(completionTime),
+      cron_schedule: formatTimeToCron(completionTime, endDT),
       is_active: true,
     }));
 
-    // Save and enable both jobs in parallel
-    updateCronJobMutation.mutate({ ...activationJob, daily_check_time: activationTime, is_active: true });
-    updateCronJobMutation.mutate({ ...completionJob, job_type: "completion", daily_check_time: completionTime, is_active: true });
+    // Send correct UTC based cron to DB
+    updateCronJobMutation.mutate({ 
+      ...activationJob, 
+      daily_check_time: activationTime, 
+      cron_schedule: formatTimeToCron(activationTime, startDT),
+      is_active: true 
+    });
+    updateCronJobMutation.mutate({ 
+      ...completionJob, 
+      job_type: "completion", 
+      daily_check_time: completionTime, 
+      cron_schedule: formatTimeToCron(completionTime, endDT),
+      is_active: true 
+    });
     toast({
       title: "Quick Configured!",
-      description: "Automation enabled and times set to upcoming instance's start/end.",
+      description: "Automation enabled and times set to upcoming instance's start/end with correct time zone.",
     });
   };
 

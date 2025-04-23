@@ -157,6 +157,7 @@ export default function CampaignInstancesPage() {
                 onUpdated={refreshInstances}
               />
             </div>
+            {/* StatusLogs removed as per user request */}
           </div>
           
           <div className="mt-6 bg-muted/50 border rounded-lg p-4">
