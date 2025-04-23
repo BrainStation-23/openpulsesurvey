@@ -1,8 +1,9 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type InstanceStatus = 'upcoming' | 'active' | 'completed' | 'inactive';
+export type InstanceStatus = 'upcoming' | 'active' | 'completed';
 
 export interface Instance {
   id: string;
@@ -90,10 +91,10 @@ export function useInstanceManagement(campaignId: string) {
       
       const totalCount = data.length > 0 ? Number(data[0].total_count) : 0;
       
+      // Only use valid status values from the database
       const processedData = data.map(instance => ({
         ...instance,
-        status: instance.status === 'upcoming' && new Date(instance.starts_at) > new Date() ? 
-          'inactive' as InstanceStatus : instance.status as InstanceStatus
+        status: instance.status as InstanceStatus
       }));
       
       return { 
@@ -109,13 +110,16 @@ export function useInstanceManagement(campaignId: string) {
 
       if (!starts_at || !ends_at || !status) throw new Error("Start/end date and status are required");
 
-      const updateStatus = status === 'inactive' ? 'upcoming' : status;
+      // Make sure we only send valid status values
+      if (!['upcoming', 'active', 'completed'].includes(status)) {
+        throw new Error(`Invalid status: ${status}. Must be 'upcoming', 'active', or 'completed'.`);
+      }
 
       const { data, error } = await supabase.rpc('update_campaign_instance', {
         p_instance_id: id,
         p_new_starts_at: starts_at,
         p_new_ends_at: ends_at,
-        p_new_status: updateStatus
+        p_new_status: status
       });
 
       if (error) throw error;

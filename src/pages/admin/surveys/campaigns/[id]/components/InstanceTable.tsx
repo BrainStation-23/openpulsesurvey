@@ -222,8 +222,6 @@ export function InstanceTable({
               return "secondary";
             case "completed":
               return "success";
-            case "inactive":
-              return "destructive";
             default:
               return "secondary";
           }
@@ -245,7 +243,6 @@ export function InstanceTable({
               </SelectItem>
               <SelectItem value="upcoming">Upcoming</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
         ) : (
