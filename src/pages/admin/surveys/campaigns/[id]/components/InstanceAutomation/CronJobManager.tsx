@@ -85,32 +85,15 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
   // Update/create cron job
   const updateCronJobMutation = useMutation({
     mutationFn: async (job: CronJob) => {
-      try {
-        // Using a regular fetch call to invoke an RPC function with the service role
-        // This will call a protected endpoint/function that has permission to interact with cron
-        const response = await fetch(`/api/instance-cron/manage`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            campaignId: job.campaign_id,
-            jobType: job.job_type,
-            cronSchedule: job.cron_schedule,
-            isActive: job.is_active
-          })
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || "Failed to update cron job");
-        }
-
-        return await response.json();
-      } catch (error) {
-        console.error("Error updating cron job:", error);
-        throw error;
-      }
+      const { data, error } = await supabase.rpc('manage_instance_cron_job', {
+        p_campaign_id: job.campaign_id,
+        p_job_type: job.job_type,
+        p_cron_schedule: job.cron_schedule,
+        p_is_active: job.is_active
+      });
+      
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaign-cron-jobs', campaignId] });
@@ -132,28 +115,13 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
   // Run job manually
   const runJobMutation = useMutation({
     mutationFn: async ({ campaignId, jobType }: { campaignId: string, jobType: 'activation' | 'completion' }) => {
-      try {
-        const response = await fetch(`/api/instance-cron/run`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            campaignId,
-            jobType
-          })
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || "Failed to run job");
-        }
-
-        return await response.json();
-      } catch (error) {
-        console.error("Error running job:", error);
-        throw error;
-      }
+      const { data, error } = await supabase.rpc('run_instance_job_now', {
+        p_campaign_id: campaignId,
+        p_job_type: jobType
+      });
+      
+      if (error) throw error;
+      return data;
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['campaign-instances', campaignId] });
