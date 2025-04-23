@@ -1,6 +1,7 @@
 
+
 // Edge function to fetch all users & return CSV
-import { serve } from "std/server";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Papa from "npm:papaparse";
 
 const corsHeaders = {
