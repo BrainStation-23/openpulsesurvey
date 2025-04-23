@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, KeyRound } from "lucide-react";
+import { motion } from "framer-motion";
+import { Mail, KeyRound, Eye, EyeOff } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import AnimatedAuroraBackground from "@/components/ui/animated-aurora-background";
 import { Separator } from "@/components/ui/separator";
 
 const emailLoginSchema = z.object({
@@ -31,6 +33,7 @@ export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
   const emailPasswordForm = useForm<z.infer<typeof emailLoginSchema>>({
@@ -192,166 +195,230 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-          <CardDescription>Choose your preferred login method</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Tabs defaultValue="email" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="email">Email & Password</TabsTrigger>
-              <TabsTrigger value="magic">Magic Link</TabsTrigger>
-            </TabsList>
+    <AnimatedAuroraBackground>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          <Card className="backdrop-blur-sm bg-white/90 border-none shadow-xl">
+            <CardContent className="pt-6">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="text-center mb-6"
+              >
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-[#1EAEDB] via-[#9b87f5] to-pink-400 bg-clip-text text-transparent">
+                  Welcome Back
+                </h1>
+                <p className="text-gray-500 mt-2">Sign in to continue to your account</p>
+              </motion.div>
 
-            <TabsContent value="email">
-              <Form {...emailPasswordForm}>
-                <form onSubmit={emailPasswordForm.handleSubmit(onEmailPasswordSubmit)} className="space-y-4">
-                  <FormField
-                    control={emailPasswordForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input className="pl-10" placeholder="Enter your email" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={emailPasswordForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <KeyRound className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input className="pl-10" type="password" placeholder="Enter your password" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Signing in..." : "Sign In"}
-                  </Button>
-                </form>
-              </Form>
-              <div className="mt-4 text-center">
-                <Button 
-                  variant="link" 
-                  className="text-sm"
-                  onClick={() => setForgotPasswordOpen(true)}
-                  type="button"
-                >
-                  Forgot your password?
-                </Button>
+              <Tabs defaultValue="email" className="space-y-6">
+                <TabsList className="grid w-full grid-cols-2 mb-8">
+                  <TabsTrigger value="email" className="text-sm">Email & Password</TabsTrigger>
+                  <TabsTrigger value="magic" className="text-sm">Magic Link</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="email">
+                  <Form {...emailPasswordForm}>
+                    <form onSubmit={emailPasswordForm.handleSubmit(onEmailPasswordSubmit)} className="space-y-4">
+                      <FormField
+                        control={emailPasswordForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-gray-700">Email</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <Input 
+                                  className="pl-10 h-12 bg-white/50" 
+                                  placeholder="Enter your email"
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={emailPasswordForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-gray-700">Password</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <KeyRound className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <Input 
+                                  className="pl-10 pr-10 h-12 bg-white/50"
+                                  type={showPassword ? "text" : "password"}
+                                  placeholder="Enter your password"
+                                  {...field}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                >
+                                  {showPassword ? (
+                                    <EyeOff className="h-4 w-4 text-gray-400" />
+                                  ) : (
+                                    <Eye className="h-4 w-4 text-gray-400" />
+                                  )}
+                                </Button>
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button 
+                        type="submit" 
+                        className="w-full h-12 bg-gradient-to-r from-[#1EAEDB] via-[#9b87f5] to-pink-400 hover:opacity-90 transition-opacity"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Signing in..." : "Sign In"}
+                      </Button>
+                    </form>
+                  </Form>
+                  <div className="mt-4 text-center">
+                    <Button 
+                      variant="link" 
+                      className="text-sm text-gray-600 hover:text-gray-900"
+                      onClick={() => setForgotPasswordOpen(true)}
+                      type="button"
+                    >
+                      Forgot your password?
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="magic">
+                  <Form {...magicLinkForm}>
+                    <form onSubmit={magicLinkForm.handleSubmit(onMagicLinkSubmit)} className="space-y-4">
+                      <FormField
+                        control={magicLinkForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-gray-700">Email</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <Input 
+                                  className="pl-10 h-12 bg-white/50" 
+                                  placeholder="Enter your email"
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button 
+                        type="submit" 
+                        className="w-full h-12 bg-gradient-to-r from-[#1EAEDB] via-[#9b87f5] to-pink-400 hover:opacity-90 transition-opacity"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Sending..." : "Send Magic Link"}
+                      </Button>
+                    </form>
+                  </Form>
+                </TabsContent>
+              </Tabs>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
               </div>
-            </TabsContent>
 
-            <TabsContent value="magic">
-              <Form {...magicLinkForm}>
-                <form onSubmit={magicLinkForm.handleSubmit(onMagicLinkSubmit)} className="space-y-4">
-                  <FormField
-                    control={magicLinkForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input className="pl-10" placeholder="Enter your email" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Sending..." : "Send Magic Link"}
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
-          </Tabs>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          {/* Microsoft login button moved outside of any form */}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={handleMicrosoftLogin}
-            disabled={isLoading}
-          >
-            <svg
-              className="mr-2 h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 48 48"
-            >
-              <path fill="#f35325" d="M6 6h17v17H6z"/>
-              <path fill="#81bc06" d="M24 6h17v17H24z"/>
-              <path fill="#05a6f0" d="M6 24h17v17H6z"/>
-              <path fill="#ffba08" d="M24 24h17v17H24z"/>
-            </svg>
-            {isLoading ? "Signing in..." : "Sign in with Microsoft"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Keep the forgot password dialog */}
-      <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reset your password</DialogTitle>
-            <DialogDescription>
-              Enter your email address and we'll send you a link to reset your password.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...forgotPasswordForm}>
-            <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
-              <FormField
-                control={forgotPasswordForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input className="pl-10" placeholder="Enter your email" {...field} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Sending..." : "Send Reset Link"}
+              {/* Microsoft login button moved outside of any form */}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleMicrosoftLogin}
+                disabled={isLoading}
+              >
+                <svg
+                  className="mr-2 h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 48 48"
+                >
+                  <path fill="#f35325" d="M6 6h17v17H6z"/>
+                  <path fill="#81bc06" d="M24 6h17v17H24z"/>
+                  <path fill="#05a6f0" d="M6 24h17v17H6z"/>
+                  <path fill="#ffba08" d="M24 24h17v17H24z"/>
+                </svg>
+                {isLoading ? "Signing in..." : "Sign in with Microsoft"}
               </Button>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    </div>
+
+              <div className="mt-6 text-center">
+                <p className="text-sm text-gray-600">
+                  Don't have an account?{" "}
+                  <Button 
+                    variant="link" 
+                    className="text-[#9b87f5] hover:text-[#7b67d5] p-0"
+                    onClick={() => navigate("/signup")}
+                  >
+                    Sign up
+                  </Button>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Keep the forgot password dialog */}
+        <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reset your password</DialogTitle>
+              <DialogDescription>
+                Enter your email address and we'll send you a link to reset your password.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...forgotPasswordForm}>
+              <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
+                <FormField
+                  control={forgotPasswordForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <Input className="pl-10" placeholder="Enter your email" {...field} />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Sending..." : "Send Reset Link"}
+                </Button>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </AnimatedAuroraBackground>
   );
 }
