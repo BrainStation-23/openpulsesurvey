@@ -9,6 +9,71 @@ import { Spinner } from "@/components/ui/spinner";
 import { Progress } from "@/components/ui/progress";
 import { CampaignData } from "../types";
 
+// Helper: fetch campaign+survey+instance fully shaped for PPTX export
+async function fetchFullCampaignData(campaignId: string, instanceId?: string): Promise<CampaignData | null> {
+  try {
+    const response = await fetch(`/api/campaigns/${campaignId}/full-data${instanceId ? `?instance=${instanceId}` : ""}`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) throw new Error("Failed to fetch campaign data");
+    const data = await response.json();
+
+    // Should match CampaignData type: (fallbacks kept for safety)
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description ?? "",
+      starts_at: data.starts_at ?? new Date().toISOString(),
+      ends_at: data.ends_at ?? null,
+      completion_rate: data.completion_rate ?? 0,
+      survey: data.survey
+        ? {
+            id: data.survey.id ?? "",
+            name: data.survey.name ?? "",
+            description: data.survey.description ?? null,
+            json_data: data.survey.json_data ?? { pages: [] }
+          }
+        : {
+            id: "",
+            name: "",
+            description: null,
+            json_data: { pages: [] }
+          },
+      instance: data.instance
+        ? {
+            id: data.instance.id ?? "",
+            period_number: data.instance.period_number ?? 1,
+            starts_at: data.instance.starts_at ?? new Date().toISOString(),
+            ends_at: data.instance.ends_at ?? new Date().toISOString(),
+            status: data.instance.status ?? "active",
+            completion_rate: data.instance.completion_rate ?? 0
+          }
+        : undefined
+    };
+  } catch (error) {
+    console.error("Error in fetchFullCampaignData:", error);
+    return null;
+  }
+}
+
+// Helper: fetch processed responses data in "presentation" style
+async function fetchProcessedPresentationData(campaignId: string, instanceId?: string) {
+  try {
+    const response = await fetch(`/api/campaigns/${campaignId}/processed-data${instanceId ? `?instance=${instanceId}` : ""}`, {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!response.ok) throw new Error("Failed to fetch campaign results");
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching processed presentation data:", error);
+    return null;
+  }
+}
+
 interface PresentationActionsDropdownProps {
   campaign: {
     id: string;
@@ -21,63 +86,41 @@ export function PresentationActionsDropdown({ campaign }: PresentationActionsDro
   const [shareOpen, setShareOpen] = useState(false);
   const { handleExport, exporting, progress } = usePptxExport();
 
-  // For processedData: we need to call usePresentationResponses, but it's designed for the presentation view.
-  // Here, we gracefully skip the progress bar & toasts if not present.
-  const [processedData, setProcessedData] = useState<any>(null);
   const [loadingProcessedData, setLoadingProcessedData] = useState(false);
 
-  // Fetch processedData only when user clicks Download PPTX if we don't have it yet
-  const fetchProcessedDataIfNeeded = async () => {
-    if (processedData) return processedData;
+  // Reset state per export attempt
+  const handleDownloadPptxWithFetch = async () => {
     setLoadingProcessedData(true);
+
     try {
-      const response = await fetch(`/api/campaigns/${campaign.id}/processed-data${campaign.instance?.id ? `?instance=${campaign.instance.id}` : ""}`, {
-        method: "GET",
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to fetch campaign data");
-      const data = await response.json();
-      setProcessedData(data);
-      return data;
-    } catch {
-      return null;
+      // 1. Fetch the correct "full" campaign data (with survey/instance)
+      const campaignData = await fetchFullCampaignData(
+        campaign.id,
+        campaign.instance?.id
+      );
+
+      if (!campaignData) {
+        setLoadingProcessedData(false);
+        return;
+      }
+
+      // 2. Fetch processed responses data needed for the slides
+      const processedData = await fetchProcessedPresentationData(
+        campaign.id,
+        campaign.instance?.id
+      );
+
+      if (!processedData) {
+        setLoadingProcessedData(false);
+        return;
+      }
+
+      // 3. All data present, trigger export (useFeedback handles own toasts)
+      await handleExport(campaignData, processedData);
+
     } finally {
       setLoadingProcessedData(false);
     }
-  };
-
-  const handleDownloadPptxWithFetch = async () => {
-    // Lazy-load processedData if not already
-    let data = processedData;
-    if (!data) {
-      data = await fetchProcessedDataIfNeeded();
-    }
-    // Create a minimal CampaignData object with the required properties
-    const campaignData: CampaignData = {
-      id: campaign.id,
-      name: campaign.name,
-      description: "", // Provide default values for required properties
-      starts_at: new Date().toISOString(),
-      ends_at: null,
-      completion_rate: 0,
-      survey: {
-        id: "",
-        name: "",
-        description: null,
-        json_data: { pages: [] }
-      },
-      instance: campaign.instance ? {
-        id: campaign.instance.id,
-        period_number: 1,
-        starts_at: new Date().toISOString(),
-        ends_at: new Date().toISOString(),
-        status: "active",
-        completion_rate: 0
-      } : undefined
-    };
-    
-    // use handleExport from the hook for user feedback
-    handleExport(campaignData, data);
   };
 
   return (
