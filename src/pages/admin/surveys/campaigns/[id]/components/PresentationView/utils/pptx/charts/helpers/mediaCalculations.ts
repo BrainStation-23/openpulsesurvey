@@ -1,16 +1,21 @@
 
 /**
- * Calculate the median of an array of numbers
- * @param ratings Array of numbers to calculate median from
- * @returns Median value
+ * Calculate the median value from an array of numbers
+ * @param values Array of numeric values
+ * @returns The median value
  */
-export const calculateMedian = (ratings: number[]): number => {
-  if (ratings.length === 0) return 0;
-  const sorted = [...ratings].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
+export const calculateMedian = (values: number[]): number => {
+  if (!values.length) return 0;
   
-  if (sorted.length % 2 === 0) {
-    return (sorted[middle - 1] + sorted[middle]) / 2;
+  // Sort the values in ascending order
+  const sortedValues = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sortedValues.length / 2);
+  
+  // If the length is odd, return the middle value
+  if (sortedValues.length % 2 === 1) {
+    return sortedValues[middle];
   }
-  return sorted[middle];
+  
+  // If the length is even, return the average of the two middle values
+  return (sortedValues[middle - 1] + sortedValues[middle]) / 2;
 };
