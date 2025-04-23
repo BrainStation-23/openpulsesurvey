@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { exportAllUsers } from "../utils/exportUsers";
 
 export interface ExportProgress {
   isOpen: boolean;
@@ -10,6 +9,8 @@ export interface ExportProgress {
   error: string;
   isComplete: boolean;
 }
+
+const SUPABASE_EDGE_URL = "https://bdnbcaiqgumzsujkbsmp.functions.supabase.co/export_all_users";
 
 export function useExportOperations() {
   const [exportProgress, setExportProgress] = useState<ExportProgress>({
@@ -30,13 +31,35 @@ export function useExportOperations() {
         isComplete: false
       });
 
-      await exportAllUsers((processed, total) => {
+      // Call the edge function and handle download
+      const resp = await fetch(SUPABASE_EDGE_URL, {
+        method: "POST",
+        headers: {
+          apikey: (window as any).SUPABASE_ANON_KEY || "",
+          Authorization: `Bearer ${(window as any).SUPABASE_ANON_KEY || ""}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!resp.ok) {
+        const error = await resp.text();
         setExportProgress(prev => ({
           ...prev,
-          processed,
-          total
+          error: error || "Failed to export users"
         }));
-      });
+        toast.error("Failed to export all users");
+        return;
+      }
+
+      const blob = await resp.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `users_export_${new Date().toISOString()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
       setExportProgress(prev => ({
         ...prev,
@@ -44,11 +67,10 @@ export function useExportOperations() {
       }));
 
       toast.success("Successfully exported all users");
-    } catch (error) {
-      console.error("Error exporting all users:", error);
+    } catch (error: any) {
       setExportProgress(prev => ({
         ...prev,
-        error: "Failed to export users"
+        error: error.message || "Failed to export users"
       }));
       toast.error("Failed to export all users");
     }

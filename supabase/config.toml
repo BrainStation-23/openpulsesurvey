@@ -1,7 +1,5 @@
 
-project_id = "OpenOfficeSurvey"
+project_id = "bdnbcaiqgumzsujkbsmp"
 
-[functions]
-# No send-contact-email function
-
-# keep all other configuration the same.
+[functions.export_all_users]
+verify_jwt = true
