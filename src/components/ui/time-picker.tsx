@@ -9,6 +9,7 @@ interface TimePickerProps {
   value: string;
   onChange: (time: string) => void;
   className?: string;
+  disabled?: boolean;  // Added disabled prop
 }
 
 function getTimeOfDay(minutes: number) {
@@ -29,17 +30,19 @@ function getMinutesFromTimeString(time: string): number {
   return hours * 60 + minutes;
 }
 
-export function TimePicker({ value, onChange, className }: TimePickerProps) {
+export function TimePicker({ value, onChange, className, disabled = false }: TimePickerProps) {
   const minutes = getMinutesFromTimeString(value);
   const timeOfDay = getTimeOfDay(minutes);
   const isNextDay = minutes < 360; // Before 6 AM
 
   const handleSliderChange = (newValue: number[]) => {
-    onChange(formatTime(newValue[0]));
+    if (!disabled) {
+      onChange(formatTime(newValue[0]));
+    }
   };
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-4", className, disabled ? "opacity-70" : "")}>
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-center gap-2">
           {timeOfDay === "morning" && <Sun className="h-4 w-4 text-yellow-500" />}
@@ -83,6 +86,7 @@ export function TimePicker({ value, onChange, className }: TimePickerProps) {
           value={[minutes]}
           onValueChange={handleSliderChange}
           className="z-10"
+          disabled={disabled}
         />
       </div>
 

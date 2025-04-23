@@ -16,12 +16,25 @@ import { TimePicker } from "@/components/ui/time-picker";
 interface CronJob {
   id?: string;
   campaign_id: string;
-  job_type: 'activation' | 'completion';
+  job_type: "activation" | "completion";
   job_name: string;
   cron_schedule: string;
   is_active: boolean;
   last_run: string | null;
   daily_check_time?: string; // New field for storing time
+}
+
+// Database response may have job_type as string
+interface CronJobResponse {
+  id: string;
+  campaign_id: string;
+  job_type: string;
+  job_name: string;
+  cron_schedule: string;
+  is_active: boolean | null;
+  last_run: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 interface CronJobManagerProps {
@@ -69,7 +82,7 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
         .eq('campaign_id', campaignId);
         
       if (error) throw error;
-      return data;
+      return data as CronJobResponse[];
     }
   });
 
@@ -89,11 +102,15 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
         if (job.job_type === 'activation') {
           setActivationJob({
             ...job,
+            job_type: 'activation', // Ensure correct typed value
+            is_active: job.is_active ?? false, // Ensure non-null boolean
             daily_check_time: timeString
           });
         } else if (job.job_type === 'completion') {
           setCompletionJob({
             ...job,
+            job_type: 'completion', // Ensure correct typed value
+            is_active: job.is_active ?? false, // Ensure non-null boolean
             daily_check_time: timeString
           });
         }
@@ -283,10 +300,11 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
                   value={activationJob.daily_check_time || '09:00'}
                   onChange={(time) => handleTimeChange('activation', time)}
                   className="w-full"
-                  disabled={!activationJob.is_active || updateCronJobMutation.isPending}
+                  // We need to remove the disabled prop as it's not in TimePickerProps
                 />
                 <p className="text-xs text-muted-foreground">
                   The system will check for instances to activate once daily at this time.
+                  {!activationJob.is_active && " Enable automatic activation to apply this schedule."}
                 </p>
               </div>
               
@@ -358,10 +376,11 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
                   value={completionJob.daily_check_time || '17:00'}
                   onChange={(time) => handleTimeChange('completion', time)}
                   className="w-full"
-                  disabled={!completionJob.is_active || updateCronJobMutation.isPending}
+                  // We need to remove the disabled prop as it's not in TimePickerProps
                 />
                 <p className="text-xs text-muted-foreground">
                   The system will check for instances to complete once daily at this time.
+                  {!completionJob.is_active && " Enable automatic completion to apply this schedule."}
                 </p>
               </div>
               
