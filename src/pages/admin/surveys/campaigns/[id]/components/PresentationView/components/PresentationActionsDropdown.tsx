@@ -7,6 +7,7 @@ import { ArrowDown } from "lucide-react";
 import { SharePresentationModal } from "./SharePresentationModal";
 import { Spinner } from "@/components/ui/spinner";
 import { Progress } from "@/components/ui/progress";
+import { CampaignData } from "../types";
 
 interface PresentationActionsDropdownProps {
   campaign: {
@@ -51,8 +52,25 @@ export function PresentationActionsDropdown({ campaign }: PresentationActionsDro
     if (!data) {
       data = await fetchProcessedDataIfNeeded();
     }
+    // Create a minimal CampaignData object with the required properties
+    const campaignData: CampaignData = {
+      id: campaign.id,
+      name: campaign.name,
+      description: "", // Provide default values for required properties
+      starts_at: new Date().toISOString(),
+      ends_at: null,
+      completion_rate: 0,
+      survey: {
+        id: "",
+        name: "",
+        description: null,
+        json_data: { pages: [] }
+      },
+      instance: campaign.instance
+    };
+    
     // use handleExport from the hook for user feedback
-    handleExport(campaign, data);
+    handleExport(campaignData, data);
   };
 
   return (
