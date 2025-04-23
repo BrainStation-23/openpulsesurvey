@@ -72,6 +72,30 @@ function formatTimeToCron(timeString: string, referenceDate?: string | Date): st
   return `${utcMinutes} ${utcHours} * * *`;
 }
 
+/**
+ * Convert a cron schedule string to a local time "HH:mm" string
+ * This reverses the UTC conversion for display in the UI
+ */
+function cronToLocalTime(cronSchedule: string): string {
+  if (!cronSchedule || cronSchedule.split(' ').length < 2) {
+    return '09:00'; // Default to 9am if invalid cron
+  }
+  
+  const parts = cronSchedule.split(' ');
+  const utcMinutes = parseInt(parts[0]);
+  const utcHours = parseInt(parts[1]);
+  
+  // Create a Date object with the UTC time
+  const date = new Date();
+  date.setUTCHours(utcHours, utcMinutes, 0, 0);
+  
+  // Format to local time
+  const localHours = date.getHours().toString().padStart(2, '0');
+  const localMinutes = date.getMinutes().toString().padStart(2, '0');
+  
+  return `${localHours}:${localMinutes}`;
+}
+
 export const CronJobManager: React.FC<CronJobManagerProps> = ({ 
   campaignId, 
   onUpdated,
@@ -130,56 +154,27 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
   useEffect(() => {
     if (cronJobs && cronJobs.length > 0) {
       cronJobs.forEach(job => {
-        const cronParts = job.cron_schedule?.split(' ');
-        let timeString = '09:00';
-        if (cronParts?.length >= 2 && !isNaN(parseInt(cronParts[1]))) {
-          const hour = parseInt(cronParts[1]);
-          const minute = parseInt(cronParts[0]);
-          timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        }
+        // Convert the stored UTC cron schedule to local time for display
+        const localTimeString = cronToLocalTime(job.cron_schedule);
+        
         if (job.job_type === 'activation') {
           setActivationJob({
             ...job,
             job_type: 'activation',
             is_active: job.is_active ?? false,
-            daily_check_time: timeString
+            daily_check_time: localTimeString
           });
         } else if (job.job_type === 'completion') {
           setCompletionJob({
             ...job,
             job_type: 'completion',
             is_active: job.is_active ?? false,
-            daily_check_time: timeString
+            daily_check_time: localTimeString
           });
         }
       });
     }
   }, [cronJobs]);
-
-  // Helper: Convert a "HH:mm" string picked in the browser/local time to UTC-based cron string
-  function localTimeToCron(timeString: string, referenceDate?: string | Date) {
-    // If referenceDate is provided (for nextUpcomingInstance), use its timezone offset
-    let [localHours, localMinutes] = timeString.split(':').map(Number);
-
-    let utcHours = localHours;
-    let utcMinutes = localMinutes;
-
-    if (referenceDate) {
-      // Use the timezone offset at the reference date
-      const ref = typeof referenceDate === "string" ? new Date(referenceDate) : referenceDate;
-      utcHours = ref.getUTCHours();
-      utcMinutes = ref.getUTCMinutes();
-    } else {
-      // Assume browser local time
-      const now = new Date();
-      const tzOffset = now.getTimezoneOffset(); // in minutes, behind UTC (e.g. 330 for +5:30)
-      const totalMinutesUTC = (localHours * 60 + localMinutes) - tzOffset;
-      utcHours = Math.floor((totalMinutesUTC / 60) % 24);
-      if (utcHours < 0) utcHours += 24;
-      utcMinutes = ((totalMinutesUTC % 60) + 60) % 60;
-    }
-    return `${utcMinutes} ${utcHours} * * *`;
-  }
 
   // --- Mutations ---
   const updateCronJobMutation = useMutation({
@@ -253,22 +248,22 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
   };
 
   const handleTimeChange = (jobType: 'activation' | 'completion', time: string) => {
+    // Only update the local time display in the state
     if (jobType === 'activation') {
       setActivationJob(prev => ({ 
         ...prev, 
-        daily_check_time: time,
-        cron_schedule: formatTimeToCron(time, nextUpcomingInstance?.starts_at)
+        daily_check_time: time
       }));
     } else {
       setCompletionJob(prev => ({ 
         ...prev, 
-        daily_check_time: time,
-        cron_schedule: formatTimeToCron(time, nextUpcomingInstance?.ends_at)
+        daily_check_time: time
       }));
     }
   };
 
   const handleSaveSchedule = (jobType: 'activation' | 'completion') => {
+    // When saving, the time will be converted to UTC
     if (jobType === 'activation') {
       updateCronJobMutation.mutate(activationJob);
     } else {
@@ -283,11 +278,12 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
   // Quick Configure Automation for upcoming instance
   const handleQuickAutomation = () => {
     if (!nextUpcomingInstance) return;
+    
     // Use instance's TZ to set correct UTC-based cron
     const startDT = new Date(nextUpcomingInstance.starts_at);
     const endDT = new Date(nextUpcomingInstance.ends_at);
 
-    // Local time selection
+    // Get local time strings for display
     const startHour = startDT.getHours().toString().padStart(2, '0');
     const startMinute = startDT.getMinutes().toString().padStart(2, '0');
     const endHour = endDT.getHours().toString().padStart(2, '0');
@@ -299,28 +295,24 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
     setActivationJob(prev => ({
       ...prev,
       daily_check_time: activationTime,
-      cron_schedule: formatTimeToCron(activationTime, startDT),
       is_active: true,
     }));
     setCompletionJob(prev => ({
       ...prev,
       daily_check_time: completionTime,
-      cron_schedule: formatTimeToCron(completionTime, endDT),
       is_active: true,
     }));
 
     // Send correct UTC based cron to DB
     updateCronJobMutation.mutate({ 
       ...activationJob, 
-      daily_check_time: activationTime, 
-      cron_schedule: formatTimeToCron(activationTime, startDT),
+      daily_check_time: activationTime,
       is_active: true 
     });
     updateCronJobMutation.mutate({ 
       ...completionJob, 
       job_type: "completion", 
-      daily_check_time: completionTime, 
-      cron_schedule: formatTimeToCron(completionTime, endDT),
+      daily_check_time: completionTime,
       is_active: true 
     });
     toast({
@@ -387,18 +379,34 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
   }
 
   const getNextRunTime = (cronSchedule: string) => {
-    const cronParts = cronSchedule ? cronSchedule.split(' ') : [];
-    if (cronParts.length < 2) return 'Unknown';
-    const minute = parseInt(cronParts[0]);
-    const hour = parseInt(cronParts[1]);
+    // Get the local time display for this cron schedule
+    const localTimeString = cronToLocalTime(cronSchedule);
+    const [hours, minutes] = localTimeString.split(':').map(Number);
+    
     const now = new Date();
     const nextRun = new Date();
-    nextRun.setHours(hour, minute, 0, 0);
+    nextRun.setHours(hours, minutes, 0, 0);
+    
     if (nextRun <= now) {
       nextRun.setDate(nextRun.getDate() + 1);
     }
-    // show as 12h
+    
+    // Show as 12h format
     return format(nextRun, "MMM d, yyyy 'at' hh:mm a");
+  };
+
+  // Function to display equivalent UTC time
+  const getUtcTimeDisplay = (localTimeString: string) => {
+    if (!localTimeString) return 'Unknown';
+    
+    const [hours, minutes] = localTimeString.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    
+    const utcHours = date.getUTCHours().toString().padStart(2, '0');
+    const utcMinutes = date.getUTCMinutes().toString().padStart(2, '0');
+    
+    return `${utcHours}:${utcMinutes} UTC`;
   };
 
   return (
@@ -446,16 +454,21 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="activation-schedule">Daily Check Time</Label>
+                  <Label htmlFor="activation-schedule">Daily Check Time (Your Local Time)</Label>
                   <TimePicker
                     value={activationJob.daily_check_time || '09:00'}
                     onChange={(time) => handleTimeChange('activation', time)}
                     className="w-full"
                   />
                   <p className="text-xs text-muted-foreground">
-                    The system will check for instances to activate once daily at this time (shown above in 24-hour format, automation will use it as local time).
+                    The system will check for instances to activate once daily at this time.
                     {!activationJob.is_active && " Enable automatic activation to apply this schedule."}
                   </p>
+                  {activationJob.daily_check_time && (
+                    <p className="text-xs text-muted-foreground">
+                      Server will run at: {getUtcTimeDisplay(activationJob.daily_check_time)}
+                    </p>
+                  )}
                 </div>
                 
                 {activationJob.is_active && (
@@ -518,16 +531,21 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="completion-schedule">Daily Check Time</Label>
+                  <Label htmlFor="completion-schedule">Daily Check Time (Your Local Time)</Label>
                   <TimePicker
                     value={completionJob.daily_check_time || '17:00'}
                     onChange={(time) => handleTimeChange('completion', time)}
                     className="w-full"
                   />
                   <p className="text-xs text-muted-foreground">
-                    The system will check for instances to complete once daily at this time (shown above in 24-hour format, automation will use it as local time).
+                    The system will check for instances to complete once daily at this time.
                     {!completionJob.is_active && " Enable automatic completion to apply this schedule."}
                   </p>
+                  {completionJob.daily_check_time && (
+                    <p className="text-xs text-muted-foreground">
+                      Server will run at: {getUtcTimeDisplay(completionJob.daily_check_time)}
+                    </p>
+                  )}
                 </div>
                 {completionJob.is_active && (
                   <div className="rounded-md bg-muted p-3">
@@ -567,4 +585,3 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
     </div>
   );
 };
-
