@@ -32,6 +32,7 @@ import { IconPicker } from "./components/IconPicker";
 import { ConditionForm } from "./components/ConditionForm";
 import { AchievementType, ACHIEVEMENT_TYPE_CONFIG } from "./types";
 import { TourButton } from "@/components/onboarding/TourButton";
+import { useTour } from "@/components/onboarding/TourContext";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -68,6 +69,7 @@ export default function AchievementFormPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEditMode = !!id;
+  const { startTour } = useTour();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -199,7 +201,10 @@ export default function AchievementFormPage() {
         <h1 className="text-2xl font-bold">
           {isEditMode ? "Edit Achievement" : "Create Achievement"}
         </h1>
-        <TourButton tourId="achievement_create" title="Achievement Creation Guide" />
+        <TourButton 
+          tourId="achievement_create" 
+          title="Achievement Creation Guide" 
+        />
       </div>
 
       <Form {...form}>

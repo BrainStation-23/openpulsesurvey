@@ -10,6 +10,7 @@ export const achievementCreateTour: TourConfig = {
       target: "form h1",
       title: "Create Achievement",
       content: "Here you can create new achievements to reward and motivate your employees.",
+      disableBeacon: true,
     },
     {
       target: "input[name='name']",
