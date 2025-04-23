@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ConfigPage } from "../shared/ConfigPage";
 import { toast } from "sonner";
+import { TourButton } from "@/components/onboarding/TourButton";
 
 export default function LevelConfig() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -221,18 +222,24 @@ export default function LevelConfig() {
   };
 
   return (
-    <ConfigPage
-      title="Levels"
-      items={levels || []}
-      isLoading={isLoading}
-      sortOrder={sortOrder}
-      onSort={handleSort}
-      onCreate={createMutation.mutate}
-      onUpdate={(id, values) => updateMutation.mutate({ id, ...values })}
-      onDelete={deleteMutation.mutate}
-      onToggleStatus={(id, newStatus) => toggleStatusMutation.mutate({ id, newStatus })}
-      onReorder={reorderMutation.mutate}
-      draggable={true}
-    />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-3xl font-bold tracking-tight">Levels</h2>
+        <TourButton tourId="level_config" title="Level Configuration Guide" />
+      </div>
+      <ConfigPage
+        title="Levels"
+        items={levels || []}
+        isLoading={isLoading}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        onCreate={createMutation.mutate}
+        onUpdate={(id, values) => updateMutation.mutate({ id, ...values })}
+        onDelete={deleteMutation.mutate}
+        onToggleStatus={(id, newStatus) => toggleStatusMutation.mutate({ id, newStatus })}
+        onReorder={reorderMutation.mutate}
+        draggable={true}
+      />
+    </div>
   );
 }
