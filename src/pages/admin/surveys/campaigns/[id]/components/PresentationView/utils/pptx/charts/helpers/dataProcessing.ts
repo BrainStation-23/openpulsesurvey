@@ -9,7 +9,7 @@ export const processNpsData = (validAnswers: number[]) => {
   const total = validAnswers.length;
   const detractors = validAnswers.filter(r => r <= 6).length;
   const passives = validAnswers.filter(r => r > 6 && r <= 8).length;
-  const promoters = validAnswers.filter(r > 8).length;
+  const promoters = validAnswers.filter(r => r > 8).length;
 
   const npsScore = Math.round(
     ((promoters - detractors) / total) * 100
@@ -33,7 +33,7 @@ export const processSatisfactionData = (validAnswers: number[]) => {
   const total = validAnswers.length;
   const unsatisfied = validAnswers.filter(r => r <= 2).length;
   const neutral = validAnswers.filter(r => r === 3).length;
-  const satisfied = validAnswers.filter(r >= 4).length;
+  const satisfied = validAnswers.filter(r => r >= 4).length;
 
   const satisfactionRate = Math.round((satisfied / total) * 100);
 
@@ -45,3 +45,4 @@ export const processSatisfactionData = (validAnswers: number[]) => {
     satisfactionRate
   };
 };
+
