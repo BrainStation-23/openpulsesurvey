@@ -7,7 +7,7 @@ export const achievementCreateTour: TourConfig = {
   description: "Learn how to create new achievements for your organization",
   steps: [
     {
-      target: "form h1",
+      target: ".page-title",
       title: "Create Achievement",
       content: "Here you can create new achievements to reward and motivate your employees.",
       disableBeacon: true,
