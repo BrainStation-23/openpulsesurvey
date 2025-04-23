@@ -25,8 +25,10 @@ import { ACHIEVEMENT_TYPE_CONFIG } from "./types";
 import { TourButton } from "@/components/onboarding/TourButton";
 import { useAchievementForm } from "./hooks/useAchievementForm";
 import { AchievementPreview } from "./components/AchievementPreview";
+import { useNavigate } from "react-router-dom";
 
 export default function AchievementFormPage() {
+  const navigate = useNavigate();
   const { form, isEditMode, isLoadingAchievement, onSubmit } = useAchievementForm();
 
   if (isEditMode && isLoadingAchievement) {
