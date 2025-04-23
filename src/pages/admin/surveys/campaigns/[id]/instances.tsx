@@ -169,15 +169,17 @@ export default function CampaignInstancesPage() {
             <div className="text-sm text-muted-foreground space-y-2">
               <p>
                 <strong>Activation:</strong> Automatically changes instance status from 'upcoming' to 'active' when the start date is reached.
+                The system will check once daily at your selected time.
               </p>
               <p>
                 <strong>Completion:</strong> Automatically changes instance status from 'active' to 'completed' when the end date is reached.
+                The system will check once daily at your selected time.
               </p>
               <p>
-                <strong>Cron Schedule:</strong> Uses standard cron format (minute hour day month day_of_week). You can select from presets or enter a custom schedule.
+                <strong>Daily Check Time:</strong> Set the specific time of day when the system should check for instances that need to be activated or completed. This is more efficient than checking at frequent intervals.
               </p>
               <p>
-                <strong>Run Now:</strong> Manually trigger a job to immediately update any instances that meet the criteria.
+                <strong>Run Now:</strong> Manually trigger a job to immediately update any instances that meet the criteria, regardless of the scheduled time.
               </p>
             </div>
           </div>

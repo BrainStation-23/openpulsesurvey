@@ -8,9 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Play, Clock, Power } from "lucide-react";
-import { CronScheduleInput } from './CronScheduleInput';
+import { Play, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { format } from 'date-fns';
+import { TimePicker } from "@/components/ui/time-picker";
 
 interface CronJob {
   id?: string;
@@ -20,6 +21,7 @@ interface CronJob {
   cron_schedule: string;
   is_active: boolean;
   last_run: string | null;
+  daily_check_time?: string; // New field for storing time
 }
 
 interface CronJobManagerProps {
@@ -41,7 +43,8 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
     campaign_id: campaignId,
     job_type: 'activation',
     job_name: '',
-    cron_schedule: '*/5 * * * *', // Every 5 minutes by default
+    cron_schedule: '0 9 * * *', // Default to 9 AM daily
+    daily_check_time: '09:00',
     is_active: false,
     last_run: null
   });
@@ -50,7 +53,8 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
     campaign_id: campaignId,
     job_type: 'completion',
     job_name: '',
-    cron_schedule: '*/5 * * * *', // Every 5 minutes by default
+    cron_schedule: '0 17 * * *', // Default to 5 PM daily
+    daily_check_time: '17:00',
     is_active: false,
     last_run: null
   });
@@ -73,22 +77,46 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
   useEffect(() => {
     if (cronJobs && cronJobs.length > 0) {
       cronJobs.forEach(job => {
+        // Extract time from cron schedule (format: "0 HH * * *")
+        const cronParts = job.cron_schedule.split(' ');
+        let timeString = '09:00'; // Default time
+        
+        if (cronParts.length >= 3 && !isNaN(parseInt(cronParts[1]))) {
+          const hour = parseInt(cronParts[1]);
+          timeString = `${hour.toString().padStart(2, '0')}:00`;
+        }
+
         if (job.job_type === 'activation') {
-          setActivationJob(job as CronJob);
+          setActivationJob({
+            ...job,
+            daily_check_time: timeString
+          });
         } else if (job.job_type === 'completion') {
-          setCompletionJob(job as CronJob);
+          setCompletionJob({
+            ...job,
+            daily_check_time: timeString
+          });
         }
       });
     }
   }, [cronJobs]);
 
+  // Format time to cron schedule
+  const formatTimeToCron = (timeString: string) => {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    return `${minutes} ${hours} * * *`;
+  };
+
   // Update/create cron job
   const updateCronJobMutation = useMutation({
     mutationFn: async (job: CronJob) => {
+      // Generate cron schedule from time
+      const cronSchedule = formatTimeToCron(job.daily_check_time || '09:00');
+      
       const { data, error } = await supabase.rpc('manage_instance_cron_job', {
         p_campaign_id: job.campaign_id,
         p_job_type: job.job_type,
-        p_cron_schedule: job.cron_schedule,
+        p_cron_schedule: cronSchedule,
         p_is_active: job.is_active
       });
       
@@ -158,11 +186,19 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
     }
   };
 
-  const handleScheduleChange = (jobType: 'activation' | 'completion', schedule: string) => {
+  const handleTimeChange = (jobType: 'activation' | 'completion', time: string) => {
     if (jobType === 'activation') {
-      setActivationJob(prev => ({ ...prev, cron_schedule: schedule }));
+      setActivationJob(prev => ({ 
+        ...prev, 
+        daily_check_time: time,
+        cron_schedule: formatTimeToCron(time)
+      }));
     } else {
-      setCompletionJob(prev => ({ ...prev, cron_schedule: schedule }));
+      setCompletionJob(prev => ({ 
+        ...prev, 
+        daily_check_time: time,
+        cron_schedule: formatTimeToCron(time)
+      }));
     }
   };
 
@@ -178,6 +214,26 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
     runJobMutation.mutate({ campaignId, jobType });
   };
 
+  // Calculate next run time for display
+  const getNextRunTime = (cronSchedule: string) => {
+    const cronParts = cronSchedule.split(' ');
+    if (cronParts.length < 3) return 'Unknown';
+    
+    const minute = parseInt(cronParts[0]);
+    const hour = parseInt(cronParts[1]);
+    
+    const now = new Date();
+    const nextRun = new Date();
+    nextRun.setHours(hour, minute, 0, 0);
+    
+    // If the scheduled time for today has already passed, show tomorrow's time
+    if (nextRun <= now) {
+      nextRun.setDate(nextRun.getDate() + 1);
+    }
+    
+    return format(nextRun, "MMM d, yyyy 'at' HH:mm");
+  };
+
   return (
     <Card className={className}>
       <CardHeader>
@@ -186,7 +242,7 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
           Instance Automation
         </CardTitle>
         <CardDescription>
-          Automatically manage instance status based on scheduled jobs
+          Automatically manage instance status with daily checks at set times
         </CardDescription>
       </CardHeader>
       
@@ -222,18 +278,30 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="activation-schedule">Schedule</Label>
-                <CronScheduleInput
-                  value={activationJob.cron_schedule}
-                  onChange={(value) => handleScheduleChange('activation', value)}
-                  onBlur={() => handleSaveSchedule('activation')}
+                <Label htmlFor="activation-schedule">Daily Check Time</Label>
+                <TimePicker
+                  value={activationJob.daily_check_time || '09:00'}
+                  onChange={(time) => handleTimeChange('activation', time)}
+                  className="w-full"
                   disabled={!activationJob.is_active || updateCronJobMutation.isPending}
                 />
+                <p className="text-xs text-muted-foreground">
+                  The system will check for instances to activate once daily at this time.
+                </p>
               </div>
+              
+              {activationJob.is_active && (
+                <div className="rounded-md bg-muted p-3">
+                  <p className="text-sm font-medium">Next scheduled check:</p>
+                  <p className="text-sm text-muted-foreground">
+                    {getNextRunTime(activationJob.cron_schedule)}
+                  </p>
+                </div>
+              )}
               
               {activationJob.last_run && (
                 <p className="text-sm text-muted-foreground">
-                  Last run: {new Date(activationJob.last_run).toLocaleString()}
+                  Last run: {format(new Date(activationJob.last_run), "MMM d, yyyy HH:mm:ss")}
                 </p>
               )}
             </div>
@@ -285,18 +353,30 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="completion-schedule">Schedule</Label>
-                <CronScheduleInput
-                  value={completionJob.cron_schedule}
-                  onChange={(value) => handleScheduleChange('completion', value)}
-                  onBlur={() => handleSaveSchedule('completion')}
+                <Label htmlFor="completion-schedule">Daily Check Time</Label>
+                <TimePicker
+                  value={completionJob.daily_check_time || '17:00'}
+                  onChange={(time) => handleTimeChange('completion', time)}
+                  className="w-full"
                   disabled={!completionJob.is_active || updateCronJobMutation.isPending}
                 />
+                <p className="text-xs text-muted-foreground">
+                  The system will check for instances to complete once daily at this time.
+                </p>
               </div>
+              
+              {completionJob.is_active && (
+                <div className="rounded-md bg-muted p-3">
+                  <p className="text-sm font-medium">Next scheduled check:</p>
+                  <p className="text-sm text-muted-foreground">
+                    {getNextRunTime(completionJob.cron_schedule)}
+                  </p>
+                </div>
+              )}
               
               {completionJob.last_run && (
                 <p className="text-sm text-muted-foreground">
-                  Last run: {new Date(completionJob.last_run).toLocaleString()}
+                  Last run: {format(new Date(completionJob.last_run), "MMM d, yyyy HH:mm:ss")}
                 </p>
               )}
             </div>
