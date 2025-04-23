@@ -5,7 +5,6 @@ import { User } from "../../types";
 import { TableContainer } from "./TableContainer";
 import { TablePagination } from "./TablePagination";
 import EditUserDialog from "../EditUserDialog";
-import { ExportProgress } from "./ExportProgress";
 import { ImportDialog } from "../ImportDialog";
 import { exportUsers } from "../../utils/exportUsers";
 import { usePasswordManagement } from "../../hooks/usePasswordManagement";
@@ -56,14 +55,6 @@ export default function UserTable({
 
   const { filteredUsers } = useUserFilters(users, selectedSBU);
 
-  const [exportProgress, setExportProgress] = useState({
-    isOpen: false,
-    processed: 0,
-    total: 0,
-    error: "",
-    isComplete: false,
-  });
-
   const handleImportComplete = () => {
     queryClient.invalidateQueries({ queryKey: ["users"] });
   };
@@ -107,7 +98,6 @@ export default function UserTable({
 
   const handleBulkStatusToggle = async () => {
     try {
-      // Get the current status of the first selected user to determine the toggle action
       const { data: firstUser } = await supabase
         .from('profiles')
         .select('status')
@@ -116,7 +106,6 @@ export default function UserTable({
 
       const newStatus = firstUser?.status === 'active' ? 'disabled' : 'active';
 
-      // Update all selected users
       const { error } = await supabase
         .from('profiles')
         .update({ status: newStatus })
@@ -160,17 +149,6 @@ export default function UserTable({
         open={isImportDialogOpen}
         onOpenChange={setIsImportDialogOpen}
         onImportComplete={handleImportComplete}
-      />
-
-      <ExportProgress
-        open={exportProgress.isOpen}
-        onOpenChange={(open) =>
-          setExportProgress((prev) => ({ ...prev, isOpen: open }))
-        }
-        progress={exportProgress.processed}
-        total={exportProgress.total}
-        error={exportProgress.error}
-        isComplete={exportProgress.isComplete}
       />
 
       <TablePagination

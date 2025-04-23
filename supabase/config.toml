@@ -1,1 +1,5 @@
+
 project_id = "bdnbcaiqgumzsujkbsmp"
+
+[functions.export_all_users]
+verify_jwt = true

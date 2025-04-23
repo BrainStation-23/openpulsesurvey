@@ -1,4 +1,3 @@
-
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,9 +8,6 @@ import { TourProvider } from "./components/onboarding/TourContext";
 import { Tour } from "./components/onboarding/Tour";
 import MainLayout from "./components/layouts/MainLayout";
 import Index from "./pages/Index";
-import Features from "./pages/Features";
-import TechStack from "./pages/TechStack";
-import WhyUs from "./pages/WhyUs";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/auth/AuthCallback";
 import ResetPassword from "./pages/auth/ResetPassword";
@@ -99,9 +95,6 @@ const App = () => (
           <Routes>
             <Route element={<MainLayout />}>
               <Route path="/" element={<Index />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/tech-stack" element={<TechStack />} />
-              <Route path="/why-us" element={<WhyUs />} />
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/auth/callback" element={<AuthCallback />} />

@@ -130,6 +130,57 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_cron_jobs: {
+        Row: {
+          campaign_id: string
+          created_at: string | null
+          cron_schedule: string
+          id: string
+          is_active: boolean | null
+          job_name: string
+          job_type: string
+          last_run: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string | null
+          cron_schedule: string
+          id?: string
+          is_active?: boolean | null
+          job_name: string
+          job_type: string
+          last_run?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string | null
+          cron_schedule?: string
+          id?: string
+          is_active?: boolean | null
+          job_name?: string
+          job_type?: string
+          last_run?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_cron_jobs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_cron_jobs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
+        ]
+      }
       campaign_instance_status_logs: {
         Row: {
           created_at: string | null
@@ -221,42 +272,6 @@ export type Database = {
             referencedColumns: ["campaign_id"]
           },
         ]
-      }
-      contact_messages: {
-        Row: {
-          created_at: string
-          email: string
-          error_message: string | null
-          id: string
-          message: string
-          name: string
-          sent_to: string[] | null
-          status: Database["public"]["Enums"]["contact_message_status"]
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          error_message?: string | null
-          id?: string
-          message: string
-          name: string
-          sent_to?: string[] | null
-          status?: Database["public"]["Enums"]["contact_message_status"]
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          error_message?: string | null
-          id?: string
-          message?: string
-          name?: string
-          sent_to?: string[] | null
-          status?: Database["public"]["Enums"]["contact_message_status"]
-          updated_at?: string
-        }
-        Relationships: []
       }
       email_config: {
         Row: {
@@ -3049,6 +3064,14 @@ export type Database = {
         }
         Returns: Json
       }
+      handle_instance_activation: {
+        Args: { p_campaign_id: string }
+        Returns: number
+      }
+      handle_instance_completion: {
+        Args: { p_campaign_id: string }
+        Returns: number
+      }
       increment_vote_count: {
         Args: { issue_id: string }
         Returns: undefined
@@ -3056,6 +3079,15 @@ export type Database = {
       is_admin: {
         Args: { user_uid: string }
         Returns: boolean
+      }
+      manage_instance_cron_job: {
+        Args: {
+          p_campaign_id: string
+          p_job_type: string
+          p_cron_schedule: string
+          p_is_active: boolean
+        }
+        Returns: string
       }
       recalculate_all_cascaded_objective_progress: {
         Args: Record<PropertyKey, never>
@@ -3074,6 +3106,10 @@ export type Database = {
           p_direction: string
         }
         Returns: boolean
+      }
+      run_instance_job_now: {
+        Args: { p_campaign_id: string; p_job_type: string }
+        Returns: number
       }
       search_live_sessions: {
         Args: {
@@ -3131,6 +3167,14 @@ export type Database = {
           profile: Json
           total_count: number
         }[]
+      }
+      toggle_instance_cron_job: {
+        Args: {
+          p_campaign_id: string
+          p_job_type: string
+          p_is_active: boolean
+        }
+        Returns: boolean
       }
       update_campaign_instance: {
         Args: {

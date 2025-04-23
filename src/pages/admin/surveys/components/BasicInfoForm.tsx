@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,7 +14,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const basicInfoSchema = z.object({
   name: z.string().min(1, "Survey name is required"),
@@ -24,11 +25,12 @@ const basicInfoSchema = z.object({
 export type BasicInfoFormData = z.infer<typeof basicInfoSchema>;
 
 interface BasicInfoFormProps {
-  onSubmit: (data: BasicInfoFormData) => void;
+  onFormChange: (data: BasicInfoFormData) => void;
   defaultValues?: Partial<BasicInfoFormData>;
+  hideSubmitButton?: boolean;
 }
 
-export function BasicInfoForm({ onSubmit, defaultValues }: BasicInfoFormProps) {
+export function BasicInfoForm({ onFormChange, defaultValues, hideSubmitButton }: BasicInfoFormProps) {
   const [newTag, setNewTag] = useState("");
   
   const form = useForm<BasicInfoFormData>({
@@ -39,6 +41,14 @@ export function BasicInfoForm({ onSubmit, defaultValues }: BasicInfoFormProps) {
       tags: defaultValues?.tags || [],
     },
   });
+
+  // Use effect to notify parent of form changes
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      onFormChange(value as BasicInfoFormData);
+    });
+    return () => subscription.unsubscribe();
+  }, [form.watch, onFormChange]);
 
   const handleAddTag = () => {
     if (newTag.trim() && !form.getValues("tags").includes(newTag.trim())) {
@@ -56,7 +66,7 @@ export function BasicInfoForm({ onSubmit, defaultValues }: BasicInfoFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -125,9 +135,11 @@ export function BasicInfoForm({ onSubmit, defaultValues }: BasicInfoFormProps) {
           </div>
         </div>
 
-        <div className="flex justify-end">
-          <Button type="submit">Save & Continue</Button>
-        </div>
+        {!hideSubmitButton && (
+          <div className="flex justify-end">
+            <Button type="submit">Save & Continue</Button>
+          </div>
+        )}
       </form>
     </Form>
   );

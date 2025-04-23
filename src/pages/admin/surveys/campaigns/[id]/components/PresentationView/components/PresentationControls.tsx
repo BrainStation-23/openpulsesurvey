@@ -1,10 +1,9 @@
-
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, Maximize, Minimize, Loader } from "lucide-react";
 import { CampaignData } from "../types";
 import { usePresentationResponses } from "../hooks/usePresentationResponses";
-import { usePdfExport } from "../hooks/usePdfExport";
+import { usePptxExport } from "../hooks/usePptxExport";
 import { useToast } from "@/hooks/use-toast";
 import { SharePresentationModal } from "./SharePresentationModal";
 
@@ -35,7 +34,7 @@ export function PresentationControls({
 }: PresentationControlsProps) {
   const { toast } = useToast();
   const { data: processedData } = usePresentationResponses(campaign.id, campaign.instance?.id);
-  const { handleExport, exporting, progress } = usePdfExport();
+  const { handleExport, exporting, progress } = usePptxExport();
 
   return (
     <div className="flex flex-col gap-2">

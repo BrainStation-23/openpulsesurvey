@@ -11,11 +11,8 @@ const TopNav = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const navigationLinks = [
-    { path: "/features", label: "Features" },
-    { path: "/why-us", label: "Why Us?" },
-    { path: "/tech-stack", label: "Tech Stack" },
-  ];
+  // Removed navigationLinks for features, tech-stack, why-us
+  const navigationLinks: { path: string, label: string }[] = [];
 
   return (
     <header className="border-b relative">
@@ -25,21 +22,7 @@ const TopNav = () => {
             <Link to="/" className="text-xl font-bold">
               Open Office Survey
             </Link>
-            <nav className="hidden md:flex items-center gap-6">
-              {navigationLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`text-sm ${
-                    isActive(link.path)
-                      ? "text-primary font-medium"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
+            {/* Navigation removed as no links remain */}
           </div>
           <div className="flex items-center gap-4">
             <Button variant="outline" onClick={() => navigate("/login")}>
@@ -54,28 +37,7 @@ const TopNav = () => {
           </div>
         </div>
       </div>
-      
-      {/* Mobile Navigation Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b z-50">
-          <nav className="container mx-auto px-4 py-4">
-            {navigationLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`block py-2 text-sm ${
-                  isActive(link.path)
-                    ? "text-primary font-medium"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      )}
+      {/* Mobile Navigation Menu removed as no links remain */}
     </header>
   );
 };

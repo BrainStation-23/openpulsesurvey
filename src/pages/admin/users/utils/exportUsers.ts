@@ -6,8 +6,6 @@ type ProgressCallback = (processed: number, total: number) => void;
 
 export const exportUsers = async (users: User[], onProgress?: ProgressCallback) => {
   const total = users.length;
-  console.log("Starting export with users:", users);
-  
   const headers = [
     "Email",
     "Status",
@@ -25,15 +23,13 @@ export const exportUsers = async (users: User[], onProgress?: ProgressCallback) 
     "Employee Type",
     "SBUs",
     "Supervisor Email",
-    "ID" // Hidden technical field for import/update
+    "ID"
   ];
 
   const processUsers = async () => {
     const rows = [];
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
-      console.log("Processing user for export:", user);
-      
       // Combine primary and additional SBUs into semicolon-separated list
       const allSbus = user.user_sbus
         ?.sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
@@ -59,19 +55,17 @@ export const exportUsers = async (users: User[], onProgress?: ProgressCallback) 
         user.primary_supervisor?.email || "",
         user.id
       ];
-      console.log("Generated row for user:", row);
       rows.push(row);
-      
+
       if (onProgress) {
         onProgress(i + 1, total);
-        await new Promise(resolve => setTimeout(resolve, 50));
       }
     }
     return rows;
   };
 
   const rows = await processUsers();
-  
+
   // Use PapaParse to generate CSV
   const csvContent = Papa.unparse({
     fields: headers,
@@ -85,8 +79,6 @@ export const exportUsers = async (users: User[], onProgress?: ProgressCallback) 
     newline: "\n"
   });
 
-  console.log("Generated CSV content:", csvContent);
-
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
@@ -94,34 +86,4 @@ export const exportUsers = async (users: User[], onProgress?: ProgressCallback) 
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-};
-
-export const exportAllUsers = async (onProgress?: ProgressCallback) => {
-  console.log("Starting export all users");
-  
-  const { data, error } = await supabase.rpc('search_users', {
-    search_text: '',
-    page_number: 1,
-    page_size: 100000,
-    sbu_filter: null,
-    level_filter: null,
-    location_filter: null,
-    employment_type_filter: null,
-    employee_role_filter: null,
-    employee_type_filter: null
-  });
-
-  if (error) {
-    console.error("Error fetching all users:", error);
-    throw error;
-  }
-
-  // Convert the JSON data to User array by extracting the profile property
-  const users = data.map(item => item.profile as unknown as User);
-  
-  if (onProgress) {
-    onProgress(0, users.length);
-  }
-  
-  await exportUsers(users, onProgress);
 };
