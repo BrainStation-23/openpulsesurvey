@@ -135,9 +135,10 @@ export async function fetchPresentationData(
     throw new Error(`Failed to fetch responses: ${responsesError.message}`);
   }
 
-  // Fetch supervisor information separately
+  // Extract user IDs before fetching supervisor data
   const userIds = responses?.map(r => r.user?.id).filter(Boolean) || [];
   
+  // Fetch supervisor information separately with explicit userIds
   const { data: supervisorData, error: supervisorError } = await supabase
     .from("user_supervisors")
     .select(`
