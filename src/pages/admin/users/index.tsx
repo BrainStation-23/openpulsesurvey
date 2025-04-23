@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { User } from "./types";
@@ -13,9 +12,10 @@ import EditUserDialog from "./components/EditUserDialog";
 import { SearchFilters } from "./components/UserTable/SearchFilters";
 import { ImportDialog } from "./components/ImportDialog";
 import { BulkUpdateDialog } from "./components/BulkUpdateDialog";
-import { ExportProgress } from "./components/UserTable/ExportProgress";
+import { useUserFilters } from "./hooks/useUserFilters";
 import { useBulkOperations } from "./components/BulkOperations";
 import { useExportOperations } from "./components/ExportOperations";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -33,6 +33,8 @@ export default function UsersPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   
+  const queryClient = useQueryClient();
+
   const debouncedSearch = useDebounce(searchTerm, 300);
 
   useEffect(() => {
@@ -63,9 +65,15 @@ export default function UsersPage() {
   } = useFilterOptions();
   const { handleCreateSuccess, handleDelete } = useUserActions(refetch);
   const { handleBulkDelete, handleBulkStatusToggle } = useBulkOperations();
-  const { exportProgress, setExportProgress, handleExportAll } = useExportOperations();
+  const { handleExportAll } = useExportOperations();
 
   const totalPages = Math.ceil((data?.total || 0) / pageSize);
+
+  const { filteredUsers } = useUserFilters(data?.users || [], selectedSBU);
+
+  const handleImportComplete = () => {
+    queryClient.invalidateQueries({ queryKey: ["users"] });
+  };
 
   return (
     <div className="container mx-auto py-6 space-y-4">
@@ -161,17 +169,6 @@ export default function UsersPage() {
           refetch();
           setIsUpdateDialogOpen(false);
         }}
-      />
-
-      <ExportProgress
-        open={exportProgress.isOpen}
-        onOpenChange={(open) => 
-          setExportProgress(prev => ({ ...prev, isOpen: open }))
-        }
-        progress={exportProgress.processed}
-        total={exportProgress.total}
-        error={exportProgress.error}
-        isComplete={exportProgress.isComplete}
       />
     </div>
   );
