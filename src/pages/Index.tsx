@@ -22,7 +22,7 @@ const Index = () => {
           transition={{ duration: 0.85, delay: 0.2, ease: "easeOut" }}
           className="font-black text-4xl md:text-7xl bg-gradient-to-r from-[#1EAEDB] via-[#9b87f5] to-pink-400 bg-clip-text text-transparent text-center drop-shadow-xl leading-tight max-w-4xl"
         >
-          Open Product Survey
+          Open Pulse Survey
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 32 }}
