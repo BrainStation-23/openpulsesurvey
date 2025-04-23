@@ -12,11 +12,17 @@ import {
 interface TourButtonProps {
   tourId: string;
   title: string;
+  className?: string; // Add optional className prop
 }
 
-export function TourButton({ tourId, title }: TourButtonProps) {
+export function TourButton({ tourId, title, className }: TourButtonProps) {
   const { startTour, getTourCompletion } = useTour();
   const isCompleted = getTourCompletion(tourId);
+
+  const handleStartTour = () => {
+    console.log("Starting tour:", tourId);
+    startTour(tourId);
+  };
 
   return (
     <TooltipProvider>
@@ -25,8 +31,8 @@ export function TourButton({ tourId, title }: TourButtonProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => startTour(tourId)}
-            className={isCompleted ? "text-muted-foreground" : "text-blue-500"}
+            onClick={handleStartTour}
+            className={className || (isCompleted ? "text-muted-foreground" : "text-blue-500")}
           >
             <HelpCircle className="h-5 w-5" />
           </Button>

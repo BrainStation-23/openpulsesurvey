@@ -1,6 +1,6 @@
 
 import { useEffect, useMemo } from "react";
-import Joyride, { EVENTS, ACTIONS, STATUS, CallBackProps, Status } from "react-joyride";
+import Joyride, { EVENTS, ACTIONS, STATUS, CallBackProps } from "react-joyride";
 import { useTour } from "./TourContext";
 import { tours } from "./tours";
 
@@ -25,6 +25,7 @@ export function Tour() {
 
     if (type === EVENTS.TARGET_NOT_FOUND) {
       // Skip to the next step if target is not found
+      console.log("Target not found for step", index);
       goToStep(index + 1);
     }
 
@@ -39,15 +40,24 @@ export function Tour() {
   };
 
   useEffect(() => {
+    // Debug output to verify tour is running
+    if (currentTourId) {
+      console.log("Starting tour:", currentTourId);
+      console.log("Current step:", currentStepIndex);
+      console.log("Tour steps:", currentTour?.steps);
+    }
+
     // Cleanup function
     return () => {
       if (currentTourId) {
         endTour();
       }
     };
-  }, [currentTourId, endTour]);
+  }, [currentTourId, currentStepIndex, currentTour?.steps, endTour]);
 
-  if (!currentTour || !isStepOpen) return null;
+  if (!currentTour || !isStepOpen) {
+    return null;
+  }
 
   return (
     <Joyride
