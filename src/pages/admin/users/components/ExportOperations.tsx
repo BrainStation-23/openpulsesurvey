@@ -42,8 +42,7 @@ export function useExportOperations() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-        },
-        responseType: "blob", // <- important for CSV or file downloads!
+        }
       });
 
       if (error) {
@@ -55,29 +54,23 @@ export function useExportOperations() {
         return;
       }
 
-      // For file download, data will be a Blob when using responseType: "blob"
-      if (data instanceof Blob) {
-        const url = window.URL.createObjectURL(data);
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `users_export_${new Date().toISOString()}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+      // Since we can't specify responseType directly, we need to manually convert the response to a blob
+      // The data is already returned, we just need to create a blob from it
+      const blob = new Blob([data as string], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `users_export_${new Date().toISOString()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
-        setExportProgress(prev => ({
-          ...prev,
-          isComplete: true
-        }));
-        toast.success("Successfully exported all users");
-      } else {
-        setExportProgress(prev => ({
-          ...prev,
-          error: "Export failed: Unexpected response format"
-        }));
-        toast.error("Failed to export all users");
-      }
+      setExportProgress(prev => ({
+        ...prev,
+        isComplete: true
+      }));
+      toast.success("Successfully exported all users");
     } catch (error: any) {
       setExportProgress(prev => ({
         ...prev,
