@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +41,35 @@ interface CronJobManagerProps {
   campaignId: string;
   onUpdated?: () => void;
   className?: string;
+}
+
+/**
+ * Convert a "HH:mm" string from the time picker to a cron schedule string
+ * This automatically handles time zone conversion from local time to UTC for cron
+ * @param timeString The local time in "HH:mm" format
+ * @param referenceDate Optional date with timezone info to use (for instance dates)
+ * @returns Cron schedule string (minute hour * * *)
+ */
+function formatTimeToCron(timeString: string, referenceDate?: string | Date): string {
+  // If no time provided, default to 9am local
+  if (!timeString) return '0 9 * * *';
+  
+  // Extract local hours and minutes from the time string
+  const [localHours, localMinutes] = timeString.split(':').map(Number);
+  
+  // Calculate UTC time based on local time
+  const now = referenceDate ? new Date(referenceDate) : new Date();
+  
+  // Create a date object with today's date and the specified local time
+  const localDate = new Date(now);
+  localDate.setHours(localHours, localMinutes, 0, 0);
+  
+  // Get the UTC hours and minutes
+  const utcMinutes = localDate.getUTCMinutes();
+  const utcHours = localDate.getUTCHours();
+  
+  // Format as cron schedule: "minute hour * * *"
+  return `${utcMinutes} ${utcHours} * * *`;
 }
 
 export const CronJobManager: React.FC<CronJobManagerProps> = ({ 
@@ -537,3 +567,4 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
     </div>
   );
 };
+
