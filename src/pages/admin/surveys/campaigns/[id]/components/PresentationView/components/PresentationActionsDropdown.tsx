@@ -66,7 +66,14 @@ export function PresentationActionsDropdown({ campaign }: PresentationActionsDro
         description: null,
         json_data: { pages: [] }
       },
-      instance: campaign.instance
+      instance: campaign.instance ? {
+        id: campaign.instance.id,
+        period_number: 1,
+        starts_at: new Date().toISOString(),
+        ends_at: new Date().toISOString(),
+        status: "active",
+        completion_rate: 0
+      } : undefined
     };
     
     // use handleExport from the hook for user feedback
@@ -86,7 +93,7 @@ export function PresentationActionsDropdown({ campaign }: PresentationActionsDro
             <ArrowDown />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52 z-[100] bg-background">
+        <DropdownMenuContent align="end" className="z-[100] bg-background">
           <DropdownMenuItem onClick={() => setShareOpen(true)}>
             Share public link
           </DropdownMenuItem>
