@@ -6,6 +6,7 @@ import { usePptxExport } from "../hooks/usePptxExport";
 import { ArrowDown } from "lucide-react";
 import { SharePresentationModal } from "./SharePresentationModal";
 import { Spinner } from "@/components/ui/spinner";
+import { Progress } from "@/components/ui/progress";
 
 interface PresentationActionsDropdownProps {
   campaign: {
@@ -17,12 +18,10 @@ interface PresentationActionsDropdownProps {
 
 export function PresentationActionsDropdown({ campaign }: PresentationActionsDropdownProps) {
   const [shareOpen, setShareOpen] = useState(false);
-  const { handleExport, exporting } = usePptxExport();
+  const { handleExport, exporting, progress } = usePptxExport();
 
   // For processedData: we need to call usePresentationResponses, but it's designed for the presentation view.
   // Here, we gracefully skip the progress bar & toasts if not present.
-  // For MVP we allow calling with undefined processedData & show an error.
-  // But the logic (for Download PPTX button) expects processedData, so we fetch it here.
   const [processedData, setProcessedData] = useState<any>(null);
   const [loadingProcessedData, setLoadingProcessedData] = useState(false);
 
@@ -78,10 +77,19 @@ export function PresentationActionsDropdown({ campaign }: PresentationActionsDro
             onClick={handleDownloadPptxWithFetch}
           >
             {exporting || loadingProcessedData ? (
-              <>
-                <Spinner className="h-4 w-4 mr-2" />
-                Downloading...
-              </>
+              <div className="w-full">
+                <div className="flex items-center mb-2">
+                  <Spinner className="h-4 w-4 mr-2" />
+                  {loadingProcessedData ? "Loading data..." : "Downloading..."}
+                </div>
+                {exporting && (
+                  <Progress 
+                    value={progress} 
+                    className="h-1.5" 
+                    indicatorClassName="bg-primary"
+                  />
+                )}
+              </div>
             ) : (
               "Download PPTX"
             )}
@@ -105,4 +113,3 @@ export function PresentationActionsDropdown({ campaign }: PresentationActionsDro
     </>
   );
 }
-
