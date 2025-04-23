@@ -22,17 +22,17 @@ export const levelConfigTour: TourConfig = {
       content: "View and manage all your organization's levels here. You can sort them, edit their details, or change their status.",
     },
     {
-      target: "button:has(.Power)",
+      target: ".toggle-status-button",
       title: "Toggle Status",
       content: "Quickly activate or deactivate levels using this button. Inactive levels won't be available for assignment to employees.",
     },
     {
-      target: "button:has(.Pencil)",
+      target: ".edit-level-button",
       title: "Edit Level",
       content: "Modify a level's details such as its name or color code using this button.",
     },
     {
-      target: "button:has(.GripVertical)",
+      target: ".drag-handle",
       title: "Reorder Levels",
       content: "Drag and drop using these handles to reorder your levels. The order here determines the hierarchy in your organization.",
     }
