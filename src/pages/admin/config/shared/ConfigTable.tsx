@@ -26,7 +26,8 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 
-const SortableRow = ({ item, children, id }: { item: ConfigItem; children: React.ReactNode; id: string }) => {
+// Separate SortableRow component to properly handle useSortable hook
+const SortableRow = ({ id, children }: { id: string; children: React.ReactNode }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
   
   const style = {
@@ -39,6 +40,11 @@ const SortableRow = ({ item, children, id }: { item: ConfigItem; children: React
       {children}
     </TableRow>
   );
+};
+
+// Regular row component that doesn't use any hooks
+const RegularRow = ({ children }: { children: React.ReactNode }) => {
+  return <TableRow>{children}</TableRow>;
 };
 
 export function ConfigTable<T extends ConfigItem>({
@@ -97,6 +103,7 @@ export function ConfigTable<T extends ConfigItem>({
     return <LoadingSpinner />;
   }
   
+  // Render different table structures based on draggable prop
   return (
     <>
       <div className="rounded-md border">
@@ -129,9 +136,9 @@ export function ConfigTable<T extends ConfigItem>({
               <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
                 <TableBody>
                   {items.map((item) => (
-                    <SortableRow key={item.id} id={item.id} item={item}>
+                    <SortableRow key={item.id} id={item.id}>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="drag-handle cursor-grab" {...useSortable({ id: item.id }).listeners} {...useSortable({ id: item.id }).attributes}>
+                        <Button variant="ghost" size="icon" className="drag-handle cursor-grab">
                           <GripVertical className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -183,7 +190,7 @@ export function ConfigTable<T extends ConfigItem>({
           ) : (
             <TableBody>
               {items.map((item) => (
-                <TableRow key={item.id}>
+                <RegularRow key={item.id}>
                   <TableCell className="font-medium">
                     {item.name}
                     <span style={{ marginLeft: 8, display: 'inline-block', width: 14, height: 14, borderRadius: '50%', backgroundColor: item.color_code }} />
@@ -224,7 +231,7 @@ export function ConfigTable<T extends ConfigItem>({
                       </Button>
                     </div>
                   </TableCell>
-                </TableRow>
+                </RegularRow>
               ))}
             </TableBody>
           )}
