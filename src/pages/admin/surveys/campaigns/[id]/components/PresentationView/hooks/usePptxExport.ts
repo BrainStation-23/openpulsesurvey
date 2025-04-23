@@ -1,12 +1,11 @@
 
-
 import { useState } from 'react';
 import { exportToPptx } from '../utils/pptxExport';
 import { CampaignData } from "../types";
 import { ProcessedData } from "../types/responses";
 import { useToast } from "@/hooks/use-toast";
 
-export function usePdfExport() {
+export const usePptxExport = () => {
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
@@ -47,4 +46,4 @@ export function usePdfExport() {
   };
 
   return { handleExport, exporting, progress };
-}
+};
