@@ -25,6 +25,22 @@ export const StatusLogs: React.FC<StatusLogsProps> = ({ className = "" }) => {
     }
   });
 
+  // Helper function to safely render details
+  const renderLogDetails = (details: any) => {
+    if (typeof details === 'object') {
+      // If details is an object with execution_details
+      if ('execution_details' in details) {
+        return typeof details.execution_details === 'string' 
+          ? details.execution_details 
+          : JSON.stringify(details.execution_details, null, 2);
+      }
+      // If details is a general object
+      return JSON.stringify(details, null, 2);
+    }
+    // If details is already a string
+    return details || 'Job executed successfully';
+  };
+
   return (
     <Card className={className}>
       <CardHeader>
@@ -57,10 +73,8 @@ export const StatusLogs: React.FC<StatusLogsProps> = ({ className = "" }) => {
                 </div>
                 
                 {log.details && (
-                  <div className="text-sm text-muted-foreground">
-                    {typeof log.details === 'object' && 'execution_details' in log.details
-                      ? log.details.execution_details
-                      : 'Job executed successfully'}
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {renderLogDetails(log.details)}
                   </div>
                 )}
               </div>
