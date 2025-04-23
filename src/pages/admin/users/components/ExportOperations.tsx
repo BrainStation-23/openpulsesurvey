@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ExportProgress {
   isOpen: boolean;
@@ -31,12 +32,18 @@ export function useExportOperations() {
         isComplete: false
       });
 
+      // Get the current user session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("You must be logged in to export users");
+      }
+
       // Call the edge function and handle download
       const resp = await fetch(SUPABASE_EDGE_URL, {
         method: "POST",
         headers: {
-          apikey: (window as any).SUPABASE_ANON_KEY || "",
-          Authorization: `Bearer ${(window as any).SUPABASE_ANON_KEY || ""}`,
+          "Authorization": `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
         },
       });
