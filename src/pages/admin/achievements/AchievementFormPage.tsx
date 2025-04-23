@@ -26,37 +26,54 @@ import { TourButton } from "@/components/onboarding/TourButton";
 import { useAchievementForm } from "./hooks/useAchievementForm";
 import { AchievementPreview } from "./components/AchievementPreview";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 export default function AchievementFormPage() {
   const navigate = useNavigate();
   const { form, isEditMode, isLoadingAchievement, onSubmit } = useAchievementForm();
 
   if (isEditMode && isLoadingAchievement) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
   }
 
   const selectedType = form.watch("achievement_type");
   const typeConfig = ACHIEVEMENT_TYPE_CONFIG[selectedType];
 
   return (
-    <div className="p-8">
-      <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">
+    <div className="p-8 max-w-[1400px] mx-auto">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6 flex justify-between items-center"
+      >
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
           {isEditMode ? "Edit Achievement" : "Create Achievement"}
         </h1>
         <TourButton 
           tourId="achievement_create" 
-          title="Achievement Creation Guide" 
+          title="Achievement Creation Guide"
+          className="bg-primary/10 hover:bg-primary/20 text-primary" 
         />
-      </div>
+      </motion.div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="lg:col-span-2 space-y-6"
+            >
+              <Card className="border-2 shadow-lg bg-card/50 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>Basic Information</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    Basic Information
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
@@ -64,18 +81,18 @@ export default function AchievementFormPage() {
                     name="achievement_type"
                     render={({ field }) => (
                       <FormItem className="achievement-type-select">
-                        <FormLabel>Achievement Type</FormLabel>
+                        <FormLabel className="text-base font-semibold">Achievement Type</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-12">
                               <SelectValue placeholder="Select achievement type" className="text-left" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {Object.entries(ACHIEVEMENT_TYPE_CONFIG).map(([type, config]) => (
-                              <SelectItem key={type} value={type} className="w-full">
+                              <SelectItem key={type} value={type} className="w-full py-3 focus:bg-primary/10">
                                 <div className="flex flex-col w-full text-left">
-                                  <span>{config.label}</span>
+                                  <span className="font-medium">{config.label}</span>
                                   <span className="text-xs text-muted-foreground">
                                     {config.description}
                                   </span>
@@ -84,7 +101,7 @@ export default function AchievementFormPage() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <FormDescription>
+                        <FormDescription className="text-sm">
                           {typeConfig?.description}
                         </FormDescription>
                         <FormMessage />
@@ -98,7 +115,7 @@ export default function AchievementFormPage() {
                       name="icon"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Icon</FormLabel>
+                          <FormLabel className="text-base font-semibold">Icon</FormLabel>
                           <FormControl>
                             <IconPicker 
                               value={field.value} 
@@ -118,9 +135,9 @@ export default function AchievementFormPage() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Name</FormLabel>
+                        <FormLabel className="text-base font-semibold">Name</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} className="h-12" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -132,9 +149,9 @@ export default function AchievementFormPage() {
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Description</FormLabel>
+                        <FormLabel className="text-base font-semibold">Description</FormLabel>
                         <FormControl>
-                          <Textarea {...field} />
+                          <Textarea {...field} className="min-h-[100px] resize-none" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -146,9 +163,9 @@ export default function AchievementFormPage() {
                     name="points"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Points</FormLabel>
+                        <FormLabel className="text-base font-semibold">Points</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input type="number" {...field} className="h-12" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -160,16 +177,16 @@ export default function AchievementFormPage() {
                     name="status"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Status</FormLabel>
+                        <FormLabel className="text-base font-semibold">Status</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-12">
                               <SelectValue placeholder="Select status" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="inactive">Inactive</SelectItem>
+                            <SelectItem value="active" className="py-3">Active</SelectItem>
+                            <SelectItem value="inactive" className="py-3">Inactive</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormDescription>
@@ -182,16 +199,27 @@ export default function AchievementFormPage() {
                 </CardContent>
               </Card>
 
-              <AchievementPreview form={form} />
-            </div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <AchievementPreview form={form} />
+              </motion.div>
+            </motion.div>
 
-            <div className="lg:col-span-3">
-              <Card className="achievement-conditions">
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="lg:col-span-3"
+            >
+              <Card className="achievement-conditions border-2 shadow-lg bg-card/50 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle>Achievement Conditions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="border rounded-lg p-4 bg-muted/50">
+                  <div className="border rounded-lg p-6 bg-muted/30 backdrop-blur-sm">
                     <ConditionForm 
                       form={form} 
                       achievementType={selectedType}
@@ -200,21 +228,31 @@ export default function AchievementFormPage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
+            </motion.div>
           </div>
 
-          <div className="mt-6 flex justify-end gap-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mt-6 flex justify-end gap-4"
+          >
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => navigate('/admin/achievements')}
+              className="h-12 px-6"
             >
               Cancel
             </Button>
-            <Button type="submit" size="lg">
+            <Button 
+              type="submit" 
+              size="lg"
+              className="h-12 px-8 bg-primary hover:bg-primary/90"
+            >
               {isEditMode ? "Update Achievement" : "Create Achievement"}
             </Button>
-          </div>
+          </motion.div>
         </form>
       </Form>
     </div>
