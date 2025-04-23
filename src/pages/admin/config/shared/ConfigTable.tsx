@@ -1,51 +1,17 @@
 
 import { useState } from "react";
-import { Pencil, Power, Trash2, ArrowUpDown, GripVertical } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { GripVertical } from "lucide-react";
+import { Table, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ConfigItem } from "./types";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
-
-// Separate SortableRow component to properly handle useSortable hook
-const SortableRow = ({ id, children }: { id: string; children: React.ReactNode }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-  
-  const style = {
-    transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
-    transition,
-  };
-  
-  return (
-    <TableRow ref={setNodeRef} style={style} data-id={id}>
-      {children}
-    </TableRow>
-  );
-};
-
-// Regular row component that doesn't use any hooks
-const RegularRow = ({ children }: { children: React.ReactNode }) => {
-  return <TableRow>{children}</TableRow>;
-};
+import { ConfigItem } from "./types";
+import { SortableRow, RegularRow } from "./components/TableRows";
+import { ConfigTableHeader } from "./components/ConfigTableHeader";
+import { ItemActions } from "./components/ItemActions";
+import { DeleteConfirmationDialog } from "./components/DeleteConfirmationDialog";
 
 export function ConfigTable<T extends ConfigItem>({
   items,
@@ -70,17 +36,17 @@ export function ConfigTable<T extends ConfigItem>({
 }) {
   const [itemToDelete, setItemToDelete] = useState<T | null>(null);
   
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor)
+  );
+  
   const handleDelete = () => {
     if (itemToDelete) {
       onDelete(itemToDelete.id);
       setItemToDelete(null);
     }
   };
-  
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor)
-  );
   
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -103,28 +69,11 @@ export function ConfigTable<T extends ConfigItem>({
     return <LoadingSpinner />;
   }
   
-  // Render different table structures based on draggable prop
   return (
     <>
       <div className="rounded-md border">
         <Table>
-          <TableHeader>
-            <TableRow>
-              {draggable && <TableHead style={{ width: '40px' }}></TableHead>}
-              <TableHead className="w-[300px]">
-                {onSort ? (
-                  <Button variant="ghost" onClick={onSort} className="flex items-center gap-1 p-0">
-                    Name
-                    <ArrowUpDown className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  "Name"
-                )}
-              </TableHead>
-              <TableHead className="w-[100px]">Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
+          <ConfigTableHeader draggable={draggable} onSort={onSort} />
           
           {draggable && onReorder ? (
             <DndContext
@@ -154,33 +103,12 @@ export function ConfigTable<T extends ConfigItem>({
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {onToggleStatus && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="toggle-status-button"
-                              onClick={() => onToggleStatus(item.id, item.status === "active" ? "inactive" : "active")}
-                            >
-                              <Power className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="edit-level-button"
-                            onClick={() => onEdit(item)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => setItemToDelete(item)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <ItemActions
+                          item={item}
+                          onEdit={onEdit}
+                          onDelete={setItemToDelete}
+                          onToggleStatus={onToggleStatus}
+                        />
                       </TableCell>
                     </SortableRow>
                   ))}
@@ -203,33 +131,12 @@ export function ConfigTable<T extends ConfigItem>({
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      {onToggleStatus && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="toggle-status-button"
-                          onClick={() => onToggleStatus(item.id, item.status === "active" ? "inactive" : "active")}
-                        >
-                          <Power className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        className="edit-level-button"
-                        onClick={() => onEdit(item)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => setItemToDelete(item)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <ItemActions
+                      item={item}
+                      onEdit={onEdit}
+                      onDelete={setItemToDelete}
+                      onToggleStatus={onToggleStatus}
+                    />
                   </TableCell>
                 </RegularRow>
               ))}
@@ -238,20 +145,11 @@ export function ConfigTable<T extends ConfigItem>({
         </Table>
       </div>
 
-      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the item.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmationDialog
+        open={!!itemToDelete}
+        onOpenChange={(open) => !open && setItemToDelete(null)}
+        onConfirm={handleDelete}
+      />
     </>
   );
 }
