@@ -77,7 +77,7 @@ export async function fetchPresentationData(
       rateCount: q.rateMax === 10 ? 10 : q.rateMax || 5
     }));
 
-  // First, fetch basic response data without the nested joins to avoid deep type instantiation
+  // First, fetch basic response data without the nested joins
   const responsesQuery = supabase
     .from("survey_responses")
     .select(`
@@ -101,10 +101,22 @@ export async function fetchPresentationData(
     throw new Error(`Failed to fetch responses: ${responsesError.message}`);
   }
 
-  // Extract the user IDs for further queries
-  const userIds = basicResponses?.map(r => r.user_id).filter(Boolean) || [];
+  // Extract unique user IDs for further queries
+  const userIds = [...new Set(basicResponses?.map(r => r.user_id).filter(Boolean) || [])];
   
-  // Now fetch user details separately to avoid deep nesting
+  // If no users responded, return early with empty responses
+  if (userIds.length === 0) {
+    return {
+      campaign: {
+        ...campaign,
+        instance
+      },
+      questions,
+      responses: [],
+    };
+  }
+
+  // Now fetch user details separately
   const { data: userDetails, error: userError } = await supabase
     .from("profiles")
     .select(`
@@ -163,17 +175,35 @@ export async function fetchPresentationData(
     .select(`
       user_id,
       is_primary,
-      supervisor:profiles (
-        id, 
-        first_name, 
-        last_name
-      )
+      supervisor_id
     `)
     .in('user_id', userIds)
     .eq('is_primary', true);
 
   if (supervisorError) {
     console.error("Error fetching supervisor data:", supervisorError);
+  }
+
+  // Collect all supervisor IDs
+  const supervisorIds = supervisorData?.map(s => s.supervisor_id).filter(Boolean) || [];
+
+  // Fetch supervisor profiles if there are any
+  let supervisorProfiles: Record<string, any> = {};
+  if (supervisorIds.length > 0) {
+    const { data: supervisors, error: supervisorsError } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name")
+      .in('id', supervisorIds);
+    
+    if (supervisorsError) {
+      console.error("Error fetching supervisor profiles:", supervisorsError);
+    } else if (supervisors) {
+      // Create a lookup map for supervisor profiles
+      supervisorProfiles = supervisors.reduce((acc, sup) => {
+        acc[sup.id] = sup;
+        return acc;
+      }, {} as Record<string, any>);
+    }
   }
 
   // Create lookup maps for the related data
@@ -196,8 +226,11 @@ export async function fetchPresentationData(
   const supervisorMap = new Map();
   if (supervisorData) {
     supervisorData.forEach(item => {
-      if (item.is_primary && item.supervisor) {
-        supervisorMap.set(item.user_id, item.supervisor);
+      if (item.is_primary && item.supervisor_id) {
+        const supervisor = supervisorProfiles[item.supervisor_id];
+        if (supervisor) {
+          supervisorMap.set(item.user_id, supervisor);
+        }
       }
     });
   }
