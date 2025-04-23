@@ -58,7 +58,9 @@ export const StatusLogs: React.FC<StatusLogsProps> = ({ className = "" }) => {
                 
                 {log.details && (
                   <div className="text-sm text-muted-foreground">
-                    {log.details.execution_details}
+                    {typeof log.details === 'object' && 'execution_details' in log.details
+                      ? log.details.execution_details
+                      : 'Job executed successfully'}
                   </div>
                 )}
               </div>

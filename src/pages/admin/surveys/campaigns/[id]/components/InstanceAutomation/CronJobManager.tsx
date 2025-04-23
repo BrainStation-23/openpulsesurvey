@@ -74,9 +74,9 @@ export const CronJobManager: React.FC<CronJobManagerProps> = ({
     if (cronJobs && cronJobs.length > 0) {
       cronJobs.forEach(job => {
         if (job.job_type === 'activation') {
-          setActivationJob(job);
+          setActivationJob(job as CronJob);
         } else if (job.job_type === 'completion') {
-          setCompletionJob(job);
+          setCompletionJob(job as CronJob);
         }
       });
     }
