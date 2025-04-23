@@ -1,44 +1,35 @@
 
 import { useNavigate } from "react-router-dom";
+import AnimatedAuroraBackground from "@/components/ui/animated-aurora-background";
 import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const navigate = useNavigate();
 
   return (
-    <div
-      className="min-h-screen w-full flex items-center justify-center relative bg-gradient-to-br from-[#9b87f5] via-[#1EAEDB] to-[#7E69AB] overflow-hidden"
-      style={{
-        minHeight: "100dvh",
-      }}
-    >
-      {/* Glass Card */}
-      <div className="relative w-full max-w-lg px-8 py-12 rounded-3xl shadow-2xl backdrop-blur-2xl bg-white/10 border border-white/30 flex flex-col items-center animate-[fade-in_0.7s_ease] select-none">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-center mb-4 text-white tracking-tight drop-shadow-lg">
-          <span className="bg-gradient-to-r from-white via-[#fff5] to-white bg-clip-text text-transparent">
-            Open Pulse Survey
-          </span>
+    <AnimatedAuroraBackground>
+      <section className="flex flex-col items-center justify-center w-full relative">
+        {/* Kokonut UI label */}
+        <div className="absolute left-1/2 -translate-x-[65%] top-0 mt-2 px-3 py-1 rounded-full bg-neutral-900/80 text-sm text-neutral-200 border border-neutral-700 shadow backdrop-blur flex items-center gap-2 animate-fade-in z-20">
+          <span className="inline-block w-2 h-2 rounded-full bg-pink-500 mr-2" />
+          Kokonut UI
+        </div>
+        {/* Big headline */}
+        <h1 className="font-extrabold text-center text-4xl md:text-7xl tracking-tight leading-[1.1] mt-10 mb-3 bg-gradient-to-r from-white via-indigo-200 to-pink-300 bg-clip-text text-transparent drop-shadow-xl animate-fade-in">
+          Elevate Your <span className="text-indigo-200 bg-gradient-to-r from-indigo-200 to-pink-300 bg-clip-text text-transparent">Digital Vision</span>
         </h1>
-        <p className="text-lg md:text-xl text-white/90 text-center mb-8 font-medium max-w-md drop-shadow-sm">
-          Capture and analyze employee feedback with clarity. <br />
-          <span className="text-[#fbed96] font-semibold">
-            Modern. Fast. Secure.
-          </span>
+        <p className="mx-auto max-w-xl text-center text-zinc-400 font-medium text-base md:text-xl mt-4 mb-8 animate-fade-in" style={{animationDelay:'0.25s', animationFillMode:'forwards'}}>
+          Crafting exceptional digital experiences through innovative design and cutting-edge technology.
         </p>
-
         <Button
           size="lg"
-          className="font-bold text-lg px-8 py-4 rounded-xl bg-gradient-to-r from-[#ffa99f] via-[#9b87f5] to-[#1EAEDB] text-white shadow-lg hover:scale-105 transition-transform duration-200"
+          className="font-bold text-lg px-8 py-4 rounded-xl bg-gradient-to-r from-[#ffa99f] via-[#9b87f5] to-[#1EAEDB] text-white shadow-lg hover:scale-105 transition-transform duration-200 animate-fade-in"
           onClick={() => navigate("/login")}
         >
           Get Started
         </Button>
-      </div>
-
-      {/* Decorative gradients & blurred backgrounds, as 21stdev inspiration */}
-      <div className="absolute top-0 left-0 w-[30vw] h-[30vw] bg-[#ffa99f] opacity-30 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[40vw] h-[40vw] bg-[#33C3F0] opacity-20 rounded-full blur-3xl pointer-events-none" />
-    </div>
+      </section>
+    </AnimatedAuroraBackground>
   );
 };
 
