@@ -1,3 +1,4 @@
+
 export interface BooleanResponseData {
   yes: number;
   no: number;

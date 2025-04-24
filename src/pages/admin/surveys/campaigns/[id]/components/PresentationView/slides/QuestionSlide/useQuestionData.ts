@@ -1,10 +1,9 @@
-
 import { useMemo } from "react";
 import { ProcessedData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
 import { useDimensionData } from "../../hooks/useDimensionData";
 import { NpsData, NpsComparisonData } from "../../../ReportsTab/types/nps";
-import { BooleanResponseData, SatisfactionData } from "../../types/responses";
+import { BooleanResponseData } from "../../types/responses";
 
 // Define the data types from RPC functions
 interface SupervisorSatisfactionData {
@@ -30,7 +29,6 @@ type ProcessedResult =
   | BooleanComparisonData[]
   | NpsData 
   | BooleanResponseData 
-  | SatisfactionData
   | null;
 
 export function useQuestionData(
@@ -123,39 +121,6 @@ export function useQuestionData(
       }
 
       return npsData;
-    }
-
-    // For satisfaction questions (rating questions that are not NPS)
-    if (questionType === "rating" && !isNps && slideType === 'main') {
-      const answers = data.responses
-        .map(response => response.answers[questionName]?.answer)
-        .filter(answer => typeof answer === 'number') as number[];
-      
-      const total = answers.length;
-      
-      if (total === 0) return null;
-      
-      // Calculate rating distribution
-      const unsatisfied = answers.filter(rating => rating <= 2).length;
-      const neutral = answers.filter(rating => rating === 3).length;
-      const satisfied = answers.filter(rating => rating >= 4).length;
-      
-      // Calculate median
-      const sortedAnswers = [...answers].sort((a, b) => a - b);
-      const middle = Math.floor(sortedAnswers.length / 2);
-      const median = sortedAnswers.length % 2 === 0
-        ? (sortedAnswers[middle - 1] + sortedAnswers[middle]) / 2
-        : sortedAnswers[middle];
-      
-      const satisfactionData: SatisfactionData = {
-        unsatisfied,
-        neutral,
-        satisfied,
-        total,
-        median
-      };
-      
-      return satisfactionData;
     }
 
     // Return null for other question types
