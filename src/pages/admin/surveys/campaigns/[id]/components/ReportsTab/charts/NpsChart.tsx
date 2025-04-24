@@ -1,4 +1,5 @@
-import { Progress } from "@/components/ui/progress";
+
+import { GaugeChart } from "./GaugeChart";
 import { cn } from "@/lib/utils";
 import { NpsData } from "../types/nps";
 
@@ -7,10 +8,6 @@ interface NpsChartProps {
 }
 
 export function NpsChart({ data }: NpsChartProps) {
-  const getScoreColor = (score: number) => {
-    return score >= 8 ? 'text-green-500' : 'text-red-500';
-  };
-
   // Safety check to handle empty data
   if (!data) {
     return <div className="text-center text-muted-foreground">No data available</div>;
@@ -26,76 +23,58 @@ export function NpsChart({ data }: NpsChartProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-6">
+    <div className="space-y-8">
+      <div className="flex flex-col items-center justify-center">
+        <GaugeChart score={npsScore} size={300} />
+        
+        <div className="mt-4 flex items-center gap-6">
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">eNPS Score</div>
-            <div className={cn("text-2xl font-bold", getScoreColor(npsScore))}>
+            <div className={cn(
+              "text-2xl font-bold",
+              npsScore >= 30 ? "text-green-500" : 
+              npsScore >= 0 ? "text-yellow-500" : 
+              npsScore >= -50 ? "text-orange-500" : 
+              "text-red-500"
+            )}>
               {npsScore}
             </div>
           </div>
           
-          {data.avg_score !== undefined && data.avg_score !== 0 && (
+          {data.avg_score !== undefined && (
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">Avg Rating</div>
               <div className="text-2xl font-bold text-gray-700">
-                {data.avg_score}
+                {data.avg_score || 'N/A'}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Segments */}
-      <div className="space-y-4">
-        {/* Promoters */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Promoters</span>
-            <span className="font-medium">
-              {Math.round(percentages.promoters)}% ({data.promoters})
-            </span>
+      <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="space-y-2 p-4 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
+          <div className="text-sm text-muted-foreground">Promoters</div>
+          <div className="text-xl font-semibold text-green-600">
+            {Math.round(percentages.promoters)}% ({data.promoters})
           </div>
-          <Progress 
-            value={percentages.promoters} 
-            className="bg-gray-100 h-2"
-            indicatorClassName="bg-[#22c55e]"
-          />
         </div>
 
-        {/* Passives */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Passives</span>
-            <span className="font-medium">
-              {Math.round(percentages.passives)}% ({data.passives})
-            </span>
+        <div className="space-y-2 p-4 rounded-lg bg-yellow-50 hover:bg-yellow-100 transition-colors">
+          <div className="text-sm text-muted-foreground">Passives</div>
+          <div className="text-xl font-semibold text-yellow-600">
+            {Math.round(percentages.passives)}% ({data.passives})
           </div>
-          <Progress 
-            value={percentages.passives} 
-            className="bg-gray-100 h-2"
-            indicatorClassName="bg-[#eab308]"
-          />
         </div>
 
-        {/* Detractors */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Detractors</span>
-            <span className="font-medium">
-              {Math.round(percentages.detractors)}% ({data.detractors})
-            </span>
+        <div className="space-y-2 p-4 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
+          <div className="text-sm text-muted-foreground">Detractors</div>
+          <div className="text-xl font-semibold text-red-600">
+            {Math.round(percentages.detractors)}% ({data.detractors})
           </div>
-          <Progress 
-            value={percentages.detractors} 
-            className="bg-gray-100 h-2"
-            indicatorClassName="bg-[#ef4444]"
-          />
         </div>
       </div>
 
-      {/* Total Responses */}
       <div className="text-center text-sm text-muted-foreground">
         Total Responses: {totalResponses}
       </div>

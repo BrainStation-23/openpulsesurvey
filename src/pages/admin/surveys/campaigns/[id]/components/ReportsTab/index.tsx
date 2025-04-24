@@ -73,6 +73,11 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
           const passives = validRatings.filter((r) => r >= 7 && r <= 8).length;
           const promoters = validRatings.filter((r) => r >= 9).length;
           const total = validRatings.length;
+
+          let avgScore;
+          if (total > 0) {
+            avgScore = Number((validRatings.reduce((sum, r) => sum + r, 0) / total).toFixed(1));
+          }
           
           const npsScore = total > 0 
             ? ((promoters - detractors) / total) * 100 
@@ -83,8 +88,9 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
             passives,
             promoters,
             total,
-            nps_score: npsScore
-          } as NpsData;
+            nps_score: npsScore,
+            avg_score: avgScore
+          };
         } else {
           const validAnswers = answers.filter(
             (rating) => typeof rating === "number" && rating >= 1 && rating <= 5
