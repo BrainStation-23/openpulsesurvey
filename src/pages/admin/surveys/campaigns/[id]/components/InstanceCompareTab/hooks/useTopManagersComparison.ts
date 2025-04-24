@@ -21,13 +21,15 @@ export function useTopManagersComparison(campaignId?: string, baseInstanceId?: s
         
         // We'll use the existing RPC function if available
         const [baseResult, comparisonResult] = await Promise.all([
-          supabase.rpc('get_campaign_supervisor_performance', {
+          supabase.rpc('get_supervisor_satisfaction', {
             p_campaign_id: campaignId,
-            p_instance_id: baseInstanceId
+            p_instance_id: baseInstanceId,
+            p_question_name: 'overallSatisfaction' // Default question for manager performance
           }),
-          supabase.rpc('get_campaign_supervisor_performance', {
+          supabase.rpc('get_supervisor_satisfaction', {
             p_campaign_id: campaignId,
-            p_instance_id: comparisonInstanceId
+            p_instance_id: comparisonInstanceId,
+            p_question_name: 'overallSatisfaction' // Default question for manager performance
           })
         ]);
         
@@ -46,40 +48,44 @@ export function useTopManagersComparison(campaignId?: string, baseInstanceId?: s
         
         // Process base instance data
         baseResult.data.forEach((manager: any) => {
-          managerMap.set(manager.supervisor_name, {
-            name: manager.supervisor_name,
-            base_score: manager.avg_score || 0,
+          managerMap.set(manager.dimension, {
+            name: manager.dimension,
+            base_score: manager.avg_score || 0, // Use avg_score from RPC
             comparison_score: 0,
             change: 0,
             base_rank: manager.rank || 999,
             comparison_rank: 999,
             rank_change: 0,
-            department: manager.sbu_name || undefined,
-            total_reports: manager.total_assigned || undefined
+            department: undefined, // We could fetch this in future if needed
+            total_reports: manager.total || undefined,
+            avg_score: manager.avg_score // Store avg_score from RPC
           });
         });
         
         // Process comparison data
         comparisonResult.data.forEach((manager: any) => {
-          if (managerMap.has(manager.supervisor_name)) {
+          if (managerMap.has(manager.dimension)) {
             // Update existing manager
-            const existing = managerMap.get(manager.supervisor_name)!;
-            existing.comparison_score = manager.avg_score || 0;
+            const existing = managerMap.get(manager.dimension)!;
+            existing.comparison_score = manager.avg_score || 0; // Use avg_score from RPC
             existing.change = existing.comparison_score - existing.base_score;
             existing.comparison_rank = manager.rank || 999;
             existing.rank_change = existing.base_rank - existing.comparison_rank;
+            // Update avg_score to be the comparison score (most recent)
+            existing.avg_score = manager.avg_score;
           } else {
             // Add new manager
-            managerMap.set(manager.supervisor_name, {
-              name: manager.supervisor_name,
+            managerMap.set(manager.dimension, {
+              name: manager.dimension,
               base_score: 0,
-              comparison_score: manager.avg_score || 0,
+              comparison_score: manager.avg_score || 0, // Use avg_score from RPC
               change: manager.avg_score || 0,
               base_rank: 999,
               comparison_rank: manager.rank || 999,
               rank_change: 999 - (manager.rank || 0),
-              department: manager.sbu_name || undefined,
-              total_reports: manager.total_assigned || undefined
+              department: undefined,
+              total_reports: manager.total || undefined,
+              avg_score: manager.avg_score // Store avg_score from RPC
             });
           }
         });

@@ -26,6 +26,7 @@ interface HeatMapData {
   neutral: number;
   satisfied: number;
   total: number;
+  avg_score?: number; // Add avg_score field
 }
 
 interface NpsData {
@@ -80,12 +81,14 @@ export function NpsComparison({
       
       if (rpcError) throw rpcError;
       
+      // Use the avg_score from the RPC function directly
       return supervisorData.map((item: any) => ({
         dimension: item.dimension,
         unsatisfied: item.unsatisfied,
         neutral: item.neutral,
         satisfied: item.satisfied,
-        total: item.total
+        total: item.total,
+        avg_score: item.avg_score // Include avg_score from the RPC response
       }));
     } catch (err) {
       console.error("Error fetching supervisor data:", err);

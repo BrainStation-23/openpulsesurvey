@@ -48,7 +48,8 @@ export function SupervisorPerformanceTab({
       "Comparison Score",
       "Comparison Rank",
       "Change",
-      "Rank Change"
+      "Rank Change",
+      "Average Score" // Add avg_score to export
     ];
     
     const csvContent = [
@@ -60,7 +61,8 @@ export function SupervisorPerformanceTab({
         manager.comparison_score.toFixed(2),
         manager.comparison_rank,
         manager.change.toFixed(2),
-        manager.rank_change
+        manager.rank_change,
+        manager.avg_score?.toFixed(2) || "N/A" // Include avg_score in export
       ].join(","))
     ].join("\n");
     
@@ -92,7 +94,15 @@ export function SupervisorPerformanceTab({
     const topImprover = [...processedData].sort((a, b) => b.change - a.change)[0];
     const largestDrop = [...processedData].sort((a, b) => a.change - b.change)[0];
     
+    // Use the avg_score from RPC when available, otherwise calculate
     const avgChange = processedData.reduce((sum, item) => sum + item.change, 0) / processedData.length;
+    
+    // Find the top performer by avg_score
+    const topPerformer = [...processedData].sort((a, b) => {
+      const scoreA = a.avg_score !== undefined ? a.avg_score : a.comparison_score;
+      const scoreB = b.avg_score !== undefined ? b.avg_score : b.comparison_score;
+      return scoreB - scoreA;
+    })[0];
     
     return [
       {
@@ -125,12 +135,12 @@ export function SupervisorPerformanceTab({
         icon: <AreaChart className="h-5 w-5 text-purple-500" />
       },
       {
-        title: "Top Improver",
-        value: topImprover?.name || "N/A",
-        change: topImprover?.change || 0,
+        title: "Top Performer",
+        value: topPerformer?.name || "N/A",
+        change: topPerformer?.avg_score || topPerformer?.comparison_score || 0, // Use avg_score when available
         changeType: "positive" as const,
-        description: `Score change: +${topImprover?.change.toFixed(2) || 0}`,
-        icon: <Award className="h-5 w-5 text-yellow-500" />
+        description: `Score: ${(topPerformer?.avg_score || topPerformer?.comparison_score || 0).toFixed(2)}`,
+        icon: <Trophy className="h-5 w-5 text-yellow-500" />
       }
     ];
   };
@@ -211,4 +221,4 @@ export function SupervisorPerformanceTab({
 }
 
 // Import necessary Lucide icons
-import { UserIcon, TrendingUp, TrendingDown, AreaChart, Award } from "lucide-react";
+import { UserIcon, TrendingUp, TrendingDown, AreaChart, Award, Trophy } from "lucide-react";
