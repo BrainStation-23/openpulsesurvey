@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useResponseProcessing } from "./hooks/useResponseProcessing";
 import { BooleanCharts } from "./charts/BooleanCharts";
@@ -11,6 +10,7 @@ import { TextComparison } from "./components/comparisons/TextComparison";
 import { useState } from "react";
 import { ComparisonDimension } from "./types/comparison";
 import { SatisfactionDonutChart } from "./charts/SatisfactionDonutChart";
+import { NpsData } from "./types/nps";
 
 interface ReportsTabProps {
   campaignId: string;
@@ -65,13 +65,26 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
         const isNps = question.rateCount === 10;
         
         if (isNps) {
-          const ratingCounts = new Array(11).fill(0);
-          answers.forEach((rating) => {
-            if (typeof rating === "number" && rating >= 0 && rating <= 10) {
-              ratingCounts[rating]++;
-            }
-          });
-          return ratingCounts.map((count, rating) => ({ rating, count }));
+          const validRatings = answers.filter(
+            (rating) => typeof rating === "number" && rating >= 0 && rating <= 10
+          ) as number[];
+          
+          const detractors = validRatings.filter((r) => r <= 6).length;
+          const passives = validRatings.filter((r) => r >= 7 && r <= 8).length;
+          const promoters = validRatings.filter((r) => r >= 9).length;
+          const total = validRatings.length;
+          
+          const npsScore = total > 0 
+            ? ((promoters - detractors) / total) * 100 
+            : 0;
+          
+          return {
+            detractors,
+            passives,
+            promoters,
+            total,
+            nps_score: npsScore
+          } as NpsData;
         } else {
           const validAnswers = answers.filter(
             (rating) => typeof rating === "number" && rating >= 1 && rating <= 5
@@ -149,7 +162,7 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
                     <>
                       {isNpsQuestion ? (
                         <NpsChart
-                          data={processedData as { rating: number; count: number }[]}
+                          data={processedData as NpsData}
                         />
                       ) : (
                         <SatisfactionDonutChart
