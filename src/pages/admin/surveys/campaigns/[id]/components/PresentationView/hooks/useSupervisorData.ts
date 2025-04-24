@@ -12,12 +12,15 @@ interface SupervisorSatisfactionData {
   avg_score: number;
 }
 
+// Define valid dimensions for type safety
+export type ValidDimension = 'supervisor' | 'gender' | 'sbu' | 'location' | 'employment_type' | 'level' | 'employee_type' | 'employee_role';
+
 export function useSupervisorData(
   campaignId: string | undefined,
   instanceId: string | undefined,
   questionName: string,
   isNps: boolean,
-  dimension: 'supervisor' | 'gender' | 'sbu' | 'location' | 'employment_type' | 'level' | 'employee_type' | 'employee_role' = 'supervisor'
+  dimension: ValidDimension = 'supervisor'
 ) {
   return useQuery({
     queryKey: ["supervisor-data", campaignId, instanceId, questionName, isNps, dimension],

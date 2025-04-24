@@ -18,19 +18,20 @@ export function useQuestionData(
   const question = data?.questions.find(q => q.name === questionName);
   const isNps = question?.type === 'rating' && question?.rateCount === 10;
 
+  // Only call useSupervisorData if slideType is a valid dimension (not 'none' or 'main')
   const { data: supervisorData, isLoading: isLoadingSupervisor } = useSupervisorData(
     campaignId,
     instanceId,
     questionName,
     isNps,
-    slideType === 'main' ? 'supervisor' : slideType
+    slideType !== 'main' && slideType !== 'none' ? slideType : 'supervisor'
   );
 
   return useMemo(() => {
     if (!data?.responses) return null;
 
-    // For supervisor dimension, use RPC data directly
-    if (slideType !== 'main') {
+    // For dimension comparison views (except 'main' and 'none'), use RPC data directly
+    if (slideType !== 'main' && slideType !== 'none') {
       if (isLoadingSupervisor || !supervisorData) return null;
       return supervisorData;
     }
