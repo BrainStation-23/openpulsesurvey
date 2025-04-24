@@ -34,67 +34,91 @@ interface ManagerialInsightsTabProps {
   instances: CampaignInstance[];
 }
 
+type SBUPerformance = {
+  rank: number;
+  sbu_name: string;
+  total_assigned: number;
+  total_completed: number;
+  avg_score: number;
+  completion_rate: number;
+};
+
+type ManagerPerformance = {
+  rank: number;
+  supervisor_name: string;
+  sbu_name: string;
+  total_assigned: number;
+  total_completed: number;
+  avg_score: number;
+  completion_rate: number;
+};
+
 export function ManagerialInsightsTab({ campaignId, instances }: ManagerialInsightsTabProps) {
-  const { data: managerialData, isLoading } = useQuery({
-    queryKey: ["campaign-managerial-insights", campaignId, instances?.map(i => i.id).join(",")],
+  // Get the first selected instance for analysis
+  const selectedInstanceId = instances.length > 0 ? instances[0].id : undefined;
+  
+  const { data: sbuPerformance, isLoading: isLoadingSBUs } = useQuery({
+    queryKey: ["campaign-sbu-performance", campaignId, selectedInstanceId],
     queryFn: async () => {
-      const instanceIds = instances.map(i => i.id);
+      if (!selectedInstanceId) return [];
       
-      if (instanceIds.length === 0) {
-        return {
-          departmentPerformance: [],
-          managersPerformance: [],
-          attentionAreas: []
-        };
-      }
+      const { data, error } = await supabase.rpc(
+        'get_campaign_sbu_performance',
+        {
+          p_campaign_id: campaignId,
+          p_instance_id: selectedInstanceId
+        }
+      );
       
-      // Fetch top performing SBUs
-      const { data: topSBUs, error: sbuError } = await supabase
-        .from("top_performing_sbus")
-        .select("*")
-        .order("rank");
-        
-      if (sbuError) throw sbuError;
-      
-      // Fetch top performing managers
-      const { data: topManagers, error: managerError } = await supabase
-        .from("top_performing_managers")
-        .select("*")
-        .order("rank")
-        .limit(10);
-        
-      if (managerError) throw managerError;
-      
-      // Fetch managers needing improvement
-      const { data: improvementManagers, error: improvementError } = await supabase
-        .from("managers_needing_improvement")
-        .select("*")
-        .order("improvement_rank")
-        .limit(5);
-        
-      if (improvementError) throw improvementError;
-      
-      return {
-        departmentPerformance: topSBUs || [],
-        managersPerformance: topManagers || [],
-        attentionAreas: improvementManagers || []
-      };
+      if (error) throw error;
+      return data as SBUPerformance[];
     },
-    enabled: instances?.length > 0
+    enabled: !!campaignId && !!selectedInstanceId
   });
   
-  if (isLoading) {
+  const { data: managerPerformance, isLoading: isLoadingManagers } = useQuery({
+    queryKey: ["campaign-supervisor-performance", campaignId, selectedInstanceId],
+    queryFn: async () => {
+      if (!selectedInstanceId) return [];
+      
+      const { data, error } = await supabase.rpc(
+        'get_campaign_supervisor_performance',
+        {
+          p_campaign_id: campaignId,
+          p_instance_id: selectedInstanceId
+        }
+      );
+      
+      if (error) throw error;
+      return data as ManagerPerformance[];
+    },
+    enabled: !!campaignId && !!selectedInstanceId
+  });
+  
+  // For areas needing attention, we'll use the same manager performance data
+  // but sort by lowest scores and take the bottom 5
+  const managersNeedingImprovement = managerPerformance 
+    ? [...managerPerformance]
+        .sort((a, b) => a.avg_score - b.avg_score)
+        .slice(0, 5)
+    : [];
+  
+  const isLoading = isLoadingSBUs || isLoadingManagers;
+  
+  // No data to display
+  if (!isLoading && (!sbuPerformance?.length && !managerPerformance?.length)) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingSpinner />
+      <div className="flex items-center justify-center h-64 border rounded-lg bg-muted/10">
+        <p className="text-muted-foreground">No managerial insights data available for this campaign instance</p>
       </div>
     );
   }
   
-  if (!managerialData || Object.values(managerialData).every(arr => !arr.length)) {
+  // Show loading indicator
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64 border rounded-lg bg-muted/10">
-        <p className="text-muted-foreground">No managerial insights data available for this campaign</p>
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner />
       </div>
     );
   }
@@ -123,67 +147,79 @@ export function ManagerialInsightsTab({ campaignId, instances }: ManagerialInsig
               Top Performing Departments
             </CardTitle>
           </div>
-          <ExportMenu
-            chartId="department-performance-chart"
-            fileName="department_performance"
-            data={managerialData.departmentPerformance}
-          />
+          {sbuPerformance?.length > 0 && (
+            <ExportMenu
+              chartId="department-performance-chart"
+              fileName="department_performance"
+              data={sbuPerformance}
+            />
+          )}
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="overflow-x-auto" id="department-performance-chart">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Rank</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead className="text-right">Score</TableHead>
-                    <TableHead className="text-right">Respondents</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {managerialData.departmentPerformance.map((sbu: any) => (
-                    <TableRow key={sbu.sbu_id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {getRankIcon(sbu.rank)}
-                          #{sbu.rank}
-                        </div>
-                      </TableCell>
-                      <TableCell>{sbu.sbu_name}</TableCell>
-                      <TableCell className="text-right font-medium">
-                        {sbu.average_score !== null ? `${sbu.average_score.toFixed(1)}%` : 'N/A'}
-                      </TableCell>
-                      <TableCell className="text-right">{sbu.total_respondents}</TableCell>
+          {sbuPerformance?.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="overflow-x-auto" id="department-performance-chart">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Rank</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead className="text-right">Score</TableHead>
+                      <TableHead className="text-right">Completion</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={managerialData.departmentPerformance}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="sbu_name" />
-                  <YAxis domain={[0, 100]} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="average_score" name="Score (%)" fill="#8884d8">
-                    {managerialData.departmentPerformance.map((entry: any, index: number) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#8884d8'} 
-                      />
+                  </TableHeader>
+                  <TableBody>
+                    {sbuPerformance.map((sbu) => (
+                      <TableRow key={`sbu-${sbu.rank}-${sbu.sbu_name}`}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {getRankIcon(sbu.rank)}
+                            #{sbu.rank}
+                          </div>
+                        </TableCell>
+                        <TableCell>{sbu.sbu_name}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {sbu.avg_score.toFixed(1)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {sbu.completion_rate.toFixed(1)}%
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                  </TableBody>
+                </Table>
+              </div>
+              
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={sbuPerformance}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="sbu_name" />
+                    <YAxis domain={[0, 5]} />
+                    <Tooltip 
+                      formatter={(value) => [`${Number(value).toFixed(1)}`, 'Score']}
+                    />
+                    <Legend />
+                    <Bar dataKey="avg_score" name="Score" fill="#8884d8">
+                      {sbuPerformance.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#8884d8'} 
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="text-center text-muted-foreground py-8">
+              No department performance data available for the selected period.
+            </div>
+          )}
         </CardContent>
       </Card>
       
@@ -198,36 +234,46 @@ export function ManagerialInsightsTab({ campaignId, instances }: ManagerialInsig
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Rank</TableHead>
-                  <TableHead>Manager</TableHead>
-                  <TableHead className="text-right">Score</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {managerialData.managersPerformance.slice(0, 5).map((manager: any) => (
-                  <TableRow key={manager.manager_id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {getRankIcon(manager.rank)}
-                        #{manager.rank}
-                      </div>
-                    </TableCell>
-                    <TableCell>{manager.manager_name}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      {manager.average_score.toFixed(1)}%
-                    </TableCell>
+            {managerPerformance?.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Rank</TableHead>
+                    <TableHead>Manager</TableHead>
+                    <TableHead className="text-right">Score</TableHead>
+                    <TableHead className="text-right">Completion</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {managerPerformance.slice(0, 5).map((manager) => (
+                    <TableRow key={`manager-${manager.rank}-${manager.supervisor_name}`}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {getRankIcon(manager.rank)}
+                          #{manager.rank}
+                        </div>
+                      </TableCell>
+                      <TableCell>{manager.supervisor_name}</TableCell>
+                      <TableCell className="text-right font-medium">
+                        {manager.avg_score.toFixed(1)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {manager.completion_rate.toFixed(1)}%
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center text-muted-foreground py-8">
+                No manager performance data available for the selected period.
+              </div>
+            )}
           </CardContent>
         </Card>
         
         {/* Improvement Areas */}
-        {managerialData.attentionAreas.length > 0 && (
+        {managersNeedingImprovement.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -239,20 +285,24 @@ export function ManagerialInsightsTab({ campaignId, instances }: ManagerialInsig
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Priority</TableHead>
                     <TableHead>Manager</TableHead>
+                    <TableHead>Department</TableHead>
                     <TableHead className="text-right">Score</TableHead>
+                    <TableHead className="text-right">Completion</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {managerialData.attentionAreas.map((manager: any, index: number) => (
-                    <TableRow key={manager.manager_id}>
+                  {managersNeedingImprovement.map((manager, index) => (
+                    <TableRow key={`improvement-${index}-${manager.supervisor_name}`}>
                       <TableCell className="font-medium">
-                        #{manager.improvement_rank}
+                        {manager.supervisor_name}
                       </TableCell>
-                      <TableCell>{manager.manager_name}</TableCell>
+                      <TableCell>{manager.sbu_name}</TableCell>
                       <TableCell className="text-right font-medium text-destructive">
-                        {manager.average_score.toFixed(1)}%
+                        {manager.avg_score.toFixed(1)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {manager.completion_rate.toFixed(1)}%
                       </TableCell>
                     </TableRow>
                   ))}
