@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { ArrowDown, ArrowUp, Minus, AlertCircle, CircleCheck, AlertTriangle } from "lucide-react";
 
 interface AdvancedInsightsTableProps {
   insightType: string;
@@ -22,6 +22,7 @@ export function AdvancedInsightsTable({ insightType, data }: AdvancedInsightsTab
             <TableRow>
               <TableHead>Period</TableHead>
               <TableHead>Sentiment Score</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Response Count</TableHead>
               <TableHead className="text-right">Trend</TableHead>
             </TableRow>
@@ -35,6 +36,24 @@ export function AdvancedInsightsTable({ insightType, data }: AdvancedInsightsTab
                 <TableRow key={item.name}>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>{item.sentiment.toFixed(1)}</TableCell>
+                  <TableCell>
+                    {item.sentiment >= 80 ? (
+                      <div className="flex items-center text-green-500">
+                        <CircleCheck className="h-4 w-4 mr-1" />
+                        <span>Positive</span>
+                      </div>
+                    ) : item.sentiment >= 60 ? (
+                      <div className="flex items-center text-yellow-500">
+                        <AlertTriangle className="h-4 w-4 mr-1" />
+                        <span>Neutral</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-red-500">
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        <span>Negative</span>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell>{item.count}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end">
