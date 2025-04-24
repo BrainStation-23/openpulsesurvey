@@ -19,16 +19,39 @@ export function DemographicCard({ title, data, chartType, nameKey = "name" }: De
   })) : data;
 
   return (
-    <Card className="h-full flex flex-col overflow-hidden">
-      <CardHeader className="pb-1">
-        <CardTitle className="text-base">{title}</CardTitle>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="pb-2 border-b">
+        <div className="flex items-start justify-between">
+          <CardTitle className="text-base">{title}</CardTitle>
+          {chartType === "pie" && (
+            <div className="flex flex-wrap gap-2 text-xs max-w-[120px]">
+              {formattedData.map((item, index) => (
+                <div key={index} className="flex items-center gap-1">
+                  <div 
+                    className="w-2 h-2 rounded-sm flex-shrink-0"
+                    style={{ 
+                      backgroundColor: [
+                        '#0088FE', '#00C49F', '#FFBB28', '#FF8042', 
+                        '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'
+                      ][index % 8] 
+                    }}
+                  />
+                  <span className="truncate" title={item.name}>
+                    {item.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-3 pt-0 overflow-hidden">
+      <CardContent className="flex-1 p-3 min-h-0">
         {chartType === "pie" ? (
           <div className="h-full w-full">
             <DemographicPieChart 
               data={formattedData} 
               title={`Response Distribution by ${title}`}
+              showLegend={false}
             />
           </div>
         ) : (

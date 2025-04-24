@@ -1,14 +1,14 @@
-
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { DemographicBreakdownItem } from "../types";
 
 interface DemographicPieChartProps {
   data: DemographicBreakdownItem[];
   title: string;
+  showLegend?: boolean;
 }
 
-export function DemographicPieChart({ data, title }: DemographicPieChartProps) {
+export function DemographicPieChart({ data, title, showLegend = true }: DemographicPieChartProps) {
   // Use a consistent set of colors
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
   
@@ -35,21 +35,20 @@ export function DemographicPieChart({ data, title }: DemographicPieChartProps) {
 
   return (
     <div className="space-y-2 w-full h-full flex flex-col">
-      <h3 className="text-sm font-medium">{title}</h3>
       <div className="flex-1 w-full">
         <ChartContainer config={{}}>
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart margin={{ top: 5, right: 5, bottom: 30, left: 5 }}>
+            <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
               <Pie
                 data={chartData}
                 cx="50%"
-                cy="45%"
+                cy="50%"
                 labelLine={false}
-                outerRadius={65}
+                outerRadius={80}
                 fill="#8884d8"
                 dataKey="count"
                 nameKey="name"
-                label={({ name, percent }) => percent > 0.05 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
+                label={({ name, percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''}
               >
                 {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -71,12 +70,14 @@ export function DemographicPieChart({ data, title }: DemographicPieChartProps) {
                   );
                 }}
               />
-              <Legend 
-                layout="horizontal"
-                verticalAlign="bottom"
-                align="center"
-                content={renderCustomizedLegend}
-              />
+              {showLegend && (
+                <Legend 
+                  layout="horizontal"
+                  verticalAlign="bottom"
+                  align="center"
+                  content={renderCustomizedLegend}
+                />
+              )}
             </PieChart>
           </ResponsiveContainer>
         </ChartContainer>
