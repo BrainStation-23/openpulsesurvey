@@ -36,6 +36,15 @@ export function NpsChart({ data }: NpsChartProps) {
               {npsScore}
             </div>
           </div>
+          
+          {data.avg_score !== undefined && (
+            <div className="space-y-1">
+              <div className="text-sm text-muted-foreground">Avg Rating</div>
+              <div className="text-2xl font-bold text-gray-700">
+                {data.avg_score.toFixed(1)}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

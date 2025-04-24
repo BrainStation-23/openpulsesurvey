@@ -96,7 +96,8 @@ export function NpsComparison({
       passives: item.neutral,
       promoters: item.satisfied,
       total: item.total,
-      nps_score: ((item.satisfied - item.unsatisfied) / item.total) * 100
+      nps_score: ((item.satisfied - item.unsatisfied) / item.total) * 100,
+      avg_score: item.avg_score
     }));
 
     return (

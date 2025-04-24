@@ -17,7 +17,7 @@ export function useSupervisorData(
   instanceId: string | undefined,
   questionName: string,
   isNps: boolean,
-  dimension: 'supervisor' | 'gender' = 'supervisor'
+  dimension: 'supervisor' | 'gender' | 'sbu' | 'location' | 'employment_type' | 'level' | 'employee_type' | 'employee_role' = 'supervisor'
 ) {
   return useQuery({
     queryKey: ["supervisor-data", campaignId, instanceId, questionName, isNps, dimension],

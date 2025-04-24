@@ -22,7 +22,8 @@ export function useQuestionData(
     campaignId,
     instanceId,
     questionName,
-    isNps
+    isNps,
+    slideType
   );
 
   return useMemo(() => {
@@ -79,12 +80,21 @@ export function useQuestionData(
             passives: 0,
             promoters: 0,
             total: 0,
-            nps_score: 0
+            nps_score: 0,
+            avg_score: 0
           });
         }
 
         const group = dimensionData.get(dimensionValue)!;
         group.total += 1;
+
+        // Track sum for average calculation
+        if (group.avg_score === 0) {
+          group.avg_score = answer;
+        } else {
+          // Running average calculation
+          group.avg_score = ((group.avg_score * (group.total - 1)) + answer) / group.total;
+        }
 
         if (answer <= 6) {
           group.detractors += 1;
@@ -108,14 +118,19 @@ export function useQuestionData(
         passives: 0,
         promoters: 0,
         total: 0,
-        nps_score: 0
+        nps_score: 0,
+        avg_score: 0
       };
+
+      let sumRatings = 0;
 
       data.responses.forEach((response) => {
         const answer = response.answers[questionName]?.answer;
         if (typeof answer !== 'number') return;
 
         npsData.total += 1;
+        sumRatings += answer;
+
         if (answer <= 6) {
           npsData.detractors += 1;
         } else if (answer <= 8) {
@@ -127,6 +142,7 @@ export function useQuestionData(
 
       if (npsData.total > 0) {
         npsData.nps_score = ((npsData.promoters - npsData.detractors) / npsData.total) * 100;
+        npsData.avg_score = sumRatings / npsData.total;
       }
 
       return npsData;
