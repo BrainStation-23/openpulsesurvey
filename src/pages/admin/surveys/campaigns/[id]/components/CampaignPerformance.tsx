@@ -1,12 +1,11 @@
 
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, BarChart3, PieChart, LineChart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { InstanceCompareTab } from "./InstanceCompareTab";
 
 export default function CampaignPerformance() {
   const { id } = useParams();
@@ -32,10 +31,6 @@ export default function CampaignPerformance() {
     return <div>Loading...</div>;
   }
 
-  if (!campaign || !id) {
-    return <div>Campaign not found</div>;
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -53,33 +48,71 @@ export default function CampaignPerformance() {
               </Link>
             </Button>
           </div>
-          <h1 className="text-2xl font-bold">{campaign.name} Performance</h1>
+          <h1 className="text-2xl font-bold">{campaign?.name} Performance</h1>
           <p className="text-muted-foreground">
             Analyze campaign performance across all instances
           </p>
         </div>
       </div>
 
-      <Tabs defaultValue="compare" className="space-y-4">
+      <Tabs defaultValue="trends" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="compare">Instance Comparison</TabsTrigger>
           <TabsTrigger value="trends">Response Trends</TabsTrigger>
           <TabsTrigger value="demographics">Demographics</TabsTrigger>
+          <TabsTrigger value="comparison">Comparison</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="compare">
-          <InstanceCompareTab campaignId={id} />
-        </TabsContent>
-
         <TabsContent value="trends">
-          <div className="text-center py-8 text-muted-foreground">
-            Response trends analysis coming soon
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {/* Placeholder for charts */}
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <LineChart className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Response Rate Over Time</h3>
+            </div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <BarChart3 className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Completion Rate Progress</h3>
+            </div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <BarChart3 className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Response Volume</h3>
+            </div>
           </div>
         </TabsContent>
 
         <TabsContent value="demographics">
-          <div className="text-center py-8 text-muted-foreground">
-            Demographics analysis coming soon
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+            {/* Placeholder for demographic charts */}
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <PieChart className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Department Distribution</h3>
+            </div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <PieChart className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Location Distribution</h3>
+            </div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <PieChart className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Employee Type Distribution</h3>
+            </div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <BarChart3 className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Participation Rate</h3>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="comparison">
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+            {/* Placeholder for comparison charts */}
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <BarChart3 className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Instance Comparison</h3>
+            </div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <LineChart className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Period Analysis</h3>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

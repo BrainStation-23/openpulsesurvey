@@ -1,153 +1,218 @@
-
-import { useState } from "react";
-import { useInstancesForComparison } from "./hooks/useInstancesForComparison";
-import { useTopManagersComparison } from "./hooks/useTopManagersComparison";
-import { useTopSBUComparison } from "./hooks/useTopSBUComparison";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SupervisorPerformanceMetrics } from "./components/SupervisorPerformanceMetrics";
-import { SBUPerformanceMetrics } from "./components/SBUPerformanceMetrics";
-import { SBUPerformanceChartView } from "./components/SBUPerformanceChartView";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Users2, Building2 } from "lucide-react";
+import { EnhancedDualInstanceSelector } from "./components/EnhancedDualInstanceSelector";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SBUPerformanceTab } from "./components/SBUPerformanceTab";
+import { SupervisorPerformanceTab } from "./components/SupervisorPerformanceTab";
+import { QuestionResponsesTab } from "./components/QuestionResponsesTab";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle, Info } from "lucide-react";
+import { ComparisonSelectionStatus, ComparisonState } from "./types/comparison-state";
+import { useInstancesForComparison } from "./hooks/useInstancesForComparison";
+import { Button } from "@/components/ui/button";
 
-interface InstanceCompareTabProps {
-  campaignId: string;
-}
-
-export function InstanceCompareTab({ campaignId }: InstanceCompareTabProps) {
-  const [baseInstanceId, setBaseInstanceId] = useState<string>();
-  const [comparisonInstanceId, setComparisonInstanceId] = useState<string>();
-
-  const { instances, isLoading: isLoadingInstances } = useInstancesForComparison(campaignId);
+export function InstanceCompareTab() {
+  const { id: campaignId } = useParams<{ id: string }>();
+  const [activeTab, setActiveTab] = useState("sbu");
   
-  const { data: managerData, isLoading: isLoadingManagers } = useTopManagersComparison(
-    campaignId,
-    baseInstanceId,
-    comparisonInstanceId
-  );
+  const [comparison, setComparison] = useState<ComparisonState>({
+    baseInstanceId: undefined,
+    comparisonInstanceId: undefined,
+    status: 'initial'
+  });
+  
+  const { 
+    suggestedBase, 
+    suggestedComparison, 
+    isLoading,
+    instances 
+  } = useInstancesForComparison(campaignId || '');
+  
+  useEffect(() => {
+    if (!isLoading && suggestedBase && suggestedComparison && comparison.status === 'initial') {
+      if (suggestedBase.id !== suggestedComparison.id) {
+        setComparison({
+          baseInstanceId: suggestedBase.id,
+          comparisonInstanceId: suggestedComparison.id,
+          status: 'selecting'
+        });
+      }
+    }
+  }, [suggestedBase, suggestedComparison, isLoading, comparison.status]);
+  
+  const handleBaseInstanceSelect = (instanceId: string) => {
+    if (instanceId === comparison.comparisonInstanceId) {
+      setComparison({
+        ...comparison,
+        baseInstanceId: instanceId,
+        status: 'invalid',
+        errorMessage: 'Base and comparison instances cannot be the same'
+      });
+    } else {
+      setComparison({
+        ...comparison,
+        baseInstanceId: instanceId,
+        status: comparison.comparisonInstanceId ? 'selecting' : 'initial',
+        errorMessage: undefined
+      });
+    }
+  };
+  
+  const handleComparisonInstanceSelect = (instanceId: string) => {
+    if (instanceId === comparison.baseInstanceId) {
+      setComparison({
+        ...comparison,
+        comparisonInstanceId: instanceId,
+        status: 'invalid',
+        errorMessage: 'Base and comparison instances cannot be the same'
+      });
+    } else {
+      setComparison({
+        ...comparison,
+        comparisonInstanceId: instanceId,
+        status: comparison.baseInstanceId ? 'selecting' : 'initial',
+        errorMessage: undefined
+      });
+    }
+  };
+  
+  const handleSwapInstances = () => {
+    if (comparison.baseInstanceId && comparison.comparisonInstanceId) {
+      const tempBaseId = comparison.baseInstanceId;
+      const tempComparisonId = comparison.comparisonInstanceId;
+      
+      setComparison({
+        baseInstanceId: tempComparisonId,
+        comparisonInstanceId: tempBaseId,
+        status: comparison.status,
+        errorMessage: undefined
+      });
+    }
+  };
+  
+  const renderComparisonContent = () => {
+    switch (comparison.status) {
+      case 'initial':
+        return (
+          <div className="text-center py-8">
+            <Info className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-medium mb-2">Select Instances to Compare</h3>
+            <p className="text-muted-foreground mb-4">
+              Please select two different periods to see a comparison of performance data.
+            </p>
+            {isLoading && <p className="text-sm">Loading suggested instances...</p>}
+          </div>
+        );
+        
+      case 'invalid':
+        return (
+          <Alert variant="destructive" className="mt-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Invalid Selection</AlertTitle>
+            <AlertDescription>
+              {comparison.errorMessage || 'Please select two different instances to compare.'}
+            </AlertDescription>
+          </Alert>
+        );
+        
+      case 'selecting':
+        return (
+          <div className="text-center py-8">
+            <Button 
+              onClick={handleConfirmComparison} 
+              disabled={!comparison.baseInstanceId || !comparison.comparisonInstanceId}
+              className="mt-4"
+              size="lg"
+            >
+              Compare Selected Instances
+            </Button>
+          </div>
+        );
+        
+      case 'ready':
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" onClick={handleChangeSelection}>
+                Change Selection
+              </Button>
+            </div>
+            
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="sbu">SBU Performance</TabsTrigger>
+                <TabsTrigger value="supervisors">Supervisor Performance</TabsTrigger>
+                <TabsTrigger value="questions">Question Responses</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="sbu">
+                <SBUPerformanceTab 
+                  campaignId={campaignId}
+                  baseInstanceId={comparison.baseInstanceId}
+                  comparisonInstanceId={comparison.comparisonInstanceId}
+                />
+              </TabsContent>
+              
+              <TabsContent value="supervisors">
+                <SupervisorPerformanceTab 
+                  campaignId={campaignId}
+                  baseInstanceId={comparison.baseInstanceId}
+                  comparisonInstanceId={comparison.comparisonInstanceId}
+                />
+              </TabsContent>
+              
+              <TabsContent value="questions">
+                <QuestionResponsesTab 
+                  campaignId={campaignId}
+                  baseInstanceId={comparison.baseInstanceId}
+                  comparisonInstanceId={comparison.comparisonInstanceId}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+        );
+    }
+  };
 
-  const { data: sbuData, isLoading: isLoadingSBUs } = useTopSBUComparison(
-    campaignId,
-    baseInstanceId,
-    comparisonInstanceId
-  );
-
-  const isLoading = isLoadingInstances || isLoadingManagers || isLoadingSBUs;
-
-  if (isLoadingInstances) {
-    return <LoadingSpinner />;
-  }
-
-  if (!instances || instances.length < 2) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        At least two instances are needed for comparison.
-      </div>
-    );
-  }
-
-  // Transform SBU data for the performance metrics component
-  const sbuPerformanceData = sbuData?.map(sbu => ({
-    sbu: sbu.sbu,
-    baseScore: sbu.baseScore,
-    comparisonScore: sbu.comparisonScore,
-    change: sbu.change,
-    baseRank: sbu.baseRank,
-    comparisonRank: sbu.comparisonRank,
-    rankChange: sbu.rankChange,
-    category: sbu.change > 0 ? 'improved' : sbu.change < 0 ? 'declined' : 'unchanged'
-  })) || [];
+  const handleConfirmComparison = () => {
+    if (comparison.baseInstanceId && comparison.comparisonInstanceId) {
+      setComparison({
+        ...comparison,
+        status: 'ready'
+      });
+    }
+  };
+  
+  const handleChangeSelection = () => {
+    setComparison({
+      ...comparison,
+      status: 'selecting'
+    });
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-4">
-        <Select value={baseInstanceId} onValueChange={setBaseInstanceId}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Select base instance" />
-          </SelectTrigger>
-          <SelectContent>
-            {instances.map((instance) => (
-              <SelectItem key={instance.id} value={instance.id}>
-                Period {instance.period_number}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <Card>
+        <CardHeader>
+          <CardTitle>Compare Instances</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EnhancedDualInstanceSelector
+            campaignId={campaignId || ''}
+            baseInstanceId={comparison.baseInstanceId}
+            comparisonInstanceId={comparison.comparisonInstanceId}
+            onBaseInstanceSelect={handleBaseInstanceSelect}
+            onComparisonInstanceSelect={handleComparisonInstanceSelect}
+            onSwapInstances={handleSwapInstances}
+            disableSameSelection={true}
+            instancesData={instances}
+            isLoading={isLoading}
+          />
+        </CardContent>
+      </Card>
 
-        <Select value={comparisonInstanceId} onValueChange={setComparisonInstanceId}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Select comparison instance" />
-          </SelectTrigger>
-          <SelectContent>
-            {instances.map((instance) => (
-              <SelectItem 
-                key={instance.id} 
-                value={instance.id}
-                disabled={instance.id === baseInstanceId}
-              >
-                Period {instance.period_number}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {!baseInstanceId || !comparisonInstanceId ? (
-        <div className="text-center py-8 text-muted-foreground">
-          Please select two instances to compare.
-        </div>
-      ) : isLoading ? (
-        <LoadingSpinner />
-      ) : (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                SBU Performance Comparison
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SBUPerformanceMetrics data={sbuPerformanceData} />
-              <SBUPerformanceChartView data={sbuPerformanceData} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users2 className="h-5 w-5" />
-                Manager Performance Comparison
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {managerData && (
-                <SupervisorPerformanceMetrics
-                  metrics={[
-                    {
-                      title: "Top Performing Managers",
-                      value: managerData.filter(m => m.comparison_score > m.base_score).length,
-                      change: "+",
-                      changeType: "positive"
-                    },
-                    {
-                      title: "Average Score Change",
-                      value: managerData.reduce((acc, curr) => acc + curr.change, 0) / managerData.length,
-                      changeType: "neutral"
-                    },
-                    {
-                      title: "Most Improved",
-                      value: Math.max(...managerData.map(m => m.change)),
-                      changeType: "positive"
-                    }
-                  ]}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {renderComparisonContent()}
     </div>
   );
 }
