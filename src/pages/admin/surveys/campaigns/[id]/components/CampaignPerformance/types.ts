@@ -5,6 +5,7 @@ export interface CampaignInstance {
   starts_at: string;
   ends_at: string;
   status: 'active' | 'completed' | 'upcoming';
+  completion_rate?: number;
 }
 
 export interface TrendDataPoint {
@@ -49,4 +50,34 @@ export interface PeriodAnalysisDataPoint {
   avgRating: number;
   completionRate: number;
   responseCount: number;
+}
+
+export interface AgeGroupBreakdownItem {
+  ageGroup: string;
+  count: number;
+  percentage: number;
+}
+
+export interface TenureBreakdownItem {
+  tenureGroup: string;
+  count: number;
+  percentage: number;
+}
+
+export interface CrossTabData {
+  category1: string;
+  category2: string;
+  count: number;
+  percentage: number;
+}
+
+export interface DemographicDistribution {
+  departments: DemographicBreakdownItem[];
+  locations: DemographicBreakdownItem[];
+  employeeTypes: DemographicBreakdownItem[];
+  employmentTypes: DemographicBreakdownItem[];
+  genders: DemographicBreakdownItem[];
+  levels: DemographicBreakdownItem[];
+  ageGroups: AgeGroupBreakdownItem[];
+  tenureGroups: TenureBreakdownItem[];
 }

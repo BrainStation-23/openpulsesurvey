@@ -1,9 +1,16 @@
-
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
-const EXPORT_PADDING = 40; // Add 40px of padding on each side
+const EXPORT_PADDING = 40; // Horizontal padding
+const VERTICAL_PADDING = 80; // Vertical padding for images
+
+// Sanitize filename to prevent security issues
+const sanitizeFilename = (name: string): string => {
+  // Remove special characters and limit length
+  return name.replace(/[^a-z0-9]/gi, '_').toLowerCase().substring(0, 50);
+};
 
 export const exportAsImage = async (elementId: string, fileName: string) => {
   const element = document.getElementById(elementId);
@@ -14,24 +21,23 @@ export const exportAsImage = async (elementId: string, fileName: string) => {
     useCORS: true,
     logging: false,
     allowTaint: true,
-    // Remove the margin property as it's not supported in html2canvas options
   });
   
   const paddedCanvas = document.createElement('canvas');
   paddedCanvas.width = canvas.width + (EXPORT_PADDING * 2);
-  paddedCanvas.height = canvas.height + (EXPORT_PADDING * 2);
+  paddedCanvas.height = canvas.height + (VERTICAL_PADDING * 2);
   
   const ctx = paddedCanvas.getContext('2d');
   if (ctx) {
     ctx.fillStyle = 'white'; // White background
     ctx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
-    ctx.drawImage(canvas, EXPORT_PADDING, EXPORT_PADDING);
+    ctx.drawImage(canvas, EXPORT_PADDING, VERTICAL_PADDING);
   }
 
   const image = paddedCanvas.toDataURL('image/png', 1.0);
   
   const link = document.createElement('a');
-  link.download = `${fileName}.png`;
+  link.download = `${sanitizeFilename(fileName)}.png`;
   link.href = image;
   link.click();
 };
@@ -45,37 +51,99 @@ export const exportAsPDF = async (elementId: string, fileName: string) => {
     useCORS: true,
     logging: false,
     allowTaint: true,
-    // Remove the margin property as it's not supported in html2canvas options
   });
   
-  const imgData = canvas.toDataURL('image/png');
+  // Create padded canvas
+  const paddedCanvas = document.createElement('canvas');
+  paddedCanvas.width = canvas.width + (EXPORT_PADDING * 2);
+  paddedCanvas.height = canvas.height + (VERTICAL_PADDING * 2);
+  
+  const ctx = paddedCanvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = 'white'; // White background
+    ctx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
+    ctx.drawImage(canvas, EXPORT_PADDING, VERTICAL_PADDING);
+  }
+  
+  const imgData = paddedCanvas.toDataURL('image/png');
   
   const pdf = new jsPDF({
-    orientation: 'landscape',
+    orientation: paddedCanvas.width > paddedCanvas.height ? 'landscape' : 'portrait',
     unit: 'px',
-    format: [canvas.width + (EXPORT_PADDING * 2), canvas.height + (EXPORT_PADDING * 2)]
+    format: [paddedCanvas.width, paddedCanvas.height],
+    hotfixes: ['px_scaling']
   });
   
-  // Add white background
-  pdf.setFillColor(255, 255, 255);
-  pdf.rect(0, 0, pdf.internal.pageSize.width, pdf.internal.pageSize.height, 'F');
+  // Add the image
+  pdf.addImage(imgData, 'PNG', 0, 0, paddedCanvas.width, paddedCanvas.height);
   
-  // Add image with padding
-  pdf.addImage(imgData, 'PNG', EXPORT_PADDING, EXPORT_PADDING, canvas.width, canvas.height);
-  
-  pdf.save(`${fileName}.pdf`);
+  pdf.save(`${sanitizeFilename(fileName)}.pdf`);
 };
 
 export const exportAsCSV = (data: any[], fileName: string) => {
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
-  XLSX.writeFile(workbook, `${fileName}.csv`);
+  // Using ExcelJS to create CSV
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Data');
+  
+  // Add headers
+  if (data.length > 0) {
+    const headers = Object.keys(data[0]);
+    worksheet.addRow(headers);
+  }
+  
+  // Add data rows with sanitization
+  data.forEach(row => {
+    const values = Object.values(row).map(value => {
+      // Basic sanitization for cell values
+      if (typeof value === 'string' && value.startsWith('=')) {
+        return `'${value}`; // Prevent formula injection
+      }
+      return value;
+    });
+    worksheet.addRow(values);
+  });
+
+  // Generate CSV
+  workbook.csv.writeBuffer().then(buffer => {
+    const blob = new Blob([buffer], { type: 'text/csv;charset=utf-8' });
+    saveAs(blob, `${sanitizeFilename(fileName)}.csv`);
+  });
 };
 
 export const exportAsExcel = (data: any[], fileName: string) => {
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
-  XLSX.writeFile(workbook, `${fileName}.xlsx`);
+  // Using ExcelJS for Excel export
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Data');
+  
+  // Add headers
+  if (data.length > 0) {
+    const headers = Object.keys(data[0]);
+    worksheet.addRow(headers);
+    
+    // Style the header row
+    worksheet.getRow(1).font = { bold: true };
+  }
+  
+  // Add data rows with sanitization
+  data.forEach(row => {
+    const values = Object.values(row).map(value => {
+      // Basic sanitization for cell values
+      if (typeof value === 'string' && value.startsWith('=')) {
+        return `'${value}`; // Prevent formula injection
+      }
+      return value;
+    });
+    worksheet.addRow(values);
+  });
+  
+  // Auto-fit columns
+  worksheet.columns.forEach(column => {
+    column.width = 15;
+  });
+
+  // Generate Excel file
+  workbook.xlsx.writeBuffer().then(buffer => {
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `${sanitizeFilename(fileName)}.xlsx`);
+  });
 };

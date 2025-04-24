@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -11,6 +10,8 @@ import { DemographicsTab } from "./CampaignPerformance/DemographicsTab";
 import { ComparisonTab } from "./CampaignPerformance/ComparisonTab";
 import { InstanceSelector } from "./CampaignPerformance/components/InstanceSelector";
 import { useState, useEffect } from "react";
+import { PerformanceDashboard } from "./CampaignPerformance/components/PerformanceDashboard";
+import { ManagerialInsightsTab } from "./CampaignPerformance/ManagerialInsightsTab";
 
 export default function CampaignPerformance() {
   const { id } = useParams();
@@ -29,7 +30,8 @@ export default function CampaignPerformance() {
             period_number,
             starts_at,
             ends_at,
-            status
+            status,
+            completion_rate
           )
         `)
         .eq('id', id)
@@ -40,7 +42,6 @@ export default function CampaignPerformance() {
     },
   });
 
-  // Set initially selected instances to all completed instances
   useEffect(() => {
     if (campaign?.instances) {
       const completedInstances = campaign.instances
@@ -93,25 +94,37 @@ export default function CampaignPerformance() {
       />
 
       {selectedInstances.length > 0 ? (
-        <Tabs defaultValue="trends" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="trends">Response Trends</TabsTrigger>
-            <TabsTrigger value="demographics">Demographics</TabsTrigger>
-            <TabsTrigger value="comparison">Comparison</TabsTrigger>
-          </TabsList>
+        <>
+          <PerformanceDashboard 
+            campaignId={campaign.id}
+            instances={selectedInstances}
+          />
+          
+          <Tabs defaultValue="trends" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="trends">Response Trends</TabsTrigger>
+              <TabsTrigger value="demographics">Demographics</TabsTrigger>
+              <TabsTrigger value="managerial">Managerial Insights</TabsTrigger>
+              <TabsTrigger value="comparison">Comparison</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="trends">
-            <ResponseTrendsTab campaignId={campaign.id} instances={selectedInstances} />
-          </TabsContent>
+            <TabsContent value="trends">
+              <ResponseTrendsTab campaignId={campaign.id} instances={selectedInstances} />
+            </TabsContent>
 
-          <TabsContent value="demographics">
-            <DemographicsTab campaignId={campaign.id} instances={selectedInstances} />
-          </TabsContent>
+            <TabsContent value="demographics">
+              <DemographicsTab campaignId={campaign.id} instances={selectedInstances} />
+            </TabsContent>
+            
+            <TabsContent value="managerial">
+              <ManagerialInsightsTab campaignId={campaign.id} instances={selectedInstances} />
+            </TabsContent>
 
-          <TabsContent value="comparison">
-            <ComparisonTab campaignId={campaign.id} instances={selectedInstances} />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="comparison">
+              <ComparisonTab campaignId={campaign.id} instances={selectedInstances} />
+            </TabsContent>
+          </Tabs>
+        </>
       ) : (
         <div className="flex items-center justify-center h-64 border rounded-lg bg-muted/10">
           <p className="text-muted-foreground">Select instances above to view performance analysis</p>
