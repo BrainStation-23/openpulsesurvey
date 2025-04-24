@@ -2,7 +2,7 @@
 import { useId } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
-import { Frown, Meh, Smile } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 interface GaugeChartProps {
   value: number;
@@ -21,7 +21,6 @@ export function GaugeChart({
   label,
   size = "md",
   className,
-  showIcons = true,
 }: GaugeChartProps) {
   const id = useId();
   const normalizedValue = Math.min(Math.max(value, min), max);
@@ -44,31 +43,40 @@ export function GaugeChart({
     lg: 300,
   };
 
-  const IconWrapper = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div className={cn("absolute text-muted-foreground", className)}>
-      {children}
-    </div>
+  const ScoreLabel = ({ score }: { score: number }) => (
+    <HoverCard>
+      <HoverCardTrigger asChild>
+        <div className="cursor-help">
+          <span className="text-4xl font-bold">{Math.round(score)}</span>
+          {label && <span className="text-sm text-muted-foreground">{label}</span>}
+        </div>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-80">
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            eNPS Score ranges from -100 to +100:
+          </p>
+          <div className="grid gap-1">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-destructive" />
+              <span className="text-sm">Below 0: Needs Improvement</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-yellow-500" />
+              <span className="text-sm">0-30: Good</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-green-500" />
+              <span className="text-sm">Above 30: Excellent</span>
+            </div>
+          </div>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
   );
 
   return (
     <div className={cn("relative inline-flex flex-col items-center", className)}>
-      {showIcons && (
-        <>
-          <IconWrapper className="left-0 top-1/2">
-            <Frown className="h-6 w-6 text-destructive" />
-            <span className="mt-1 text-xs font-medium">0-6</span>
-          </IconWrapper>
-          <IconWrapper className="top-0 left-1/2 -translate-x-1/2">
-            <Meh className="h-6 w-6 text-yellow-500" />
-            <span className="mt-1 text-xs font-medium">7-8</span>
-          </IconWrapper>
-          <IconWrapper className="right-0 top-1/2">
-            <Smile className="h-6 w-6 text-green-500" />
-            <span className="mt-1 text-xs font-medium">9-10</span>
-          </IconWrapper>
-        </>
-      )}
-      
       <ResponsiveContainer width={sizes[size]} height={sizes[size] / 2}>
         <PieChart>
           <Pie
@@ -89,8 +97,7 @@ export function GaugeChart({
       </ResponsiveContainer>
       
       <div className="absolute bottom-0 flex flex-col items-center">
-        <span className="text-4xl font-bold">{Math.round(value)}</span>
-        {label && <span className="text-sm text-muted-foreground">{label}</span>}
+        <ScoreLabel score={value} />
       </div>
     </div>
   );
