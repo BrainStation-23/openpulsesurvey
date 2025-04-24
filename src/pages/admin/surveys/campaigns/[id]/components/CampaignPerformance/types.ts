@@ -1,10 +1,10 @@
-
 export interface CampaignInstance {
   id: string;
   period_number: number;
   starts_at: string;
   ends_at: string;
   status: 'active' | 'completed' | 'upcoming';
+  completion_rate?: number;
 }
 
 export interface TrendDataPoint {

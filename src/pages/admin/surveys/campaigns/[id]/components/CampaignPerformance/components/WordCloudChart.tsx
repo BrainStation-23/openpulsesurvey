@@ -78,7 +78,7 @@ export function WordCloudChart({ words }: WordCloudProps) {
                 {cloudWords.map((w, i) => (
                   <text
                     key={`${w.text}-${i}`}
-                    fill={getColor(w)}
+                    fill={getColor({text: w.text || '', size: w.size || 0})}
                     textAnchor="middle"
                     transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
                     fontSize={w.size}

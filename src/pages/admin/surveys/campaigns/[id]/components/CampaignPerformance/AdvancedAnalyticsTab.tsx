@@ -28,6 +28,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { format, parseISO } from "date-fns";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart } from "./components/BarChart";
 
 interface AdvancedAnalyticsTabProps {
   campaignId: string;
@@ -226,20 +227,13 @@ export function AdvancedAnalyticsTab({ campaignId, instances }: AdvancedAnalytic
                 <CardTitle>Average Response Time</CardTitle>
               </CardHeader>
               <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={analyticData.sentimentData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar 
-                      dataKey="count" 
-                      fill="#8884d8" 
-                      name="Response Count" 
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                <BarChart 
+                  data={analyticData.sentimentData} 
+                  xAxisKey="name" 
+                  yAxisKey="count" 
+                  labelKey="Response Count"
+                  colors={['#8884d8']}
+                />
               </CardContent>
             </Card>
             
