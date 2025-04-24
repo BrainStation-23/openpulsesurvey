@@ -1,9 +1,11 @@
+
 import { useMemo } from "react";
 import { ProcessedData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
 import { useDimensionData } from "../../hooks/useDimensionData";
 import { NpsData, NpsComparisonData } from "../../../ReportsTab/types/nps";
-import { BooleanResponseData } from "../../types/responses";
+import { BooleanResponseData, SatisfactionData } from "../../types/responses";
+import { calculateMedian } from "../../../ReportsTab/utils/calculateMedian";
 
 // Define the data types from RPC functions
 interface SupervisorSatisfactionData {
@@ -28,6 +30,7 @@ type ProcessedResult =
   | SupervisorSatisfactionData[] 
   | BooleanComparisonData[]
   | NpsData 
+  | SatisfactionData
   | BooleanResponseData 
   | null;
 
@@ -121,6 +124,36 @@ export function useQuestionData(
       }
 
       return npsData;
+    }
+
+    // For standard 5-point rating questions (non-NPS) in main view
+    if (questionType === "rating" && !isNps && slideType === 'main') {
+      const validAnswers = data.responses
+        .map(response => response.answers[questionName]?.answer)
+        .filter((rating): rating is number => typeof rating === 'number');
+    
+      const total = validAnswers.length;
+      
+      if (total === 0) return null;
+      
+      // Calculate satisfaction categories
+      const unsatisfied = validAnswers.filter(r => r <= 2).length;
+      const neutral = validAnswers.filter(r => r === 3).length;
+      const satisfied = validAnswers.filter(r => r >= 4).length;
+      
+      // Calculate median
+      const median = calculateMedian(validAnswers);
+      
+      // Create satisfaction data object
+      const satisfactionData: SatisfactionData = {
+        unsatisfied,
+        neutral,
+        satisfied,
+        total,
+        median
+      };
+      
+      return satisfactionData;
     }
 
     // Return null for other question types

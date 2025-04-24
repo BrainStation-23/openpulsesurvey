@@ -3,6 +3,7 @@ import { NpsChart } from "../../../ReportsTab/charts/NpsChart";
 import { SatisfactionDonutChart } from "../../../ReportsTab/charts/SatisfactionDonutChart";
 import { RatingResponseData, SatisfactionData } from "../../types/responses";
 import { NpsData } from "../../../ReportsTab/types/nps";
+import { calculateMedian } from "../../../ReportsTab/utils/calculateMedian";
 
 interface RatingQuestionViewProps {
   data: RatingResponseData | SatisfactionData | NpsData | any; // Added 'any' to handle various data types
