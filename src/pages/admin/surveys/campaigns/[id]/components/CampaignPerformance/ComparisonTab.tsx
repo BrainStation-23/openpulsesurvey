@@ -56,37 +56,6 @@ export function ComparisonTab({ campaignId, instances }: ComparisonTabProps) {
           />
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Instance Comparison</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <EnhancedDualInstanceSelector
-            campaignId={campaignId}
-            baseInstanceId={baseInstanceId}
-            comparisonInstanceId={comparisonInstanceId}
-            onBaseInstanceSelect={setBaseInstanceId}
-            onComparisonInstanceSelect={setComparisonInstanceId}
-            onSwapInstances={handleSwapInstances}
-            disableSameSelection={true}
-          />
-
-          {baseInstanceId && comparisonInstanceId && (
-            <div className="flex justify-center mt-4">
-              <Button asChild>
-                <Link 
-                  to={`/admin/surveys/campaigns/${campaignId}?tab=compare&baseInstance=${baseInstanceId}&comparisonInstance=${comparisonInstanceId}`}
-                  className="flex items-center gap-2"
-                >
-                  View Detailed Comparison
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
