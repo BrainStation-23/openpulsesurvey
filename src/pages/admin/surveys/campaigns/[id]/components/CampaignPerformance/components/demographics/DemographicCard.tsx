@@ -19,22 +19,26 @@ export function DemographicCard({ title, data, chartType, nameKey = "name" }: De
   })) : data;
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-2">
+    <Card className="h-full flex flex-col overflow-hidden">
+      <CardHeader className="pb-1">
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col">
+      <CardContent className="flex-1 flex flex-col p-3 pt-0 overflow-hidden">
         {chartType === "pie" ? (
-          <DemographicPieChart 
-            data={formattedData} 
-            title={`Response Distribution by ${title}`}
-          />
+          <div className="h-full w-full">
+            <DemographicPieChart 
+              data={formattedData} 
+              title={`Response Distribution by ${title}`}
+            />
+          </div>
         ) : (
-          <DemographicBarChart 
-            data={data} 
-            title={`Response Distribution by ${title}`}
-            nameKey={nameKey}
-          />
+          <div className="h-full w-full">
+            <DemographicBarChart 
+              data={data} 
+              title={`Response Distribution by ${title}`}
+              nameKey={nameKey}
+            />
+          </div>
         )}
       </CardContent>
     </Card>

@@ -23,7 +23,7 @@ export function DistributionGridView({ demographicData, chartType }: Distributio
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
       {departments?.length > 0 && (
-        <div className="h-[400px]">
+        <div className="h-[350px]">
           <DemographicCard 
             title="Department Distribution"
             data={departments}
@@ -33,7 +33,7 @@ export function DistributionGridView({ demographicData, chartType }: Distributio
       )}
 
       {locations?.length > 0 && (
-        <div className="h-[400px]">
+        <div className="h-[350px]">
           <DemographicCard 
             title="Location Distribution"
             data={locations}
@@ -43,7 +43,7 @@ export function DistributionGridView({ demographicData, chartType }: Distributio
       )}
 
       {genders?.length > 0 && (
-        <div className="h-[400px]">
+        <div className="h-[350px]">
           <DemographicCard 
             title="Gender Distribution"
             data={genders}
@@ -53,7 +53,7 @@ export function DistributionGridView({ demographicData, chartType }: Distributio
       )}
 
       {levels?.length > 0 && (
-        <div className="h-[400px]">
+        <div className="h-[350px]">
           <DemographicCard 
             title="Level Distribution"
             data={levels}
@@ -63,7 +63,7 @@ export function DistributionGridView({ demographicData, chartType }: Distributio
       )}
 
       {employeeTypes?.length > 0 && (
-        <div className="h-[400px]">
+        <div className="h-[350px]">
           <DemographicCard 
             title="Employee Type Distribution"
             data={employeeTypes}
@@ -73,7 +73,7 @@ export function DistributionGridView({ demographicData, chartType }: Distributio
       )}
 
       {employmentTypes?.length > 0 && (
-        <div className="h-[400px]">
+        <div className="h-[350px]">
           <DemographicCard 
             title="Employment Type Distribution"
             data={employmentTypes}
@@ -83,7 +83,7 @@ export function DistributionGridView({ demographicData, chartType }: Distributio
       )}
 
       {ageGroups?.length > 0 && (
-        <div className="h-[400px]">
+        <div className="h-[350px]">
           <DemographicCard 
             title="Age Group Distribution"
             data={ageGroups}
@@ -94,7 +94,7 @@ export function DistributionGridView({ demographicData, chartType }: Distributio
       )}
 
       {tenureGroups?.length > 0 && (
-        <div className="h-[400px]">
+        <div className="h-[350px]">
           <DemographicCard 
             title="Tenure Distribution"
             data={tenureGroups}

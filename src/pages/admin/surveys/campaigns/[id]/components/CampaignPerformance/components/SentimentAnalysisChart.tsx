@@ -46,13 +46,13 @@ export function SentimentAnalysisChart({ data }: SentimentAnalysisChartProps) {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
+      <PieChart margin={{ top: 5, right: 5, bottom: 30, left: 5 }}>
         <Pie
           data={pieData}
           cx="50%"
-          cy="50%"
+          cy="45%"
           labelLine={false}
-          outerRadius="70%"
+          outerRadius={65}
           fill="#8884d8"
           dataKey="value"
           nameKey="name"
@@ -72,11 +72,6 @@ export function SentimentAnalysisChart({ data }: SentimentAnalysisChartProps) {
           layout="horizontal"
           verticalAlign="bottom"
           align="center"
-          wrapperStyle={{ 
-            fontSize: "11px",
-            paddingTop: "10px",
-            maxWidth: "100%"
-          }}
           content={renderCustomizedLegend}
         />
       </PieChart>
@@ -93,14 +88,14 @@ const renderCustomizedLegend = (props: any) => {
   }
 
   return (
-    <div className="flex flex-wrap justify-center gap-3 mt-2 px-2">
+    <div className="flex flex-wrap justify-center gap-2 mt-2 px-1 max-w-full overflow-hidden">
       {payload.map((entry: any, index: number) => (
         <div key={`legend-${index}`} className="flex items-center">
           <div
-            className="w-3 h-3 mr-1 rounded-sm"
+            className="w-3 h-3 mr-1 rounded-sm flex-shrink-0"
             style={{ backgroundColor: entry.color }}
           />
-          <span>{entry.value}</span>
+          <span className="text-xs">{entry.value}</span>
         </div>
       ))}
     </div>

@@ -34,22 +34,22 @@ export function DemographicPieChart({ data, title }: DemographicPieChartProps) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 w-full h-full flex flex-col">
       <h3 className="text-sm font-medium">{title}</h3>
-      <div className="aspect-square w-full h-[300px]">
+      <div className="flex-1 w-full">
         <ChartContainer config={{}}>
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
+            <PieChart margin={{ top: 5, right: 5, bottom: 30, left: 5 }}>
               <Pie
                 data={chartData}
                 cx="50%"
-                cy="50%"
+                cy="45%"
                 labelLine={false}
-                outerRadius={70}
+                outerRadius={65}
                 fill="#8884d8"
                 dataKey="count"
                 nameKey="name"
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }) => percent > 0.05 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
               >
                 {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -75,11 +75,6 @@ export function DemographicPieChart({ data, title }: DemographicPieChartProps) {
                 layout="horizontal"
                 verticalAlign="bottom"
                 align="center"
-                wrapperStyle={{ 
-                  fontSize: "10px",
-                  paddingTop: "10px",
-                  maxWidth: "100%"
-                }}
                 content={renderCustomizedLegend}
               />
             </PieChart>
@@ -99,14 +94,14 @@ const renderCustomizedLegend = (props: any) => {
   }
 
   return (
-    <div className="flex flex-wrap justify-center gap-2 mt-2 px-2 text-xs">
+    <div className="flex flex-wrap justify-center gap-2 mt-2 px-1 text-[9px] max-w-full overflow-hidden">
       {payload.map((entry: any, index: number) => (
         <div key={`legend-${index}`} className="flex items-center">
           <div
-            className="w-3 h-3 mr-1 rounded-sm"
+            className="w-2 h-2 mr-1 rounded-sm flex-shrink-0"
             style={{ backgroundColor: entry.color }}
           />
-          <span className="truncate max-w-[80px]" title={entry.value}>
+          <span className="truncate max-w-[60px]" title={entry.value}>
             {entry.value}
           </span>
         </div>
