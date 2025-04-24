@@ -3,13 +3,26 @@ import React from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, Calendar, PresentationChart, Settings } from "lucide-react";
+import { ChevronLeft, Calendar, Presentation, Settings } from "lucide-react";
 import { OverviewTab } from "./components/OverviewTab";
-import { ParticipantsTab } from "./components/ParticipantsTab";
-import { SettingsTab } from "./components/SettingsTab";
 import { ReportsTab } from "./components/ReportsTab";
 import { useCampaignData } from "@/hooks/useCampaignData";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+
+// Temporary component placeholders until they're implemented
+const ParticipantsTab = ({ campaignId }: { campaignId: string }) => (
+  <div className="p-4 border rounded-lg">
+    <h3 className="text-lg font-medium mb-2">Participants Tab</h3>
+    <p className="text-muted-foreground">This feature is coming soon.</p>
+  </div>
+);
+
+const SettingsTab = ({ campaignId }: { campaignId: string }) => (
+  <div className="p-4 border rounded-lg">
+    <h3 className="text-lg font-medium mb-2">Settings Tab</h3>
+    <p className="text-muted-foreground">Campaign settings will be available soon.</p>
+  </div>
+);
 
 export default function CampaignDetailsPage() {
   const navigate = useNavigate();
@@ -91,7 +104,7 @@ export default function CampaignDetailsPage() {
             onClick={() => navigate(`/admin/surveys/campaigns/${campaign.id}/performance`)}
             className="gap-2"
           >
-            <PresentationChart className="h-4 w-4" />
+            <Presentation className="h-4 w-4" />
             View Performance
           </Button>
           <Button
@@ -113,16 +126,16 @@ export default function CampaignDetailsPage() {
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
-          <OverviewTab campaign={campaign} />
+          <OverviewTab campaignId={campaign.id} />
         </TabsContent>
         <TabsContent value="participants">
-          <ParticipantsTab campaign={campaign} />
+          <ParticipantsTab campaignId={campaign.id} />
         </TabsContent>
         <TabsContent value="reports">
-          <ReportsTab campaign={campaign} />
+          <ReportsTab campaignId={campaign.id} />
         </TabsContent>
         <TabsContent value="settings">
-          <SettingsTab campaign={campaign} />
+          <SettingsTab campaignId={campaign.id} />
         </TabsContent>
       </Tabs>
     </div>

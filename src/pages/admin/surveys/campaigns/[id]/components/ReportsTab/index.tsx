@@ -4,7 +4,7 @@ import { useResponseProcessing } from "./hooks/useResponseProcessing";
 import { ComparisonDimension } from "./types/comparison";
 import { QuestionCard } from "./components/QuestionCard";
 
-interface ReportsTabProps {
+export interface ReportsTabProps {
   campaignId: string;
   instanceId?: string;
 }

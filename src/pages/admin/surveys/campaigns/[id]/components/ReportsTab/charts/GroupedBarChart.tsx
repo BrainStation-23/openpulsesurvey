@@ -54,7 +54,7 @@ export function GroupedBarChart({
       </div>
       <div ref={chartRef}>
         <ChartContainer config={{}}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={height}>
             <BarChart 
               data={data} 
               margin={{ top: 20, right: 30, left: 20, bottom: 75 }}
