@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NpsComparisonData } from "@/pages/admin/surveys/campaigns/[id]/components/ReportsTab/types/nps";
@@ -24,18 +25,28 @@ export function useSupervisorData(
         throw new Error("Campaign or instance ID not provided");
       }
 
-      const rpcName = isNps ? "get_supervisor_enps" : "get_supervisor_satisfaction";
-      const { data, error } = await supabase.rpc(rpcName, {
-        p_campaign_id: campaignId,
-        p_instance_id: instanceId,
-        p_question_name: questionName,
-      });
+      if (isNps) {
+        // For NPS questions, use get_supervisor_enps
+        const { data, error } = await supabase.rpc("get_supervisor_enps", {
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId,
+          p_question_name: questionName,
+        });
 
-      if (error) throw error;
+        if (error) throw error;
+        return data as NpsComparisonData[];
+      } else {
+        // For satisfaction questions, use get_dimension_satisfaction with 'supervisor' dimension
+        const { data, error } = await supabase.rpc("get_dimension_satisfaction", {
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId,
+          p_question_name: questionName,
+          p_dimension: 'supervisor'
+        });
 
-      return isNps 
-        ? data as NpsComparisonData[]
-        : data as SupervisorSatisfactionData[];
+        if (error) throw error;
+        return data as SupervisorSatisfactionData[];
+      }
     },
     enabled: !!campaignId && !!instanceId && !!questionName,
   });
