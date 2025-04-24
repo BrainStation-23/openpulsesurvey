@@ -2928,6 +2928,20 @@ export type Database = {
           completion_rate: number
         }[]
       }
+      get_dimension_bool: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+          p_dimension: string
+        }
+        Returns: {
+          dimension: string
+          yes_count: number
+          no_count: number
+          total_count: number
+        }[]
+      }
       get_dimension_nps: {
         Args: {
           p_campaign_id: string
@@ -3046,19 +3060,6 @@ export type Database = {
       get_pending_surveys_count: {
         Args: { p_user_id: string }
         Returns: number
-      }
-      get_supervisor_bool: {
-        Args: {
-          p_campaign_id: string
-          p_instance_id: string
-          p_question_name: string
-        }
-        Returns: {
-          dimension: string
-          yes_count: number
-          no_count: number
-          total_count: number
-        }[]
       }
       get_survey_responses: {
         Args: { p_campaign_id: string; p_instance_id?: string }

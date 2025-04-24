@@ -13,15 +13,23 @@ interface DimensionComparisonData {
   avg_score: number;
 }
 
+interface BooleanComparisonData {
+  dimension: string;
+  yes_count: number;
+  no_count: number;
+  total_count: number;
+}
+
 export function useDimensionComparison(
   campaignId: string | undefined,
   instanceId: string | undefined,
   questionName: string,
   dimension: ComparisonDimension,
-  isNps: boolean
+  isNps: boolean,
+  isBoolean?: boolean
 ) {
   return useQuery({
-    queryKey: ["dimension-comparison", campaignId, instanceId, questionName, dimension, isNps],
+    queryKey: ["dimension-comparison", campaignId, instanceId, questionName, dimension, isNps, isBoolean],
     queryFn: async () => {
       if (!campaignId || !instanceId) {
         throw new Error("Campaign or instance ID not provided");
@@ -40,6 +48,19 @@ export function useDimensionComparison(
 
         if (error) throw error;
         return data as NpsComparisonData[];
+      } else if (isBoolean) {
+        const { data, error } = await supabase.rpc(
+          'get_dimension_bool',
+          {
+            p_campaign_id: campaignId,
+            p_instance_id: instanceId,
+            p_question_name: questionName,
+            p_dimension: dimension
+          }
+        );
+
+        if (error) throw error;
+        return data as BooleanComparisonData[];
       } else {
         const { data, error } = await supabase.rpc(
           'get_dimension_satisfaction',
