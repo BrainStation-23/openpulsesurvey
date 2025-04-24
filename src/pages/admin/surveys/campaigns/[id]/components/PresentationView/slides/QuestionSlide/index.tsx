@@ -1,4 +1,3 @@
-
 import { memo } from "react";
 import { SlideProps } from "../../types";
 import { ComparisonDimension } from "../../types/comparison";
@@ -9,10 +8,10 @@ import { ComparisonView } from "./ComparisonView";
 import { useQuestionData } from "./useQuestionData";
 import { usePresentationResponses } from "../../hooks/usePresentationResponses";
 import { ComparisonLayout } from "../../components/ComparisonLayout";
+import { NpsComparison } from "../../../ReportsTab/components/comparisons/NpsComparison";
 import { BooleanResponseData, RatingResponseData, SatisfactionData } from "../../types/responses";
 import { GroupedBarChart } from "../../../ReportsTab/charts/GroupedBarChart";
 import { BooleanComparison as BooleanGroupedComparison } from "../../../ReportsTab/components/comparisons/BooleanComparison";
-import { NpsComparison } from "../../../ReportsTab/components/comparisons/NpsComparison";
 import { NpsComparisonTable } from "../../../ReportsTab/components/comparisons/NpsComparisonTable";
 
 interface QuestionSlideProps extends SlideProps {
@@ -31,7 +30,15 @@ const QuestionSlideComponent = ({
   slideType = 'main'
 }: QuestionSlideProps) => {
   const { data } = usePresentationResponses(campaign.id, campaign.instance?.id);
-  const processedData = useQuestionData(data, questionName, questionType, slideType);
+  const processedData = useQuestionData(
+    data, 
+    questionName, 
+    questionType, 
+    slideType,
+    campaign.id,
+    campaign.instance?.id
+  );
+  
   const question = data?.questions.find(q => q.name === questionName);
   const isNps = question?.type === 'rating' && question?.rateCount === 10;
 
@@ -148,18 +155,27 @@ const QuestionSlideComponent = ({
               instanceId={campaign.instance?.id || ""}
             />
           )}
-          {questionType === "rating" && !isNps && (
+          {questionType === "rating" && (
+            slideType === "supervisor" ? (
+              <NpsComparison
+                responses={data.responses}
+                questionName={questionName}
+                dimension={slideType}
+                isNps={isNps}
+                campaignId={campaign.id}
+                instanceId={campaign.instance?.id}
+              />
+            ) : !isNps ? (
               <ComparisonView 
                 data={processedData}
                 isNps={isNps}
               />
-            )
-          }
+            ) : null
+          )}
         </ComparisonLayout>
       )}
     </QuestionSlideLayout>
   );
 };
 
-// Memoize the component to prevent unnecessary re-renders
 export const QuestionSlide = memo(QuestionSlideComponent);

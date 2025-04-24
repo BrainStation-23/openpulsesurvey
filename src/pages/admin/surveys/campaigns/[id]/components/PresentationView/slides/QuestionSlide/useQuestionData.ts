@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
@@ -9,8 +8,20 @@ export function useQuestionData(
   data: ProcessedData | undefined | null,
   questionName: string,
   questionType: string,
-  slideType: ComparisonDimension
+  slideType: ComparisonDimension,
+  campaignId?: string,
+  instanceId?: string
 ): ProcessedResult | null {
+  const question = data?.questions.find(q => q.name === questionName);
+  const isNps = question?.type === 'rating' && question?.rateCount === 10;
+
+  const { data: supervisorData, isLoading: isLoadingSupervisor } = useSupervisorData(
+    campaignId,
+    instanceId,
+    questionName,
+    isNps
+  );
+
   return useMemo(() => {
     if (!data?.responses) return null;
 
@@ -19,10 +30,41 @@ export function useQuestionData(
       return null;
     }
 
-    const responses = data.responses;
-    const question = data.questions.find(q => q.name === questionName);
-    const isNps = question?.type === 'rating' && question?.rateCount === 10;
+    // For supervisor dimension, use RPC data
+    if (slideType === 'supervisor') {
+      if (isLoadingSupervisor || !supervisorData) return null;
 
+      if (isNps) {
+        return supervisorData.map((item) => ({
+          dimension: item.dimension || "Unknown Supervisor",
+          ratings: [
+            ...Array(7).fill(0).map((_, i) => ({
+              rating: i,
+              count: Math.round(item.detractors / 7)
+            })),
+            ...Array(2).fill(0).map((_, i) => ({
+              rating: i + 7,
+              count: Math.round(item.passives / 2)
+            })),
+            ...Array(2).fill(0).map((_, i) => ({
+              rating: i + 9,
+              count: Math.round(item.promoters / 2)
+            }))
+          ]
+        }));
+      } else {
+        return supervisorData.map((item) => ({
+          dimension: item.dimension || "Unknown Supervisor",
+          unsatisfied: item.unsatisfied,
+          neutral: item.neutral,
+          satisfied: item.satisfied,
+          total: item.total,
+          avg_score: item.avg_score
+        }));
+      }
+    }
+
+    // For other dimensions, use existing processing logic
     if (slideType === 'main') {
       switch (questionType) {
         case "boolean": {
@@ -81,7 +123,7 @@ export function useQuestionData(
     } else {
       return processComparisonData(responses, questionName, slideType, isNps);
     }
-  }, [data, questionName, questionType, slideType]);
+  }, [data, questionName, questionType, slideType, supervisorData, isLoadingSupervisor]);
 }
 
 function processComparisonData(
