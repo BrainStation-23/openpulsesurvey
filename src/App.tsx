@@ -143,9 +143,14 @@ const App = () => (
               <Route path="surveys/:id/preview" element={<PreviewSurveyPage />} />
               <Route path="surveys/campaigns" element={<CampaignsPage />} />
               <Route path="surveys/campaigns/create" element={<CampaignFormPage />} />
-              <Route path="surveys/campaigns/:id" element={<CampaignDetailsPage />} />
-              <Route path="surveys/campaigns/:id/instances" element={<CampaignInstancesPage />} />
-              <Route path="surveys/campaigns/:id/present" element={<PresentationView />} />
+              
+              {/* Updated nested campaign routes */}
+              <Route path="surveys/campaigns/:id" element={<CampaignDetailsPage />}>
+                <Route path="instances" element={<CampaignInstancesPage />} />
+                <Route path="performance" element={<CampaignPerformance />} />
+                <Route path="present" element={<PresentationView />} />
+              </Route>
+              
               <Route path="surveys/live" element={<LiveSurveyPage />} />
               <Route path="surveys/live/:sessionId" element={<LiveSessionControlPage />} />
               
@@ -180,7 +185,6 @@ const App = () => (
               <Route path="achievements/create" element={<AchievementFormPage />} />
               <Route path="achievements/:id/edit" element={<AchievementFormPage />} />
               <Route path="settings" element={<AdminSettings />} />
-              <Route path="surveys/campaigns/:id/performance" element={<CampaignPerformance />} />
             </Route>
           </Routes>
         </TourProvider>
