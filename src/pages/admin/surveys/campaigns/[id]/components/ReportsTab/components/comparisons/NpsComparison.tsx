@@ -83,7 +83,7 @@ export function NpsComparison({
       
       // Ensure supervisor_name is used as the dimension field
       return supervisorData.map((item: any) => ({
-        dimension: item.supervisor_name || "Unknown Supervisor", // Ensure we have a fallback
+        dimension: item.dimension || "Unknown Supervisor", // Ensure we have a fallback
         unsatisfied: item.unsatisfied,
         neutral: item.neutral,
         satisfied: item.satisfied,
