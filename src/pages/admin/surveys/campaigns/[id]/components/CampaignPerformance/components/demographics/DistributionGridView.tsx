@@ -23,85 +23,69 @@ export function DistributionGridView({ demographicData, chartType }: Distributio
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
       {departments?.length > 0 && (
-        <div className="h-[350px]">
-          <DemographicCard 
-            title="Department Distribution"
-            data={departments}
-            chartType={chartType}
-          />
-        </div>
+        <DemographicCard 
+          title="Department Distribution"
+          data={departments}
+          chartType={chartType}
+        />
       )}
 
       {locations?.length > 0 && (
-        <div className="h-[350px]">
-          <DemographicCard 
-            title="Location Distribution"
-            data={locations}
-            chartType={chartType}
-          />
-        </div>
+        <DemographicCard 
+          title="Location Distribution"
+          data={locations}
+          chartType={chartType}
+        />
       )}
 
       {genders?.length > 0 && (
-        <div className="h-[350px]">
-          <DemographicCard 
-            title="Gender Distribution"
-            data={genders}
-            chartType={chartType}
-          />
-        </div>
+        <DemographicCard 
+          title="Gender Distribution"
+          data={genders}
+          chartType={chartType}
+        />
       )}
 
       {levels?.length > 0 && (
-        <div className="h-[350px]">
-          <DemographicCard 
-            title="Level Distribution"
-            data={levels}
-            chartType={chartType}
-          />
-        </div>
+        <DemographicCard 
+          title="Level Distribution"
+          data={levels}
+          chartType={chartType}
+        />
       )}
 
       {employeeTypes?.length > 0 && (
-        <div className="h-[350px]">
-          <DemographicCard 
-            title="Employee Type Distribution"
-            data={employeeTypes}
-            chartType={chartType}
-          />
-        </div>
+        <DemographicCard 
+          title="Employee Type Distribution"
+          data={employeeTypes}
+          chartType={chartType}
+        />
       )}
 
       {employmentTypes?.length > 0 && (
-        <div className="h-[350px]">
-          <DemographicCard 
-            title="Employment Type Distribution"
-            data={employmentTypes}
-            chartType={chartType}
-          />
-        </div>
+        <DemographicCard 
+          title="Employment Type Distribution"
+          data={employmentTypes}
+          chartType={chartType}
+        />
       )}
 
       {ageGroups?.length > 0 && (
-        <div className="h-[350px]">
-          <DemographicCard 
-            title="Age Group Distribution"
-            data={ageGroups}
-            chartType={chartType}
-            nameKey="ageGroup"
-          />
-        </div>
+        <DemographicCard 
+          title="Age Group Distribution"
+          data={ageGroups}
+          chartType={chartType}
+          nameKey="ageGroup"
+        />
       )}
 
       {tenureGroups?.length > 0 && (
-        <div className="h-[350px]">
-          <DemographicCard 
-            title="Tenure Distribution"
-            data={tenureGroups}
-            chartType={chartType}
-            nameKey="tenureGroup"
-          />
-        </div>
+        <DemographicCard 
+          title="Tenure Distribution"
+          data={tenureGroups}
+          chartType={chartType}
+          nameKey="tenureGroup"
+        />
       )}
     </div>
   );

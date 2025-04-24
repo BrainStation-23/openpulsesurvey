@@ -47,7 +47,7 @@ export function DemographicsTab({ campaignId, instances }: DemographicsTabProps)
           <TabsTrigger value="cross-tab">Cross Analysis</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="distribution">
+        <TabsContent value="distribution" className="pt-2">
           <DistributionGridView 
             demographicData={demographicData}
             chartType={chartType}
