@@ -2928,6 +2928,22 @@ export type Database = {
           completion_rate: number
         }[]
       }
+      get_dimension_satisfaction: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+          p_dimension: string
+        }
+        Returns: {
+          dimension: string
+          unsatisfied: number
+          neutral: number
+          satisfied: number
+          total: number
+          avg_score: number
+        }[]
+      }
       get_instance_analysis_data: {
         Args: { p_campaign_id: string; p_instance_id: string }
         Returns: Json
@@ -3040,21 +3056,6 @@ export type Database = {
           promoters: number
           total: number
           nps_score: number
-        }[]
-      }
-      get_supervisor_satisfaction: {
-        Args: {
-          p_campaign_id: string
-          p_instance_id: string
-          p_question_name: string
-        }
-        Returns: {
-          dimension: string
-          unsatisfied: number
-          neutral: number
-          satisfied: number
-          total: number
-          avg_score: number
         }[]
       }
       get_survey_responses: {
