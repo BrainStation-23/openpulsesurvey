@@ -51,7 +51,7 @@ export function SentimentAnalysisChart({ data }: SentimentAnalysisChartProps) {
           data={pieData}
           cx="50%"
           cy="50%"
-          labelLine={true}
+          labelLine={false}
           outerRadius="70%"
           fill="#8884d8"
           dataKey="value"
@@ -68,8 +68,41 @@ export function SentimentAnalysisChart({ data }: SentimentAnalysisChartProps) {
         <Tooltip 
           formatter={(value: number) => [`${value} responses`, "Count"]}
         />
-        <Legend />
+        <Legend 
+          layout="horizontal"
+          verticalAlign="bottom"
+          align="center"
+          wrapperStyle={{ 
+            fontSize: "11px",
+            paddingTop: "10px",
+            maxWidth: "100%"
+          }}
+          content={renderCustomizedLegend}
+        />
       </PieChart>
     </ResponsiveContainer>
   );
 }
+
+// Custom legend that prevents overflow
+const renderCustomizedLegend = (props: any) => {
+  const { payload } = props;
+
+  if (!payload || payload.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap justify-center gap-3 mt-2 px-2">
+      {payload.map((entry: any, index: number) => (
+        <div key={`legend-${index}`} className="flex items-center">
+          <div
+            className="w-3 h-3 mr-1 rounded-sm"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span>{entry.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+};

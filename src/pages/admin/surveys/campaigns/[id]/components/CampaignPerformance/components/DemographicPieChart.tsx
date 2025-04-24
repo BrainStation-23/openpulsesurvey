@@ -1,5 +1,5 @@
 
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { DemographicBreakdownItem } from "../types";
 
@@ -45,7 +45,7 @@ export function DemographicPieChart({ data, title }: DemographicPieChartProps) {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                outerRadius={80}
+                outerRadius={70}
                 fill="#8884d8"
                 dataKey="count"
                 nameKey="name"
@@ -71,7 +71,17 @@ export function DemographicPieChart({ data, title }: DemographicPieChartProps) {
                   );
                 }}
               />
-              <Legend />
+              <Legend 
+                layout="horizontal"
+                verticalAlign="bottom"
+                align="center"
+                wrapperStyle={{ 
+                  fontSize: "10px",
+                  paddingTop: "10px",
+                  maxWidth: "100%"
+                }}
+                content={renderCustomizedLegend}
+              />
             </PieChart>
           </ResponsiveContainer>
         </ChartContainer>
@@ -79,3 +89,28 @@ export function DemographicPieChart({ data, title }: DemographicPieChartProps) {
     </div>
   );
 }
+
+// Custom legend that wraps and prevents overflow
+const renderCustomizedLegend = (props: any) => {
+  const { payload } = props;
+
+  if (!payload || payload.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap justify-center gap-2 mt-2 px-2 text-xs">
+      {payload.map((entry: any, index: number) => (
+        <div key={`legend-${index}`} className="flex items-center">
+          <div
+            className="w-3 h-3 mr-1 rounded-sm"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="truncate max-w-[80px]" title={entry.value}>
+            {entry.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
