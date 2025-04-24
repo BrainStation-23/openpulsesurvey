@@ -26,7 +26,14 @@ const SettingsTab = ({ campaignId }: { campaignId: string }) => (
 
 export default function CampaignDetailsPage() {
   const navigate = useNavigate();
-  const { data: campaign, isLoading, error } = useCampaignData();
+  const { data: campaign, isLoading, error, isError } = useCampaignData();
+
+  console.log("Campaign data:", campaign, "isLoading:", isLoading, "isError:", isError, "error:", error);
+
+  // Handle nested route
+  if (location.pathname.includes('/performance') || location.pathname.includes('/instances') || location.pathname.includes('/present')) {
+    return <Outlet />;
+  }
 
   // Handle loading state
   if (isLoading) {
@@ -38,7 +45,7 @@ export default function CampaignDetailsPage() {
   }
 
   // Handle error state
-  if (error || !campaign) {
+  if (isError || !campaign) {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2">
@@ -65,11 +72,6 @@ export default function CampaignDetailsPage() {
         </div>
       </div>
     );
-  }
-
-  // Handle nested route
-  if (location.pathname.includes('/performance') || location.pathname.includes('/instances') || location.pathname.includes('/present')) {
-    return <Outlet />;
   }
 
   return (

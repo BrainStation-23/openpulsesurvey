@@ -1,9 +1,8 @@
 
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
 import { ResponseTrendsTab } from "./CampaignPerformance/ResponseTrendsTab";
 import { DemographicsTab } from "./CampaignPerformance/DemographicsTab";
 import { ComparisonTab } from "./CampaignPerformance/ComparisonTab";
@@ -14,7 +13,10 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function CampaignPerformance() {
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
-  const { data: campaign, isLoading, error } = useCampaignData();
+  const { data: campaign, isLoading, error, isError } = useCampaignData();
+  const navigate = useNavigate();
+
+  console.log("Performance view - Campaign data:", campaign, "isLoading:", isLoading, "isError:", isError);
 
   // Set initially selected instances to all completed instances
   useEffect(() => {
@@ -30,20 +32,18 @@ export default function CampaignPerformance() {
     return <div className="flex items-center justify-center h-48"><LoadingSpinner /></div>;
   }
 
-  if (error || !campaign) {
+  if (isError || !campaign) {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
-            asChild
+            onClick={() => navigate("/admin/surveys/campaigns")}
             className="gap-2"
           >
-            <Link to="/admin/surveys/campaigns">
-              <ChevronLeft className="h-4 w-4" />
-              Back to Campaigns
-            </Link>
+            <ChevronLeft className="h-4 w-4" />
+            Back to Campaigns
           </Button>
         </div>
         <div className="flex flex-col items-center justify-center p-8 border rounded-lg">
@@ -52,9 +52,9 @@ export default function CampaignPerformance() {
           <Button 
             variant="outline" 
             className="mt-4"
-            asChild
+            onClick={() => navigate("/admin/surveys/campaigns")}
           >
-            <Link to="/admin/surveys/campaigns">Return to Campaigns</Link>
+            Return to Campaigns
           </Button>
         </div>
       </div>
@@ -73,13 +73,11 @@ export default function CampaignPerformance() {
             <Button
               variant="ghost"
               size="sm"
-              asChild
+              onClick={() => navigate(`/admin/surveys/campaigns/${campaign.id}`)}
               className="gap-2"
             >
-              <Link to={`/admin/surveys/campaigns/${campaign.id}`}>
-                <ChevronLeft className="h-4 w-4" />
-                Back to Campaign
-              </Link>
+              <ChevronLeft className="h-4 w-4" />
+              Back to Campaign
             </Button>
           </div>
           <h1 className="text-2xl font-bold">{campaign?.name} Performance</h1>

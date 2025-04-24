@@ -6,17 +6,20 @@ import { useInstanceManagement } from "./hooks/useInstanceManagement";
 import { InstanceTable } from "./components/InstanceTable";
 import { CronJobManager } from "./components/InstanceAutomation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCampaignData } from "@/hooks/useCampaignData";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function CampaignInstancesPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const campaignId = id as string;
+  const { data: campaign, isLoading: isCampaignLoading, isError: isCampaignError } = useCampaignData();
 
   const {
     instances,
     totalCount,
-    campaign,
+    campaign: instanceCampaign,
     isLoading,
     sort,
     pagination,
@@ -30,9 +33,41 @@ export default function CampaignInstancesPage() {
     hasActiveInstance,
   } = useInstanceManagement(campaignId);
 
-  if (!campaignId) {
-    navigate('/admin/surveys/campaigns');
-    return null;
+  if (isCampaignLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (isCampaignError || !campaign) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/admin/surveys/campaigns")}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Campaigns
+          </Button>
+        </div>
+        <div className="flex flex-col items-center justify-center p-8 border rounded-lg">
+          <h2 className="text-xl font-semibold text-destructive mb-2">Campaign not found</h2>
+          <p className="text-muted-foreground">The campaign you're looking for doesn't exist or you don't have permission to view it.</p>
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={() => navigate("/admin/surveys/campaigns")}
+          >
+            Return to Campaigns
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const handleSave = async (data: any) => {
@@ -112,7 +147,7 @@ export default function CampaignInstancesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => navigate('/admin/surveys/campaigns')}>
+        <Button variant="outline" size="icon" onClick={() => navigate(`/admin/surveys/campaigns/${campaign.id}`)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-bold">
@@ -144,7 +179,7 @@ export default function CampaignInstancesPage() {
             onPageChange={handlePageChange}
             onPageSizeChange={handlePageSizeChange}
             onSortChange={handleSortChange}
-            campaign={campaign}
+            campaign={instanceCampaign}
             hasActiveInstance={hasActiveInstance}
           />
         </TabsContent>
@@ -157,7 +192,6 @@ export default function CampaignInstancesPage() {
                 onUpdated={refreshInstances}
               />
             </div>
-            {/* StatusLogs removed as per user request */}
           </div>
           
           <div className="mt-6 bg-muted/50 border rounded-lg p-4">

@@ -1,73 +1,230 @@
 
-import { useParams, useSearchParams } from "react-router-dom";
-import { TitleSlide } from "./slides/TitleSlide";
-import { ResponseDistributionSlide } from "./slides/ResponseDistributionSlide";
-import { ResponseTrendsSlide } from "./slides/ResponseTrendsSlide";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useCampaignData } from "@/hooks/useCampaignData";
+
+// Import your existing components
 import { PresentationLayout } from "./components/PresentationLayout";
 import { PresentationControls } from "./components/PresentationControls";
-import { QuestionSlidesRenderer } from "./components/QuestionSlidesRenderer";
-import { useCampaignData } from "./hooks/useCampaignData";
+import { ComparisonLayout } from "./components/ComparisonLayout";
+import { SharePresentationModal } from "./components/SharePresentationModal";
+import { usePresentationResponses } from "./hooks/usePresentationResponses";
+import { usePresentationState } from "./hooks/usePresentationState";
 import { usePresentationNavigation } from "./hooks/usePresentationNavigation";
-import { COMPARISON_DIMENSIONS } from "./constants";
+import { usePptxExport } from "./hooks/usePptxExport";
+
+// Import the slides
+import { TitleSlide } from "./slides/TitleSlide";
+import { CompletionRateSlide } from "./slides/CompletionRateSlide";
+import { StatusDistributionSlide } from "./slides/StatusDistributionSlide";
+import { ResponseDistributionSlide } from "./slides/ResponseDistributionSlide";
+import { ResponseTrendsSlide } from "./slides/ResponseTrendsSlide";
+import { QuestionSlidesRenderer } from "./components/QuestionSlidesRenderer";
+
+// Import styles
+import "./styles.css";
 
 export default function PresentationView() {
-  const { id } = useParams();
-  const [searchParams] = useSearchParams();
-  const instanceId = searchParams.get('instance');
+  const navigate = useNavigate();
+  const { data: campaign, isLoading, isError } = useCampaignData();
+  const [instanceId, setInstanceId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
-  const { data: campaign } = useCampaignData(id, instanceId);
+  // Wait for campaign data before initializing other hooks
+  const { 
+    data, 
+    comparisonData, 
+    isLoading: isLoadingResponses
+  } = usePresentationResponses(campaign?.id, instanceId);
 
-  // Filter out text and comment type questions
-  const filteredQuestions = (campaign?.survey.json_data.pages || [])
-    .flatMap(page => page.elements || [])
-    .filter(question => question.type !== "text" && question.type !== "comment");
+  // Initialize presentation state
+  const { 
+    state, 
+    updateState,
+    isComparison, 
+    setIsComparison
+  } = usePresentationState();
 
-  const totalSlides = 3 + (filteredQuestions.length * (1 + COMPARISON_DIMENSIONS.length));
-
+  // Initialize navigation
   const {
-    currentSlide,
-    setCurrentSlide,
-    isFullscreen,
-    toggleFullscreen,
-    handleBack
-  } = usePresentationNavigation({
-    id,
-    instanceId,
-    totalSlides
-  });
+    currentSlideIndex,
+    totalSlides,
+    goToNextSlide,
+    goToPrevSlide,
+    goToSlide,
+    slideRefs
+  } = usePresentationNavigation(data, state.showComments);
 
-  if (!campaign) return null;
+  // Initialize PPTX export
+  const { exportToPptx } = usePptxExport(
+    campaign, 
+    data, 
+    comparisonData, 
+    state, 
+    isComparison
+  );
+
+  // Handle instance selection when campaign loads
+  useEffect(() => {
+    if (campaign?.instances && campaign.instances.length > 0) {
+      // Find the most recent completed instance
+      const completedInstances = campaign.instances
+        .filter(instance => instance.status === 'completed')
+        .sort((a, b) => new Date(b.ends_at).getTime() - new Date(a.ends_at).getTime());
+      
+      if (completedInstances.length > 0) {
+        setInstanceId(completedInstances[0].id);
+      } else {
+        // If no completed instance, use the most recent one
+        const sortedInstances = [...campaign.instances]
+          .sort((a, b) => new Date(b.ends_at).getTime() - new Date(a.ends_at).getTime());
+        
+        setInstanceId(sortedInstances[0].id);
+      }
+    }
+  }, [campaign]);
+
+  // Handle PPTX export
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      await exportToPptx();
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  if (isLoading || isLoadingResponses) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[400px]">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (isError || !campaign) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/admin/surveys/campaigns")}
+            className="gap-2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back to Campaigns
+          </Button>
+        </div>
+        <div className="flex flex-col items-center justify-center p-8 border rounded-lg">
+          <h2 className="text-xl font-semibold text-destructive mb-2">Campaign not found</h2>
+          <p className="text-muted-foreground">The campaign you're looking for doesn't exist or you don't have permission to view it.</p>
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={() => navigate("/admin/surveys/campaigns")}
+          >
+            Return to Campaigns
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Determine which layout to use based on comparison mode
+  const Layout = isComparison ? ComparisonLayout : PresentationLayout;
 
   return (
-    <PresentationLayout 
-      progress={((currentSlide + 1) / totalSlides) * 100}
-      isFullscreen={isFullscreen}
-    >
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Button
+          variant="outline"
+          onClick={() => navigate(`/admin/surveys/campaigns/${campaign.id}`)}
+          className="gap-2"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back to Campaign
+        </Button>
+        <h1 className="text-xl font-bold">{campaign.name} - Presentation</h1>
+      </div>
+
       <PresentationControls
-        onBack={handleBack}
-        onPrevious={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
-        onNext={() => setCurrentSlide((prev) => Math.min(totalSlides - 1, prev + 1))}
-        onFullscreen={toggleFullscreen}
-        isFirstSlide={currentSlide === 0}
-        isLastSlide={currentSlide === totalSlides - 1}
-        isFullscreen={isFullscreen}
-        currentSlide={currentSlide}
+        campaign={campaign}
+        currentSlideIndex={currentSlideIndex}
         totalSlides={totalSlides}
-        campaign={campaign}
+        goToNextSlide={goToNextSlide}
+        goToPrevSlide={goToPrevSlide}
+        goToSlide={goToSlide}
+        onExport={handleExport}
+        isExporting={isExporting}
+        onShare={() => setShowShareModal(true)}
+        presentationState={state}
+        updatePresentationState={updateState}
+        instanceId={instanceId}
+        setInstanceId={setInstanceId}
+        isComparison={isComparison}
+        setIsComparison={setIsComparison}
       />
-      
-      <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
-      <ResponseDistributionSlide 
-        campaignId={campaign.id} 
-        instanceId={instanceId || undefined} 
-        isActive={currentSlide === 1}
-        campaign={campaign}
-      />
-      <ResponseTrendsSlide campaign={campaign} isActive={currentSlide === 2} />
-      <QuestionSlidesRenderer 
-        campaign={campaign}
-        currentSlide={currentSlide}
-      />
-    </PresentationLayout>
+
+      <Layout>
+        {/* Title slide */}
+        <TitleSlide
+          ref={el => slideRefs.current[0] = el}
+          campaign={campaign}
+          instanceId={instanceId}
+        />
+
+        {/* Overview slides */}
+        <CompletionRateSlide
+          ref={el => slideRefs.current[1] = el}
+          data={data}
+          comparisonData={comparisonData}
+          isComparison={isComparison}
+        />
+
+        <StatusDistributionSlide
+          ref={el => slideRefs.current[2] = el}
+          data={data}
+          comparisonData={comparisonData}
+          isComparison={isComparison}
+        />
+
+        <ResponseDistributionSlide
+          ref={el => slideRefs.current[3] = el}
+          data={data}
+          comparisonData={comparisonData}
+          isComparison={isComparison}
+        />
+
+        <ResponseTrendsSlide
+          ref={el => slideRefs.current[4] = el}
+          data={data}
+          campaign={campaign}
+          comparisonData={comparisonData}
+          isComparison={isComparison}
+        />
+
+        {/* Question slides */}
+        <QuestionSlidesRenderer 
+          data={data}
+          comparisonData={comparisonData}
+          isComparison={isComparison}
+          showComments={state.showComments}
+          slideRefs={slideRefs}
+          startIndex={5}
+        />
+      </Layout>
+
+      {showShareModal && (
+        <SharePresentationModal
+          campaignId={campaign.id}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
+    </div>
   );
 }

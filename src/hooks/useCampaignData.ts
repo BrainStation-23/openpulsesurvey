@@ -11,6 +11,8 @@ export function useCampaignData() {
     queryFn: async () => {
       if (!id) throw new Error("Campaign ID is required");
       
+      console.log("Fetching campaign data for ID:", id);
+      
       const { data, error } = await supabase
         .from('survey_campaigns')
         .select(`
@@ -24,11 +26,19 @@ export function useCampaignData() {
             status
           )
         `)
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      return data;
+        .eq('id', id);
+      
+      if (error) {
+        console.error("Error fetching campaign:", error);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        console.error("No campaign found with ID:", id);
+        throw new Error("Campaign not found");
+      }
+      
+      return data[0]; // Return the first matching campaign instead of using single()
     },
     enabled: !!id,
   });
