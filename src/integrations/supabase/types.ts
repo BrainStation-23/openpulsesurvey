@@ -3040,6 +3040,7 @@ export type Database = {
           neutral: number
           satisfied: number
           total: number
+          avg_score: number
         }[]
       }
       get_survey_responses: {

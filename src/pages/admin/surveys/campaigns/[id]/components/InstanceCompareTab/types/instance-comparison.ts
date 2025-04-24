@@ -21,6 +21,7 @@ export type SupervisorPerformer = {
   department?: string;
   total_reports?: number;
   category?: 'improved' | 'declined' | 'stable';
+  avg_score?: number;
 };
 
 export type MetricSummary = {
