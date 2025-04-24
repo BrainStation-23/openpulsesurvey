@@ -54,7 +54,6 @@ export function RatingQuestionView({ data, isNps }: RatingQuestionViewProps) {
       <div className="w-full max-w-xl">
         <SatisfactionDonutChart 
           data={satisfactionData}
-          showLegend={true}
         />
       </div>
     );
