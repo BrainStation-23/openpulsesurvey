@@ -6,7 +6,7 @@ import { useSupervisorData } from "../../hooks/useSupervisorData";
 import { NpsData, NpsComparisonData } from "../../../ReportsTab/types/nps";
 import { BooleanResponseData } from "../../types/responses";
 
-// Define the SupervisorSatisfactionData type to match what comes from the API
+// Define the data types from RPC functions
 interface SupervisorSatisfactionData {
   dimension: string;
   unsatisfied: number;
@@ -16,10 +16,18 @@ interface SupervisorSatisfactionData {
   avg_score: number;
 }
 
+interface BooleanComparisonData {
+  dimension: string;
+  yes_count: number;
+  no_count: number;
+  total_count: number;
+}
+
 // Update ProcessedResult to include all possible return types
 type ProcessedResult = 
   | NpsComparisonData[] 
   | SupervisorSatisfactionData[] 
+  | BooleanComparisonData[]
   | NpsData 
   | BooleanResponseData 
   | null;
@@ -34,13 +42,15 @@ export function useQuestionData(
 ): ProcessedResult {
   const question = data?.questions.find(q => q.name === questionName);
   const isNps = question?.type === 'rating' && question?.rateCount === 10;
+  const isBoolean = question?.type === 'boolean';
 
-  // Only call useSupervisorData if slideType is a valid dimension (not 'none' or 'main')
+  // Only call useSupervisorData if slideType is a valid dimension
   const { data: supervisorData, isLoading: isLoadingSupervisor } = useSupervisorData(
     campaignId,
     instanceId,
     questionName,
     isNps,
+    isBoolean,
     slideType !== 'main' && slideType !== 'none' ? slideType : 'supervisor'
   );
 

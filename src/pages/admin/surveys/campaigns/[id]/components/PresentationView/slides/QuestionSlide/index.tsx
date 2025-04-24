@@ -1,4 +1,3 @@
-
 import { memo } from "react";
 import { SlideProps } from "../../types";
 import { ComparisonDimension } from "../../types/comparison";
@@ -68,7 +67,7 @@ export function QuestionSlide({
 
   if (!processedData && !data?.responses) return null;
 
-  // --- For NPS dimensional slides (all rating dimension slides except 'main') ---
+  // For NPS dimensional slides (all rating dimension slides except 'main')
   if (
     questionType === "rating" &&
     isNps &&
@@ -106,17 +105,15 @@ export function QuestionSlide({
           )}
           {questionType === "rating" && (
             <RatingQuestionView 
-              data={isNps 
-                ? (processedData as NpsData) 
-                : (processedData as any)} // Use type assertion with 'any' to avoid TS error
+              data={processedData} 
               isNps={isNps} 
             />
           )}
         </div>
       ) : (
         <ComparisonLayout title={getDimensionTitle(slideType)}>
-          {questionType === "boolean" && processedData && 'yes' in processedData && 'no' in processedData && (
-            <BooleanQuestionView data={processedData as BooleanResponseData} />
+          {questionType === "boolean" && Array.isArray(processedData) && processedData.length > 0 && 'yes_count' in processedData[0] && (
+            <ComparisonView data={processedData} />
           )}
           {questionType === "rating" && (
             <NpsComparison
