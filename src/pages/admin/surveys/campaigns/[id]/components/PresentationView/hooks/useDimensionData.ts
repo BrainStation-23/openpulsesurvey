@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NpsComparisonData } from "@/pages/admin/surveys/campaigns/[id]/components/ReportsTab/types/nps";
@@ -22,7 +21,7 @@ interface BooleanComparisonData {
 // Define valid dimensions for type safety
 export type ValidDimension = 'supervisor' | 'gender' | 'sbu' | 'location' | 'employment_type' | 'level' | 'employee_type' | 'employee_role';
 
-export function useSupervisorData(
+export function useDimensionData(
   campaignId: string | undefined,
   instanceId: string | undefined,
   questionName: string,

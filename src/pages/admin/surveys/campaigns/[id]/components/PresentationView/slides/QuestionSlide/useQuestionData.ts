@@ -1,8 +1,7 @@
-
 import { useMemo } from "react";
 import { ProcessedData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
-import { useSupervisorData } from "../../hooks/useSupervisorData";
+import { useDimensionData } from "../../hooks/useDimensionData";
 import { NpsData, NpsComparisonData } from "../../../ReportsTab/types/nps";
 import { BooleanResponseData } from "../../types/responses";
 
@@ -44,8 +43,8 @@ export function useQuestionData(
   const isNps = question?.type === 'rating' && question?.rateCount === 10;
   const isBoolean = question?.type === 'boolean';
 
-  // Only call useSupervisorData if slideType is a valid dimension
-  const { data: supervisorData, isLoading: isLoadingSupervisor } = useSupervisorData(
+  // Only call useDimensionData if slideType is a valid dimension
+  const { data: dimensionData, isLoading: isLoadingDimension } = useDimensionData(
     campaignId,
     instanceId,
     questionName,
@@ -59,8 +58,8 @@ export function useQuestionData(
 
     // For dimension comparison views (except 'main' and 'none'), use RPC data directly
     if (slideType !== 'main' && slideType !== 'none') {
-      if (isLoadingSupervisor || !supervisorData) return null;
-      return supervisorData;
+      if (isLoadingDimension || !dimensionData) return null;
+      return dimensionData;
     }
 
     // Skip processing for text questions
@@ -126,5 +125,5 @@ export function useQuestionData(
 
     // Return null for other question types
     return null;
-  }, [data, questionName, questionType, slideType, supervisorData, isLoadingSupervisor, isNps]);
+  }, [data, questionName, questionType, slideType, dimensionData, isLoadingDimension, isNps]);
 }

@@ -1,3 +1,4 @@
+
 import { memo } from "react";
 import { SlideProps } from "../../types";
 import { ComparisonDimension } from "../../types/comparison";
@@ -113,7 +114,7 @@ export function QuestionSlide({
       ) : (
         <ComparisonLayout title={getDimensionTitle(slideType)}>
           {questionType === "boolean" && Array.isArray(processedData) && processedData.length > 0 && 'yes_count' in processedData[0] && (
-            <ComparisonView data={processedData} />
+            <ComparisonView data={processedData} isNps={false} />
           )}
           {questionType === "rating" && (
             <NpsComparison
