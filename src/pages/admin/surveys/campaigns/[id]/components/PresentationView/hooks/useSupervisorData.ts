@@ -1,6 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+// Update the import path to the correct location of nps types
 import { NpsComparisonData } from "../../../ReportsTab/types/nps";
 
 interface SupervisorSatisfactionData {
