@@ -5,7 +5,7 @@ import { ProcessedResponse } from "../../hooks/useResponseProcessing";
 import { ComparisonDimension } from "../../types/comparison";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Info } from "lucide-react";
 import { useDimensionComparison } from "../../hooks/useDimensionComparison";
 
 interface BooleanComparisonProps {
@@ -62,11 +62,15 @@ export function BooleanComparison({
 
   if (!data || data.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>No data available</CardTitle>
-        </CardHeader>
-      </Card>
+      <Alert variant="default">
+        <Info className="h-4 w-4" />
+        <AlertTitle>No comparison data available</AlertTitle>
+        <AlertDescription>
+          {dimension === 'supervisor' 
+            ? 'Supervisors need at least 4 responses to be included in the comparison.'
+            : 'No data available for the selected comparison.'}
+        </AlertDescription>
+      </Alert>
     );
   }
 
