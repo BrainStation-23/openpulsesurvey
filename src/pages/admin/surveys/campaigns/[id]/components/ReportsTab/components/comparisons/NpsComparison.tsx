@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
@@ -7,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { NpsComparisonTable } from "./NpsComparisonTable";
 import { useDimensionComparison } from "../../hooks/useDimensionComparison";
+import { NpsComparisonData } from "../../types/nps";
 
 interface NpsComparisonProps {
   responses: ProcessedResponse[];
@@ -87,7 +89,12 @@ export function NpsComparison({
     );
   }
 
-  if (isNps) {
+  // Type guard to check if the data is NPS data
+  const isNpsData = (data: any[]): data is NpsComparisonData[] => {
+    return isNps && data.length > 0 && 'detractors' in data[0];
+  };
+
+  if (isNpsData(data)) {
     return (
       <div className="w-full">
         <NpsComparisonTable data={data} />
