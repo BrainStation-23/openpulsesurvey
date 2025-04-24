@@ -1,15 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
-interface SupervisorNpsData {
-  dimension: string;
-  detractors: number;
-  passives: number;
-  promoters: number;
-  total: number;
-  nps_score: number;
-}
+import { NpsComparisonData } from "../../../ReportsTab/types/nps";
 
 interface SupervisorSatisfactionData {
   dimension: string;
@@ -43,7 +35,7 @@ export function useSupervisorData(
       if (error) throw error;
 
       return isNps 
-        ? data as SupervisorNpsData[]
+        ? data as NpsComparisonData[]
         : data as SupervisorSatisfactionData[];
     },
     enabled: !!campaignId && !!instanceId && !!questionName,

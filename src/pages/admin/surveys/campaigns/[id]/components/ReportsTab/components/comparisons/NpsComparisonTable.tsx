@@ -1,18 +1,10 @@
 
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-
-interface SupervisorNpsData {
-  dimension: string;
-  detractors: number;
-  passives: number;
-  promoters: number;
-  total: number;
-  nps_score: number;
-}
+import { NpsComparisonData } from "../../types/nps";
 
 interface NpsComparisonTableProps {
-  data: Array<SupervisorNpsData>;
+  data: NpsComparisonData[];
 }
 
 export function NpsComparisonTable({ data }: NpsComparisonTableProps) {
