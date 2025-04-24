@@ -16,8 +16,7 @@ export function DistributionGridView({ demographicData, chartType }: Distributio
     employmentTypes,
     genders,
     levels,
-    ageGroups,
-    tenureGroups
+    ageGroups
   } = demographicData;
 
   return (
@@ -76,15 +75,6 @@ export function DistributionGridView({ demographicData, chartType }: Distributio
           data={ageGroups}
           chartType={chartType}
           nameKey="ageGroup"
-        />
-      )}
-
-      {tenureGroups?.length > 0 && (
-        <DemographicCard 
-          title="Tenure Distribution"
-          data={tenureGroups}
-          chartType={chartType}
-          nameKey="tenureGroup"
         />
       )}
     </div>

@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { DemographicBreakdownItem } from "../../types";
@@ -41,7 +40,7 @@ export function DemographicCard({ title, data, chartType, nameKey = "name" }: De
   }
 
   return (
-    <Card className="h-[350px] flex flex-col overflow-hidden">
+    <Card className="h-[525px] flex flex-col overflow-hidden">
       <CardHeader className="p-4 pb-2 border-b flex-shrink-0">
         <div className="flex items-start justify-between">
           <CardTitle className="text-base">{title}</CardTitle>
