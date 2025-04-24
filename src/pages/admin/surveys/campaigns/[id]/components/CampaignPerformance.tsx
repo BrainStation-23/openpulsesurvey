@@ -1,22 +1,44 @@
 
+import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { ResponseTrendsTab } from "./CampaignPerformance/ResponseTrendsTab";
 import { DemographicsTab } from "./CampaignPerformance/DemographicsTab";
 import { ComparisonTab } from "./CampaignPerformance/ComparisonTab";
 import { InstanceSelector } from "./CampaignPerformance/components/InstanceSelector";
 import { useState, useEffect } from "react";
-import { useCampaignData } from "@/hooks/useCampaignData";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function CampaignPerformance() {
+  const { id } = useParams();
   const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
-  const { data: campaign, isLoading, error, isError } = useCampaignData();
-  const navigate = useNavigate();
 
-  console.log("Performance view - Campaign data:", campaign, "isLoading:", isLoading, "isError:", isError);
+  const { data: campaign, isLoading } = useQuery({
+    queryKey: ['campaign', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('survey_campaigns')
+        .select(`
+          *,
+          survey:surveys(name),
+          instances:campaign_instances(
+            id,
+            period_number,
+            starts_at,
+            ends_at,
+            status
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
 
   // Set initially selected instances to all completed instances
   useEffect(() => {
@@ -29,36 +51,11 @@ export default function CampaignPerformance() {
   }, [campaign]);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-48"><LoadingSpinner /></div>;
+    return <div className="flex items-center justify-center h-48">Loading...</div>;
   }
 
-  if (isError || !campaign) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/admin/surveys/campaigns")}
-            className="gap-2"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Back to Campaigns
-          </Button>
-        </div>
-        <div className="flex flex-col items-center justify-center p-8 border rounded-lg">
-          <h2 className="text-xl font-semibold text-destructive mb-2">Campaign not found</h2>
-          <p className="text-muted-foreground">The campaign you're looking for doesn't exist or you don't have permission to view it.</p>
-          <Button 
-            variant="outline" 
-            className="mt-4"
-            onClick={() => navigate("/admin/surveys/campaigns")}
-          >
-            Return to Campaigns
-          </Button>
-        </div>
-      </div>
-    );
+  if (!campaign) {
+    return <div>Campaign not found</div>;
   }
 
   const selectedInstances = campaign.instances.filter(
@@ -73,11 +70,13 @@ export default function CampaignPerformance() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/admin/surveys/campaigns/${campaign.id}`)}
+              asChild
               className="gap-2"
             >
-              <ChevronLeft className="h-4 w-4" />
-              Back to Campaign
+              <Link to={`/admin/surveys/campaigns/${id}`}>
+                <ChevronLeft className="h-4 w-4" />
+                Back to Campaign
+              </Link>
             </Button>
           </div>
           <h1 className="text-2xl font-bold">{campaign?.name} Performance</h1>

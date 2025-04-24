@@ -54,7 +54,6 @@ export function QuestionCard({
             {question.type === "boolean" && (
               <BooleanCharts
                 data={processedData as { yes: number; no: number }}
-                title={question.title}
               />
             )}
             {(question.type === "nps" || question.type === "rating") && (
@@ -62,7 +61,6 @@ export function QuestionCard({
                 {isNpsQuestion ? (
                   <NpsChart
                     data={processedData as NpsData}
-                    title={question.title}
                   />
                 ) : (
                   <SatisfactionChart
@@ -73,7 +71,6 @@ export function QuestionCard({
                       total: number;
                       median: number;
                     }}
-                    title={question.title}
                   />
                 )}
               </>
@@ -81,7 +78,6 @@ export function QuestionCard({
             {(question.type === "text" || question.type === "comment") && (
               <WordCloud
                 words={processedData as { text: string; value: number }[]}
-                title={question.title}
               />
             )}
           </>

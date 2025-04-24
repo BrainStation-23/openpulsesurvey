@@ -1,4 +1,3 @@
-
 import { useCallback, useRef, useEffect, useState } from "react";
 import Wordcloud from "@visx/wordcloud/lib/Wordcloud";
 
@@ -7,7 +6,6 @@ interface WordCloudProps {
     text: string;
     value: number;
   }>;
-  title?: string;
 }
 
 interface WordData {
