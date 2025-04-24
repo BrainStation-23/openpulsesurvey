@@ -1,22 +1,19 @@
+
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { NpsData } from "../types/nps";
+import { GaugeChart } from "@/components/ui/gauge-chart";
 
 interface NpsChartProps {
   data: NpsData;
 }
 
 export function NpsChart({ data }: NpsChartProps) {
-  const getScoreColor = (score: number) => {
-    return score >= 8 ? 'text-green-500' : 'text-red-500';
-  };
-
   // Safety check to handle empty data
   if (!data) {
     return <div className="text-center text-muted-foreground">No data available</div>;
   }
 
-  const npsScore = Math.round(data.nps_score);
   const totalResponses = data.total;
   
   const percentages = {
@@ -27,29 +24,28 @@ export function NpsChart({ data }: NpsChartProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <div className="space-y-1">
-            <div className="text-sm text-muted-foreground">eNPS Score</div>
-            <div className={cn("text-2xl font-bold", getScoreColor(npsScore))}>
-              {npsScore}
-            </div>
+      <div className="flex items-center justify-center">
+        <GaugeChart 
+          value={Math.round(data.nps_score)} 
+          label="eNPS Score"
+          size="lg"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 items-start">
+        <div className="space-y-1">
+          <div className="text-sm text-muted-foreground">Average Rating</div>
+          <div className="text-2xl font-bold">
+            {data.avg_score?.toFixed(1) || "N/A"}
           </div>
-          
-          {data.avg_score !== undefined && data.avg_score !== 0 && (
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Avg Rating</div>
-              <div className="text-2xl font-bold text-gray-700">
-                {data.avg_score}
-              </div>
-            </div>
-          )}
+        </div>
+        <div className="space-y-1">
+          <div className="text-sm text-muted-foreground">Total Responses</div>
+          <div className="text-2xl font-bold">{totalResponses}</div>
         </div>
       </div>
 
-      {/* Segments */}
       <div className="space-y-4">
-        {/* Promoters */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Promoters</span>
@@ -64,7 +60,6 @@ export function NpsChart({ data }: NpsChartProps) {
           />
         </div>
 
-        {/* Passives */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Passives</span>
@@ -79,7 +74,6 @@ export function NpsChart({ data }: NpsChartProps) {
           />
         </div>
 
-        {/* Detractors */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Detractors</span>
@@ -93,11 +87,6 @@ export function NpsChart({ data }: NpsChartProps) {
             indicatorClassName="bg-[#ef4444]"
           />
         </div>
-      </div>
-
-      {/* Total Responses */}
-      <div className="text-center text-sm text-muted-foreground">
-        Total Responses: {totalResponses}
       </div>
     </div>
   );
