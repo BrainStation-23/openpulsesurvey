@@ -9,9 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { ResponseTrendsTab } from "./CampaignPerformance/ResponseTrendsTab";
 import { DemographicsTab } from "./CampaignPerformance/DemographicsTab";
 import { ComparisonTab } from "./CampaignPerformance/ComparisonTab";
+import { InstanceSelector } from "./CampaignPerformance/components/InstanceSelector";
+import { useState, useEffect } from "react";
 
 export default function CampaignPerformance() {
   const { id } = useParams();
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
 
   const { data: campaign, isLoading } = useQuery({
     queryKey: ['campaign', id],
@@ -37,6 +40,16 @@ export default function CampaignPerformance() {
     },
   });
 
+  // Set initially selected instances to all completed instances
+  useEffect(() => {
+    if (campaign?.instances) {
+      const completedInstances = campaign.instances
+        .filter(instance => instance.status === 'completed')
+        .map(instance => instance.id);
+      setSelectedInstanceIds(completedInstances);
+    }
+  }, [campaign]);
+
   if (isLoading) {
     return <div className="flex items-center justify-center h-48">Loading...</div>;
   }
@@ -44,6 +57,10 @@ export default function CampaignPerformance() {
   if (!campaign) {
     return <div>Campaign not found</div>;
   }
+
+  const selectedInstances = campaign.instances.filter(
+    instance => selectedInstanceIds.includes(instance.id)
+  );
 
   return (
     <div className="space-y-6">
@@ -69,25 +86,37 @@ export default function CampaignPerformance() {
         </div>
       </div>
 
-      <Tabs defaultValue="trends" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="trends">Response Trends</TabsTrigger>
-          <TabsTrigger value="demographics">Demographics</TabsTrigger>
-          <TabsTrigger value="comparison">Comparison</TabsTrigger>
-        </TabsList>
+      <InstanceSelector
+        instances={campaign.instances}
+        selectedInstanceIds={selectedInstanceIds}
+        onInstanceSelect={setSelectedInstanceIds}
+      />
 
-        <TabsContent value="trends">
-          <ResponseTrendsTab campaignId={campaign.id} instances={campaign.instances} />
-        </TabsContent>
+      {selectedInstances.length > 0 ? (
+        <Tabs defaultValue="trends" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="trends">Response Trends</TabsTrigger>
+            <TabsTrigger value="demographics">Demographics</TabsTrigger>
+            <TabsTrigger value="comparison">Comparison</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="demographics">
-          <DemographicsTab campaignId={campaign.id} instances={campaign.instances} />
-        </TabsContent>
+          <TabsContent value="trends">
+            <ResponseTrendsTab campaignId={campaign.id} instances={selectedInstances} />
+          </TabsContent>
 
-        <TabsContent value="comparison">
-          <ComparisonTab campaignId={campaign.id} instances={campaign.instances} />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="demographics">
+            <DemographicsTab campaignId={campaign.id} instances={selectedInstances} />
+          </TabsContent>
+
+          <TabsContent value="comparison">
+            <ComparisonTab campaignId={campaign.id} instances={selectedInstances} />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <div className="flex items-center justify-center h-64 border rounded-lg bg-muted/10">
+          <p className="text-muted-foreground">Select instances above to view performance analysis</p>
+        </div>
+      )}
     </div>
   );
 }
