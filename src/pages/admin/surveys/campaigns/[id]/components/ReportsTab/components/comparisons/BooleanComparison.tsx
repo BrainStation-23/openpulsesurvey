@@ -17,10 +17,12 @@ interface BooleanComparisonProps {
   instanceId?: string;
 }
 
+// Update the interface to include an index signature to match the GroupedBarChart requirements
 interface GroupedData {
   name: string;
   Yes: number;
   No: number;
+  [key: string]: string | number; // Add this index signature
 }
 
 export function BooleanComparison({
