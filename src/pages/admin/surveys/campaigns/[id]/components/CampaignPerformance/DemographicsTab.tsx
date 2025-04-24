@@ -1,13 +1,13 @@
 
+import { useState } from "react";
 import { useCampaignDemographics } from "./hooks/useCampaignDemographics";
-import { DemographicPieChart } from "./components/DemographicPieChart";
-import { DemographicBarChart } from "./components/DemographicBarChart";
 import { CampaignInstance } from "./types";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartTypeSelector } from "./components/demographics/ChartTypeSelector";
+import { DemographicCard } from "./components/demographics/DemographicCard";
+import { DemographicTable } from "./components/demographics/DemographicTable";
 
 interface DemographicsTabProps {
   campaignId: string;
@@ -55,28 +55,11 @@ export function DemographicsTab({ campaignId, instances }: DemographicsTabProps)
     );
   }
 
-  // Determine which chart component to use based on the chartType state
-  const ChartComponent = chartType === "pie" ? DemographicPieChart : DemographicBarChart;
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold">Demographic Analysis</h2>
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-medium">Chart Type:</span>
-          <Select
-            value={chartType}
-            onValueChange={(value) => setChartType(value as "pie" | "bar")}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select chart type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pie">Pie Chart</SelectItem>
-              <SelectItem value="bar">Bar Chart</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <ChartTypeSelector value={chartType} onValueChange={setChartType} />
       </div>
 
       <Tabs defaultValue="distribution" className="space-y-4">
@@ -89,139 +72,69 @@ export function DemographicsTab({ campaignId, instances }: DemographicsTabProps)
         <TabsContent value="distribution">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {hasDepartmentData && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Department Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartComponent 
-                    data={demographicData.departments} 
-                    title="Response Distribution by Department"
-                  />
-                </CardContent>
-              </Card>
+              <DemographicCard 
+                title="Department Distribution"
+                data={demographicData.departments}
+                chartType={chartType}
+              />
             )}
 
             {hasLocationData && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Location Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartComponent 
-                    data={demographicData.locations} 
-                    title="Response Distribution by Location"
-                  />
-                </CardContent>
-              </Card>
+              <DemographicCard 
+                title="Location Distribution"
+                data={demographicData.locations}
+                chartType={chartType}
+              />
             )}
 
             {hasGenderData && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Gender Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartComponent 
-                    data={demographicData.genders} 
-                    title="Response Distribution by Gender"
-                  />
-                </CardContent>
-              </Card>
+              <DemographicCard 
+                title="Gender Distribution"
+                data={demographicData.genders}
+                chartType={chartType}
+              />
             )}
 
             {hasLevelData && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Level Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartComponent 
-                    data={demographicData.levels} 
-                    title="Response Distribution by Level"
-                  />
-                </CardContent>
-              </Card>
+              <DemographicCard 
+                title="Level Distribution"
+                data={demographicData.levels}
+                chartType={chartType}
+              />
             )}
 
             {hasEmployeeTypeData && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Employee Type Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartComponent 
-                    data={demographicData.employeeTypes} 
-                    title="Response Distribution by Employee Type"
-                  />
-                </CardContent>
-              </Card>
+              <DemographicCard 
+                title="Employee Type Distribution"
+                data={demographicData.employeeTypes}
+                chartType={chartType}
+              />
             )}
 
             {hasEmploymentTypeData && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Employment Type Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartComponent 
-                    data={demographicData.employmentTypes} 
-                    title="Response Distribution by Employment Type"
-                  />
-                </CardContent>
-              </Card>
+              <DemographicCard 
+                title="Employment Type Distribution"
+                data={demographicData.employmentTypes}
+                chartType={chartType}
+              />
             )}
 
             {hasAgeGroupData && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Age Group Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {chartType === "pie" ? (
-                    <DemographicPieChart 
-                      data={demographicData.ageGroups.map(item => ({
-                        name: item.ageGroup,
-                        count: item.count,
-                        percentage: item.percentage
-                      }))} 
-                      title="Response Distribution by Age Group"
-                    />
-                  ) : (
-                    <DemographicBarChart 
-                      data={demographicData.ageGroups} 
-                      title="Response Distribution by Age Group"
-                      nameKey="ageGroup"
-                    />
-                  )}
-                </CardContent>
-              </Card>
+              <DemographicCard 
+                title="Age Group Distribution"
+                data={demographicData.ageGroups}
+                chartType={chartType}
+                nameKey="ageGroup"
+              />
             )}
 
             {hasTenureData && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Tenure Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {chartType === "pie" ? (
-                    <DemographicPieChart 
-                      data={demographicData.tenureGroups.map(item => ({
-                        name: item.tenureGroup,
-                        count: item.count,
-                        percentage: item.percentage
-                      }))} 
-                      title="Response Distribution by Tenure"
-                    />
-                  ) : (
-                    <DemographicBarChart 
-                      data={demographicData.tenureGroups} 
-                      title="Response Distribution by Tenure"
-                      nameKey="tenureGroup"
-                    />
-                  )}
-                </CardContent>
-              </Card>
+              <DemographicCard 
+                title="Tenure Distribution"
+                data={demographicData.tenureGroups}
+                chartType={chartType}
+                nameKey="tenureGroup"
+              />
             )}
           </div>
         </TabsContent>
@@ -229,227 +142,61 @@ export function DemographicsTab({ campaignId, instances }: DemographicsTabProps)
         <TabsContent value="tables">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {hasDepartmentData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Department Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Department</th>
-                        <th className="text-right py-2">Count</th>
-                        <th className="text-right py-2">Percentage</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {demographicData.departments.map((item, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-2">{item.name}</td>
-                          <td className="text-right py-2">{item.count}</td>
-                          <td className="text-right py-2">{item.percentage.toFixed(1)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
+              <DemographicTable 
+                title="Department"
+                data={demographicData.departments}
+              />
             )}
 
             {hasLocationData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Location Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Location</th>
-                        <th className="text-right py-2">Count</th>
-                        <th className="text-right py-2">Percentage</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {demographicData.locations.map((item, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-2">{item.name}</td>
-                          <td className="text-right py-2">{item.count}</td>
-                          <td className="text-right py-2">{item.percentage.toFixed(1)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
+              <DemographicTable 
+                title="Location"
+                data={demographicData.locations}
+              />
             )}
 
             {hasGenderData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Gender Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Gender</th>
-                        <th className="text-right py-2">Count</th>
-                        <th className="text-right py-2">Percentage</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {demographicData.genders.map((item, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-2">{item.name}</td>
-                          <td className="text-right py-2">{item.count}</td>
-                          <td className="text-right py-2">{item.percentage.toFixed(1)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
+              <DemographicTable 
+                title="Gender"
+                data={demographicData.genders}
+              />
             )}
 
             {hasLevelData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Level Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Level</th>
-                        <th className="text-right py-2">Count</th>
-                        <th className="text-right py-2">Percentage</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {demographicData.levels.map((item, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-2">{item.name}</td>
-                          <td className="text-right py-2">{item.count}</td>
-                          <td className="text-right py-2">{item.percentage.toFixed(1)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
+              <DemographicTable 
+                title="Level"
+                data={demographicData.levels}
+              />
             )}
 
             {hasEmployeeTypeData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Employee Type Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Employee Type</th>
-                        <th className="text-right py-2">Count</th>
-                        <th className="text-right py-2">Percentage</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {demographicData.employeeTypes.map((item, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-2">{item.name}</td>
-                          <td className="text-right py-2">{item.count}</td>
-                          <td className="text-right py-2">{item.percentage.toFixed(1)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
+              <DemographicTable 
+                title="Employee Type"
+                data={demographicData.employeeTypes}
+              />
             )}
 
             {hasEmploymentTypeData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Employment Type Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Employment Type</th>
-                        <th className="text-right py-2">Count</th>
-                        <th className="text-right py-2">Percentage</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {demographicData.employmentTypes.map((item, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-2">{item.name}</td>
-                          <td className="text-right py-2">{item.count}</td>
-                          <td className="text-right py-2">{item.percentage.toFixed(1)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
+              <DemographicTable 
+                title="Employment Type"
+                data={demographicData.employmentTypes}
+              />
             )}
 
             {hasAgeGroupData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Age Group Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Age Group</th>
-                        <th className="text-right py-2">Count</th>
-                        <th className="text-right py-2">Percentage</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {demographicData.ageGroups.map((item, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-2">{item.ageGroup}</td>
-                          <td className="text-right py-2">{item.count}</td>
-                          <td className="text-right py-2">{item.percentage.toFixed(1)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
+              <DemographicTable 
+                title="Age Group"
+                data={demographicData.ageGroups}
+                nameKey="ageGroup"
+              />
             )}
 
             {hasTenureData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Tenure Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Tenure</th>
-                        <th className="text-right py-2">Count</th>
-                        <th className="text-right py-2">Percentage</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {demographicData.tenureGroups.map((item, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="py-2">{item.tenureGroup}</td>
-                          <td className="text-right py-2">{item.count}</td>
-                          <td className="text-right py-2">{item.percentage.toFixed(1)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
+              <DemographicTable 
+                title="Tenure"
+                data={demographicData.tenureGroups}
+                nameKey="tenureGroup"
+              />
             )}
           </div>
         </TabsContent>
