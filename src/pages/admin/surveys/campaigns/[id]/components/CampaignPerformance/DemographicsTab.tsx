@@ -55,6 +55,7 @@ export function DemographicsTab({ campaignId, instances }: DemographicsTabProps)
     );
   }
 
+  // Determine which chart component to use based on the chartType state
   const ChartComponent = chartType === "pie" ? DemographicPieChart : DemographicBarChart;
 
   return (
@@ -177,11 +178,22 @@ export function DemographicsTab({ campaignId, instances }: DemographicsTabProps)
                   <CardTitle className="text-base">Age Group Distribution</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ChartComponent 
-                    data={demographicData.ageGroups} 
-                    title="Response Distribution by Age Group"
-                    nameKey="ageGroup"
-                  />
+                  {chartType === "pie" ? (
+                    <DemographicPieChart 
+                      data={demographicData.ageGroups.map(item => ({
+                        name: item.ageGroup,
+                        count: item.count,
+                        percentage: item.percentage
+                      }))} 
+                      title="Response Distribution by Age Group"
+                    />
+                  ) : (
+                    <DemographicBarChart 
+                      data={demographicData.ageGroups} 
+                      title="Response Distribution by Age Group"
+                      nameKey="ageGroup"
+                    />
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -192,11 +204,22 @@ export function DemographicsTab({ campaignId, instances }: DemographicsTabProps)
                   <CardTitle className="text-base">Tenure Distribution</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ChartComponent 
-                    data={demographicData.tenureGroups} 
-                    title="Response Distribution by Tenure"
-                    nameKey="tenureGroup"
-                  />
+                  {chartType === "pie" ? (
+                    <DemographicPieChart 
+                      data={demographicData.tenureGroups.map(item => ({
+                        name: item.tenureGroup,
+                        count: item.count,
+                        percentage: item.percentage
+                      }))} 
+                      title="Response Distribution by Tenure"
+                    />
+                  ) : (
+                    <DemographicBarChart 
+                      data={demographicData.tenureGroups} 
+                      title="Response Distribution by Tenure"
+                      nameKey="tenureGroup"
+                    />
+                  )}
                 </CardContent>
               </Card>
             )}
