@@ -8,13 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
+// Updated interface with non-nullable campaignId and instanceId
 interface BooleanComparisonProps {
   responses: ProcessedResponse[];
   questionName: string;
   dimension: ComparisonDimension;
   layout?: 'grid' | 'vertical';
-  campaignId?: string;
-  instanceId?: string;
+  campaignId: string;  // Changed from nullable to required
+  instanceId: string;  // Changed from nullable to required
 }
 
 // Update the interface to include an index signature to match the GroupedBarChart requirements
