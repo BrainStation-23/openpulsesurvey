@@ -1,4 +1,3 @@
-
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { NpsData } from "../types/nps";
@@ -37,11 +36,11 @@ export function NpsChart({ data }: NpsChartProps) {
             </div>
           </div>
           
-          {data.avg_score !== undefined && (
+          {data.avg_score !== undefined && data.avg_score !== 0 && (
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">Avg Rating</div>
               <div className="text-2xl font-bold text-gray-700">
-                {data.avg_score.toFixed(1)}
+                {data.avg_score}
               </div>
             </div>
           )}

@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { ProcessedData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
@@ -49,10 +48,11 @@ export function useQuestionData(
         promoters: 0,
         total: 0,
         nps_score: 0,
-        avg_score: 0
+        avg_score: undefined
       };
 
       let sumRatings = 0;
+      let validRatingCount = 0;
 
       data.responses.forEach((response) => {
         const answer = response.answers[questionName]?.answer;
@@ -60,6 +60,7 @@ export function useQuestionData(
 
         npsData.total += 1;
         sumRatings += answer;
+        validRatingCount += 1;
 
         if (answer <= 6) {
           npsData.detractors += 1;
@@ -72,7 +73,9 @@ export function useQuestionData(
 
       if (npsData.total > 0) {
         npsData.nps_score = ((npsData.promoters - npsData.detractors) / npsData.total) * 100;
-        npsData.avg_score = sumRatings / npsData.total;
+        if (validRatingCount > 0) {
+          npsData.avg_score = Number((sumRatings / validRatingCount).toFixed(1));
+        }
       }
 
       return npsData;
