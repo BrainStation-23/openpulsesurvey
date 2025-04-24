@@ -2,13 +2,13 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
-import { NpsChart } from "../../charts/NpsChart";
 import type { ProcessedResponse } from "../../hooks/useResponseProcessing";
 import { ComparisonDimension } from "../../types/comparison";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { NpsComparisonTable } from "./NpsComparisonTable";
+import { NpsComparisonData } from "../../types/nps";
 
 interface NpsComparisonProps {
   responses: ProcessedResponse[];
@@ -29,11 +29,6 @@ interface HeatMapData {
   avg_score?: number;
 }
 
-interface NpsData {
-  dimension: string;
-  ratings: { rating: number; count: number; }[];
-}
-
 export function NpsComparison({
   responses,
   questionName,
@@ -43,7 +38,7 @@ export function NpsComparison({
   campaignId,
   instanceId
 }: NpsComparisonProps) {
-  const [data, setData] = useState<HeatMapData[] | NpsData[]>([]);
+  const [data, setData] = useState<HeatMapData[] | NpsComparisonData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -83,31 +78,8 @@ export function NpsComparison({
       if (rpcError) throw rpcError;
 
       if (isNps) {
-        // Need to explicitly type this to help TypeScript
-        return (supervisorData as Array<{
-          dimension: string;
-          detractors: number;
-          passives: number;
-          promoters: number;
-          total: number;
-          nps_score: number;
-        }>).map((item) => ({
-          dimension: item.dimension || "Unknown Supervisor",
-          ratings: [
-            ...Array(7).fill(0).map((_, i) => ({
-              rating: i,
-              count: Math.round(item.detractors / 7)
-            })),
-            ...Array(2).fill(0).map((_, i) => ({
-              rating: i + 7,
-              count: Math.round(item.passives / 2)
-            })),
-            ...Array(2).fill(0).map((_, i) => ({
-              rating: i + 9,
-              count: Math.round(item.promoters / 2)
-            }))
-          ]
-        }));
+        // The RPC returns data in the exact format we need
+        return supervisorData as NpsComparisonData[];
       } else {
         // Need to explicitly type this to help TypeScript
         return (supervisorData as Array<{
@@ -137,7 +109,7 @@ export function NpsComparison({
 
   const processResponses = () => {
     if (isNps) {
-      const dimensionData = new Map<string, number[]>();
+      const dimensionData = new Map<string, NpsComparisonData>();
 
       responses.forEach((response) => {
         const questionData = response.answers[questionName];
@@ -171,21 +143,32 @@ export function NpsComparison({
         }
 
         if (!dimensionData.has(dimensionValue)) {
-          dimensionData.set(dimensionValue, new Array(11).fill(0));
+          dimensionData.set(dimensionValue, {
+            dimension: dimensionValue,
+            detractors: 0,
+            passives: 0,
+            promoters: 0,
+            total: 0,
+            nps_score: 0
+          });
         }
 
-        const ratings = dimensionData.get(dimensionValue)!;
-        if (answer >= 0 && answer <= 10) {
-          ratings[answer]++;
+        const group = dimensionData.get(dimensionValue)!;
+        group.total += 1;
+
+        if (answer <= 6) {
+          group.detractors += 1;
+        } else if (answer <= 8) {
+          group.passives += 1;
+        } else {
+          group.promoters += 1;
         }
+
+        // Calculate NPS score
+        group.nps_score = ((group.promoters - group.detractors) / group.total) * 100;
       });
 
-      return Array.from(dimensionData.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([dimension, ratings]) => ({
-          dimension,
-          ratings: ratings.map((count, rating) => ({ rating, count }))
-        })) as NpsData[];
+      return Array.from(dimensionData.values());
     }
 
     const dimensionData = new Map<string, HeatMapData>();
@@ -289,10 +272,10 @@ export function NpsComparison({
     );
   }
 
-  if (isNps && dimension !== "supervisor") {
+  if (isNps) {
     return (
       <div className="w-full">
-        <NpsComparisonTable data={data as NpsData[]} />
+        <NpsComparisonTable data={data as NpsComparisonData[]} />
       </div>
     );
   }
@@ -303,11 +286,7 @@ export function NpsComparison({
         <CardTitle>{getDimensionTitle(dimension)}</CardTitle>
       </CardHeader>
       <CardContent>
-        {isNps && dimension === "supervisor" ? (
-          <NpsComparisonTable data={data as NpsData[]} />
-        ) : (
-          <HeatMapChart data={data as HeatMapData[]} />
-        )}
+        <HeatMapChart data={data as HeatMapData[]} />
       </CardContent>
     </Card>
   );
