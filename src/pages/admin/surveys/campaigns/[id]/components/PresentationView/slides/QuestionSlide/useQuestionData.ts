@@ -1,163 +1,162 @@
 
 import { useMemo } from "react";
-import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData } from "../../types/responses";
+import { ProcessedData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
+import { useDimensionData } from "../../hooks/useDimensionData";
+import { NpsData, NpsComparisonData } from "../../../ReportsTab/types/nps";
+import { BooleanResponseData, SatisfactionData } from "../../types/responses";
+import { calculateMedian } from "../../../ReportsTab/utils/calculateMedian";
 
-type ProcessedResult = BooleanResponseData | RatingResponseData | SatisfactionData | any[];
+// Define the data types from RPC functions
+interface SupervisorSatisfactionData {
+  dimension: string;
+  unsatisfied: number;
+  neutral: number;
+  satisfied: number;
+  total: number;
+  avg_score: number;
+}
+
+interface BooleanComparisonData {
+  dimension: string;
+  yes_count: number;
+  no_count: number;
+  total_count: number;
+}
+
+// Update ProcessedResult to include all possible return types
+type ProcessedResult = 
+  | NpsComparisonData[] 
+  | SupervisorSatisfactionData[] 
+  | BooleanComparisonData[]
+  | NpsData 
+  | SatisfactionData
+  | BooleanResponseData 
+  | null;
 
 export function useQuestionData(
   data: ProcessedData | undefined | null,
   questionName: string,
   questionType: string,
-  slideType: ComparisonDimension
-): ProcessedResult | null {
+  slideType: ComparisonDimension,
+  campaignId?: string,
+  instanceId?: string
+): ProcessedResult {
+  const question = data?.questions.find(q => q.name === questionName);
+  const isNps = question?.type === 'rating' && question?.rateCount === 10;
+  const isBoolean = question?.type === 'boolean';
+
+  // Only call useDimensionData if slideType is a valid dimension
+  const { data: dimensionData, isLoading: isLoadingDimension } = useDimensionData(
+    campaignId,
+    instanceId,
+    questionName,
+    isNps,
+    isBoolean,
+    slideType !== 'main' && slideType !== 'none' ? slideType : 'supervisor'
+  );
+
   return useMemo(() => {
     if (!data?.responses) return null;
 
-    // Skip processing for text questions entirely
+    // For dimension comparison views (except 'main' and 'none'), use RPC data directly
+    if (slideType !== 'main' && slideType !== 'none') {
+      if (isLoadingDimension || !dimensionData) return null;
+      return dimensionData;
+    }
+
+    // Skip processing for text questions
     if (questionType === "text" || questionType === "comment") {
       return null;
     }
 
-    const responses = data.responses;
-    const question = data.questions.find(q => q.name === questionName);
-    const isNps = question?.type === 'rating' && question?.rateCount === 10;
+    // For boolean questions in main view
+    if (questionType === "boolean") {
+      const answers = data.responses
+        .map(response => response.answers[questionName]?.answer)
+        .filter(answer => typeof answer === 'boolean');
 
-    if (slideType === 'main') {
-      switch (questionType) {
-        case "boolean": {
-          const answers = responses
-            .filter(r => r.answers[questionName]?.answer !== undefined)
-            .map(r => r.answers[questionName].answer);
-          
-          const result: BooleanResponseData = {
-            yes: answers.filter((a) => a === true).length,
-            no: answers.filter((a) => a === false).length,
-          };
-          return result;
-        }
+      const yes = answers.filter(a => a === true).length;
+      const no = answers.filter(a => a === false).length;
 
-        case "rating": {
-          const answers = responses
-            .filter(r => typeof r.answers[questionName]?.answer === 'number')
-            .map(r => r.answers[questionName].answer);
-          
-          if (isNps) {
-            const ratingCounts: RatingResponseData = new Array(11).fill(0).map((_, rating) => ({
-              rating,
-              count: answers.filter(a => a === rating).length
-            }));
-            return ratingCounts;
-          } else {
-            const validAnswers = answers.filter(
-              (rating) => typeof rating === "number" && rating >= 1 && rating <= 5
-            );
-            
-            const calculateMedian = (ratings: number[]) => {
-              if (ratings.length === 0) return 0;
-              const sorted = [...ratings].sort((a, b) => a - b);
-              const middle = Math.floor(sorted.length / 2);
-              
-              if (sorted.length % 2 === 0) {
-                return (sorted[middle - 1] + sorted[middle]) / 2;
-              }
-              return sorted[middle];
-            };
-
-            const result: SatisfactionData = {
-              unsatisfied: validAnswers.filter((r) => r <= 2).length,
-              neutral: validAnswers.filter((r) => r === 3).length,
-              satisfied: validAnswers.filter((r) => r >= 4).length,
-              total: validAnswers.length,
-              median: calculateMedian(validAnswers)
-            };
-            return result;
-          }
-        }
-
-        default:
-          return null;
-      }
-    } else {
-      return processComparisonData(responses, questionName, slideType, isNps);
-    }
-  }, [data, questionName, questionType, slideType]);
-}
-
-function processComparisonData(
-  responses: ProcessedData["responses"],
-  questionName: string,
-  dimension: ComparisonDimension,
-  isNps: boolean
-) {
-  const dimensionData = new Map();
-
-  responses.forEach((response) => {
-    const answer = response.answers[questionName]?.answer;
-    if (typeof answer !== 'number') return;
-
-    let dimensionValue = "Unknown";
-    switch (dimension) {
-      case "sbu":
-        dimensionValue = response.respondent.sbu?.name || "Unknown";
-        break;
-      case "gender":
-        dimensionValue = response.respondent.gender || "Unknown";
-        break;
-      case "location":
-        dimensionValue = response.respondent.location?.name || "Unknown";
-        break;
-      case "employment_type":
-        dimensionValue = response.respondent.employment_type?.name || "Unknown";
-        break;
-      case "level":
-        dimensionValue = response.respondent.level?.name || "Unknown";
-        break;
-      case "employee_type":
-        dimensionValue = response.respondent.employee_type?.name || "Unknown";
-        break;
-      case "employee_role":
-        dimensionValue = response.respondent.employee_role?.name || "Unknown";
-        break;
+      return {
+        yes,
+        no
+      };
     }
 
-    if (!dimensionData.has(dimensionValue)) {
-      dimensionData.set(dimensionValue, isNps ? {
-        dimension: dimensionValue,
+    // For NPS questions in main view
+    if (isNps && slideType === 'main') {
+      const npsData: NpsData = {
         detractors: 0,
         passives: 0,
         promoters: 0,
-        total: 0
-      } : {
-        dimension: dimensionValue,
-        unsatisfied: 0,
-        neutral: 0,
-        satisfied: 0,
-        total: 0
+        total: 0,
+        nps_score: 0,
+        avg_score: undefined
+      };
+
+      let sumRatings = 0;
+      let validRatingCount = 0;
+
+      data.responses.forEach((response) => {
+        const answer = response.answers[questionName]?.answer;
+        if (typeof answer !== 'number') return;
+
+        npsData.total += 1;
+        sumRatings += answer;
+        validRatingCount += 1;
+
+        if (answer <= 6) {
+          npsData.detractors += 1;
+        } else if (answer <= 8) {
+          npsData.passives += 1;
+        } else {
+          npsData.promoters += 1;
+        }
       });
+
+      if (npsData.total > 0) {
+        npsData.nps_score = ((npsData.promoters - npsData.detractors) / npsData.total) * 100;
+        if (validRatingCount > 0) {
+          npsData.avg_score = Number((sumRatings / validRatingCount).toFixed(1));
+        }
+      }
+
+      return npsData;
     }
 
-    const group = dimensionData.get(dimensionValue);
-    group.total += 1;
-
-    if (isNps) {
-      if (answer <= 6) {
-        group.detractors += 1;
-      } else if (answer <= 8) {
-        group.passives += 1;
-      } else {
-        group.promoters += 1;
-      }
-    } else {
-      if (answer <= 2) {
-        group.unsatisfied += 1;
-      } else if (answer === 3) {
-        group.neutral += 1;
-      } else {
-        group.satisfied += 1;
-      }
+    // For standard 5-point rating questions (non-NPS) in main view
+    if (questionType === "rating" && !isNps && slideType === 'main') {
+      const validAnswers = data.responses
+        .map(response => response.answers[questionName]?.answer)
+        .filter((rating): rating is number => typeof rating === 'number');
+    
+      const total = validAnswers.length;
+      
+      if (total === 0) return null;
+      
+      // Calculate satisfaction categories
+      const unsatisfied = validAnswers.filter(r => r <= 2).length;
+      const neutral = validAnswers.filter(r => r === 3).length;
+      const satisfied = validAnswers.filter(r => r >= 4).length;
+      
+      // Calculate median
+      const median = calculateMedian(validAnswers);
+      
+      // Create satisfaction data object
+      const satisfactionData: SatisfactionData = {
+        unsatisfied,
+        neutral,
+        satisfied,
+        total,
+        median
+      };
+      
+      return satisfactionData;
     }
-  });
 
-  return Array.from(dimensionData.values());
+    // Return null for other question types
+    return null;
+  }, [data, questionName, questionType, slideType, dimensionData, isLoadingDimension, isNps]);
 }

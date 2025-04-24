@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { HeatMapRow } from "./HeatMapRow";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,7 @@ interface HeatMapData {
   neutral: number;
   satisfied: number;
   total: number;
+  avg_score?: number;
 }
 
 interface HeatMapChartProps {
@@ -44,18 +46,6 @@ export function HeatMapChart({ data = [], title }: HeatMapChartProps) {
     return unsatisfiedPercentage > 50;
   };
 
-  // Compute weighted average: unsatisfied (avg 2), neutral (4), satisfied (5)
-  const getAverage = (row: HeatMapData) => {
-    if (row.total === 0) return 0;
-    // Assume unsatisfied response is average of 1-3 = 2
-    // neutral = 4, satisfied = 5
-    const totalScore =
-      row.unsatisfied * 2 +
-      row.neutral * 4 +
-      row.satisfied * 5;
-    return totalScore / row.total;
-  };
-
   return (
     <div className="w-full">
       {title && (
@@ -79,7 +69,6 @@ export function HeatMapChart({ data = [], title }: HeatMapChartProps) {
                 key={row.dimension}
                 row={row}
                 getPercentage={getPercentage}
-                getAverage={getAverage}
                 needsAttention={needsAttention}
               />
             ))}

@@ -8,16 +8,16 @@ interface HeatMapData {
   neutral: number;
   satisfied: number;
   total: number;
+  avg_score?: number;
 }
 
 interface HeatMapRowProps {
   row: HeatMapData;
   getPercentage: (value: number, total: number) => number;
-  getAverage: (row: HeatMapData) => number;
   needsAttention: (row: HeatMapData) => boolean;
 }
 
-export function HeatMapRow({ row, getPercentage, getAverage, needsAttention }: HeatMapRowProps) {
+export function HeatMapRow({ row, getPercentage, needsAttention }: HeatMapRowProps) {
   const unsatisfiedPct = getPercentage(row.unsatisfied, row.total);
   const neutralPct = getPercentage(row.neutral, row.total);
   const satisfiedPct = getPercentage(row.satisfied, row.total);
@@ -54,8 +54,6 @@ export function HeatMapRow({ row, getPercentage, getAverage, needsAttention }: H
   const NEUTRAL_COLOR = "#eab308";
   const SAT_COLOR = "#22c55e";
 
-  const avg = getAverage(row);
-
   return (
     <tr
       className={
@@ -64,7 +62,7 @@ export function HeatMapRow({ row, getPercentage, getAverage, needsAttention }: H
       }
     >
       <td className={`p-3 whitespace-nowrap font-medium text-left ${needsAttention(row) ? "text-red-600" : "text-gray-700"}`}>
-        {row.dimension}
+        {row.dimension || "Unknown"}
         {needsAttention(row) && (
           <span className="ml-1 text-xs font-normal text-red-500">Needs Attention</span>
         )}
@@ -102,15 +100,15 @@ export function HeatMapRow({ row, getPercentage, getAverage, needsAttention }: H
         <span
           className={
             "text-sm font-semibold " +
-            (avg < 3
+            (row.avg_score && row.avg_score < 3
               ? "text-red-500"
-              : avg < 4
+              : row.avg_score && row.avg_score < 4
               ? "text-yellow-600"
               : "text-green-600")
           }
-          title={`Avg: ${avg.toFixed(2)}`}
+          title={`Avg: ${row.avg_score?.toFixed(2) ?? 'N/A'}`}
         >
-          {avg.toFixed(2)}
+          {row.avg_score?.toFixed(2) ?? 'N/A'}
         </span>
       </td>
     </tr>

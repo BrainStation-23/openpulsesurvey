@@ -1,4 +1,3 @@
-
 export type TopSBUPerformer = {
   sbu: string;
   name: string;
@@ -22,6 +21,7 @@ export type SupervisorPerformer = {
   department?: string;
   total_reports?: number;
   category?: 'improved' | 'declined' | 'stable';
+  avg_score?: number;
 };
 
 export type MetricSummary = {
@@ -35,19 +35,16 @@ export type MetricSummary = {
 
 export type ChartViewType = 'distribution' | 'movement' | 'matrix' | 'timeline';
 
-// Add the SBUPerformanceData type
+export type PerformanceCategory = 'improved' | 'declined' | 'unchanged';
+
 export type SBUPerformanceData = {
   sbu: string;
   baseScore: number;
   comparisonScore: number;
   change: number;
-  baseRank: number;
-  comparisonRank: number;
-  rankChange: number;
-  category: 'improved' | 'declined' | 'unchanged';
+  category: PerformanceCategory;
 };
 
-// Add missing ComparisonData type
 export type ComparisonData = {
   baseInstance: {
     avg_rating: number;
@@ -75,7 +72,6 @@ export type ComparisonData = {
   };
 };
 
-// Add missing QuestionComparisonData type
 export type QuestionComparisonData = {
   baseInstance: any[];
   comparisonInstance: any[];

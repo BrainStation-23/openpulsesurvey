@@ -306,39 +306,6 @@ export type Database = {
         }
         Relationships: []
       }
-      email_responses: {
-        Row: {
-          attempt_number: number
-          created_at: string
-          id: string
-          original_email: Json
-          response_email: Json | null
-          session_id: string
-          submitted_at: string | null
-          updated_at: string
-        }
-        Insert: {
-          attempt_number?: number
-          created_at?: string
-          id?: string
-          original_email: Json
-          response_email?: Json | null
-          session_id: string
-          submitted_at?: string | null
-          updated_at?: string
-        }
-        Update: {
-          attempt_number?: number
-          created_at?: string
-          id?: string
-          original_email?: Json
-          response_email?: Json | null
-          session_id?: string
-          submitted_at?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       employee_roles: {
         Row: {
           color_code: string | null
@@ -2928,6 +2895,53 @@ export type Database = {
           completion_rate: number
         }[]
       }
+      get_dimension_bool: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+          p_dimension: string
+        }
+        Returns: {
+          dimension: string
+          yes_count: number
+          no_count: number
+          total_count: number
+        }[]
+      }
+      get_dimension_nps: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+          p_dimension: string
+        }
+        Returns: {
+          dimension: string
+          detractors: number
+          passives: number
+          promoters: number
+          total: number
+          nps_score: number
+          avg_score: number
+        }[]
+      }
+      get_dimension_satisfaction: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+          p_dimension: string
+        }
+        Returns: {
+          dimension: string
+          unsatisfied: number
+          neutral: number
+          satisfied: number
+          total: number
+          avg_score: number
+        }[]
+      }
       get_instance_analysis_data: {
         Args: { p_campaign_id: string; p_instance_id: string }
         Returns: Json
@@ -3013,34 +3027,6 @@ export type Database = {
       get_pending_surveys_count: {
         Args: { p_user_id: string }
         Returns: number
-      }
-      get_supervisor_ratings: {
-        Args: {
-          p_campaign_id: string
-          p_instance_id: string
-          p_question_name: string
-        }
-        Returns: {
-          dimension: string
-          unsatisfied: number
-          neutral: number
-          satisfied: number
-          total: number
-        }[]
-      }
-      get_supervisor_satisfaction: {
-        Args: {
-          p_campaign_id: string
-          p_instance_id: string
-          p_question_name: string
-        }
-        Returns: {
-          dimension: string
-          unsatisfied: number
-          neutral: number
-          satisfied: number
-          total: number
-        }[]
       }
       get_survey_responses: {
         Args: { p_campaign_id: string; p_instance_id?: string }

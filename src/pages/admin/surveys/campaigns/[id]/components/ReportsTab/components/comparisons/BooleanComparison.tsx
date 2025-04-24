@@ -1,88 +1,93 @@
 
+import { useState, useEffect } from "react";
 import { GroupedBarChart } from "../../charts/GroupedBarChart";
 import { ProcessedResponse } from "../../hooks/useResponseProcessing";
 import { ComparisonDimension } from "../../types/comparison";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, Info } from "lucide-react";
+import { useDimensionComparison } from "../../hooks/useDimensionComparison";
 
 interface BooleanComparisonProps {
   responses: ProcessedResponse[];
   questionName: string;
   dimension: ComparisonDimension;
   layout?: 'grid' | 'vertical';
+  campaignId: string;
+  instanceId: string;
+}
+
+interface GroupedData {
+  name: string;
+  Yes: number;
+  No: number;
+  [key: string]: string | number;
 }
 
 export function BooleanComparison({
   responses,
   questionName,
   dimension,
+  campaignId,
+  instanceId
 }: BooleanComparisonProps) {
-  // Aggregate yes/no counts for each group (SBU, gender, etc)
-  const groupedMap = new Map<string, { Yes: number; No: number }>();
+  const { data, isLoading, error } = useDimensionComparison(
+    campaignId,
+    instanceId,
+    questionName,
+    dimension,
+    false,
+    true
+  );
 
-  responses.forEach((response) => {
-    const answer = response.answers[questionName]?.answer;
-    let groupKey = "Unknown";
-    switch (dimension) {
-      case "sbu":
-        groupKey = response.respondent.sbu?.name || "No SBU";
-        break;
-      case "gender":
-        groupKey = response.respondent.gender || "Not Specified";
-        break;
-      case "location":
-        groupKey = response.respondent.location?.name || "No Location";
-        break;
-      case "employment_type":
-        groupKey = response.respondent.employment_type?.name || "Not Specified";
-        break;
-      case "level":
-        groupKey = response.respondent.level?.name || "Not Specified";
-        break;
-      case "employee_type":
-        groupKey = response.respondent.employee_type?.name || "Not Specified";
-        break;
-      case "employee_role":
-        groupKey = response.respondent.employee_role?.name || "Not Specified";
-        break;
-    }
-
-    if (!groupedMap.has(groupKey)) {
-      groupedMap.set(groupKey, { Yes: 0, No: 0 });
-    }
-    const groupData = groupedMap.get(groupKey)!;
-    if (answer === true) {
-      groupData.Yes++;
-    } else if (answer === false) {
-      groupData.No++;
-    }
-  });
-
-  // Prepare chart data format
-  const chartData = Array.from(groupedMap.entries())
-  .map(([name, data]) => ({
-    name,
-    Yes: data.Yes,
-    No: data.No,
-  }))
-  .sort((a, b) => a.name.localeCompare(b.name));
-
-
-  if (!chartData.length) {
+  if (isLoading) {
     return (
-      <div className="text-center text-muted-foreground p-4">
-        No comparison data available
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Loading comparison data...</CardTitle>
+        </CardHeader>
+      </Card>
     );
   }
 
-  // Use Yes (green) / No (red) coloring
-  const keys = ["Yes", "No"];
-  const colors = ["#22c55e", "#ef4444"]; 
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error loading data</AlertTitle>
+        <AlertDescription>{error.message}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <Alert variant="default">
+        <Info className="h-4 w-4" />
+        <AlertTitle>No comparison data available</AlertTitle>
+        <AlertDescription>
+          {dimension === 'supervisor' 
+            ? 'Supervisors need at least 4 responses to be included in the comparison.'
+            : 'No data available for the selected comparison.'}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Transform the data for the GroupedBarChart
+  const chartData: GroupedData[] = data.map(item => ({
+    name: item.dimension,
+    Yes: item.yes_count,
+    No: item.no_count
+  }));
+
+  const colors = ["#22c55e", "#ef4444"]; // Green for Yes, Red for No
 
   return (
     <div className="w-full overflow-x-auto max-w-full">
       <GroupedBarChart 
-        data={chartData} 
-        keys={keys}
+        data={chartData}
+        keys={["Yes", "No"]}
         colors={colors}
         height={320}
       />

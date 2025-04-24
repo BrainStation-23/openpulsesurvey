@@ -1,41 +1,10 @@
 
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { NpsComparisonData } from "../../types/nps";
 
 interface NpsComparisonTableProps {
-  data: Array<{
-    dimension: string;
-    ratings: { rating: number; count: number }[];
-  }>;
-}
-
-function calculateStats(ratings: { rating: number; count: number }[]) {
-  // eNPS conventions
-  const total = ratings.reduce((sum, item) => sum + item.count, 0);
-  let detractors = 0, passives = 0, promoters = 0, weightedSum = 0;
-  ratings.forEach(item => {
-    weightedSum += item.rating * item.count;
-    if (item.rating <= 6) detractors += item.count;
-    else if (item.rating <= 8) passives += item.count;
-    else promoters += item.count;
-  });
-  const average = total ? (weightedSum / total) : 0;
-  const detractorsPct = total ? (detractors / total) * 100 : 0;
-  const passivesPct = total ? (passives / total) * 100 : 0;
-  const promotersPct = total ? (promoters / total) * 100 : 0;
-  const npsScore = Math.round(promotersPct - detractorsPct);
-
-  return {
-    total,
-    detractors,
-    passives,
-    promoters,
-    detractorsPct,
-    passivesPct,
-    promotersPct,
-    npsScore,
-    average: Number(average.toFixed(1)),
-  };
+  data: NpsComparisonData[];
 }
 
 export function NpsComparisonTable({ data }: NpsComparisonTableProps) {
@@ -64,20 +33,22 @@ export function NpsComparisonTable({ data }: NpsComparisonTableProps) {
               </span>
             </th>
             <th className="text-center p-3 bg-gray-50 border-l">eNPS Score</th>
-            <th className="text-center p-3 bg-gray-50 border-l">Avg. Rating</th>
+            <th className="text-center p-3 bg-gray-50 border-l">Avg Score</th>
             <th className="text-center p-3 bg-gray-50 border-l">Responses</th>
           </tr>
         </thead>
         <tbody>
-          {data.map((groupData, i) => {
-            const stats = calculateStats(groupData.ratings);
+          {data.map((groupData) => {
+            const detractorsPct = (groupData.detractors / groupData.total) * 100;
+            const passivesPct = (groupData.passives / groupData.total) * 100;
+            const promotersPct = (groupData.promoters / groupData.total) * 100;
 
             return (
               <tr key={groupData.dimension}
                 className={
-                  stats.npsScore < 0
+                  groupData.nps_score < 0
                     ? "bg-red-50"
-                    : stats.npsScore >= 60
+                    : groupData.nps_score >= 60
                     ? "bg-green-50"
                     : undefined
                 }
@@ -86,37 +57,37 @@ export function NpsComparisonTable({ data }: NpsComparisonTableProps) {
                 {/* Detractors */}
                 <td className="text-center p-3 border-l min-w-[130px]">
                   <div className="flex flex-col gap-1 items-center">
-                    <span className="font-semibold text-red-500">{Math.round(stats.detractorsPct)}%</span>
-                    <Progress value={stats.detractorsPct} className="h-2 bg-gray-100" indicatorClassName="bg-[#ef4444]" />
-                    <span className="text-xs text-muted-foreground">{stats.detractors}</span>
+                    <span className="font-semibold text-red-500">{Math.round(detractorsPct)}%</span>
+                    <Progress value={detractorsPct} className="h-2 bg-gray-100" indicatorClassName="bg-[#ef4444]" />
+                    <span className="text-xs text-muted-foreground">{groupData.detractors}</span>
                   </div>
                 </td>
                 {/* Passives */}
                 <td className="text-center p-3 border-l min-w-[130px]">
                   <div className="flex flex-col gap-1 items-center">
-                    <span className="font-semibold text-yellow-500">{Math.round(stats.passivesPct)}%</span>
-                    <Progress value={stats.passivesPct} className="h-2 bg-gray-100" indicatorClassName="bg-[#eab308]" />
-                    <span className="text-xs text-muted-foreground">{stats.passives}</span>
+                    <span className="font-semibold text-yellow-500">{Math.round(passivesPct)}%</span>
+                    <Progress value={passivesPct} className="h-2 bg-gray-100" indicatorClassName="bg-[#eab308]" />
+                    <span className="text-xs text-muted-foreground">{groupData.passives}</span>
                   </div>
                 </td>
                 {/* Promoters */}
                 <td className="text-center p-3 border-l min-w-[130px]">
                   <div className="flex flex-col gap-1 items-center">
-                    <span className="font-semibold text-green-600">{Math.round(stats.promotersPct)}%</span>
-                    <Progress value={stats.promotersPct} className="h-2 bg-gray-100" indicatorClassName="bg-[#22c55e]" />
-                    <span className="text-xs text-muted-foreground">{stats.promoters}</span>
+                    <span className="font-semibold text-green-600">{Math.round(promotersPct)}%</span>
+                    <Progress value={promotersPct} className="h-2 bg-gray-100" indicatorClassName="bg-[#22c55e]" />
+                    <span className="text-xs text-muted-foreground">{groupData.promoters}</span>
                   </div>
                 </td>
                 {/* eNPS Score */}
-                <td className={`text-center p-3 border-l font-bold ${stats.npsScore >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {stats.npsScore}
+                <td className={`text-center p-3 border-l font-bold ${groupData.nps_score >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {Math.round(groupData.nps_score)}
                 </td>
-                {/* Average Rating */}
+                {/* Average Score */}
                 <td className="text-center p-3 border-l font-medium">
-                  <span>{stats.average}</span>
+                  {groupData.avg_score !== undefined ? groupData.avg_score.toFixed(1) : 'N/A'}
                 </td>
                 {/* Total Responses */}
-                <td className="text-center p-3 border-l">{stats.total}</td>
+                <td className="text-center p-3 border-l">{groupData.total}</td>
               </tr>
             );
           })}

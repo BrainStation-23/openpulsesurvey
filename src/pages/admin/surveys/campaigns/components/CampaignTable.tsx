@@ -1,8 +1,6 @@
-
 import { format } from "date-fns";
 import { Eye, Trash2, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -116,6 +114,7 @@ export function CampaignTable({ campaigns, onDelete, sortOrder, sortBy, onSort }
     },
     {
       id: "actions",
+      header: "Actions",
       cell: ({ row }: any) => {
         const campaign = row.original;
 

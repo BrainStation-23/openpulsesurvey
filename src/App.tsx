@@ -51,6 +51,7 @@ import CampaignsPage from "./pages/admin/surveys/campaigns";
 import CampaignFormPage from "./pages/admin/surveys/campaigns/CampaignFormPage";
 import CampaignDetailsPage from "./pages/admin/surveys/campaigns/[id]";
 import CampaignInstancesPage from "./pages/admin/surveys/campaigns/[id]/instances";
+import CampaignPerformance from "./pages/admin/surveys/campaigns/[id]/components/CampaignPerformance";
 import LiveSurveyPage from "./pages/admin/surveys/live";
 import LiveSessionControlPage from "./pages/admin/surveys/live/[sessionId]";
 import AdminIssueBoards from "./pages/admin/surveys/issue-boards";
@@ -142,6 +143,7 @@ const App = () => (
               <Route path="surveys/campaigns" element={<CampaignsPage />} />
               <Route path="surveys/campaigns/create" element={<CampaignFormPage />} />
               <Route path="surveys/campaigns/:id" element={<CampaignDetailsPage />} />
+              <Route path="surveys/campaigns/:id/performance" element={<CampaignPerformance />} />
               <Route path="surveys/campaigns/:id/instances" element={<CampaignInstancesPage />} />
               <Route path="surveys/campaigns/:id/present" element={<PresentationView />} />
               <Route path="surveys/live" element={<LiveSurveyPage />} />
@@ -178,6 +180,7 @@ const App = () => (
               <Route path="achievements/create" element={<AchievementFormPage />} />
               <Route path="achievements/:id/edit" element={<AchievementFormPage />} />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="surveys/campaigns/:id/performance" element={<CampaignPerformance />} />
             </Route>
           </Routes>
         </TourProvider>

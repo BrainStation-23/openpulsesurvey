@@ -12,6 +12,9 @@ import { EnhancedInstanceSelector } from "./components/EnhancedInstanceSelector"
 import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
 import { InstanceCompareTab } from "./components/InstanceCompareTab";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { LineChart } from "lucide-react";
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
@@ -64,11 +67,19 @@ export default function CampaignDetailsPage() {
       
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Campaign Details</h2>
-        <EnhancedInstanceSelector
-          campaignId={campaign.id}
-          selectedInstanceId={selectedInstanceId}
-          onInstanceSelect={setSelectedInstanceId}
-        />
+        <div className="flex items-center gap-4">
+          <Button asChild variant="outline">
+            <Link to={`/admin/surveys/campaigns/${campaign.id}/performance`} className="flex items-center gap-2">
+              <LineChart className="h-4 w-4" />
+              See Campaign Performance
+            </Link>
+          </Button>
+          <EnhancedInstanceSelector
+            campaignId={campaign.id}
+            selectedInstanceId={selectedInstanceId}
+            onInstanceSelect={setSelectedInstanceId}
+          />
+        </div>
       </div>
 
       <CampaignTabs isAnonymous={campaign.anonymous} status={campaign.status}>

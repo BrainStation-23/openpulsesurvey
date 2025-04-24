@@ -1,7 +1,8 @@
+
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LabelList, ResponsiveContainer } from "recharts";
 
-interface SatisfactionDonutChartProps {
+interface SatisfactionChartProps {
   data: {
     unsatisfied: number;
     neutral: number;
@@ -11,7 +12,7 @@ interface SatisfactionDonutChartProps {
   };
 }
 
-export function SatisfactionDonutChart({ data }: SatisfactionDonutChartProps) {
+export function SatisfactionChart({ data }: SatisfactionChartProps) {
   const chartData = [
     {
       name: "Satisfaction",
@@ -97,7 +98,6 @@ export function SatisfactionDonutChart({ data }: SatisfactionDonutChartProps) {
               formatter={(value: number, name: string) => [
                 `${value} responses (${getPercentage(value)}%)`,
                 name
-
               ]}
             />
             <Legend 
