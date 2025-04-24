@@ -10,6 +10,7 @@ interface SatisfactionChartProps {
     total: number;
     median: number;
   };
+  title?: string;
 }
 
 export function SatisfactionChart({ data }: SatisfactionChartProps) {

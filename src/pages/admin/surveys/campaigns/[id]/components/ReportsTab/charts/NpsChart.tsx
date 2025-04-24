@@ -5,6 +5,7 @@ import { NpsData } from "../types/nps";
 
 interface NpsChartProps {
   data: NpsData;
+  title?: string;
 }
 
 export function NpsChart({ data }: NpsChartProps) {

@@ -9,6 +9,7 @@ interface BooleanChartsProps {
     yes: number;
     no: number;
   };
+  title?: string;
 }
 
 export function BooleanCharts({ data }: BooleanChartsProps) {
