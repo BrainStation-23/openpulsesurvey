@@ -1,7 +1,7 @@
 
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, BarChart3, PieChart, LineChart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
@@ -65,27 +65,54 @@ export default function CampaignPerformance() {
         <TabsContent value="trends">
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {/* Placeholder for charts */}
-            <div className="border rounded-lg p-4 h-[300px]">Response Rate Over Time</div>
-            <div className="border rounded-lg p-4 h-[300px]">Completion Rate Progress</div>
-            <div className="border rounded-lg p-4 h-[300px]">Response Volume</div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <LineChart className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Response Rate Over Time</h3>
+            </div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <BarChart3 className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Completion Rate Progress</h3>
+            </div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <BarChart3 className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Response Volume</h3>
+            </div>
           </div>
         </TabsContent>
 
         <TabsContent value="demographics">
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             {/* Placeholder for demographic charts */}
-            <div className="border rounded-lg p-4 h-[300px]">Department Distribution</div>
-            <div className="border rounded-lg p-4 h-[300px]">Location Distribution</div>
-            <div className="border rounded-lg p-4 h-[300px]">Employee Type Distribution</div>
-            <div className="border rounded-lg p-4 h-[300px]">Participation Rate</div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <PieChart className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Department Distribution</h3>
+            </div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <PieChart className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Location Distribution</h3>
+            </div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <PieChart className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Employee Type Distribution</h3>
+            </div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <BarChart3 className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Participation Rate</h3>
+            </div>
           </div>
         </TabsContent>
 
         <TabsContent value="comparison">
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             {/* Placeholder for comparison charts */}
-            <div className="border rounded-lg p-4 h-[300px]">Instance Comparison</div>
-            <div className="border rounded-lg p-4 h-[300px]">Period Analysis</div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <BarChart3 className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Instance Comparison</h3>
+            </div>
+            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
+              <LineChart className="h-8 w-8 mb-2 text-muted-foreground" />
+              <h3 className="font-medium">Period Analysis</h3>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

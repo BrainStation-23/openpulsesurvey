@@ -1,3 +1,4 @@
+
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -51,6 +52,7 @@ import CampaignsPage from "./pages/admin/surveys/campaigns";
 import CampaignFormPage from "./pages/admin/surveys/campaigns/CampaignFormPage";
 import CampaignDetailsPage from "./pages/admin/surveys/campaigns/[id]";
 import CampaignInstancesPage from "./pages/admin/surveys/campaigns/[id]/instances";
+import CampaignPerformance from "./pages/admin/surveys/campaigns/[id]/components/CampaignPerformance";
 import LiveSurveyPage from "./pages/admin/surveys/live";
 import LiveSessionControlPage from "./pages/admin/surveys/live/[sessionId]";
 import AdminIssueBoards from "./pages/admin/surveys/issue-boards";
