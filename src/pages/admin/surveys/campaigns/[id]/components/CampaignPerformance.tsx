@@ -1,11 +1,14 @@
 
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, BarChart3, PieChart, LineChart } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ResponseTrendsTab } from "./CampaignPerformance/ResponseTrendsTab";
+import { DemographicsTab } from "./CampaignPerformance/DemographicsTab";
+import { ComparisonTab } from "./CampaignPerformance/ComparisonTab";
 
 export default function CampaignPerformance() {
   const { id } = useParams();
@@ -17,7 +20,14 @@ export default function CampaignPerformance() {
         .from('survey_campaigns')
         .select(`
           *,
-          survey:surveys(name)
+          survey:surveys(name),
+          instances:campaign_instances(
+            id,
+            period_number,
+            starts_at,
+            ends_at,
+            status
+          )
         `)
         .eq('id', id)
         .single();
@@ -28,7 +38,11 @@ export default function CampaignPerformance() {
   });
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center h-48">Loading...</div>;
+  }
+
+  if (!campaign) {
+    return <div>Campaign not found</div>;
   }
 
   return (
@@ -42,9 +56,9 @@ export default function CampaignPerformance() {
               asChild
               className="gap-2"
             >
-              <Link to="/admin/surveys/campaigns">
+              <Link to={`/admin/surveys/campaigns/${id}`}>
                 <ChevronLeft className="h-4 w-4" />
-                Back to Campaigns
+                Back to Campaign
               </Link>
             </Button>
           </div>
@@ -63,57 +77,15 @@ export default function CampaignPerformance() {
         </TabsList>
 
         <TabsContent value="trends">
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {/* Placeholder for charts */}
-            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
-              <LineChart className="h-8 w-8 mb-2 text-muted-foreground" />
-              <h3 className="font-medium">Response Rate Over Time</h3>
-            </div>
-            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
-              <BarChart3 className="h-8 w-8 mb-2 text-muted-foreground" />
-              <h3 className="font-medium">Completion Rate Progress</h3>
-            </div>
-            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
-              <BarChart3 className="h-8 w-8 mb-2 text-muted-foreground" />
-              <h3 className="font-medium">Response Volume</h3>
-            </div>
-          </div>
+          <ResponseTrendsTab campaignId={campaign.id} instances={campaign.instances} />
         </TabsContent>
 
         <TabsContent value="demographics">
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-            {/* Placeholder for demographic charts */}
-            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
-              <PieChart className="h-8 w-8 mb-2 text-muted-foreground" />
-              <h3 className="font-medium">Department Distribution</h3>
-            </div>
-            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
-              <PieChart className="h-8 w-8 mb-2 text-muted-foreground" />
-              <h3 className="font-medium">Location Distribution</h3>
-            </div>
-            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
-              <PieChart className="h-8 w-8 mb-2 text-muted-foreground" />
-              <h3 className="font-medium">Employee Type Distribution</h3>
-            </div>
-            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
-              <BarChart3 className="h-8 w-8 mb-2 text-muted-foreground" />
-              <h3 className="font-medium">Participation Rate</h3>
-            </div>
-          </div>
+          <DemographicsTab campaignId={campaign.id} instances={campaign.instances} />
         </TabsContent>
 
         <TabsContent value="comparison">
-          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-            {/* Placeholder for comparison charts */}
-            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
-              <BarChart3 className="h-8 w-8 mb-2 text-muted-foreground" />
-              <h3 className="font-medium">Instance Comparison</h3>
-            </div>
-            <div className="border rounded-lg p-4 h-[300px] flex flex-col items-center justify-center">
-              <LineChart className="h-8 w-8 mb-2 text-muted-foreground" />
-              <h3 className="font-medium">Period Analysis</h3>
-            </div>
-          </div>
+          <ComparisonTab campaignId={campaign.id} instances={campaign.instances} />
         </TabsContent>
       </Tabs>
     </div>
