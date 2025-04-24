@@ -50,7 +50,7 @@ export function SBUPerformanceChartView({ data }: SBUPerformanceChartViewProps) 
     fillColor: item.change > 0 ? "#4ade80" : item.change < 0 ? "#f87171" : "#94a3b8"
   }));
 
-  // Custom colors for charts
+  // Chart colors
   const chartColors = {
     baseScore: "#8884d8",
     comparisonScore: "#82ca9d",
