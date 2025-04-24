@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { NpsComparisonData } from "../../../../ReportsTab/types/nps";
+import { NpsComparisonData } from "@/pages/admin/surveys/campaigns/[id]/components/ReportsTab/types/nps";
 
 interface SupervisorSatisfactionData {
   dimension: string;
