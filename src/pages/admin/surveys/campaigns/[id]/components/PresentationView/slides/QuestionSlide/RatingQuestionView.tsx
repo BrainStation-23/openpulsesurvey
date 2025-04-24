@@ -1,9 +1,11 @@
+
 import { NpsChart } from "../../../ReportsTab/charts/NpsChart";
 import { SatisfactionDonutChart } from "../../../ReportsTab/charts/SatisfactionDonutChart";
 import { RatingResponseData, SatisfactionData } from "../../types/responses";
+import { NpsData } from "../../../ReportsTab/types/nps";
 
 interface RatingQuestionViewProps {
-  data: RatingResponseData | SatisfactionData;
+  data: RatingResponseData | SatisfactionData | NpsData;
   isNps: boolean;
 }
 

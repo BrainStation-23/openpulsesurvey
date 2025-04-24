@@ -101,19 +101,21 @@ const QuestionSlideComponent = ({
     >
       {slideType === 'main' ? (
         <div className="w-full flex items-center justify-center">
-          {questionType === "boolean" && (
+          {questionType === "boolean" && processedData && 'yes' in processedData && 'no' in processedData && (
             <BooleanQuestionView data={processedData as BooleanResponseData} />
           )}
           {questionType === "rating" && (
             <RatingQuestionView 
-              data={isNps ? (processedData as NpsData) : (processedData as RatingResponseData | SatisfactionData)} 
+              data={isNps 
+                ? (processedData as NpsData) 
+                : (processedData as (RatingResponseData | SatisfactionData))} 
               isNps={isNps} 
             />
           )}
         </div>
       ) : (
         <ComparisonLayout title={getDimensionTitle(slideType)}>
-          {questionType === "boolean" && (
+          {questionType === "boolean" && processedData && 'yes' in processedData && 'no' in processedData && (
             <BooleanQuestionView data={processedData as BooleanResponseData} />
           )}
           {questionType === "rating" && (
