@@ -1,8 +1,8 @@
 
 import { NpsData } from "../../../ReportsTab/types/nps";
-import { NpsDonutChart } from "../../../ReportsTab/components/charts/NpsDonutChart";
+import { NpsDonutChart } from "../../../ReportsTab/charts/NpsDonutChart";
 import { SatisfactionData } from "../../types/responses";
-import { SatisfactionDonutChart } from "../../../ReportsTab/components/charts/SatisfactionDonutChart";
+import { SatisfactionDonutChart } from "../../../ReportsTab/charts/SatisfactionDonutChart";
 
 interface RatingQuestionViewProps {
   data: any; // Using any here as we need to handle both NPS and satisfaction data
