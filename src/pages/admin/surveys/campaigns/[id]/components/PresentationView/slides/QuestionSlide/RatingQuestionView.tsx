@@ -10,10 +10,15 @@ interface RatingQuestionViewProps {
 }
 
 export function RatingQuestionView({ data, isNps }: RatingQuestionViewProps) {
+  // Safety check to handle empty data
+  if (!data) {
+    return <div className="text-center text-muted-foreground">No data available</div>;
+  }
+
   return (
     <div className="w-full max-w-4xl">
       {isNps ? (
-        <NpsChart data={data as RatingResponseData} />
+        <NpsChart data={data} />
       ) : (
         <SatisfactionDonutChart data={data as SatisfactionData} />
       )}
