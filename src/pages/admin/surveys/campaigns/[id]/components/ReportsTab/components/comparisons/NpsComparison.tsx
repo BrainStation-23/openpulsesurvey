@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
@@ -69,8 +70,9 @@ export function NpsComparison({
         throw new Error("Campaign or instance ID not provided");
       }
       
+      const rpcName = isNps ? 'get_supervisor_enps' : 'get_supervisor_satisfaction';
       const { data: supervisorData, error: rpcError } = await supabase.rpc(
-        isNps ? 'get_supervisor_eNPS' : 'get_supervisor_satisfaction',
+        rpcName,
         {
           p_campaign_id: campaignId,
           p_instance_id: instanceId,
@@ -81,7 +83,15 @@ export function NpsComparison({
       if (rpcError) throw rpcError;
 
       if (isNps) {
-        return supervisorData.map((item: any) => ({
+        // Need to explicitly type this to help TypeScript
+        return (supervisorData as Array<{
+          dimension: string;
+          detractors: number;
+          passives: number;
+          promoters: number;
+          total: number;
+          nps_score: number;
+        }>).map((item) => ({
           dimension: item.dimension || "Unknown Supervisor",
           ratings: [
             ...Array(7).fill(0).map((_, i) => ({
@@ -99,7 +109,15 @@ export function NpsComparison({
           ]
         }));
       } else {
-        return supervisorData.map((item: any) => ({
+        // Need to explicitly type this to help TypeScript
+        return (supervisorData as Array<{
+          dimension: string;
+          unsatisfied: number;
+          neutral: number;
+          satisfied: number;
+          total: number;
+          avg_score: number;
+        }>).map((item) => ({
           dimension: item.dimension || "Unknown Supervisor",
           unsatisfied: item.unsatisfied,
           neutral: item.neutral,
