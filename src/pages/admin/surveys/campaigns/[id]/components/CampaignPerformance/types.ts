@@ -1,3 +1,4 @@
+
 export interface CampaignInstance {
   id: string;
   period_number: number;
@@ -49,4 +50,34 @@ export interface PeriodAnalysisDataPoint {
   avgRating: number;
   completionRate: number;
   responseCount: number;
+}
+
+export interface AgeGroupBreakdownItem {
+  ageGroup: string;
+  count: number;
+  percentage: number;
+}
+
+export interface TenureBreakdownItem {
+  tenureGroup: string;
+  count: number;
+  percentage: number;
+}
+
+export interface CrossTabData {
+  category1: string;
+  category2: string;
+  count: number;
+  percentage: number;
+}
+
+export interface DemographicDistribution {
+  departments: DemographicBreakdownItem[];
+  locations: DemographicBreakdownItem[];
+  employeeTypes: DemographicBreakdownItem[];
+  employmentTypes: DemographicBreakdownItem[];
+  genders: DemographicBreakdownItem[];
+  levels: DemographicBreakdownItem[];
+  ageGroups: AgeGroupBreakdownItem[];
+  tenureGroups: TenureBreakdownItem[];
 }
