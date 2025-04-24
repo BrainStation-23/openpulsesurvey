@@ -68,15 +68,25 @@ export const exportAsPDF = async (elementId: string, fileName: string) => {
   // Use padded canvas instead of original
   const imgData = paddedCanvas.toDataURL('image/png');
   
+  // Calculate optimal PDF dimensions to prevent cropping
+  // Add a small margin to ensure all content is visible
+  const pdfWidth = paddedCanvas.width;
+  const pdfHeight = paddedCanvas.height;
+  
   // Using jsPDF with constructor compatible with v2.x
   const pdf = new jsPDF({
-    orientation: 'landscape',
+    orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
     unit: 'px',
-    format: [paddedCanvas.width, paddedCanvas.height]
+    format: [pdfWidth, pdfHeight],
+    hotfixes: ['px_scaling']  // Enable proper pixel scaling
   });
   
-  // Add the padded image
-  pdf.addImage(imgData, 'PNG', 0, 0, paddedCanvas.width, paddedCanvas.height);
+  // Check if we need to resize the image to fit the PDF
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  
+  // Add the padded image, scaling if necessary
+  pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
   
   pdf.save(`${sanitizeFilename(fileName)}.pdf`);
 };
