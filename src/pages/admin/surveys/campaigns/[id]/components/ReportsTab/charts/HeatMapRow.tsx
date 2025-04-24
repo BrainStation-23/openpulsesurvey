@@ -62,7 +62,7 @@ export function HeatMapRow({ row, getPercentage, needsAttention }: HeatMapRowPro
       }
     >
       <td className={`p-3 whitespace-nowrap font-medium text-left ${needsAttention(row) ? "text-red-600" : "text-gray-700"}`}>
-        {row.dimension}
+        {row.dimension || "Unknown"}
         {needsAttention(row) && (
           <span className="ml-1 text-xs font-normal text-red-500">Needs Attention</span>
         )}

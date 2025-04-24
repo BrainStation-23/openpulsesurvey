@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
@@ -80,8 +81,9 @@ export function NpsComparison({
       
       if (rpcError) throw rpcError;
       
+      // Ensure supervisor_name is used as the dimension field
       return supervisorData.map((item: any) => ({
-        dimension: item.supervisor_name,
+        dimension: item.supervisor_name || "Unknown Supervisor", // Ensure we have a fallback
         unsatisfied: item.unsatisfied,
         neutral: item.neutral,
         satisfied: item.satisfied,
@@ -212,6 +214,8 @@ export function NpsComparison({
     const loadData = async () => {
       if (dimension === "supervisor") {
         const supervisorData = await fetchSupervisorData();
+        // Log the data to debug
+        console.log("Supervisor data from RPC:", supervisorData);
         setData(supervisorData);
       } else {
         setData(processResponses());
