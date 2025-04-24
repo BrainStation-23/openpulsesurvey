@@ -23,14 +23,14 @@ export function useQuestionData(
     instanceId,
     questionName,
     isNps,
-    slideType
+    slideType === 'main' ? 'supervisor' : slideType
   );
 
   return useMemo(() => {
     if (!data?.responses) return null;
 
     // For supervisor dimension, use RPC data directly
-    if (slideType === 'supervisor') {
+    if (slideType !== 'main') {
       if (isLoadingSupervisor || !supervisorData) return null;
       return supervisorData;
     }
@@ -40,78 +40,7 @@ export function useQuestionData(
       return null;
     }
 
-    // For NPS questions in comparison view
-    if (isNps && slideType !== 'main') {
-      const dimensionData = new Map<string, NpsComparisonData>();
-
-      data.responses.forEach((response) => {
-        const answer = response.answers[questionName]?.answer;
-        if (typeof answer !== 'number') return;
-
-        let dimensionValue = "Unknown";
-        switch (slideType) {
-          case "sbu":
-            dimensionValue = response.respondent.sbu?.name || "Unknown";
-            break;
-          case "gender":
-            dimensionValue = response.respondent.gender || "Unknown";
-            break;
-          case "location":
-            dimensionValue = response.respondent.location?.name || "Unknown";
-            break;
-          case "employment_type":
-            dimensionValue = response.respondent.employment_type?.name || "Unknown";
-            break;
-          case "level":
-            dimensionValue = response.respondent.level?.name || "Unknown";
-            break;
-          case "employee_type":
-            dimensionValue = response.respondent.employee_type?.name || "Unknown";
-            break;
-          case "employee_role":
-            dimensionValue = response.respondent.employee_role?.name || "Unknown";
-            break;
-        }
-
-        if (!dimensionData.has(dimensionValue)) {
-          dimensionData.set(dimensionValue, {
-            dimension: dimensionValue,
-            detractors: 0,
-            passives: 0,
-            promoters: 0,
-            total: 0,
-            nps_score: 0,
-            avg_score: 0
-          });
-        }
-
-        const group = dimensionData.get(dimensionValue)!;
-        group.total += 1;
-
-        // Track sum for average calculation
-        if (group.avg_score === 0) {
-          group.avg_score = answer;
-        } else {
-          // Running average calculation
-          group.avg_score = ((group.avg_score * (group.total - 1)) + answer) / group.total;
-        }
-
-        if (answer <= 6) {
-          group.detractors += 1;
-        } else if (answer <= 8) {
-          group.passives += 1;
-        } else {
-          group.promoters += 1;
-        }
-
-        // Calculate NPS score
-        group.nps_score = ((group.promoters - group.detractors) / group.total) * 100;
-      });
-
-      return Array.from(dimensionData.values());
-    }
-
-    // For main NPS view
+    // For NPS questions in main view
     if (isNps && slideType === 'main') {
       const npsData: NpsData = {
         detractors: 0,
