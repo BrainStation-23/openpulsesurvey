@@ -1,4 +1,3 @@
-
 export type TopSBUPerformer = {
   sbu: string;
   name: string;
@@ -22,7 +21,7 @@ export type SupervisorPerformer = {
   department?: string;
   total_reports?: number;
   category?: 'improved' | 'declined' | 'stable';
-  avg_score?: number; // Keep this to store the value from RPC
+  avg_score?: number;
 };
 
 export type MetricSummary = {
