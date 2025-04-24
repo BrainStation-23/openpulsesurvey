@@ -1,3 +1,4 @@
+
 import { memo } from "react";
 import { SlideProps } from "../../types";
 import { ComparisonDimension } from "../../types/comparison";
@@ -74,7 +75,7 @@ const QuestionSlideComponent = ({
     const npsTableData = processedData.map((group: any) => {
       // Build ratings from detractors/passives/promoters; need rating index 0-10 with count, since NpsComparisonTable expects per-rating counts
       // We'll estimate the breakdown by assigning the group totals to their segment's respective rating range, with the rating itself as a proxy.
-      // However, our data only provides segment totals, not detailed per-rating info. For real data, adapt accordingly!
+      // However, our data only provides segment totals, not detailed per-rating info. For real data, adapt accordingly!
       // We can spread each segment total equally across their respective rating bands.
       const ratings = Array.from({ length: 11 }, (_, i) => {
         if (i <= 6) {
@@ -143,6 +144,8 @@ const QuestionSlideComponent = ({
               responses={data.responses} 
               questionName={questionName}
               dimension={slideType}
+              campaignId={campaign.id}
+              instanceId={campaign.instance?.id || ""}
             />
           )}
           {questionType === "rating" && !isNps && (

@@ -179,6 +179,8 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
                       responses={data.responses}
                       questionName={question.name}
                       dimension={currentDimension}
+                      campaignId={campaignId}
+                      instanceId={instanceId || ""}
                     />
                   )}
                   {(question.type === "nps" || question.type === "rating") && (
