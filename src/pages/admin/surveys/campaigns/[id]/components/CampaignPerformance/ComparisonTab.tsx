@@ -1,15 +1,14 @@
 
 import { useCampaignComparison } from "./hooks/useCampaignComparison";
-import { useSBUPerformance } from "./hooks/useSBUPerformance";
-import { useSupervisorPerformance } from "./hooks/useSupervisorPerformance";
 import { PeriodComparisonChart } from "./components/PeriodComparisonChart";
-import { SBUPerformanceChart } from "./components/SBUPerformanceChart";
-import { SupervisorPerformanceChart } from "./components/SupervisorPerformanceChart";
 import { CampaignInstance } from "./types";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { InstanceSelector } from "./components/InstanceSelector";
+import { EnhancedDualInstanceSelector } from "../InstanceCompareTab/components/EnhancedDualInstanceSelector";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface ComparisonTabProps {
   campaignId: string;
@@ -17,13 +16,16 @@ interface ComparisonTabProps {
 }
 
 export function ComparisonTab({ campaignId, instances }: ComparisonTabProps) {
-  const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
+  const [baseInstanceId, setBaseInstanceId] = useState<string>();
+  const [comparisonInstanceId, setComparisonInstanceId] = useState<string>();
   
-  const { periodAnalysis, isLoading: isPeriodLoading } = useCampaignComparison(campaignId, instances);
-  const { data: sbuData, isLoading: isSBULoading } = useSBUPerformance(campaignId, selectedInstanceIds);
-  const { data: supervisorData, isLoading: isSupervisorLoading } = useSupervisorPerformance(campaignId, selectedInstanceIds);
+  const { periodAnalysis, isLoading } = useCampaignComparison(campaignId, instances);
 
-  const isLoading = isPeriodLoading || isSBULoading || isSupervisorLoading;
+  const handleSwapInstances = () => {
+    const temp = baseInstanceId;
+    setBaseInstanceId(comparisonInstanceId);
+    setComparisonInstanceId(temp);
+  };
 
   if (isLoading) {
     return (
@@ -33,7 +35,7 @@ export function ComparisonTab({ campaignId, instances }: ComparisonTabProps) {
     );
   }
 
-  if (!periodAnalysis?.length && !sbuData?.length && !supervisorData?.length) {
+  if (!periodAnalysis?.length) {
     return (
       <div className="flex items-center justify-center h-64 border rounded-lg bg-muted/10">
         <p className="text-muted-foreground">No comparison data available for this campaign</p>
@@ -43,34 +45,6 @@ export function ComparisonTab({ campaignId, instances }: ComparisonTabProps) {
 
   return (
     <div className="space-y-6">
-      <InstanceSelector
-        instances={instances}
-        selectedInstanceIds={selectedInstanceIds}
-        onInstanceSelect={setSelectedInstanceIds}
-      />
-
-      {selectedInstanceIds.length > 0 && (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">SBU Performance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SBUPerformanceChart data={sbuData} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Supervisor Performance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SupervisorPerformanceChart data={supervisorData} />
-            </CardContent>
-          </Card>
-        </>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Period Analysis</CardTitle>
