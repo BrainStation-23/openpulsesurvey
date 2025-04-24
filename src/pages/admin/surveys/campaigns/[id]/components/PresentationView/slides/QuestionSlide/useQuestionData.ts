@@ -3,8 +3,9 @@ import { ProcessedData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
 import { useSupervisorData } from "../../hooks/useSupervisorData";
 import { NpsData, NpsComparisonData } from "../../../ReportsTab/types/nps";
+import { BooleanResponseData } from "../../types/responses";
 
-type ProcessedResult = NpsComparisonData[] | NpsData | any[];
+type ProcessedResult = NpsComparisonData[] | NpsData | BooleanResponseData | null;
 
 export function useQuestionData(
   data: ProcessedData | undefined | null,
@@ -13,7 +14,7 @@ export function useQuestionData(
   slideType: ComparisonDimension,
   campaignId?: string,
   instanceId?: string
-): ProcessedResult | null {
+): ProcessedResult {
   const question = data?.questions.find(q => q.name === questionName);
   const isNps = question?.type === 'rating' && question?.rateCount === 10;
 
@@ -38,6 +39,21 @@ export function useQuestionData(
     // Skip processing for text questions
     if (questionType === "text" || questionType === "comment") {
       return null;
+    }
+
+    // For boolean questions in main view
+    if (questionType === "boolean") {
+      const answers = data.responses
+        .map(response => response.answers[questionName]?.answer)
+        .filter(answer => typeof answer === 'boolean');
+
+      const yes = answers.filter(a => a === true).length;
+      const no = answers.filter(a => a === false).length;
+
+      return {
+        yes,
+        no
+      };
     }
 
     // For NPS questions in main view
@@ -81,7 +97,7 @@ export function useQuestionData(
       return npsData;
     }
 
-    // Return null for non-NPS questions (they will be handled by their respective components)
+    // Return null for other question types
     return null;
   }, [data, questionName, questionType, slideType, supervisorData, isLoadingSupervisor, isNps]);
 }
