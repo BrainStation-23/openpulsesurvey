@@ -1,10 +1,9 @@
+
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, Maximize, Minimize, Loader } from "lucide-react";
 import { CampaignData } from "../types";
-import { usePresentationResponses } from "../hooks/usePresentationResponses";
 import { usePptxExport } from "../hooks/usePptxExport";
-import { useToast } from "@/hooks/use-toast";
 import { SharePresentationModal } from "./SharePresentationModal";
 
 interface PresentationControlsProps {
@@ -32,9 +31,11 @@ export function PresentationControls({
   totalSlides,
   campaign,
 }: PresentationControlsProps) {
-  const { toast } = useToast();
-  const { data: processedData } = usePresentationResponses(campaign.id, campaign.instance?.id);
-  const { handleExport, exporting, progress } = usePptxExport();
+  // Use our optimized hook for PPTX export
+  const { handleExport, exporting, progress } = usePptxExport(
+    campaign.id, 
+    campaign.instance?.id
+  );
 
   return (
     <div className="flex flex-col gap-2">
@@ -58,7 +59,7 @@ export function PresentationControls({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => handleExport(campaign, processedData)}
+            onClick={handleExport}
             disabled={exporting}
             className="text-black hover:bg-black/20 hover:text-black relative"
             title="Export to PPTX"
