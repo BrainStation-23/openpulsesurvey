@@ -16,32 +16,43 @@ export function useSupervisorData(
   campaignId: string | undefined,
   instanceId: string | undefined,
   questionName: string,
-  isNps: boolean
+  isNps: boolean,
+  dimension: 'supervisor' | 'gender' = 'supervisor'
 ) {
   return useQuery({
-    queryKey: ["supervisor-data", campaignId, instanceId, questionName, isNps],
+    queryKey: ["supervisor-data", campaignId, instanceId, questionName, isNps, dimension],
     queryFn: async () => {
       if (!campaignId || !instanceId) {
         throw new Error("Campaign or instance ID not provided");
       }
 
       if (isNps) {
-        // For NPS questions, use get_supervisor_enps
-        const { data, error } = await supabase.rpc("get_supervisor_enps", {
-          p_campaign_id: campaignId,
-          p_instance_id: instanceId,
-          p_question_name: questionName,
-        });
+        // For NPS questions, use get_supervisor_enps or get_dimension_satisfaction with different handling
+        const { data, error } = await supabase.rpc(
+          dimension === 'supervisor' ? "get_supervisor_enps" : "get_dimension_satisfaction", 
+          dimension === 'supervisor' 
+            ? {
+                p_campaign_id: campaignId,
+                p_instance_id: instanceId,
+                p_question_name: questionName,
+              }
+            : {
+                p_campaign_id: campaignId,
+                p_instance_id: instanceId,
+                p_question_name: questionName,
+                p_dimension: dimension
+              }
+        );
 
         if (error) throw error;
         return data as NpsComparisonData[];
       } else {
-        // For satisfaction questions, use get_dimension_satisfaction with 'supervisor' dimension
+        // For satisfaction questions, use get_dimension_satisfaction with dimension
         const { data, error } = await supabase.rpc("get_dimension_satisfaction", {
           p_campaign_id: campaignId,
           p_instance_id: instanceId,
           p_question_name: questionName,
-          p_dimension: 'supervisor'
+          p_dimension: dimension
         });
 
         if (error) throw error;
