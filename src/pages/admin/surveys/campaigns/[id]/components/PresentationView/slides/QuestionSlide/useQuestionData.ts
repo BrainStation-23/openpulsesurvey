@@ -1,6 +1,8 @@
+
 import { useMemo } from "react";
 import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
+import { useSupervisorData } from "../../hooks/useSupervisorData";
 
 type ProcessedResult = BooleanResponseData | RatingResponseData | SatisfactionData | any[];
 
@@ -68,7 +70,7 @@ export function useQuestionData(
     if (slideType === 'main') {
       switch (questionType) {
         case "boolean": {
-          const answers = responses
+          const answers = data.responses
             .filter(r => r.answers[questionName]?.answer !== undefined)
             .map(r => r.answers[questionName].answer);
           
@@ -80,7 +82,7 @@ export function useQuestionData(
         }
 
         case "rating": {
-          const answers = responses
+          const answers = data.responses
             .filter(r => typeof r.answers[questionName]?.answer === 'number')
             .map(r => r.answers[questionName].answer);
           
@@ -121,7 +123,7 @@ export function useQuestionData(
           return null;
       }
     } else {
-      return processComparisonData(responses, questionName, slideType, isNps);
+      return processComparisonData(data.responses, questionName, slideType, isNps);
     }
   }, [data, questionName, questionType, slideType, supervisorData, isLoadingSupervisor]);
 }
