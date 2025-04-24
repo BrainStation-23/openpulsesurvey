@@ -19,8 +19,8 @@ export function DemographicCard({ title, data, chartType, nameKey = "name" }: De
   })) : data;
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-2 border-b">
+    <Card className="h-[350px] flex flex-col">
+      <CardHeader className="pb-2 border-b flex-shrink-0">
         <div className="flex items-start justify-between">
           <CardTitle className="text-base">{title}</CardTitle>
           {chartType === "pie" && (
@@ -45,9 +45,9 @@ export function DemographicCard({ title, data, chartType, nameKey = "name" }: De
           )}
         </div>
       </CardHeader>
-      <CardContent className="flex-1 p-3 min-h-0">
+      <CardContent className="p-2 flex-1">
         {chartType === "pie" ? (
-          <div className="h-full w-full">
+          <div className="h-full">
             <DemographicPieChart 
               data={formattedData} 
               title={`Response Distribution by ${title}`}
@@ -55,7 +55,7 @@ export function DemographicCard({ title, data, chartType, nameKey = "name" }: De
             />
           </div>
         ) : (
-          <div className="h-full w-full">
+          <div className="h-full">
             <DemographicBarChart 
               data={data} 
               title={`Response Distribution by ${title}`}

@@ -1,3 +1,4 @@
+
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { DemographicBreakdownItem } from "../types";
@@ -34,55 +35,52 @@ export function DemographicPieChart({ data, title, showLegend = true }: Demograp
   }
 
   return (
-    <div className="space-y-2 w-full h-full flex flex-col">
-      <div className="flex-1 w-full">
-        <ChartContainer config={{}}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="count"
-                nameKey="name"
-                label={({ name, percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null;
-                  const data = payload[0].payload as DemographicBreakdownItem;
-                  
-                  return (
-                    <ChartTooltipContent>
-                      <div className="space-y-1">
-                        <p className="font-medium">{data.name}</p>
-                        <p>Count: {data.count}</p>
-                        <p>Percentage: {data.percentage.toFixed(1)}%</p>
-                      </div>
-                    </ChartTooltipContent>
-                  );
-                }}
-              />
-              {showLegend && (
-                <Legend 
-                  layout="horizontal"
-                  verticalAlign="bottom"
-                  align="center"
-                  content={renderCustomizedLegend}
-                />
-              )}
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartContainer>
-      </div>
-    </div>
+    <ChartContainer config={{}}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={chartData}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            outerRadius="90%"
+            innerRadius="0%"
+            fill="#8884d8"
+            dataKey="count"
+            nameKey="name"
+            label={({ percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''}
+          >
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip
+            content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const data = payload[0].payload as DemographicBreakdownItem;
+              
+              return (
+                <ChartTooltipContent>
+                  <div className="space-y-1">
+                    <p className="font-medium">{data.name}</p>
+                    <p>Count: {data.count}</p>
+                    <p>Percentage: {data.percentage.toFixed(1)}%</p>
+                  </div>
+                </ChartTooltipContent>
+              );
+            }}
+          />
+          {showLegend && (
+            <Legend 
+              layout="horizontal"
+              verticalAlign="bottom"
+              align="center"
+              content={renderCustomizedLegend}
+            />
+          )}
+        </PieChart>
+      </ResponsiveContainer>
+    </ChartContainer>
   );
 }
 
