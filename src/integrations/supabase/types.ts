@@ -3014,7 +3014,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
-      get_supervisor_ratings: {
+      get_supervisor_bool: {
         Args: {
           p_campaign_id: string
           p_instance_id: string
@@ -3022,10 +3022,9 @@ export type Database = {
         }
         Returns: {
           dimension: string
-          unsatisfied: number
-          neutral: number
-          satisfied: number
-          total: number
+          yes_count: number
+          no_count: number
+          total_count: number
         }[]
       }
       get_supervisor_satisfaction: {
