@@ -18,8 +18,11 @@ export function RatingQuestionView({ data, isNps }: RatingQuestionViewProps) {
   return (
     <div className="w-full max-w-4xl">
       {isNps ? (
-        <NpsChart data={data} />
+        // For NPS data, pass it directly to NpsChart
+        <NpsChart data={data as NpsData} />
       ) : (
+        // For satisfaction data (5-point scale)
+        // We explicitly cast to SatisfactionData as that's what SatisfactionDonutChart expects
         <SatisfactionDonutChart data={data as SatisfactionData} />
       )}
     </div>
