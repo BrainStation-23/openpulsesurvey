@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
@@ -71,7 +70,7 @@ export function NpsComparison({
       }
       
       const { data: supervisorData, error: rpcError } = await supabase.rpc(
-        'get_supervisor_satisfaction',
+        isNps ? 'get_supervisor_eNPS' : 'get_supervisor_satisfaction',
         {
           p_campaign_id: campaignId,
           p_instance_id: instanceId,
@@ -80,16 +79,35 @@ export function NpsComparison({
       );
       
       if (rpcError) throw rpcError;
-      
-      // Ensure supervisor_name is used as the dimension field
-      return supervisorData.map((item: any) => ({
-        dimension: item.dimension || "Unknown Supervisor", // Ensure we have a fallback
-        unsatisfied: item.unsatisfied,
-        neutral: item.neutral,
-        satisfied: item.satisfied,
-        total: item.total,
-        avg_score: item.avg_score
-      }));
+
+      if (isNps) {
+        return supervisorData.map((item: any) => ({
+          dimension: item.dimension || "Unknown Supervisor",
+          ratings: [
+            ...Array(7).fill(0).map((_, i) => ({
+              rating: i,
+              count: Math.round(item.detractors / 7)
+            })),
+            ...Array(2).fill(0).map((_, i) => ({
+              rating: i + 7,
+              count: Math.round(item.passives / 2)
+            })),
+            ...Array(2).fill(0).map((_, i) => ({
+              rating: i + 9,
+              count: Math.round(item.promoters / 2)
+            }))
+          ]
+        }));
+      } else {
+        return supervisorData.map((item: any) => ({
+          dimension: item.dimension || "Unknown Supervisor",
+          unsatisfied: item.unsatisfied,
+          neutral: item.neutral,
+          satisfied: item.satisfied,
+          total: item.total,
+          avg_score: item.avg_score
+        }));
+      }
     } catch (err) {
       console.error("Error fetching supervisor data:", err);
       setError(err instanceof Error ? err : new Error('Failed to fetch supervisor data'));
@@ -214,8 +232,6 @@ export function NpsComparison({
     const loadData = async () => {
       if (dimension === "supervisor") {
         const supervisorData = await fetchSupervisorData();
-        // Log the data to debug
-        console.log("Supervisor data from RPC:", supervisorData);
         setData(supervisorData);
       } else {
         setData(processResponses());
@@ -269,7 +285,11 @@ export function NpsComparison({
         <CardTitle>{getDimensionTitle(dimension)}</CardTitle>
       </CardHeader>
       <CardContent>
-        <HeatMapChart data={data as HeatMapData[]} />
+        {isNps && dimension === "supervisor" ? (
+          <NpsComparisonTable data={data as NpsData[]} />
+        ) : (
+          <HeatMapChart data={data as HeatMapData[]} />
+        )}
       </CardContent>
     </Card>
   );

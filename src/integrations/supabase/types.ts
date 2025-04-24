@@ -3027,6 +3027,21 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_supervisor_enps: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_question_name: string
+        }
+        Returns: {
+          dimension: string
+          detractors: number
+          passives: number
+          promoters: number
+          total: number
+          nps_score: number
+        }[]
+      }
       get_supervisor_satisfaction: {
         Args: {
           p_campaign_id: string
