@@ -1,4 +1,3 @@
-
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -144,6 +143,7 @@ const App = () => (
               <Route path="surveys/campaigns" element={<CampaignsPage />} />
               <Route path="surveys/campaigns/create" element={<CampaignFormPage />} />
               <Route path="surveys/campaigns/:id" element={<CampaignDetailsPage />} />
+              <Route path="surveys/campaigns/:id/performance" element={<CampaignPerformance />} />
               <Route path="surveys/campaigns/:id/instances" element={<CampaignInstancesPage />} />
               <Route path="surveys/campaigns/:id/present" element={<PresentationView />} />
               <Route path="surveys/live" element={<LiveSurveyPage />} />
