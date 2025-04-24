@@ -9,7 +9,7 @@ import { NpsComparison } from "./components/comparisons/NpsComparison";
 import { TextComparison } from "./components/comparisons/TextComparison";
 import { useState } from "react";
 import { ComparisonDimension } from "./types/comparison";
-import { SatisfactionDonutChart } from "./charts/SatisfactionDonutChart";
+import { SatisfactionChart } from "./charts/SatisfactionChart";
 import { NpsData } from "./types/nps";
 
 interface ReportsTabProps {
@@ -171,7 +171,7 @@ export function ReportsTab({ campaignId, instanceId }: ReportsTabProps) {
                           data={processedData as NpsData}
                         />
                       ) : (
-                        <SatisfactionDonutChart
+                        <SatisfactionChart
                           data={processedData as { 
                             unsatisfied: number;
                             neutral: number;
