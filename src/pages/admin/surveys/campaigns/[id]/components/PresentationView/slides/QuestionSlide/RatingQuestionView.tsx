@@ -1,9 +1,9 @@
 
+import React from 'react';
 import { NpsChart } from "../../../ReportsTab/charts/NpsChart";
-import { SatisfactionDonutChart } from "../../../ReportsTab/charts/SatisfactionDonutChart";
+import { SatisfactionChart } from "../../../ReportsTab/charts/SatisfactionChart";
 import { RatingResponseData, SatisfactionData } from "../../types/responses";
 import { NpsData } from "../../../ReportsTab/types/nps";
-import { calculateMedian } from "../../../ReportsTab/utils/calculateMedian";
 
 interface RatingQuestionViewProps {
   data: RatingResponseData | SatisfactionData | NpsData | any; // Added 'any' to handle various data types
@@ -23,8 +23,8 @@ export function RatingQuestionView({ data, isNps }: RatingQuestionViewProps) {
         <NpsChart data={data as NpsData} />
       ) : (
         // For satisfaction data (5-point scale)
-        // We explicitly cast to SatisfactionData as that's what SatisfactionDonutChart expects
-        <SatisfactionDonutChart data={data as SatisfactionData} />
+        // We explicitly cast to SatisfactionData as that's what SatisfactionChart expects
+        <SatisfactionChart data={data as SatisfactionData} />
       )}
     </div>
   );
