@@ -1,4 +1,3 @@
-
 import { memo } from "react";
 import { SlideProps } from "../../types";
 import { ComparisonDimension } from "../../types/comparison";
@@ -21,14 +20,14 @@ interface QuestionSlideProps extends SlideProps {
   slideType: ComparisonDimension;
 }
 
-const QuestionSlideComponent = ({ 
+export function QuestionSlide({ 
   campaign, 
   isActive, 
   questionName, 
   questionTitle, 
   questionType,
   slideType = 'main'
-}: QuestionSlideProps) => {
+}: QuestionSlideProps) {
   const { data } = usePresentationResponses(campaign.id, campaign.instance?.id);
   const processedData = useQuestionData(
     data, 
@@ -119,26 +118,17 @@ const QuestionSlideComponent = ({
             <BooleanQuestionView data={processedData as BooleanResponseData} />
           )}
           {questionType === "rating" && (
-            slideType === "supervisor" ? (
-              <NpsComparison
-                responses={data.responses}
-                questionName={questionName}
-                dimension={slideType}
-                isNps={isNps}
-                campaignId={campaign.id}
-                instanceId={campaign.instance?.id}
-              />
-            ) : !isNps ? (
-              <ComparisonView 
-                data={processedData}
-                isNps={isNps}
-              />
-            ) : null
+            <NpsComparison
+              responses={data.responses}
+              questionName={questionName}
+              dimension={slideType}
+              isNps={isNps}
+              campaignId={campaign.id}
+              instanceId={campaign.instance?.id}
+            />
           )}
         </ComparisonLayout>
       )}
     </QuestionSlideLayout>
   );
-};
-
-export const QuestionSlide = memo(QuestionSlideComponent);
+}

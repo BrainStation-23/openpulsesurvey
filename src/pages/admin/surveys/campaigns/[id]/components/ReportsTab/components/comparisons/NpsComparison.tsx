@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
 import type { ProcessedResponse } from "../../hooks/useResponseProcessing";
@@ -7,7 +6,6 @@ import { ComparisonDimension } from "../../types/comparison";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { NpsComparisonTable } from "./NpsComparisonTable";
-import { NpsComparisonData } from "../../types/nps";
 import { useDimensionComparison } from "../../hooks/useDimensionComparison";
 
 interface NpsComparisonProps {
@@ -41,7 +39,8 @@ export function NpsComparison({
     campaignId,
     instanceId,
     questionName,
-    dimension
+    dimension,
+    isNps
   );
 
   const getDimensionTitle = (dim: string) => {
@@ -89,20 +88,9 @@ export function NpsComparison({
   }
 
   if (isNps) {
-    // Transform satisfaction data to NPS format
-    const npsData: NpsComparisonData[] = data.map(item => ({
-      dimension: item.dimension,
-      detractors: item.unsatisfied,
-      passives: item.neutral,
-      promoters: item.satisfied,
-      total: item.total,
-      nps_score: ((item.satisfied - item.unsatisfied) / item.total) * 100,
-      avg_score: item.avg_score
-    }));
-
     return (
       <div className="w-full">
-        <NpsComparisonTable data={npsData} />
+        <NpsComparisonTable data={data} />
       </div>
     );
   }
