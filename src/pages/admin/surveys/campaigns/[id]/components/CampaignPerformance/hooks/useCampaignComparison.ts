@@ -13,7 +13,7 @@ export function useCampaignComparison(campaignId: string, instances: CampaignIns
       for (const instance of instances) {
         const { data: responseData, error: responseError } = await supabase
           .from("survey_responses")
-          .select("id, answers")
+          .select("id, response_data")
           .eq("campaign_instance_id", instance.id);
           
         if (responseError) throw responseError;
@@ -23,14 +23,19 @@ export function useCampaignComparison(campaignId: string, instances: CampaignIns
         let ratingCount = 0;
         
         responseData.forEach(response => {
-          const answers = response.answers as Record<string, any>;
+          const responseData = response.response_data as Record<string, any>;
           
-          Object.values(answers).forEach(answer => {
+          Object.values(responseData).forEach(answer => {
             if (
+              typeof answer === 'object' && 
               answer?.questionType === 'rating' && 
               typeof answer.answer === 'number'
             ) {
               totalRating += answer.answer;
+              ratingCount++;
+            } else if (typeof answer === 'number') {
+              // Handle direct number values (for simple rating responses)
+              totalRating += answer;
               ratingCount++;
             }
           });
@@ -40,11 +45,11 @@ export function useCampaignComparison(campaignId: string, instances: CampaignIns
         
         // Get completion rate for this instance
         const { data: completionData, error: completionError } = await supabase
-          .rpc("get_instance_completion_rate", { instance_id: instance.id });
+          .rpc("calculate_instance_completion_rate", { instance_id: instance.id });
           
         if (completionError) throw completionError;
         
-        const completionRate = completionData?.[0]?.completion_rate || 0;
+        const completionRate = completionData || 0;
         
         periodData.push({
           periodNumber: instance.period_number,

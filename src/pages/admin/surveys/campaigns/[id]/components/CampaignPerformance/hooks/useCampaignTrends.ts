@@ -20,7 +20,7 @@ export function useCampaignTrends(campaignId: string, instances: CampaignInstanc
         .select(`
           id,
           created_at,
-          respondent_id,
+          user_id,
           campaign_instance_id,
           assignment:survey_assignments!inner(
             campaign_id
@@ -40,25 +40,27 @@ export function useCampaignTrends(campaignId: string, instances: CampaignInstanc
           acc[date] = {
             date: format(parseISO(date), "MMM d"),
             responseCount: 0,
-            uniqueRespondents: new Set(),
+            uniqueRespondents: 0,
             instance: instance?.id,
             periodNumber: instance?.period_number,
           };
         }
         
         acc[date].responseCount++;
-        acc[date].uniqueRespondents.add(response.respondent_id);
+        
+        // Count unique respondents
+        const uniqueUsers = new Set<string>();
+        responses
+          .filter(r => format(parseISO(r.created_at), "yyyy-MM-dd") === date)
+          .forEach(r => uniqueUsers.add(r.user_id));
+        
+        acc[date].uniqueRespondents = uniqueUsers.size;
         
         return acc;
       }, {});
       
-      // Convert to array and add unique respondent count
-      const trendsArray = Object.values(responsesByDate).map(item => ({
-        ...item,
-        uniqueRespondents: (item.uniqueRespondents as unknown as Set<string>).size
-      }));
-      
-      return trendsArray.sort((a, b) => 
+      // Convert to array
+      return Object.values(responsesByDate).sort((a, b) => 
         parseISO(a.date).getTime() - parseISO(b.date).getTime()
       );
     },
@@ -72,19 +74,33 @@ export function useCampaignTrends(campaignId: string, instances: CampaignInstanc
       // For each instance, get the completion rate
       for (const instance of instances) {
         const { data, error } = await supabase
-          .rpc("get_instance_completion_rate", { instance_id: instance.id });
+          .rpc("calculate_instance_completion_rate", { instance_id: instance.id });
           
         if (error) throw error;
         
-        if (data && data.length > 0) {
-          completionData.push({
-            instance: instance.id,
-            periodNumber: instance.period_number,
-            completionRate: data[0].completion_rate || 0,
-            totalAssignments: data[0].total_assignments || 0,
-            completedResponses: data[0].completed_responses || 0,
-          });
-        }
+        // Get total assignments and completed responses for this instance
+        const { data: assignmentData, error: assignmentError } = await supabase
+          .from("survey_assignments")
+          .select("id", { count: 'exact' })
+          .eq("campaign_id", campaignId);
+          
+        if (assignmentError) throw assignmentError;
+        
+        const { data: responseData, error: responseError } = await supabase
+          .from("survey_responses")
+          .select("id", { count: 'exact' })
+          .eq("campaign_instance_id", instance.id)
+          .eq("status", "submitted");
+          
+        if (responseError) throw responseError;
+          
+        completionData.push({
+          instance: instance.id,
+          periodNumber: instance.period_number,
+          completionRate: data || 0,
+          totalAssignments: assignmentData?.length || 0,
+          completedResponses: responseData?.length || 0,
+        });
       }
       
       return completionData.sort((a, b) => a.periodNumber - b.periodNumber);
@@ -157,37 +173,42 @@ export function useCampaignTrends(campaignId: string, instances: CampaignInstanc
       : 0;
     
     // Total unique respondents
-    const uniqueRespondents = new Set(trendData.flatMap(t => Array.from(t.uniqueRespondents as unknown as Set<string>)));
+    const uniqueRespondents = new Set<string>();
+    if (trendData.length > 0) {
+      const totalUniqueRespondents = trendData.reduce((sum, item) => sum + item.uniqueRespondents, 0);
+      
+      // Response rate over time trend
+      const isIncreasing = trendData.length >= 2 && 
+        trendData[trendData.length - 1].responseCount > trendData[0].responseCount;
+      
+      return [
+        {
+          label: "Total Responses",
+          value: totalResponses,
+          change: responseGrowth,
+          changeDirection: responseGrowth > 0 ? "positive" : responseGrowth < 0 ? "negative" : "neutral",
+          description: "Total responses across all instances"
+        },
+        {
+          label: "Average Completion Rate",
+          value: `${avgCompletionRate.toFixed(1)}%`,
+          description: "Average completion rate across all instances"
+        },
+        {
+          label: "Unique Respondents",
+          value: totalUniqueRespondents,
+          description: "Total unique respondents across all instances"
+        },
+        {
+          label: "Response Trend",
+          value: isIncreasing ? "Increasing" : "Decreasing",
+          changeDirection: isIncreasing ? "positive" : "negative",
+          description: "Overall trend in response rate over time"
+        }
+      ];
+    }
     
-    // Response rate over time trend
-    const isIncreasing = trendData.length >= 2 && 
-      trendData[trendData.length - 1].responseCount > trendData[0].responseCount;
-    
-    return [
-      {
-        label: "Total Responses",
-        value: totalResponses,
-        change: responseGrowth,
-        changeDirection: responseGrowth > 0 ? "positive" : responseGrowth < 0 ? "negative" : "neutral",
-        description: "Total responses across all instances"
-      },
-      {
-        label: "Average Completion Rate",
-        value: `${avgCompletionRate.toFixed(1)}%`,
-        description: "Average completion rate across all instances"
-      },
-      {
-        label: "Unique Respondents",
-        value: uniqueRespondents.size,
-        description: "Total unique respondents across all instances"
-      },
-      {
-        label: "Response Trend",
-        value: isIncreasing ? "Increasing" : "Decreasing",
-        changeDirection: isIncreasing ? "positive" : "negative",
-        description: "Overall trend in response rate over time"
-      }
-    ];
+    return [];
   };
 
   return {
