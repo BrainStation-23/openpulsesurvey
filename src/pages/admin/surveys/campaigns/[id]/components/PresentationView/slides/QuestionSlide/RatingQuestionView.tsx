@@ -1,30 +1,62 @@
 
-import { NpsChart } from "../../../ReportsTab/charts/NpsChart";
-import { SatisfactionDonutChart } from "../../../ReportsTab/charts/SatisfactionDonutChart";
-import { RatingResponseData, SatisfactionData } from "../../types/responses";
 import { NpsData } from "../../../ReportsTab/types/nps";
+import { NpsDonutChart } from "../../../ReportsTab/components/charts/NpsDonutChart";
+import { SatisfactionData } from "../../types/responses";
+import { SatisfactionDonutChart } from "../../../ReportsTab/components/charts/SatisfactionDonutChart";
 
 interface RatingQuestionViewProps {
-  data: RatingResponseData | SatisfactionData | NpsData | any; // Added 'any' to handle various data types
+  data: any; // Using any here as we need to handle both NPS and satisfaction data
   isNps: boolean;
 }
 
 export function RatingQuestionView({ data, isNps }: RatingQuestionViewProps) {
-  // Safety check to handle empty data
   if (!data) {
-    return <div className="text-center text-muted-foreground">No data available</div>;
+    return (
+      <div className="text-center text-muted-foreground">
+        No responses yet
+      </div>
+    );
   }
 
-  return (
-    <div className="w-full max-w-4xl">
-      {isNps ? (
-        // For NPS data, pass it directly to NpsChart
-        <NpsChart data={data as NpsData} />
-      ) : (
-        // For satisfaction data (5-point scale)
-        // We explicitly cast to SatisfactionData as that's what SatisfactionDonutChart expects
-        <SatisfactionDonutChart data={data as SatisfactionData} />
-      )}
-    </div>
-  );
+  if (isNps) {
+    const npsData = data as NpsData;
+    
+    if (npsData.total === 0) {
+      return (
+        <div className="text-center text-muted-foreground">
+          No responses yet
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full max-w-xl">
+        <NpsDonutChart 
+          npsData={npsData} 
+          showLegend={true}
+          showScore={true}
+        />
+      </div>
+    );
+  } else {
+    // For satisfaction data (non-NPS ratings)
+    const satisfactionData = data as SatisfactionData;
+    
+    if (satisfactionData.total === 0) {
+      return (
+        <div className="text-center text-muted-foreground">
+          No responses yet
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full max-w-xl">
+        <SatisfactionDonutChart 
+          data={satisfactionData}
+          showLegend={true}
+        />
+      </div>
+    );
+  }
 }

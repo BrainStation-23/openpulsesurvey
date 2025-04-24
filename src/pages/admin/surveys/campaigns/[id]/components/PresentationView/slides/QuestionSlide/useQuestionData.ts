@@ -4,7 +4,7 @@ import { ProcessedData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
 import { useDimensionData } from "../../hooks/useDimensionData";
 import { NpsData, NpsComparisonData } from "../../../ReportsTab/types/nps";
-import { BooleanResponseData } from "../../types/responses";
+import { BooleanResponseData, SatisfactionData } from "../../types/responses";
 
 // Define the data types from RPC functions
 interface SupervisorSatisfactionData {
@@ -30,6 +30,7 @@ type ProcessedResult =
   | BooleanComparisonData[]
   | NpsData 
   | BooleanResponseData 
+  | SatisfactionData
   | null;
 
 export function useQuestionData(
@@ -146,13 +147,15 @@ export function useQuestionData(
         ? (sortedAnswers[middle - 1] + sortedAnswers[middle]) / 2
         : sortedAnswers[middle];
       
-      return {
+      const satisfactionData: SatisfactionData = {
         unsatisfied,
         neutral,
         satisfied,
         total,
         median
       };
+      
+      return satisfactionData;
     }
 
     // Return null for other question types
