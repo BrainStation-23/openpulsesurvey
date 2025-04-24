@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeatMapChart } from "../../charts/HeatMapChart";
@@ -26,6 +25,7 @@ interface HeatMapData {
   neutral: number;
   satisfied: number;
   total: number;
+  avg_score?: number;
 }
 
 interface NpsData {
@@ -81,11 +81,12 @@ export function NpsComparison({
       if (rpcError) throw rpcError;
       
       return supervisorData.map((item: any) => ({
-        dimension: item.dimension,
+        dimension: item.supervisor_name,
         unsatisfied: item.unsatisfied,
         neutral: item.neutral,
         satisfied: item.satisfied,
-        total: item.total
+        total: item.total,
+        avg_score: item.avg_score
       }));
     } catch (err) {
       console.error("Error fetching supervisor data:", err);
@@ -147,7 +148,7 @@ export function NpsComparison({
           dimension,
           ratings: ratings.map((count, rating) => ({ rating, count }))
         })) as NpsData[];
-      }
+    }
 
     const dimensionData = new Map<string, HeatMapData>();
 
