@@ -1,5 +1,4 @@
 
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { NpsData } from "../types/nps";
 import { GaugeChart } from "@/components/ui/gauge-chart";
@@ -9,7 +8,6 @@ interface NpsChartProps {
 }
 
 export function NpsChart({ data }: NpsChartProps) {
-  // Safety check to handle empty data
   if (!data) {
     return <div className="text-center text-muted-foreground">No data available</div>;
   }
@@ -29,63 +27,52 @@ export function NpsChart({ data }: NpsChartProps) {
           value={Math.round(data.nps_score)} 
           label="eNPS Score"
           size="lg"
+          showIcons={true}
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 items-start">
-        <div className="space-y-1">
+      <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="rounded-lg bg-destructive/10 p-4">
+          <div className="font-medium text-destructive">Detractors</div>
+          <div className="text-2xl font-semibold text-destructive">
+            {data.detractors}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {Math.round(percentages.detractors)}%
+          </div>
+        </div>
+        
+        <div className="rounded-lg bg-yellow-500/10 p-4">
+          <div className="font-medium text-yellow-600">Passives</div>
+          <div className="text-2xl font-semibold text-yellow-600">
+            {data.passives}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {Math.round(percentages.passives)}%
+          </div>
+        </div>
+        
+        <div className="rounded-lg bg-green-500/10 p-4">
+          <div className="font-medium text-green-600">Promoters</div>
+          <div className="text-2xl font-semibold text-green-600">
+            {data.promoters}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {Math.round(percentages.promoters)}%
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="rounded-lg border p-4 text-center">
           <div className="text-sm text-muted-foreground">Average Rating</div>
           <div className="text-2xl font-bold">
             {data.avg_score?.toFixed(1) || "N/A"}
           </div>
         </div>
-        <div className="space-y-1">
+        <div className="rounded-lg border p-4 text-center">
           <div className="text-sm text-muted-foreground">Total Responses</div>
           <div className="text-2xl font-bold">{totalResponses}</div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Promoters</span>
-            <span className="font-medium">
-              {Math.round(percentages.promoters)}% ({data.promoters})
-            </span>
-          </div>
-          <Progress 
-            value={percentages.promoters} 
-            className="bg-gray-100 h-2"
-            indicatorClassName="bg-[#22c55e]"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Passives</span>
-            <span className="font-medium">
-              {Math.round(percentages.passives)}% ({data.passives})
-            </span>
-          </div>
-          <Progress 
-            value={percentages.passives} 
-            className="bg-gray-100 h-2"
-            indicatorClassName="bg-[#eab308]"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Detractors</span>
-            <span className="font-medium">
-              {Math.round(percentages.detractors)}% ({data.detractors})
-            </span>
-          </div>
-          <Progress 
-            value={percentages.detractors} 
-            className="bg-gray-100 h-2"
-            indicatorClassName="bg-[#ef4444]"
-          />
         </div>
       </div>
     </div>

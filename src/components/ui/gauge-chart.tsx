@@ -1,7 +1,8 @@
 
 import { useId } from "react";
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
+import { Frown, Meh, Smile } from "lucide-react";
 
 interface GaugeChartProps {
   value: number;
@@ -10,6 +11,7 @@ interface GaugeChartProps {
   label?: string;
   size?: "sm" | "md" | "lg";
   className?: string;
+  showIcons?: boolean;
 }
 
 export function GaugeChart({
@@ -19,6 +21,7 @@ export function GaugeChart({
   label,
   size = "md",
   className,
+  showIcons = true,
 }: GaugeChartProps) {
   const id = useId();
   const normalizedValue = Math.min(Math.max(value, min), max);
@@ -41,8 +44,31 @@ export function GaugeChart({
     lg: 300,
   };
 
+  const IconWrapper = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div className={cn("absolute text-muted-foreground", className)}>
+      {children}
+    </div>
+  );
+
   return (
     <div className={cn("relative inline-flex flex-col items-center", className)}>
+      {showIcons && (
+        <>
+          <IconWrapper className="left-0 top-1/2">
+            <Frown className="h-6 w-6 text-destructive" />
+            <span className="mt-1 text-xs font-medium">0-6</span>
+          </IconWrapper>
+          <IconWrapper className="top-0 left-1/2 -translate-x-1/2">
+            <Meh className="h-6 w-6 text-yellow-500" />
+            <span className="mt-1 text-xs font-medium">7-8</span>
+          </IconWrapper>
+          <IconWrapper className="right-0 top-1/2">
+            <Smile className="h-6 w-6 text-green-500" />
+            <span className="mt-1 text-xs font-medium">9-10</span>
+          </IconWrapper>
+        </>
+      )}
+      
       <ResponsiveContainer width={sizes[size]} height={sizes[size] / 2}>
         <PieChart>
           <Pie
@@ -59,9 +85,9 @@ export function GaugeChart({
             <Cell key={`cell-score`} fill={getColor(value)} />
             <Cell key={`cell-empty`} fill="#e5e7eb" />
           </Pie>
-          <Tooltip />
         </PieChart>
       </ResponsiveContainer>
+      
       <div className="absolute bottom-0 flex flex-col items-center">
         <span className="text-4xl font-bold">{Math.round(value)}</span>
         {label && <span className="text-sm text-muted-foreground">{label}</span>}
