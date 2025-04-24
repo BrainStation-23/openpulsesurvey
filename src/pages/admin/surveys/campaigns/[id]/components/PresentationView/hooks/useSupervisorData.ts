@@ -27,22 +27,13 @@ export function useSupervisorData(
       }
 
       if (isNps) {
-        // For NPS questions, use get_supervisor_enps or get_dimension_satisfaction with different handling
-        const { data, error } = await supabase.rpc(
-          dimension === 'supervisor' ? "get_supervisor_enps" : "get_dimension_satisfaction", 
-          dimension === 'supervisor' 
-            ? {
-                p_campaign_id: campaignId,
-                p_instance_id: instanceId,
-                p_question_name: questionName,
-              }
-            : {
-                p_campaign_id: campaignId,
-                p_instance_id: instanceId,
-                p_question_name: questionName,
-                p_dimension: dimension
-              }
-        );
+        // For NPS questions, use get_dimension_nps
+        const { data, error } = await supabase.rpc("get_dimension_nps", {
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId,
+          p_question_name: questionName,
+          p_dimension: dimension
+        });
 
         if (error) throw error;
         return data as NpsComparisonData[];
