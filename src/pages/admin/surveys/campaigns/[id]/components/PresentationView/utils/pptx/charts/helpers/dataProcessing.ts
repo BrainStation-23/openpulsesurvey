@@ -1,5 +1,4 @@
 
-
 /**
  * Process NPS (Net Promoter Score) data
  * @param validAnswers Array of valid rating answers
@@ -45,4 +44,3 @@ export const processSatisfactionData = (validAnswers: number[]) => {
     satisfactionRate
   };
 };
-
