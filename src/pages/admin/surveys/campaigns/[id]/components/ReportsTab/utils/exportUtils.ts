@@ -1,10 +1,10 @@
-
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import * as ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
-const EXPORT_PADDING = 40; // Add 40px of padding on each side
+const EXPORT_PADDING = 40; // Horizontal and vertical padding
+const VERTICAL_EXTRA_PADDING = 80; // Additional vertical padding
 
 // Sanitize filename to prevent security issues
 const sanitizeFilename = (name: string): string => {
@@ -53,23 +53,22 @@ export const exportAsPDF = async (elementId: string, fileName: string) => {
     allowTaint: true,
   });
   
-  // Create padded canvas same as in exportAsImage
+  // Create padded canvas with extra vertical padding
   const paddedCanvas = document.createElement('canvas');
   paddedCanvas.width = canvas.width + (EXPORT_PADDING * 2);
-  paddedCanvas.height = canvas.height + (EXPORT_PADDING * 2);
+  paddedCanvas.height = canvas.height + (EXPORT_PADDING * 2 + VERTICAL_EXTRA_PADDING);
   
   const ctx = paddedCanvas.getContext('2d');
   if (ctx) {
     ctx.fillStyle = 'white'; // White background
     ctx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
-    ctx.drawImage(canvas, EXPORT_PADDING, EXPORT_PADDING);
+    ctx.drawImage(canvas, EXPORT_PADDING, EXPORT_PADDING + (VERTICAL_EXTRA_PADDING / 2));
   }
   
   // Use padded canvas instead of original
   const imgData = paddedCanvas.toDataURL('image/png');
   
   // Calculate optimal PDF dimensions to prevent cropping
-  // Add a small margin to ensure all content is visible
   const pdfWidth = paddedCanvas.width;
   const pdfHeight = paddedCanvas.height;
   
