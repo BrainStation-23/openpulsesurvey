@@ -1,4 +1,3 @@
-
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { NpsComparisonData } from "../../types/nps";
@@ -33,6 +32,7 @@ export function NpsComparisonTable({ data }: NpsComparisonTableProps) {
               </span>
             </th>
             <th className="text-center p-3 bg-gray-50 border-l">eNPS Score</th>
+            <th className="text-center p-3 bg-gray-50 border-l">Avg Score</th>
             <th className="text-center p-3 bg-gray-50 border-l">Responses</th>
           </tr>
         </thead>
@@ -80,6 +80,10 @@ export function NpsComparisonTable({ data }: NpsComparisonTableProps) {
                 {/* eNPS Score */}
                 <td className={`text-center p-3 border-l font-bold ${groupData.nps_score >= 0 ? "text-green-600" : "text-red-600"}`}>
                   {Math.round(groupData.nps_score)}
+                </td>
+                {/* Average Score */}
+                <td className="text-center p-3 border-l font-medium">
+                  {groupData.avg_score?.toFixed(2) || 'N/A'}
                 </td>
                 {/* Total Responses */}
                 <td className="text-center p-3 border-l">{groupData.total}</td>

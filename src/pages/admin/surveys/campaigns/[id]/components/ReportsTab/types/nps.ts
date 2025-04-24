@@ -5,6 +5,7 @@ export interface NpsData {
   promoters: number;
   total: number;
   nps_score: number;
+  avg_score?: number;
 }
 
 export interface NpsComparisonData extends NpsData {
