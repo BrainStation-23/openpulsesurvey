@@ -1,5 +1,5 @@
 
-project_id = "example-project-id"
+project_id = "bdnbcaiqgumzsujkbsmp"
 
-[functions.analyze-sentiment]
+[functions.export_all_users]
 verify_jwt = true

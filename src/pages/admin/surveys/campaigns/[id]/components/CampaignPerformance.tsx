@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -11,7 +12,9 @@ import { ComparisonTab } from "./CampaignPerformance/ComparisonTab";
 import { InstanceSelector } from "./CampaignPerformance/components/InstanceSelector";
 import { useState, useEffect } from "react";
 import { PerformanceDashboard } from "./CampaignPerformance/components/PerformanceDashboard";
+import { AdvancedAnalyticsTab } from "./CampaignPerformance/AdvancedAnalyticsTab";
 import { ManagerialInsightsTab } from "./CampaignPerformance/ManagerialInsightsTab";
+import { ActionItemsTab } from "./CampaignPerformance/ActionItemsTab";
 
 export default function CampaignPerformance() {
   const { id } = useParams();
@@ -42,6 +45,7 @@ export default function CampaignPerformance() {
     },
   });
 
+  // Set initially selected instances to all completed instances
   useEffect(() => {
     if (campaign?.instances) {
       const completedInstances = campaign.instances
@@ -103,13 +107,19 @@ export default function CampaignPerformance() {
           <Tabs defaultValue="trends" className="space-y-4">
             <TabsList>
               <TabsTrigger value="trends">Response Trends</TabsTrigger>
+              <TabsTrigger value="advanced">Advanced Analytics</TabsTrigger>
               <TabsTrigger value="demographics">Demographics</TabsTrigger>
               <TabsTrigger value="managerial">Managerial Insights</TabsTrigger>
               <TabsTrigger value="comparison">Comparison</TabsTrigger>
+              <TabsTrigger value="actions">Action Items</TabsTrigger>
             </TabsList>
 
             <TabsContent value="trends">
               <ResponseTrendsTab campaignId={campaign.id} instances={selectedInstances} />
+            </TabsContent>
+            
+            <TabsContent value="advanced">
+              <AdvancedAnalyticsTab campaignId={campaign.id} instances={selectedInstances} />
             </TabsContent>
 
             <TabsContent value="demographics">
@@ -122,6 +132,10 @@ export default function CampaignPerformance() {
 
             <TabsContent value="comparison">
               <ComparisonTab campaignId={campaign.id} instances={selectedInstances} />
+            </TabsContent>
+            
+            <TabsContent value="actions">
+              <ActionItemsTab campaignId={campaign.id} instances={selectedInstances} />
             </TabsContent>
           </Tabs>
         </>

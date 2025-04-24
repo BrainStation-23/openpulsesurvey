@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,18 +9,12 @@ import { ResponsesTab } from "./components/ResponsesTab";
 import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
 import { EnhancedInstanceSelector } from "./components/EnhancedInstanceSelector";
+import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
+import { InstanceCompareTab } from "./components/InstanceCompareTab";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { LineChart } from "lucide-react";
-
-const AIAnalyzeTab = ({ campaignId, instanceId }: { campaignId: string; instanceId?: string }) => {
-  return (
-    <div className="p-4 text-muted-foreground">
-      AI Analysis coming soon
-    </div>
-  );
-};
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
