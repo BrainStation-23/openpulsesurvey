@@ -9,7 +9,7 @@ export function useSupervisorPerformance(campaignId: string, instanceIds: string
       const { data, error } = await supabase
         .rpc('get_campaign_supervisor_performance', {
           p_campaign_id: campaignId,
-          p_instance_ids: instanceIds
+          p_instance_id: instanceIds.length > 0 ? instanceIds[0] : null
         });
 
       if (error) throw error;
