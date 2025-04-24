@@ -1,6 +1,5 @@
-
 import { format } from "date-fns";
-import { Eye, Trash2, Settings } from "lucide-react";
+import { Eye, Trash2, Settings, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -124,6 +123,12 @@ export function CampaignTable({ campaigns, onDelete, sortOrder, sortBy, onSort }
             <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
               <Link to={`/admin/surveys/campaigns/${campaign.id}`}>
                 <Eye className="h-4 w-4" />
+              </Link>
+            </Button>
+
+            <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+              <Link to={`/admin/surveys/campaigns/${campaign.id}/performance`}>
+                <BarChart3 className="h-4 w-4" />
               </Link>
             </Button>
             
