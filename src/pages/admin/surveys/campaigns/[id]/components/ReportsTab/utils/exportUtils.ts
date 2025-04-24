@@ -53,21 +53,30 @@ export const exportAsPDF = async (elementId: string, fileName: string) => {
     allowTaint: true,
   });
   
-  const imgData = canvas.toDataURL('image/png');
+  // Create padded canvas same as in exportAsImage
+  const paddedCanvas = document.createElement('canvas');
+  paddedCanvas.width = canvas.width + (EXPORT_PADDING * 2);
+  paddedCanvas.height = canvas.height + (EXPORT_PADDING * 2);
+  
+  const ctx = paddedCanvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = 'white'; // White background
+    ctx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
+    ctx.drawImage(canvas, EXPORT_PADDING, EXPORT_PADDING);
+  }
+  
+  // Use padded canvas instead of original
+  const imgData = paddedCanvas.toDataURL('image/png');
   
   // Using jsPDF with constructor compatible with v2.x
   const pdf = new jsPDF({
     orientation: 'landscape',
     unit: 'px',
-    format: [canvas.width + (EXPORT_PADDING * 2), canvas.height + (EXPORT_PADDING * 2)]
+    format: [paddedCanvas.width, paddedCanvas.height]
   });
   
-  // Add white background
-  pdf.setFillColor(255, 255, 255);
-  pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight(), 'F');
-  
-  // Add image with padding
-  pdf.addImage(imgData, 'PNG', EXPORT_PADDING, EXPORT_PADDING, canvas.width, canvas.height);
+  // Add the padded image
+  pdf.addImage(imgData, 'PNG', 0, 0, paddedCanvas.width, paddedCanvas.height);
   
   pdf.save(`${sanitizeFilename(fileName)}.pdf`);
 };
