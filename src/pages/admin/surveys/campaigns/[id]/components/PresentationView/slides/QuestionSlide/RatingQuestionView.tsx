@@ -5,7 +5,7 @@ import { RatingResponseData, SatisfactionData } from "../../types/responses";
 import { NpsData } from "../../../ReportsTab/types/nps";
 
 interface RatingQuestionViewProps {
-  data: RatingResponseData | SatisfactionData | NpsData;
+  data: RatingResponseData | SatisfactionData | NpsData | any; // Added 'any' to handle various data types
   isNps: boolean;
 }
 

@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { ProcessedData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
@@ -5,7 +6,23 @@ import { useSupervisorData } from "../../hooks/useSupervisorData";
 import { NpsData, NpsComparisonData } from "../../../ReportsTab/types/nps";
 import { BooleanResponseData } from "../../types/responses";
 
-type ProcessedResult = NpsComparisonData[] | NpsData | BooleanResponseData | null;
+// Define the SupervisorSatisfactionData type to match what comes from the API
+interface SupervisorSatisfactionData {
+  dimension: string;
+  unsatisfied: number;
+  neutral: number;
+  satisfied: number;
+  total: number;
+  avg_score: number;
+}
+
+// Update ProcessedResult to include all possible return types
+type ProcessedResult = 
+  | NpsComparisonData[] 
+  | SupervisorSatisfactionData[] 
+  | NpsData 
+  | BooleanResponseData 
+  | null;
 
 export function useQuestionData(
   data: ProcessedData | undefined | null,
