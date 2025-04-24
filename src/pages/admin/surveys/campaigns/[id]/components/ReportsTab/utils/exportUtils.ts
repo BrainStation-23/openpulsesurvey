@@ -3,8 +3,8 @@ import jsPDF from 'jspdf';
 import * as ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
-const EXPORT_PADDING = 40; // Horizontal and vertical padding
-const VERTICAL_EXTRA_PADDING = 80; // Additional vertical padding
+const EXPORT_PADDING = 40; // Horizontal padding
+const VERTICAL_PADDING = 80; // Vertical padding for images
 
 // Sanitize filename to prevent security issues
 const sanitizeFilename = (name: string): string => {
@@ -25,13 +25,13 @@ export const exportAsImage = async (elementId: string, fileName: string) => {
   
   const paddedCanvas = document.createElement('canvas');
   paddedCanvas.width = canvas.width + (EXPORT_PADDING * 2);
-  paddedCanvas.height = canvas.height + (EXPORT_PADDING * 2);
+  paddedCanvas.height = canvas.height + (VERTICAL_PADDING * 2);
   
   const ctx = paddedCanvas.getContext('2d');
   if (ctx) {
     ctx.fillStyle = 'white'; // White background
     ctx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
-    ctx.drawImage(canvas, EXPORT_PADDING, EXPORT_PADDING);
+    ctx.drawImage(canvas, EXPORT_PADDING, VERTICAL_PADDING);
   }
 
   const image = paddedCanvas.toDataURL('image/png', 1.0);
@@ -53,39 +53,29 @@ export const exportAsPDF = async (elementId: string, fileName: string) => {
     allowTaint: true,
   });
   
-  // Create padded canvas with extra vertical padding
+  // Create padded canvas
   const paddedCanvas = document.createElement('canvas');
   paddedCanvas.width = canvas.width + (EXPORT_PADDING * 2);
-  paddedCanvas.height = canvas.height + (EXPORT_PADDING * 2 + VERTICAL_EXTRA_PADDING);
+  paddedCanvas.height = canvas.height + (VERTICAL_PADDING * 2);
   
   const ctx = paddedCanvas.getContext('2d');
   if (ctx) {
     ctx.fillStyle = 'white'; // White background
     ctx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
-    ctx.drawImage(canvas, EXPORT_PADDING, EXPORT_PADDING + (VERTICAL_EXTRA_PADDING / 2));
+    ctx.drawImage(canvas, EXPORT_PADDING, VERTICAL_PADDING);
   }
   
-  // Use padded canvas instead of original
   const imgData = paddedCanvas.toDataURL('image/png');
   
-  // Calculate optimal PDF dimensions to prevent cropping
-  const pdfWidth = paddedCanvas.width;
-  const pdfHeight = paddedCanvas.height;
-  
-  // Using jsPDF with constructor compatible with v2.x
   const pdf = new jsPDF({
-    orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
+    orientation: paddedCanvas.width > paddedCanvas.height ? 'landscape' : 'portrait',
     unit: 'px',
-    format: [pdfWidth, pdfHeight],
-    hotfixes: ['px_scaling']  // Enable proper pixel scaling
+    format: [paddedCanvas.width, paddedCanvas.height],
+    hotfixes: ['px_scaling']
   });
   
-  // Check if we need to resize the image to fit the PDF
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  
-  // Add the padded image, scaling if necessary
-  pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+  // Add the image
+  pdf.addImage(imgData, 'PNG', 0, 0, paddedCanvas.width, paddedCanvas.height);
   
   pdf.save(`${sanitizeFilename(fileName)}.pdf`);
 };
