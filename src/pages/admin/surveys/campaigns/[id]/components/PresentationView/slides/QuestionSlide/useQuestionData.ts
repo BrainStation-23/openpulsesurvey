@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { ProcessedData, BooleanResponseData, RatingResponseData, SatisfactionData } from "../../types/responses";
 import { ComparisonDimension } from "../../types/comparison";
@@ -24,6 +23,8 @@ export function useQuestionData(
     isNps
   );
 
+  console.log('Supervisor data:', { supervisorData, isLoading: isLoadingSupervisor, isNps });
+
   return useMemo(() => {
     if (!data?.responses) return null;
 
@@ -32,41 +33,15 @@ export function useQuestionData(
       return null;
     }
 
-    // For supervisor dimension, use RPC data
+    // For supervisor dimension, use RPC data directly
     if (slideType === 'supervisor') {
       if (isLoadingSupervisor || !supervisorData) return null;
 
-      if (isNps) {
-        return supervisorData.map((item) => ({
-          dimension: item.dimension || "Unknown Supervisor",
-          ratings: [
-            ...Array(7).fill(0).map((_, i) => ({
-              rating: i,
-              count: Math.round(item.detractors / 7)
-            })),
-            ...Array(2).fill(0).map((_, i) => ({
-              rating: i + 7,
-              count: Math.round(item.passives / 2)
-            })),
-            ...Array(2).fill(0).map((_, i) => ({
-              rating: i + 9,
-              count: Math.round(item.promoters / 2)
-            }))
-          ]
-        }));
-      } else {
-        return supervisorData.map((item) => ({
-          dimension: item.dimension || "Unknown Supervisor",
-          unsatisfied: item.unsatisfied,
-          neutral: item.neutral,
-          satisfied: item.satisfied,
-          total: item.total,
-          avg_score: item.avg_score
-        }));
-      }
+      // Pass through supervisor data without transformation
+      return supervisorData;
     }
 
-    // For other dimensions, use existing processing logic
+    // For main dimension (non-comparison view)
     if (slideType === 'main') {
       switch (questionType) {
         case "boolean": {
