@@ -1,5 +1,6 @@
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, PieChart, Users, ClipboardList, FileBarChart, Lock, GitCompare, LineChart } from "lucide-react";
+import { Brain, PieChart, Users, ClipboardList, FileBarChart, Lock, GitCompare } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useState } from "react";
@@ -74,7 +75,6 @@ export function CampaignTabs({ children, isAnonymous, status }: CampaignTabsProp
           {renderTabTrigger("responses", "Responses", <ClipboardList className="h-4 w-4" />)}
           {renderTabTrigger("reports", "Reports", <FileBarChart className="h-4 w-4" />)}
           {renderTabTrigger("compare", "Compare", <GitCompare className="h-4 w-4" />)}
-          {renderTabTrigger("trends", "Response Trends", <LineChart className="h-4 w-4" />)}
           {renderTabTrigger("analyze", "AI-nalyze", <Brain className="h-4 w-4" />)}
         </TabsList>
         {children}
