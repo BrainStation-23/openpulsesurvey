@@ -14,7 +14,7 @@ export const exportAsImage = async (elementId: string, fileName: string) => {
     useCORS: true,
     logging: false,
     allowTaint: true,
-    margin: [EXPORT_PADDING, EXPORT_PADDING, EXPORT_PADDING, EXPORT_PADDING],
+    // Remove the margin property as it's not supported in html2canvas options
   });
   
   const paddedCanvas = document.createElement('canvas');
@@ -45,7 +45,7 @@ export const exportAsPDF = async (elementId: string, fileName: string) => {
     useCORS: true,
     logging: false,
     allowTaint: true,
-    margin: [EXPORT_PADDING, EXPORT_PADDING, EXPORT_PADDING, EXPORT_PADDING],
+    // Remove the margin property as it's not supported in html2canvas options
   });
   
   const imgData = canvas.toDataURL('image/png');
