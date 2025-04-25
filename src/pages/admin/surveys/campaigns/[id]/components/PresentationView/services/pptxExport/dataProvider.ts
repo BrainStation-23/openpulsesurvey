@@ -12,7 +12,7 @@ export const fetchPresentationData = async (
   dimensions: string[],
   excludeQuestionTypes: string[] = ["text", "comment"],
   onlyIncludeQuestions: string[] = []
-): Promise<QuestionResponseData[]> {
+): Promise<QuestionResponseData[]> => {
   if (!campaign) throw new Error("Campaign data is required");
 
   // Parse survey structure to get questions
