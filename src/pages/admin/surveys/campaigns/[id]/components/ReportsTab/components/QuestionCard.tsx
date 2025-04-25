@@ -50,6 +50,9 @@ export function QuestionCard({
             chartId={chartId}
             fileName={fileName}
             data={Array.isArray(processedData) ? processedData : [processedData]}
+            isComparison={comparisonDimension !== "none"}
+            isNps={isNpsQuestion}
+            isBoolean={question.type === "boolean"}
           />
           <ComparisonSelector
             value={comparisonDimension}
