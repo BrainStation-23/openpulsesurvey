@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Check, Edit2, X } from "lucide-react";
+import { Calendar, Check, Edit2, LineChart, X } from "lucide-react";
 import { format, isValid } from "date-fns";
 import { Link } from "react-router-dom";
 import {
@@ -154,6 +154,17 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
           )}
         </div>
         <div className="flex gap-2">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <Link to={`/admin/surveys/campaigns/${id}/performance`}>
+              <LineChart className="h-4 w-4" />
+              Campaign Performance
+            </Link>
+          </Button>
           {isEditing ? (
             <>
               <Button onClick={handleCancel} variant="outline" size="sm">
