@@ -21,8 +21,6 @@ import { SlideOverviewPanel } from "./components/SlideOverviewPanel";
 import { PresentationTimer } from "./components/PresentationTimer";
 import { NotesPanel } from "./components/NotesPanel";
 import { JumpToSlideDropdown } from "./components/JumpToSlideDropdown";
-import { exportToPptx } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/services/pptxExport/exportService";
-
 export default function Presentation() {
   const {
     token
@@ -47,7 +45,6 @@ export default function Presentation() {
     error
   } = useSharedPresentation(token as string);
   const campaign = presentation?.campaign;
-
   useEffect(() => {
     if (error) {
       toast({
@@ -57,7 +54,6 @@ export default function Presentation() {
       });
     }
   }, [error, toast]);
-
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -65,17 +61,14 @@ export default function Presentation() {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
-
   const surveyQuestions = (campaign?.survey.json_data.pages || []).flatMap(page => page.elements || []).filter(q => q.type !== "text" && q.type !== "comment");
   const totalSlides = 3 + surveyQuestions.length * (1 + COMPARISON_DIMENSIONS.length);
   const slideTitles: string[] = ["Title", "Response Distribution", "Response Trends", ...surveyQuestions.flatMap(q => [q.title?.substring(0, 40) || q.name, ...COMPARISON_DIMENSIONS.map(dim => `${q.title?.substring(0, 22) || q.name} (${dim[0].toUpperCase() + dim.substring(1)})`)])];
-
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => setCurrentSlide(prev => Math.min(totalSlides - 1, prev + 1)),
     onSwipedRight: () => setCurrentSlide(prev => Math.max(0, prev - 1)),
     trackMouse: true
   });
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
@@ -95,7 +88,6 @@ export default function Presentation() {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [totalSlides, setCurrentSlide]);
-
   const toggleFullscreen = async () => {
     try {
       if (!document.fullscreenElement) {
@@ -109,7 +101,6 @@ export default function Presentation() {
       console.error("Error toggling fullscreen:", error);
     }
   };
-
   const handleBack = () => {
     if (isFullscreen && document.fullscreenElement) {
       document.exitFullscreen();
@@ -117,7 +108,6 @@ export default function Presentation() {
     }
     navigate(-1);
   };
-
   function MiniMap() {
     return <div className="flex gap-1 items-center px-2">
         {Array.from({
@@ -127,38 +117,18 @@ export default function Presentation() {
       }} />)}
       </div>;
   }
-
   function handleExport() {
-    if (!campaign) return;
-    
     toast({
-      title: "Exporting...",
-      description: "Preparing your PPTX presentation for download.",
+      title: "Export",
+      description: "Export to PPTX coming soon!",
+      variant: "default"
     });
-    
-    exportToPptx(campaign, presentation?.instance_id)
-      .then(() => {
-        toast({
-          title: "Export complete",
-          description: "Your presentation has been downloaded.",
-        });
-      })
-      .catch(error => {
-        console.error("Export error:", error);
-        toast({
-          title: "Export failed",
-          description: "There was an error exporting your presentation.",
-          variant: "destructive",
-        });
-      });
   }
-
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />
       </div>;
   }
-
   if (error || !campaign) {
     return <div className="container max-w-md mx-auto mt-20 p-4">
         <Alert variant="destructive">
@@ -170,7 +140,6 @@ export default function Presentation() {
         </Alert>
       </div>;
   }
-
   return <div className="relative min-h-screen h-screen flex flex-col bg-background" {...swipeHandlers}>
       <Helmet>
         <title>{campaign?.name || "Presentation"} - Presentation</title>
@@ -205,10 +174,6 @@ export default function Presentation() {
         
         <Button variant="ghost" size="icon" onClick={() => setShowNotes(v => !v)} className={showNotes ? "text-primary" : "text-black"} aria-label="Notes" title="Toggle Notes Panel (N)">
           <FileText className="h-4 w-4" />
-        </Button>
-
-        <Button variant="ghost" size="icon" onClick={handleExport} aria-label="Export" title="Export to PPTX">
-          <Export className="h-4 w-4" />
         </Button>
         
         <MiniMap />

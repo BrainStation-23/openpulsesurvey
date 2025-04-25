@@ -3,12 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CampaignData, SurveyJsonData } from "../types";
 
-export function useCampaignData(id: string | undefined, instanceId: string | null | undefined) {
+export function useCampaignData(id: string | undefined, instanceId: string | null) {
   return useQuery({
     queryKey: ["campaign", id, instanceId],
     queryFn: async () => {
-      if (!id) throw new Error("Campaign ID is required");
-      
       const { data, error } = await supabase
         .from("survey_campaigns")
         .select(`
@@ -30,18 +28,13 @@ export function useCampaignData(id: string | undefined, instanceId: string | nul
 
       if (error) throw error;
 
-      // If instanceId is provided, fetch instance data
-      let instance = null;
-      if (instanceId) {
-        const { data: instanceData, error: instanceError } = await supabase
-          .from("campaign_instances")
-          .select("*")
-          .eq("id", instanceId)
-          .single();
+      const { data: instance, error: instanceError } = await supabase
+        .from("campaign_instances")
+        .select("*")
+        .eq("id", instanceId)
+        .single();
 
-        if (instanceError) throw instanceError;
-        instance = instanceData;
-      }
+      if (instanceError) throw instanceError;
       
       const parsedJsonData = typeof data.survey.json_data === 'string' 
         ? JSON.parse(data.survey.json_data) 
@@ -56,6 +49,6 @@ export function useCampaignData(id: string | undefined, instanceId: string | nul
         }
       } as CampaignData;
     },
-    enabled: !!id,
+    enabled: !!id && !!instanceId,
   });
 }
