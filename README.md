@@ -1,96 +1,124 @@
-# Enterprise Survey Management Platform
 
-## Overview
-Open Office Survey is a comprehensive survey management platform designed for enterprises to create, distribute, and analyze surveys efficiently. It offers features like anonymous surveys, real-time analytics, and easy distribution mechanisms to gather valuable insights from team members.
+<div align="center">
+  <img src="public/logo.png" alt="Open Pulse Survey Logo" width="200"/>
+  
+  # 📊 Open Pulse Survey
 
-## Key Features
-- **Anonymous Surveys**: Ensure honest feedback with confidential response options.
-- **Real-time Analytics**: Get instant insights with a powerful analytics dashboard.
-- **Easy Distribution**: Share surveys effortlessly with your team via email, links, or embedded forms.
-- **Campaign Management**: Create and manage survey campaigns with scheduling and automation options.
-- **Role-based Access**: Secure and segmented access for administrators and participants.
-- **Public Access Links**: Allow external participants to submit responses without login requirements.
-- **Customizable Survey Templates**: Predefined survey templates for faster setup.
-- **Data Export**: Export survey results in multiple formats (CSV, JSON, Excel) for further analysis.
+  > Enterprise-grade survey platform for measuring employee engagement and collecting actionable insights
 
-## Technology Stack
-- **Frontend**: React + TypeScript
-- **Styling**: Tailwind CSS + Shadcn UI
-- **Backend**: Supabase
+  [![Built with React](https://img.shields.io/badge/Built_with-React-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-4.9.5-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+  [![Powered by Supabase](https://img.shields.io/badge/Powered_by-Supabase-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
+</div>
+
+## ✨ Overview
+
+Open Pulse Survey is a comprehensive employee feedback platform designed to help organizations gather, analyze, and act on employee feedback effectively. With powerful analytics, automated campaigns, and real-time insights, it provides everything needed to build a data-driven feedback culture.
+
+## 🚀 Key Features
+
+### Advanced Analytics & Reporting
+- Real-time analytics dashboard with trend analysis
+- Demographic breakdowns and cross-analysis
+- AI-powered sentiment analysis and insights
+- Custom report generation and export capabilities
+
+### Smart Campaign Management
+- Automated survey scheduling and distribution
+- Multi-channel survey delivery
+- Response tracking and reminder automation
+- Campaign comparison and trend analysis
+
+### Interactive Presentations
+- Live presentation mode for survey results
+- Dynamic charts and visualizations
+- Customizable slide layouts
+- Export to PowerPoint, PDF, and Excel
+
+### Enterprise-Ready
+- Role-based access control
+- Department and SBU hierarchies
+- Data encryption and privacy controls
+- Audit logging and compliance tracking
+
+### Employee Experience
+- Anonymous survey responses
+- Mobile-responsive interface 
+- Multiple question types
+- Progress tracking and auto-save
+
+### Integration & Export
+- REST API for system integration
+- Export to multiple formats (CSV, Excel, PDF)
+- Custom webhook support
+- Data import/export utilities
+
+## 🛠 Technology Stack
+
+### Frontend Core
+- **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
-- **State Management**: React Query
-- **Authentication**: Supabase Auth (Email, OAuth, Magic Link)
-- **Database**: PostgreSQL (via Supabase)
+- **State Management**: TanStack Query
+- **Forms & Validation**: React Hook Form, Zod
 
-## Getting Started
+### UI/UX
+- **Styling**: Tailwind CSS
+- **Components**: Shadcn UI
+- **Charts**: Recharts, D3.js
+- **Animations**: Framer Motion
 
-### Prerequisites
-Ensure you have the following installed:
-- [Node.js & npm](https://github.com/nvm-sh/nvm#installing-and-updating)
-- A Supabase account ([Sign up here](https://supabase.com/))
+### Backend & Database
+- **Backend**: Supabase
+- **Database**: PostgreSQL
+- **Authentication**: Supabase Auth
+- **File Storage**: Supabase Storage
 
-### Installation
+### Features & Libraries
+- **Survey Engine**: Survey.js Core
+- **Data Export**: ExcelJS, jsPDF
+- **Visualization**: D3 Cloud, Visx
+- **Date Handling**: date-fns
 
-1. **Clone the Repository**
-   ```sh
-   git clone https://github.com/BrainStation-23/openofficesurvey.git
-   cd open-office-survey
-   ```
+## 🏗 Architecture
 
-2. **Install Dependencies**
-   ```sh
-   npm install
-   ```
-   
-3. **Start the Development Server**
-   ```sh
-   npm run dev
-   ```
-   Your local instance should now be running at `http://localhost:3000`.
+The application follows a modern, component-based architecture with:
 
-## Setting Up Supabase Backend
+- **Modular Design**: Focused components and hooks
+- **Type Safety**: Comprehensive TypeScript coverage
+- **State Management**: React Query for server state
+- **API Integration**: Supabase client for backend communication
 
-### 1. Create a New Supabase Project
-   - Log in to [Supabase](https://supabase.com/).
-   - Create a new project and note down the `Project ID`.
+## 📈 Dashboard Features
 
-### 2. Run Database Setup Scripts
-   Once your project is ready, navigate to **SQL Editor** and execute the following scripts in order:
+![Dashboard Preview](public/dashboard-preview.png)
 
-   ```sh
-   supabase/DB Setup/Step-1.sql
-   supabase/DB Setup/Step-2.sql
-   supabase/Seed Data/Default Prompts.sql
-   ```
+- Real-time analytics and trends
+- Response rate monitoring
+- Demographic insights
+- Department performance tracking
+- Manager effectiveness analysis
 
-### 3. Configure Supabase Project ID
-   Update your Supabase configuration file:
-   ```sh
-   supabase/config.toml
-   ```
-   Set the `project_id` field to match your Supabase project.
+## 🔒 Security & Compliance
 
-### 4. Update Supabase Client in the Frontend
-   Modify the Supabase client file:
-   ```sh
-   src/integrations/supabase/client.ts
-   ```
-   Replace placeholders with your actual Supabase **URL** and **Public Anon Key**, which can be found under **Project Settings > Data API**.
+- End-to-end encryption
+- GDPR compliance features
+- Data anonymization
+- Role-based access control
+- Audit logging
 
-### 5. Create an Admin User
-   - Navigate to **Supabase > Authentication**.
-   - Click **Add User > Create New User**.
-   - Set up credentials for the first admin.
-   - Go to **Table Editor > User_roles**.
-   - Change the role of the newly created user to `admin`.
+## 🤝 Support & Community
 
-### 6. Run the Frontend
-   ```sh
-   npm run dev
-   ```
-   Log in using the credentials you set in the previous step and access the admin panel.
+- [Documentation](https://docs.openpulsesurvey.com)
+- [Community Forum](https://community.openpulsesurvey.com)
+- [Bug Reports](https://github.com/username/openpulsesurvey/issues)
+
+## 📄 License
+
+Open Pulse Survey is licensed under the [MIT License](LICENSE.md)
 
 ---
 
-Built with ❤️ by **Brain Station 23**.
+<div align="center">
+  Made with ❤️ by Brain Station 23
+</div>
 
