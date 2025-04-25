@@ -1,5 +1,5 @@
+
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnhancedDualInstanceSelector } from "./components/EnhancedDualInstanceSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,8 +12,13 @@ import { ComparisonSelectionStatus, ComparisonState } from "./types/comparison-s
 import { useInstancesForComparison } from "./hooks/useInstancesForComparison";
 import { Button } from "@/components/ui/button";
 
-export function InstanceCompareTab() {
-  const { id: campaignId } = useParams<{ id: string }>();
+// Add the interface to fix the TypeScript error
+interface InstanceCompareTabProps {
+  campaignId?: string;
+  instanceId?: string;
+}
+
+export function InstanceCompareTab({ campaignId, instanceId }: InstanceCompareTabProps) {
   const [activeTab, setActiveTab] = useState("sbu");
   
   const [comparison, setComparison] = useState<ComparisonState>({
