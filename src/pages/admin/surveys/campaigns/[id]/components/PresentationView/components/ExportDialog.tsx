@@ -61,7 +61,7 @@ export function ExportDialog({ open, onOpenChange, campaign, instanceId }: Expor
       console.error("Export error:", error);
       toast({
         title: "Export failed",
-        description: "There was an error exporting your presentation.",
+        description: "There was an error exporting your presentation. Check console for details.",
         variant: "destructive",
       });
     } finally {
