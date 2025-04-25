@@ -1,54 +1,87 @@
-
-import { BooleanResponseData } from "../../PresentationView/types/responses";
-import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip } from "recharts";
+import { CardContent } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface BooleanChartsProps {
-  data: BooleanResponseData;
+  data: {
+    yes: number;
+    no: number;
+  };
 }
 
 export function BooleanCharts({ data }: BooleanChartsProps) {
-  const total = data.yes + data.no;
-  const yesPercent = Math.round((data.yes / total) * 100) || 0;
-  const noPercent = Math.round((data.no / total) * 100) || 0;
-  
-  const chartData = [
-    { name: 'Yes', value: data.yes, color: '#22c55e' },
-    { name: 'No', value: data.no, color: '#ef4444' }
+  const barData = [
+    { answer: "Yes", count: data.yes },
+    { answer: "No", count: data.no },
   ];
-  
+
+  const pieData = [
+    { name: "Yes", value: data.yes },
+    { name: "No", value: data.no },
+  ];
+
+  const COLORS = ["#22c55e", "#ef4444"];
+  const chartConfig = {
+    yes: { color: "#22c55e" },
+    no: { color: "#ef4444" },
+  };
+
   return (
-    <div className="space-y-8">
-      <div className="flex justify-center gap-8">
-        <div className="flex flex-col items-center">
-          <div className="text-4xl font-bold text-green-500">{yesPercent}%</div>
-          <div className="text-lg text-gray-500">Yes</div>
-        </div>
-        <div className="flex flex-col items-center">
-          <div className="text-4xl font-bold text-red-500">{noPercent}%</div>
-          <div className="text-lg text-gray-500">No</div>
-        </div>
-      </div>
-      
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie
-            data={chartData}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            outerRadius={120}
-            fill="#8884d8"
-            dataKey="value"
-            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-          >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
+    <Tabs defaultValue="chart" className="w-full">
+      <TabsList className="mb-4">
+        <TabsTrigger value="chart">Bar Chart</TabsTrigger>
+        <TabsTrigger value="table">Table View</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="chart">
+        <ChartContainer config={chartConfig}>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={barData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="answer" />
+              <YAxis allowDecimals={false} />
+              <ChartTooltip 
+                cursor={false}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  return <ChartTooltipContent active={active} payload={payload} />;
+                }}
+              />
+              <Bar
+                dataKey="count"
+                fill="currentColor"
+                radius={[4, 4, 0, 0]}
+                className="fill-primary"
+              >
+                {barData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </TabsContent>
+
+      <TabsContent value="table">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Answer</TableHead>
+              <TableHead className="text-right">Count</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {barData.map((stat) => (
+              <TableRow key={stat.answer}>
+                <TableCell>{stat.answer}</TableCell>
+                <TableCell className="text-right">{stat.count}</TableCell>
+              </TableRow>
             ))}
-          </Pie>
-          <Tooltip />
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
+          </TableBody>
+        </Table>
+      </TabsContent>
+    </Tabs>
   );
 }

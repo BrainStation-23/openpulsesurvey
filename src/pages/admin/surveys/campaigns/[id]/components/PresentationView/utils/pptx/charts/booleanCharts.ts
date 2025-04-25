@@ -1,56 +1,48 @@
 
+
 import pptxgen from "pptxgenjs";
+import { THEME } from "../theme";
 
 export const addBooleanChart = (
   slide: pptxgen.Slide,
-  answers: any[]
+  answers: any[],
 ) => {
-  const yesCount = answers.filter(a => a === true).length;
-  const noCount = answers.filter(a => a === false).length;
-  const total = answers.length;
-  
-  // Skip if no data
-  if (total === 0) return;
-  
-  // Calculate percentages
-  const yesPercentage = Math.round((yesCount / total) * 100);
-  const noPercentage = Math.round((noCount / total) * 100);
-  
-  // Add a doughnut chart
-  slide.addChart(pptxgen.ChartType.doughnut, [
-    { name: "Yes", labels: ["Yes"], values: [yesCount] },
-    { name: "No", labels: ["No"], values: [noCount] }
-  ], {
-    x: 1.5,
-    y: 1.5,
-    w: 6,
-    h: 4,
-    dataLabelColor: "FFFFFF",
-    showValue: true,
-    chartColors: ["#22c55e", "#ef4444"],
-    legendPos: 'b'
-  });
-  
-  // Add text summary
-  slide.addText(`Total Responses: ${total}`, {
-    x: 8,
+  const trueCount = answers.filter(a => a === true).length;
+  const falseCount = answers.filter(a => a === false).length;
+  const total = trueCount + falseCount;
+
+  const labels: string[] = ["Yes", "No"];
+  const data = [{
+    name: "Responses",
+    labels,
+    values: [trueCount, falseCount]
+  }];
+
+  slide.addChart("doughnut", data, {
+    x: 2,
     y: 2.5,
-    fontSize: 14,
-    color: '363636'
+    w: 4,  // Reduced width
+    h: 2,  // Reduced height
+    chartColors: [THEME.chart.colors[0], THEME.chart.colors[1]],
+    showLegend: true,
+    legendPos: 'b',
+    dataLabelFormatCode: '0"%"',
+    title: "Response Distribution"
   });
-  
-  slide.addText(`Yes: ${yesCount} (${yesPercentage}%)`, {
-    x: 8,
-    y: 3,
-    fontSize: 14,
-    color: '#22c55e'
-  });
-  
-  slide.addText(`No: ${noCount} (${noPercentage}%)`, {
-    x: 8,
-    y: 3.5,
-    fontSize: 14,
-    color: '#ef4444'
+
+  slide.addText([
+    { text: "Total Responses: ", options: { bold: true } },
+    { text: `${total}` },
+    { text: "\nYes: ", options: { bold: true, color: THEME.chart.colors[0] } },
+    { text: `${trueCount} (${Math.round((trueCount / total) * 100)}%)` },
+    { text: "\nNo: ", options: { bold: true, color: THEME.chart.colors[1] } },
+    { text: `${falseCount} (${Math.round((falseCount / total) * 100)}%)` },
+  ], {
+    x: 0.5,
+    y: 4.8,
+    w: "90%",
+    fontSize: 12,
+    color: THEME.text.primary,
   });
 };
 
@@ -59,68 +51,43 @@ export const addBooleanComparison = (
   groupedData: Map<string, any[]>,
   dimension: string
 ) => {
-  // Process data for chart
-  const chartData: { name: string, Yes: number, No: number }[] = [];
+  // Extract unique group names
+  const groups = Array.from(groupedData.keys());
   
-  groupedData.forEach((answers, groupKey) => {
-    const yesCount = answers.filter(a => a === true).length;
-    const noCount = answers.filter(a => a === false).length;
-    
-    chartData.push({
-      name: groupKey,
-      Yes: yesCount,
-      No: noCount
-    });
-  });
-  
-  if (chartData.length === 0) return;
-  
-  // Sort data by "Yes" count descending
-  chartData.sort((a, b) => b.Yes - a.Yes);
-  
-  // Limit to top 8 for readability
-  const chartDataLimited = chartData.slice(0, 8);
-  
-  // Format data for chart
-  const yes = {
+  // Calculate percentages for Yes and No for each group
+  const yesData = {
     name: "Yes",
-    labels: chartDataLimited.map(d => d.name),
-    values: chartDataLimited.map(d => d.Yes)
+    labels: groups,
+    values: groups.map(group => {
+      const answers = groupedData.get(group) || [];
+      const trueCount = answers.filter((a: boolean) => a === true).length;
+      return (trueCount / answers.length) * 100;
+    })
   };
-  
-  const no = {
+
+  const noData = {
     name: "No",
-    labels: chartDataLimited.map(d => d.name),
-    values: chartDataLimited.map(d => d.No)
+    labels: groups,
+    values: groups.map(group => {
+      const answers = groupedData.get(group) || [];
+      const falseCount = answers.filter((a: boolean) => a === false).length;
+      return (falseCount / answers.length) * 100;
+    })
   };
-  
-  // Add chart title
-  slide.addText(`Response Distribution by ${dimension.charAt(0).toUpperCase() + dimension.slice(1)}`, {
-    x: 0.5,
-    y: 1,
-    w: 8,
-    fontSize: 16,
-    bold: true
-  });
-  
-  // Add stacked bar chart
-  slide.addChart(pptxgen.ChartType.bar, [yes, no], {
+
+  slide.addChart("bar", [yesData, noData], {
     x: 0.5,
     y: 1.5,
     w: 9,
-    h: 4.5,
-    barDir: 'bar',
-    barGrouping: 'stacked',
-    chartColors: ['#22c55e', '#ef4444'],
-    valueAxisMinVal: 0,
+    h: 4,
+    barDir: "col",
+    barGrouping: "clustered",
+    chartColors: [THEME.chart.colors[0], THEME.chart.colors[1]], // Yes in purple, No in orange
     showLegend: true,
     legendPos: 'b',
-    showValue: false,
-    categoryAxisLineShow: true,
-    valueAxisLineShow: true,
-    catAxisLabelColor: '404040',
-    valAxisLabelColor: '404040',
-    catAxisLabelFontSize: 10,
-    valAxisLabelFontSize: 10
+    dataLabelFormatCode: '0"%"',
+    catAxisTitle: dimension,
+    valAxisTitle: "Response Distribution (%)",
+    valAxisMaxVal: 100,
   });
 };

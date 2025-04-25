@@ -1,17 +1,20 @@
+import { cn } from "@/lib/utils";
 
-export function ComparisonLayout({ 
-  children, 
-  title 
-}: { 
-  children: React.ReactNode; 
-  title: string; 
-}) {
+interface ComparisonLayoutProps {
+  children: React.ReactNode;
+  title?: string;
+  className?: string;
+}
+
+export function ComparisonLayout({ children, title, className }: ComparisonLayoutProps) {
   return (
-    <div className="w-full h-full flex flex-col">
-      <h3 className="text-xl font-medium mb-4 text-gray-700">
-        {title}
-      </h3>
-      <div className="flex-1 overflow-auto">
+    <div className={cn("w-full max-w-[1400px] mx-auto p-4", className)}>
+      {title && (
+        <h3 className="text-lg font-semibold mb-6 text-muted-foreground">
+          {title}
+        </h3>
+      )}
+      <div className="space-y-6">
         {children}
       </div>
     </div>

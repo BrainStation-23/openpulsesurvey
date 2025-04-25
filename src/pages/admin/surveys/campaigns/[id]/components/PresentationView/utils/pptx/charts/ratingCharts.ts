@@ -1,130 +1,132 @@
 
+
 import pptxgen from "pptxgenjs";
+import { THEME } from "../theme";
+import { calculateMedian } from "./helpers/mediaCalculations";
+import { processNpsData, processSatisfactionData } from "./helpers/dataProcessing";
 
 export const addRatingChart = (
   slide: pptxgen.Slide,
   answers: number[],
   isNps: boolean
 ) => {
-  // Skip if no data
-  if (!answers || answers.length === 0) return;
+  const validAnswers = answers.filter(
+    (rating) => typeof rating === "number"
+  );
   
   if (isNps) {
-    addNpsChart(slide, answers);
+    const { detractors, passives, promoters, total, npsScore } = processNpsData(validAnswers);
+
+    slide.addText(`NPS Score: ${npsScore}`, {
+      x: 0.5,
+      y: 2.0,
+      w: "90%",
+      fontSize: 24,
+      bold: true,
+      color: npsScore >= 0 ? THEME.chart.colors[0] : THEME.chart.colors[1],
+    });
+
+    const data = [
+      {
+        name: "Detractors",
+        labels: ["Distribution"],
+        values: [(detractors / total) * 100]
+      },
+      {
+        name: "Passives",
+        labels: ["Distribution"],
+        values: [(passives / total) * 100]
+      },
+      {
+        name: "Promoters",
+        labels: ["Distribution"],
+        values: [(promoters / total) * 100]
+      }
+    ];
+
+    slide.addChart("bar", data, {
+      x: 1,
+      y: 2.8,
+      w: 7,
+      h: 1.5,
+      barDir: "bar",
+      chartColors: [THEME.chart.colors[1], THEME.chart.colors[2], THEME.chart.colors[0]],
+      showLegend: true,
+      legendPos: 'b',
+      dataLabelFormatCode: '0"%"',
+      barGrouping: "stacked"
+    });
   } else {
-    addSatisfactionChart(slide, answers);
-  }
-};
+    const median = calculateMedian(validAnswers);
+    const average = validAnswers.reduce((a, b) => a + b, 0) / validAnswers.length;
+    const { unsatisfied, neutral, satisfied, total, satisfactionRate } = processSatisfactionData(validAnswers);
 
-const addNpsChart = (
-  slide: pptxgen.Slide,
-  answers: number[]
-) => {
-  const detractors = answers.filter(r => r <= 6).length;
-  const passives = answers.filter(r => r > 6 && r <= 8).length;
-  const promoters = answers.filter(r => r > 8).length;
-  const total = answers.length;
-  
-  // Calculate NPS score
-  const npsScore = Math.round(((promoters - detractors) / total) * 100);
-  
-  // Add NPS score as a large number
-  slide.addText(`${npsScore}`, {
-    x: 4,
-    y: 1.5,
-    w: 2,
-    h: 2,
-    align: 'center',
-    fontSize: 72,
-    bold: true,
-    color: npsScore >= 50 ? '#22c55e' : npsScore >= 0 ? '#f59e0b' : '#ef4444'
-  });
-  
-  slide.addText('NPS Score', {
-    x: 4,
-    y: 3.5,
-    w: 2,
-    h: 0.5,
-    align: 'center',
-    fontSize: 16,
-    color: '363636'
-  });
-  
-  // Add a doughnut chart for distribution
-  slide.addChart(pptxgen.ChartType.doughnut, [
-    { name: "Detractors (0-6)", labels: ["Detractors"], values: [detractors] },
-    { name: "Passives (7-8)", labels: ["Passives"], values: [passives] },
-    { name: "Promoters (9-10)", labels: ["Promoters"], values: [promoters] }
-  ], {
-    x: 1.5,
-    y: 4,
-    w: 7,
-    h: 3.5,
-    dataLabelColor: "FFFFFF",
-    showValue: true,
-    chartColors: ["#ef4444", "#f59e0b", "#22c55e"],
-    legendPos: 'b'
-  });
-};
+    // Add metrics below question
+    slide.addText([
+      { text: "Satisfaction Rate: ", options: { bold: true } },
+      { text: `${satisfactionRate}%`, options: { color: "#22c55e" } },
+      { text: "    Median Score: ", options: { bold: true } },
+      { text: `${median.toFixed(1)}`, options: { color: "#3b82f6" } },
+      { text: "    Average Score: ", options: { bold: true } },
+      { text: `${average.toFixed(1)}`, options: { color: "#8b5cf6" } },
+    ], {
+      x: 0.5,
+      y: 2.0,
+      w: "90%",
+      fontSize: 16,
+      color: THEME.text.primary,
+    });
 
-const addSatisfactionChart = (
-  slide: pptxgen.Slide,
-  answers: number[]
-) => {
-  // Group responses by rating level (1-5)
-  const countByRating = answers.reduce((acc: Record<number, number>, rating) => {
-    acc[rating] = (acc[rating] || 0) + 1;
-    return acc;
-  }, {});
-  
-  // Prepare data for chart
-  const chartData = [];
-  for (let i = 1; i <= 5; i++) {
-    chartData.push({
-      name: `Rating ${i}`,
-      labels: [`${i}`],
-      values: [countByRating[i] || 0]
+    const data = [
+      {
+        name: "Unsatisfied",
+        labels: ["Distribution"],
+        values: [(unsatisfied / total) * 100]
+      },
+      {
+        name: "Neutral",
+        labels: ["Distribution"],
+        values: [(neutral / total) * 100]
+      },
+      {
+        name: "Satisfied",
+        labels: ["Distribution"],
+        values: [(satisfied / total) * 100]
+      }
+    ];
+
+    // Reduced chart height and adjusted position
+    slide.addChart("bar", data, {
+      x: 1,
+      y: 2.8,
+      w: 7,
+      h: 1.5,
+      barDir: "bar",
+      chartColors: ["#ef4444", "#eab308", "#22c55e"],
+      showLegend: true,
+      legendPos: 'b',
+      dataLabelFormatCode: '0"%"',
+      barGrouping: "stacked"
+    });
+
+    // Adjusted position of response counts to be closer to the chart
+    slide.addText([
+      { text: "Total Responses: ", options: { bold: true } },
+      { text: `${total}\n` },
+      { text: "Unsatisfied: ", options: { bold: true, color: "#ef4444" } },
+      { text: `${unsatisfied} (${Math.round((unsatisfied / total) * 100)}%)\n` },
+      { text: "Neutral: ", options: { bold: true, color: "#eab308" } },
+      { text: `${neutral} (${Math.round((neutral / total) * 100)}%)\n` },
+      { text: "Satisfied: ", options: { bold: true, color: "#22c55e" } },
+      { text: `${satisfied} (${Math.round((satisfied / total) * 100)}%)` },
+    ], {
+      x: 0.5,
+      y: 4.5,
+      w: "90%",
+      fontSize: 12,
+      color: THEME.text.primary,
     });
   }
-  
-  // Calculate average rating
-  const sum = answers.reduce((acc, val) => acc + val, 0);
-  const avg = (sum / answers.length).toFixed(1);
-  
-  // Add average score
-  slide.addText(`${avg}`, {
-    x: 8,
-    y: 2,
-    w: 1.5,
-    h: 1.5,
-    align: 'center',
-    fontSize: 48,
-    bold: true,
-    color: '#0ea5e9'
-  });
-  
-  slide.addText('Average Rating', {
-    x: 7.5,
-    y: 3.5,
-    w: 2.5,
-    h: 0.5,
-    align: 'center',
-    fontSize: 16,
-    color: '363636'
-  });
-  
-  // Add column chart
-  slide.addChart(pptxgen.ChartType.column, chartData, {
-    x: 0.5,
-    y: 1.5,
-    w: 6.5,
-    h: 5,
-    showValue: true,
-    valueAxisMaxVal: Math.max(...Object.values(countByRating)) * 1.2,
-    chartColors: ['#ef4444', '#f59e0b', '#facc15', '#a3e635', '#22c55e'],
-    dataLabelColor: '363636',
-    showLegend: false
-  });
 };
 
 export const addRatingComparison = (
@@ -133,131 +135,108 @@ export const addRatingComparison = (
   dimension: string,
   isNps: boolean
 ) => {
+  const groups = Array.from(groupedData.keys());
+
   if (isNps) {
-    addNpsComparison(slide, groupedData, dimension);
+    // Create data for detractors, passives, and promoters
+    const detractorsData = {
+      name: "Detractors",
+      labels: groups,
+      values: groups.map(group => {
+        const answers = groupedData.get(group) || [];
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const detractors = validAnswers.filter((r: number) => r <= 6).length;
+        return (detractors / validAnswers.length) * 100;
+      })
+    };
+
+    const passivesData = {
+      name: "Passives",
+      labels: groups,
+      values: groups.map(group => {
+        const answers = groupedData.get(group) || [];
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const passives = validAnswers.filter((r: number) => r > 6 && r <= 8).length;
+        return (passives / validAnswers.length) * 100;
+      })
+    };
+
+    const promotersData = {
+      name: "Promoters",
+      labels: groups,
+      values: groups.map(group => {
+        const answers = groupedData.get(group) || [];
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const promoters = validAnswers.filter((r: number) => r > 8).length;
+        return (promoters / validAnswers.length) * 100;
+      })
+    };
+
+    slide.addChart("bar", [detractorsData, passivesData, promotersData], {
+      x: 0.5,
+      y: 1.5,
+      w: 8,
+      h: 4,
+      barDir: "col",
+      barGrouping: "clustered",
+      chartColors: [THEME.chart.colors[1], THEME.chart.colors[2], THEME.chart.colors[0]],
+      showLegend: true,
+      legendPos: 'b',
+      dataLabelFormatCode: '0"%"',
+      catAxisTitle: dimension,
+      valAxisTitle: "Distribution (%)",
+      valAxisMaxVal: 100,
+    });
   } else {
-    addSatisfactionComparison(slide, groupedData, dimension);
+    // Create data for satisfaction categories
+    const unsatisfiedData = {
+      name: "Unsatisfied",
+      labels: groups,
+      values: groups.map(group => {
+        const answers = groupedData.get(group) || [];
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const unsatisfied = validAnswers.filter((r: number) => r <= 2).length;
+        return (unsatisfied / validAnswers.length) * 100;
+      })
+    };
+
+    const neutralData = {
+      name: "Neutral",
+      labels: groups,
+      values: groups.map(group => {
+        const answers = groupedData.get(group) || [];
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const neutral = validAnswers.filter((r: number) => r === 3).length;
+        return (neutral / validAnswers.length) * 100;
+      })
+    };
+
+    const satisfiedData = {
+      name: "Satisfied",
+      labels: groups,
+      values: groups.map(group => {
+        const answers = groupedData.get(group) || [];
+        const validAnswers = answers.filter((a: number) => typeof a === "number");
+        const satisfied = validAnswers.filter((r: number) => r >= 4).length;
+        return (satisfied / validAnswers.length) * 100;
+      })
+    };
+
+    // Adjusted comparison chart size and position
+    slide.addChart("bar", [unsatisfiedData, neutralData, satisfiedData], {
+      x: 0.5,
+      y: 1.5,
+      w: 8,
+      h: 3.5,
+      barDir: "col",
+      barGrouping: "clustered",
+      chartColors: ["#ef4444", "#eab308", "#22c55e"],
+      showLegend: true,
+      legendPos: 'b',
+      dataLabelFormatCode: '0"%"',
+      catAxisTitle: dimension,
+      valAxisTitle: "Distribution (%)",
+      valAxisMaxVal: 100,
+    });
   }
-};
-
-const addNpsComparison = (
-  slide: pptxgen.Slide,
-  groupedData: Map<string, number[]>,
-  dimension: string
-) => {
-  // Process data for NPS comparison
-  const chartData: { name: string, npsScore: number, detractors: number, passives: number, promoters: number }[] = [];
-  
-  groupedData.forEach((ratings, groupKey) => {
-    if (ratings.length === 0) return;
-    
-    const detractors = ratings.filter(r => r <= 6).length;
-    const passives = ratings.filter(r => r > 6 && r <= 8).length;
-    const promoters = ratings.filter(r => r > 8).length;
-    const total = ratings.length;
-    
-    const npsScore = Math.round(((promoters - detractors) / total) * 100);
-    
-    chartData.push({
-      name: groupKey,
-      npsScore,
-      detractors,
-      passives,
-      promoters
-    });
-  });
-  
-  if (chartData.length === 0) return;
-  
-  // Sort by NPS score descending
-  chartData.sort((a, b) => b.npsScore - a.npsScore);
-  
-  // Limit to top 8 for readability
-  const chartDataLimited = chartData.slice(0, 8);
-  
-  // Add chart title
-  slide.addText(`NPS Scores by ${dimension.charAt(0).toUpperCase() + dimension.slice(1)}`, {
-    x: 0.5,
-    y: 1,
-    w: 8,
-    fontSize: 16,
-    bold: true
-  });
-  
-  // Add bar chart for NPS scores
-  slide.addChart(pptxgen.ChartType.bar, [{
-    name: "NPS Score",
-    labels: chartDataLimited.map(d => d.name),
-    values: chartDataLimited.map(d => d.npsScore)
-  }], {
-    x: 0.5,
-    y: 1.5,
-    w: 9,
-    h: 4.5,
-    chartColors: ['#0ea5e9'],
-    categoryAxisLineShow: true,
-    valueAxisLineShow: true,
-    showValue: true,
-    catAxisLabelColor: '404040',
-    valAxisLabelColor: '404040',
-    catAxisLabelFontSize: 10,
-    valAxisLabelFontSize: 10
-  });
-};
-
-const addSatisfactionComparison = (
-  slide: pptxgen.Slide,
-  groupedData: Map<string, number[]>,
-  dimension: string
-) => {
-  // Process data for average rating comparison
-  const chartData: { name: string, avgRating: number }[] = [];
-  
-  groupedData.forEach((ratings, groupKey) => {
-    if (ratings.length === 0) return;
-    
-    const sum = ratings.reduce((acc, val) => acc + val, 0);
-    const avg = sum / ratings.length;
-    
-    chartData.push({
-      name: groupKey,
-      avgRating: avg
-    });
-  });
-  
-  if (chartData.length === 0) return;
-  
-  // Sort by average rating descending
-  chartData.sort((a, b) => b.avgRating - a.avgRating);
-  
-  // Limit to top 8 for readability
-  const chartDataLimited = chartData.slice(0, 8);
-  
-  // Add chart title
-  slide.addText(`Average Ratings by ${dimension.charAt(0).toUpperCase() + dimension.slice(1)}`, {
-    x: 0.5,
-    y: 1,
-    w: 8,
-    fontSize: 16,
-    bold: true
-  });
-  
-  // Add bar chart for average ratings
-  slide.addChart(pptxgen.ChartType.bar, [{
-    name: "Average Rating",
-    labels: chartDataLimited.map(d => d.name),
-    values: chartDataLimited.map(d => d.avgRating)
-  }], {
-    x: 0.5,
-    y: 1.5,
-    w: 9,
-    h: 4.5,
-    chartColors: ['#22c55e'],
-    valueAxisMaxVal: 5,
-    categoryAxisLineShow: true,
-    valueAxisLineShow: true,
-    showValue: true,
-    valAxisLabelFontSize: 10,
-    catAxisLabelFontSize: 10
-  });
 };
