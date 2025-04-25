@@ -72,8 +72,8 @@ export function useServerPptxExport() {
       // Call the edge function
       setProgress(20);
       try {
-        // Using raw fetch to handle binary data properly
-        const functionUrl = `${supabase.functions.url}/pptx-export`;
+        // Get the base URL from the environment variable instead of using the protected property
+        const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/pptx-export`;
         const { data: authData } = await supabase.auth.getSession();
         
         const response = await fetch(functionUrl, {
@@ -81,7 +81,8 @@ export function useServerPptxExport() {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authData.session?.access_token || ''}`,
-            'apikey': supabase.supabaseKey
+            // Use the environment variable for API key instead of the protected property
+            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
           },
           body: JSON.stringify({ 
             campaignId: campaign.id,
