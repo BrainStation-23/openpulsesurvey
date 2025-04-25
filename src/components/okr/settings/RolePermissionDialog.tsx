@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,12 +9,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Check, Loader2, Info } from 'lucide-react';
+import { Check, Loader2, Info, AlertTriangle } from 'lucide-react';
 import { useOkrRoles } from '@/hooks/okr/useOkrRoles';
 import { useToast } from '@/hooks/use-toast';
 import { OkrRoleSettings } from '@/types/okr-settings';
 import { MultiRoleSelector } from './MultiRoleSelector';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
+// Define clear state types
+type DialogState = 'idle' | 'loading' | 'submitting' | 'success' | 'error';
 
 interface RolePermissionDialogProps {
   open: boolean;
@@ -35,21 +38,40 @@ export function RolePermissionDialog({
   onClose,
   settings,
 }: RolePermissionDialogProps) {
-  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>(currentRoleIds || []);
-  const [submitting, setSubmitting] = useState(false);
+  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
+  const [dialogState, setDialogState] = useState<DialogState>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { updateSettings } = useOkrRoles();
   const { toast } = useToast();
 
-  // Reset selected roles when the dialog opens with new currentRoleIds
-  React.useEffect(() => {
+  // Initialize selected roles when the dialog opens
+  useEffect(() => {
     if (open) {
       setSelectedRoleIds(currentRoleIds || []);
+      setDialogState('idle');
+      setErrorMessage(null);
     }
   }, [open, currentRoleIds]);
 
-  const handleSave = async () => {
+  // Memoize whether there are unsaved changes
+  const hasChanges = useMemo(() => {
+    const currentSorted = [...(currentRoleIds || [])].sort().join(',');
+    const selectedSorted = [...selectedRoleIds].sort().join(',');
+    return currentSorted !== selectedSorted;
+  }, [currentRoleIds, selectedRoleIds]);
+
+  // Debounced role selector change handler
+  const handleRoleChange = useCallback((newRoleIds: string[]) => {
+    setSelectedRoleIds(newRoleIds);
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    if (!hasChanges) return;
+    
     try {
-      setSubmitting(true);
+      setDialogState('submitting');
+      setErrorMessage(null);
+      
       const updatedSettings = {
         ...settings,
         [permissionKey]: selectedRoleIds
@@ -58,27 +80,51 @@ export function RolePermissionDialog({
       const success = await updateSettings(updatedSettings);
       
       if (success) {
+        setDialogState('success');
         toast({
           title: "Settings updated",
           description: `${title} permissions have been updated successfully.`,
         });
-        onClose();
+        // Allow the success state to be visible briefly before closing
+        setTimeout(() => {
+          onClose();
+          setDialogState('idle');
+        }, 1000);
+      } else {
+        throw new Error("Unknown error occurred during update");
       }
     } catch (error: any) {
+      setDialogState('error');
+      setErrorMessage(error.message || "An unexpected error occurred");
       toast({
         variant: "destructive",
         title: "Error updating settings",
-        description: error.message,
+        description: error.message || "Failed to update settings. Please try again.",
       });
-    } finally {
-      setSubmitting(false);
     }
+  }, [hasChanges, permissionKey, selectedRoleIds, settings, title, toast, updateSettings, onClose]);
+
+  // Safe close handler
+  const handleClose = useCallback(() => {
+    if (dialogState !== 'submitting') {
+      onClose();
+    }
+  }, [dialogState, onClose]);
+
+  // Render error message if present
+  const renderError = () => {
+    if (dialogState !== 'error' || !errorMessage) return null;
+    
+    return (
+      <Alert variant="destructive" className="mt-4">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>{errorMessage}</AlertDescription>
+      </Alert>
+    );
   };
 
-  const hasChanges = JSON.stringify(selectedRoleIds.sort()) !== JSON.stringify(currentRoleIds.sort());
-
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle className="text-xl">{title}</DialogTitle>
@@ -95,27 +141,38 @@ export function RolePermissionDialog({
           </AlertDescription>
         </Alert>
 
+        {renderError()}
+
         <div className="py-4">
           <div className="space-y-4">
             <MultiRoleSelector
               selectedRoleIds={selectedRoleIds}
-              onChange={setSelectedRoleIds}
+              onChange={handleRoleChange}
+              disabled={dialogState === 'submitting'}
             />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={submitting}>
+          <Button 
+            variant="outline" 
+            onClick={handleClose} 
+            disabled={dialogState === 'submitting'}
+          >
             Cancel
           </Button>
           <Button 
             onClick={handleSave} 
-            disabled={submitting || !hasChanges}
+            disabled={dialogState === 'submitting' || !hasChanges}
             className={hasChanges ? "" : "opacity-70"}
           >
-            {submitting ? (
+            {dialogState === 'submitting' ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+              </>
+            ) : dialogState === 'success' ? (
+              <>
+                <Check className="mr-2 h-4 w-4 text-green-500" /> Saved
               </>
             ) : (
               <>
