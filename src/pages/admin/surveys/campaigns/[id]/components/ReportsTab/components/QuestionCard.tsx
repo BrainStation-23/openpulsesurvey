@@ -57,19 +57,24 @@ export function QuestionCard({
   const exportData = comparisonDimension !== "none" && comparisonData ? comparisonData : 
     Array.isArray(processedData) ? processedData : [processedData];
 
+  // Hide export for text/comment type questions
+  const isExportable = !["text", "comment"].includes(question.type);
+
   return (
     <Card key={question.name} className="w-full overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle>{question.title}</CardTitle>
         <div className="flex items-center gap-2">
-          <ExportMenu
-            chartId={chartId}
-            fileName={fileName}
-            data={exportData}
-            isComparison={comparisonDimension !== "none"}
-            isNps={isNpsQuestion}
-            isBoolean={question.type === "boolean"}
-          />
+          {isExportable && (
+            <ExportMenu
+              chartId={chartId}
+              fileName={fileName}
+              data={exportData}
+              isComparison={comparisonDimension !== "none"}
+              isNps={isNpsQuestion}
+              isBoolean={question.type === "boolean"}
+            />
+          )}
           <ComparisonSelector
             value={comparisonDimension}
             onChange={onComparisonChange}
