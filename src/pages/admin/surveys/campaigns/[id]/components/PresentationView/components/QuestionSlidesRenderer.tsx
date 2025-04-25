@@ -6,21 +6,19 @@ import { COMPARISON_DIMENSIONS } from "../constants";
 interface QuestionSlidesRendererProps {
   campaign: CampaignData;
   currentSlide: number;
-  filterTypes?: string[];  // Optional: skip question types (e.g. ["text", "comment"])
 }
 
-export function QuestionSlidesRenderer({ campaign, currentSlide, filterTypes }: QuestionSlidesRendererProps) {
+export function QuestionSlidesRenderer({ campaign, currentSlide }: QuestionSlidesRendererProps) {
   const surveyQuestions = (campaign?.survey.json_data.pages || []).flatMap(
     (page) => page.elements || []
   );
 
-  // By default, filter out text and comment questions
-  const skipTypes = filterTypes ?? ["text", "comment"];
+  // Filter out text and comment questions
   const filteredQuestions = surveyQuestions.filter(
-    question => !skipTypes.includes(question.type)
+    question => !["text", "comment"].includes(question.type)
   );
 
-  let slideIndex = 3;
+  let slideIndex = 3;  // Start after title, completion and trends slides
 
   // Flatten all slides to a flat array (for correct index math)
   const allSlides: React.ReactNode[] = [];

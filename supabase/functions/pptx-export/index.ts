@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import PptxGenJS from "https://esm.sh/pptxgenjs@3.12.0";
@@ -175,7 +174,7 @@ async function generatePptx(
     
     // Filter questions (exclude text and comment types)
     const filteredQuestions = questions.filter(q => 
-      q.type !== "text" && q.type !== "comment"
+      !["text", "comment"].includes(q.type)
     );
     
     // Total slides calculation for progress
