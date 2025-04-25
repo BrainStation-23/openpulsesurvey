@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +10,7 @@ import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
 import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
 import { InstanceCompareTab } from "./components/InstanceCompareTab";
+import { EnhancedInstanceSelector } from "./components/EnhancedInstanceSelector";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
