@@ -1,8 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { PlusCircle, Grid, List } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { PlusCircle, Grid, List, Calendar, Clock } from "lucide-react";
 import { CyclesGrid } from '@/components/okr/cycles/CyclesGrid';
 import { CycleTimeline } from '@/components/okr/cycles/CycleTimeline';
 import { useOKRCycles } from '@/hooks/okr/useOKRCycles';
