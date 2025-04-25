@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -17,23 +16,23 @@ import { CalendarIcon } from "lucide-react";
 interface SharePresentationModalProps {
   campaignId: string;
   instanceId?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function SharePresentationModal({ campaignId, instanceId }: SharePresentationModalProps) {
+export function SharePresentationModal({ campaignId, instanceId, open, onOpenChange }: SharePresentationModalProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [shareLink, setShareLink] = useState("");
   const [showExpiryDate, setShowExpiryDate] = useState(false);
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [copied, setCopied] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
 
-  // Fetch existing share link when modal opens
   useEffect(() => {
-    if (isOpen) {
+    if (open) {
       fetchExistingShareLink();
     }
-  }, [isOpen]);
+  }, [open]);
 
   const fetchExistingShareLink = async () => {
     setIsLoading(true);
@@ -63,14 +62,11 @@ export function SharePresentationModal({ campaignId, instanceId }: SharePresenta
     setIsLoading(true);
 
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
       
-      // Generate a random access token
       const accessToken = crypto.randomUUID();
       
-      // Create the share link record in the database
       const { data, error } = await supabase
         .from('shared_presentations')
         .insert({
@@ -86,7 +82,6 @@ export function SharePresentationModal({ campaignId, instanceId }: SharePresenta
 
       if (error) throw error;
       
-      // Create the shareable URL
       const shareableUrl = `${window.location.origin}/presentation/${accessToken}`;
       setShareLink(shareableUrl);
       
@@ -117,7 +112,7 @@ export function SharePresentationModal({ campaignId, instanceId }: SharePresenta
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Share className="h-4 w-4 mr-2" />
