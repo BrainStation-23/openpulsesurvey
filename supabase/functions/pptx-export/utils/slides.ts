@@ -1,6 +1,6 @@
 
 import PptxGenJS from "https://esm.sh/pptxgenjs@3.12.0";
-import { cleanText, formatDate } from "./helpers.ts";
+import { cleanText, formatDate, logError } from "./helpers.ts";
 import { DEFAULT_THEME, DEFAULT_SLIDE_MASTERS } from "./theme.ts";
 import { 
   fetchResponsesManually, 
@@ -11,97 +11,129 @@ import {
 } from "./fetchResponses.ts";
 
 export async function createTitleSlide(pptx: PptxGenJS, campaign: any) {
-  const slide = pptx.addSlide();
-  Object.assign(slide, DEFAULT_SLIDE_MASTERS.TITLE);
+  try {
+    console.log("Creating title slide...");
+    const slide = pptx.addSlide();
+    Object.assign(slide, DEFAULT_SLIDE_MASTERS.TITLE);
 
-  slide.addText(campaign.name, {
-    x: 0.5,
-    y: 0.5,
-    w: "90%",
-    fontSize: 44,
-    bold: true,
-    color: DEFAULT_THEME.text.primary,
-  });
-
-  if (campaign.description) {
-    slide.addText(campaign.description, {
+    slide.addText(campaign.name, {
       x: 0.5,
-      y: 2,
+      y: 0.5,
       w: "90%",
-      fontSize: 20,
-      color: DEFAULT_THEME.text.secondary,
+      fontSize: 44,
+      bold: true,
+      color: DEFAULT_THEME.text.primary,
+    });
+
+    if (campaign.description) {
+      slide.addText(campaign.description, {
+        x: 0.5,
+        y: 2,
+        w: "90%",
+        fontSize: 20,
+        color: DEFAULT_THEME.text.secondary,
+      });
+    }
+
+    // Safe access with fallbacks
+    const startDate = campaign.instance?.starts_at || campaign.starts_at || 'N/A';
+    const endDate = campaign.instance?.ends_at || campaign.ends_at || 'N/A';
+    const completionRate = campaign.instance?.completion_rate ?? campaign.completion_rate ?? 0;
+
+    slide.addText([
+      { text: "Period: ", options: { bold: true } },
+      { text: `${formatDate(startDate)} - ${formatDate(endDate)}` },
+      { text: "\nCompletion Rate: ", options: { bold: true } },
+      { text: `${completionRate?.toFixed(1)}%` },
+    ], {
+      x: 0.5,
+      y: 4,
+      w: "90%",
+      fontSize: 16,
+      color: DEFAULT_THEME.text.light,
+    });
+    
+    console.log("Title slide created successfully");
+  } catch (error) {
+    logError("createTitleSlide", error);
+    // Create a basic slide with error message
+    const slide = pptx.addSlide();
+    slide.addText("Error creating title slide", {
+      x: 0.5,
+      y: 0.5,
+      fontSize: 24,
+      color: DEFAULT_THEME.danger,
     });
   }
-
-  const startDate = campaign.instance?.starts_at || campaign.starts_at;
-  const endDate = campaign.instance?.ends_at || campaign.ends_at;
-  const completionRate = campaign.instance?.completion_rate ?? campaign.completion_rate;
-
-  slide.addText([
-    { text: "Period: ", options: { bold: true } },
-    { text: `${formatDate(startDate)} - ${formatDate(endDate)}` },
-    { text: "\nCompletion Rate: ", options: { bold: true } },
-    { text: `${completionRate?.toFixed(1)}%` },
-  ], {
-    x: 0.5,
-    y: 4,
-    w: "90%",
-    fontSize: 16,
-    color: DEFAULT_THEME.text.light,
-  });
 }
 
 export function createCompletionSlide(pptx: PptxGenJS, campaign: any) {
-  const slide = pptx.addSlide();
-  Object.assign(slide, DEFAULT_SLIDE_MASTERS.CHART);
+  try {
+    console.log("Creating completion rate slide...");
+    const slide = pptx.addSlide();
+    Object.assign(slide, DEFAULT_SLIDE_MASTERS.CHART);
 
-  slide.addText("Response Distribution", {
-    x: 0.5,
-    y: 0.5,
-    fontSize: 32,
-    bold: true,
-    color: DEFAULT_THEME.text.primary,
-  });
+    slide.addText("Response Distribution", {
+      x: 0.5,
+      y: 0.5,
+      fontSize: 32,
+      bold: true,
+      color: DEFAULT_THEME.text.primary,
+    });
 
-  const instanceCompletionRate = campaign.instance?.completion_rate || 0;
-  const expiredRate = 0;
-  const pendingRate = 100 - (instanceCompletionRate + expiredRate);
+    // Use completion rate with fallbacks
+    const instanceCompletionRate = campaign.instance?.completion_rate || campaign.completion_rate || 0;
+    const expiredRate = 0;
+    const pendingRate = 100 - (instanceCompletionRate + expiredRate);
 
-  const data = [{
-    name: "Status Distribution",
-    labels: ["Completed", "Expired", "Pending"],
-    values: [instanceCompletionRate, expiredRate, pendingRate]
-  }];
+    const data = [{
+      name: "Status Distribution",
+      labels: ["Completed", "Expired", "Pending"],
+      values: [instanceCompletionRate, expiredRate, pendingRate]
+    }];
 
-  slide.addChart(pptx.ChartType.pie, data, {
-    x: 0.5,
-    y: 1.5,
-    w: 4.2,
-    h: 3,
-    chartColors: [DEFAULT_THEME.primary, DEFAULT_THEME.tertiary, DEFAULT_THEME.light],
-    showLegend: true,
-    legendPos: 'r',
-    legendFontSize: 11,
-    dataLabelFormatCode: '0"%"',
-    dataLabelFontSize: 10,
-    showValue: true,
-  });
+    slide.addChart(pptx.ChartType.pie, data, {
+      x: 0.5,
+      y: 1.5,
+      w: 4.2,
+      h: 3,
+      chartColors: [DEFAULT_THEME.primary, DEFAULT_THEME.tertiary, DEFAULT_THEME.light],
+      showLegend: true,
+      legendPos: 'r',
+      legendFontSize: 11,
+      dataLabelFormatCode: '0"%"',
+      dataLabelFontSize: 10,
+      showValue: true,
+    });
 
-  slide.addText([
-    { text: "Response Status\n\n", options: { bold: true, fontSize: 14 } },
-    { text: `Completed: `, options: { bold: true } },
-    { text: `${instanceCompletionRate.toFixed(1)}%\n` },
-    { text: `Expired: `, options: { bold: true } },
-    { text: `${expiredRate.toFixed(1)}%\n` },
-    { text: `Pending: `, options: { bold: true } },
-    { text: `${pendingRate.toFixed(1)}%` },
-  ], {
-    x: 5.2,
-    y: 2,
-    w: 4,
-    fontSize: 12,
-    color: DEFAULT_THEME.text.primary,
-  });
+    slide.addText([
+      { text: "Response Status\n\n", options: { bold: true, fontSize: 14 } },
+      { text: `Completed: `, options: { bold: true } },
+      { text: `${instanceCompletionRate.toFixed(1)}%\n` },
+      { text: `Expired: `, options: { bold: true } },
+      { text: `${expiredRate.toFixed(1)}%\n` },
+      { text: `Pending: `, options: { bold: true } },
+      { text: `${pendingRate.toFixed(1)}%` },
+    ], {
+      x: 5.2,
+      y: 2,
+      w: 4,
+      fontSize: 12,
+      color: DEFAULT_THEME.text.primary,
+    });
+    
+    console.log("Completion rate slide created successfully");
+  } catch (error) {
+    logError("createCompletionSlide", error);
+    // Create a basic slide with error message
+    const slide = pptx.addSlide();
+    slide.addText("Error creating completion rate slide", {
+      x: 0.5,
+      y: 0.5,
+      fontSize: 24,
+      color: DEFAULT_THEME.danger,
+    });
+  }
 }
 
 export async function createTrendsSlide(pptx: PptxGenJS, campaign: any, instanceId: string | null) {
@@ -119,6 +151,7 @@ export async function createTrendsSlide(pptx: PptxGenJS, campaign: any, instance
     });
 
     // Get response timestamps
+    console.log("Fetching response timestamps...");
     const responses = await fetchResponsesManually(campaign.id, instanceId, 'submitted_at');
     
     if (!responses || responses.length === 0) {
@@ -138,16 +171,26 @@ export async function createTrendsSlide(pptx: PptxGenJS, campaign: any, instance
 
     // Process response timestamps into daily counts
     const responsesByDay: Record<string, number> = {};
+    let validDates = 0;
+    
     responses.forEach(response => {
       if (!response) return;
       try {
         const date = new Date(response);
+        if (isNaN(date.getTime())) {
+          console.warn(`Invalid date: ${response}`);
+          return;
+        }
+        
         const dateStr = date.toISOString().split('T')[0];
         responsesByDay[dateStr] = (responsesByDay[dateStr] || 0) + 1;
+        validDates++;
       } catch (e) {
         console.error(`Error processing timestamp: ${response}`, e);
       }
     });
+
+    console.log(`Processed ${validDates} valid dates out of ${responses.length} timestamps`);
 
     const sortedDates = Object.keys(responsesByDay).sort();
     
@@ -169,9 +212,14 @@ export async function createTrendsSlide(pptx: PptxGenJS, campaign: any, instance
     const chartData = [{
       name: "Daily Responses",
       labels: sortedDates.map(date => {
-        const [year, month, day] = date.split('-');
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        return `${months[parseInt(month) - 1]} ${parseInt(day)}`;
+        try {
+          const [year, month, day] = date.split('-');
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          return `${months[parseInt(month) - 1]} ${parseInt(day)}`;
+        } catch (e) {
+          console.error(`Error formatting date label: ${date}`, e);
+          return date;
+        }
       }),
       values: sortedDates.map(date => responsesByDay[date])
     }];
@@ -193,7 +241,7 @@ export async function createTrendsSlide(pptx: PptxGenJS, campaign: any, instance
     
     console.log("Trends slide created successfully");
   } catch (error) {
-    console.error("Error creating trends slide:", error);
+    logError("createTrendsSlide", error);
     const slide = pptx.addSlide();
     Object.assign(slide, DEFAULT_SLIDE_MASTERS.CHART);
     
@@ -213,11 +261,15 @@ export async function createTrendsSlide(pptx: PptxGenJS, campaign: any, instance
       color: DEFAULT_THEME.text.secondary,
       italic: true,
     });
+    
+    console.log("Created fallback trends slide due to error");
   }
 }
 
 export async function createQuestionSlidesForPPTX(pptx: PptxGenJS, campaign: any, instanceId: string | null) {
   try {
+    console.log("Creating question slides...");
+    
     // Step 1: Get the survey data with questions
     if (!campaign.survey) {
       console.error("Survey data missing");
@@ -233,10 +285,11 @@ export async function createQuestionSlidesForPPTX(pptx: PptxGenJS, campaign: any
     // Process NPS questions
     for (const question of npsQuestions) {
       try {
+        console.log(`Processing NPS question: ${question.name}`);
         const slide = pptx.addSlide();
         Object.assign(slide, DEFAULT_SLIDE_MASTERS.CHART);
         
-        slide.addText(question.title, {
+        slide.addText(cleanText(question.title), {
           x: 0.5,
           y: 0.5,
           w: "90%",
@@ -306,18 +359,22 @@ export async function createQuestionSlidesForPPTX(pptx: PptxGenJS, campaign: any
           fontSize: 12,
           color: DEFAULT_THEME.text.primary,
         });
+        
+        console.log(`NPS question slide created for: ${question.name}`);
       } catch (error) {
-        console.error(`Error processing NPS question ${question.name}:`, error);
+        logError(`Processing NPS question ${question.name}`, error);
+        // Continue to next question
       }
     }
     
     // Process Satisfaction questions (1-5 rating)
     for (const question of satisfactionQuestions) {
       try {
+        console.log(`Processing satisfaction question: ${question.name}`);
         const slide = pptx.addSlide();
         Object.assign(slide, DEFAULT_SLIDE_MASTERS.CHART);
         
-        slide.addText(question.title, {
+        slide.addText(cleanText(question.title), {
           x: 0.5,
           y: 0.5,
           w: "90%",
@@ -360,18 +417,21 @@ export async function createQuestionSlidesForPPTX(pptx: PptxGenJS, campaign: any
         });
         
         // Calculate satisfaction percentage
-        const satisfactionPercentage = ((ratingData.satisfied / ratingData.total) * 100).toFixed(1);
+        let satisfactionPercentage = 0;
+        if (ratingData.total > 0) {
+          satisfactionPercentage = (ratingData.satisfied / ratingData.total) * 100;
+        }
         
         // Add satisfaction stats
         slide.addText([
           { text: "Satisfaction Rate: ", options: { bold: true, fontSize: 16 } },
-          { text: `${satisfactionPercentage}%\n\n`, options: { fontSize: 16 } },
+          { text: `${satisfactionPercentage.toFixed(1)}%\n\n`, options: { fontSize: 16 } },
           { text: "Unsatisfied (1-2): ", options: { bold: true } },
-          { text: `${ratingData.unsatisfied} (${((ratingData.unsatisfied / ratingData.total) * 100).toFixed(1)}%)\n` },
+          { text: `${ratingData.unsatisfied} (${ratingData.total > 0 ? ((ratingData.unsatisfied / ratingData.total) * 100).toFixed(1) : '0'}%)\n` },
           { text: "Neutral (3): ", options: { bold: true } },
-          { text: `${ratingData.neutral} (${((ratingData.neutral / ratingData.total) * 100).toFixed(1)}%)\n` },
+          { text: `${ratingData.neutral} (${ratingData.total > 0 ? ((ratingData.neutral / ratingData.total) * 100).toFixed(1) : '0'}%)\n` },
           { text: "Satisfied (4-5): ", options: { bold: true } },
-          { text: `${ratingData.satisfied} (${((ratingData.satisfied / ratingData.total) * 100).toFixed(1)}%)\n` },
+          { text: `${ratingData.satisfied} (${ratingData.total > 0 ? ((ratingData.satisfied / ratingData.total) * 100).toFixed(1) : '0'}%)\n` },
           { text: "Median Score: ", options: { bold: true } },
           { text: `${ratingData.median.toFixed(1)}/5` },
         ], {
@@ -381,18 +441,22 @@ export async function createQuestionSlidesForPPTX(pptx: PptxGenJS, campaign: any
           fontSize: 12,
           color: DEFAULT_THEME.text.primary,
         });
+        
+        console.log(`Satisfaction question slide created for: ${question.name}`);
       } catch (error) {
-        console.error(`Error processing satisfaction question ${question.name}:`, error);
+        logError(`Processing satisfaction question ${question.name}`, error);
+        // Continue to next question
       }
     }
     
     // Process Boolean questions
     for (const question of booleanQuestions) {
       try {
+        console.log(`Processing boolean question: ${question.name}`);
         const slide = pptx.addSlide();
         Object.assign(slide, DEFAULT_SLIDE_MASTERS.CHART);
         
-        slide.addText(question.title, {
+        slide.addText(cleanText(question.title), {
           x: 0.5,
           y: 0.5,
           w: "90%",
@@ -440,9 +504,9 @@ export async function createQuestionSlidesForPPTX(pptx: PptxGenJS, campaign: any
         slide.addText([
           { text: "Response Breakdown\n\n", options: { bold: true, fontSize: 16 } },
           { text: "Yes: ", options: { bold: true } },
-          { text: `${boolData.yes} (${((boolData.yes / total) * 100).toFixed(1)}%)\n` },
+          { text: `${boolData.yes} (${total > 0 ? ((boolData.yes / total) * 100).toFixed(1) : '0'}%)\n` },
           { text: "No: ", options: { bold: true } },
-          { text: `${boolData.no} (${((boolData.no / total) * 100).toFixed(1)}%)\n` },
+          { text: `${boolData.no} (${total > 0 ? ((boolData.no / total) * 100).toFixed(1) : '0'}%)\n` },
           { text: "Total Responses: ", options: { bold: true } },
           { text: `${total}` },
         ], {
@@ -452,18 +516,22 @@ export async function createQuestionSlidesForPPTX(pptx: PptxGenJS, campaign: any
           fontSize: 12,
           color: DEFAULT_THEME.text.primary,
         });
+        
+        console.log(`Boolean question slide created for: ${question.name}`);
       } catch (error) {
-        console.error(`Error processing boolean question ${question.name}:`, error);
+        logError(`Processing boolean question ${question.name}`, error);
+        // Continue to next question
       }
     }
     
     // Process Text questions (optional)
     for (const question of textQuestions.slice(0, 2)) { // Limit to first 2 text questions
       try {
+        console.log(`Processing text question: ${question.name}`);
         const slide = pptx.addSlide();
         Object.assign(slide, DEFAULT_SLIDE_MASTERS.CONTENT);
         
-        slide.addText(question.title, {
+        slide.addText(cleanText(question.title), {
           x: 0.5,
           y: 0.5,
           w: "90%",
@@ -533,12 +601,24 @@ export async function createQuestionSlidesForPPTX(pptx: PptxGenJS, campaign: any
           color: DEFAULT_THEME.text.light,
           italic: true,
         });
+        
+        console.log(`Text question slide created for: ${question.name}`);
       } catch (error) {
-        console.error(`Error processing text question ${question.name}:`, error);
+        logError(`Processing text question ${question.name}`, error);
+        // Continue to next question
       }
     }
     
+    console.log("All question slides created successfully");
   } catch (error) {
-    console.error("Error creating question slides:", error);
+    logError("createQuestionSlidesForPPTX", error);
+    // Create an error slide
+    const slide = pptx.addSlide();
+    slide.addText("Error creating question slides", {
+      x: 0.5,
+      y: 0.5,
+      fontSize: 24,
+      color: DEFAULT_THEME.danger,
+    });
   }
 }

@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import PptxGenJS from "https://esm.sh/pptxgenjs@3.12.0";
-import { corsHeaders } from "./utils/helpers.ts";
+import { corsHeaders, createErrorResponse, validateCampaignId } from "./utils/helpers.ts";
 import { 
   createTitleSlide, 
   createCompletionSlide, 
@@ -29,7 +29,7 @@ async function generatePptx(
   config: ExportConfig = {},
   onProgress?: (progress: number) => void
 ) {
-  console.log(`Starting PPTX generation for campaign ${campaignId}, instance ${instanceId}`);
+  console.log(`Starting PPTX generation for campaign ${campaignId}, instance ${instanceId || 'none'}`);
   
   // Initialize presentation
   const pptx = new PptxGenJS();
@@ -38,20 +38,27 @@ async function generatePptx(
   
   try {
     // Fetch campaign data
+    console.log("Fetching campaign data...");
     const campaignData = await fetchCampaignData(campaignId, instanceId);
-    if (!campaignData) throw new Error("Failed to fetch campaign data");
+    if (!campaignData) {
+      throw new Error("Failed to fetch campaign data");
+    }
+    
+    console.log(`Campaign data fetched successfully for '${campaignData.name}'`);
     
     // Use campaign name for title if not explicitly set
     pptx.title = config.fileName || campaignData.name;
     
     // Create title slide
     if (config.includeTitle !== false) {
+      console.log("Creating title slide...");
       await createTitleSlide(pptx, campaignData);
       onProgress?.(10);
     }
     
     // Create completion rate slide
     if (config.includeCompletionRate !== false) {
+      console.log("Creating completion rate slide...");
       createCompletionSlide(pptx, campaignData);
       onProgress?.(20);
     }
@@ -59,6 +66,7 @@ async function generatePptx(
     // Create response trends slide
     if (config.includeResponseTrends !== false) {
       try {
+        console.log("Creating trends slide...");
         await createTrendsSlide(pptx, campaignData, instanceId);
       } catch (error) {
         console.error("Error creating trends slide:", error);
@@ -70,6 +78,7 @@ async function generatePptx(
     // Create question-specific slides
     if (config.includeQuestionSlides !== false) {
       try {
+        console.log("Creating question slides...");
         await createQuestionSlidesForPPTX(pptx, campaignData, instanceId);
       } catch (error) {
         console.error("Error creating question slides:", error);
@@ -112,37 +121,48 @@ serve(async (req) => {
 
   try {
     console.log("Received PPTX export request");
-    const requestData = await req.json();
+    
+    // Parse and validate request data
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (error) {
+      console.error("Error parsing request JSON:", error);
+      return createErrorResponse("Invalid request format: Unable to parse JSON", 400);
+    }
+    
+    console.log("Request data parsed:", JSON.stringify(requestData));
+    
     const { campaignId, instanceId, config, fileName } = requestData;
 
+    // Validate required parameters
     if (!campaignId) {
-      return new Response('Missing campaignId parameter', {
-        status: 400,
-        headers: corsHeaders
-      });
+      return createErrorResponse("Missing required parameter: campaignId", 400);
     }
 
     console.log(`Processing request for campaign ${campaignId}, instance ${instanceId || 'none'}`);
-    const buffer = await generatePptx(campaignId, instanceId, config);
-    console.log("PPTX generated successfully, preparing response");
+    
+    // Generate PPTX
+    try {
+      const buffer = await generatePptx(campaignId, instanceId, config);
+      console.log("PPTX generated successfully, preparing response");
 
-    // Return binary data directly
-    return new Response(buffer, {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'Content-Disposition': `attachment; filename="${fileName || 'survey_presentation.pptx'}"`,
-      }
-    });
+      // Return binary data as Uint8Array for proper handling
+      return new Response(buffer, {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          'Content-Disposition': `attachment; filename="${fileName || 'survey_presentation.pptx'}"`,
+          'Content-Length': buffer.byteLength.toString()
+        }
+      });
+    } catch (error) {
+      console.error("Error during PPTX generation:", error);
+      return createErrorResponse(`PPTX generation failed: ${error.message || String(error)}`, 500);
+    }
   } catch (error) {
-    console.error('Error generating PPTX:', error);
-    return new Response(JSON.stringify({ error: error.message || String(error) }), {
-      status: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
-    });
+    console.error('Unhandled error:', error);
+    return createErrorResponse(`Unhandled error: ${error.message || String(error)}`, 500);
   }
 });

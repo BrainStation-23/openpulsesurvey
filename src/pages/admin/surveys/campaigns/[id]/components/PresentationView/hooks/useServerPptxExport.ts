@@ -71,77 +71,58 @@ export function useServerPptxExport() {
       
       // Call the edge function
       setProgress(20);
-      const { data, error } = await supabase.functions.invoke("pptx-export", {
-        body: { 
-          campaignId: campaign.id,
-          instanceId: instanceId || null,
-          config: {
-            ...config,
-            includeQuestionSlides: true  // Make sure this is enabled by default
+      try {
+        const { data, error } = await supabase.functions.invoke("pptx-export", {
+          body: { 
+            campaignId: campaign.id,
+            instanceId: instanceId || null,
+            config: {
+              ...config,
+              includeQuestionSlides: true  // Make sure this is enabled by default
+            },
+            fileName 
           },
-          fileName 
+          responseType: 'arraybuffer'  // Important: specify that we expect binary data
+        });
+        
+        if (error) {
+          console.error("Edge function error:", error);
+          throw new Error(error.message || "Failed to generate presentation");
         }
-      });
-      
-      if (error) {
-        console.error("Edge function error:", error);
-        throw new Error(error.message || "Failed to generate presentation");
-      }
-      
-      setProgress(90);
-      
-      console.log("Edge function response type:", data ? typeof data : 'null');
-      if (data === null) {
-        throw new Error("The edge function returned null");
-      }
-      
-      // Create a Blob from the ArrayBuffer or response data
-      let blob: Blob;
-      
-      if (data instanceof ArrayBuffer) {
-        console.log("Creating blob from ArrayBuffer");
-        blob = new Blob([data], { 
+        
+        setProgress(90);
+        
+        if (!data) {
+          throw new Error("The edge function returned no data");
+        }
+        
+        // Create a Blob from the ArrayBuffer response
+        const blob = new Blob([data], { 
           type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
         });
-      } else if (data instanceof Uint8Array) {
-        console.log("Creating blob from Uint8Array");
-        blob = new Blob([data], { 
-          type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
+        
+        // Create a temporary URL and trigger download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Clean up
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        setProgress(100);
+        
+        toast({
+          title: "Success",
+          description: "Presentation has been exported to PPTX successfully",
         });
-      } else if (typeof data === 'object') {
-        // If it's a regular object response, it might contain the file as a property
-        if (data.file instanceof ArrayBuffer || data.file instanceof Uint8Array) {
-          console.log("Creating blob from response.file property");
-          blob = new Blob([data.file], { 
-            type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
-          });
-        } else {
-          console.error("Unexpected response format:", data);
-          throw new Error("Invalid response format: " + JSON.stringify(data));
-        }
-      } else {
-        console.error("Unknown response format:", typeof data);
-        throw new Error("Unknown response format");
+      } catch (error) {
+        console.error("Edge function invocation error:", error);
+        throw error;
       }
-      
-      // Create a temporary URL and trigger download
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Clean up
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      setProgress(100);
-      
-      toast({
-        title: "Success",
-        description: "Presentation has been exported to PPTX successfully",
-      });
     } catch (error) {
       console.error("Error exporting PPTX:", error);
       toast({

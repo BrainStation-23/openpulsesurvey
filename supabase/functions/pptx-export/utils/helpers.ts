@@ -32,4 +32,41 @@ export function formatDate(dateString: string | null | undefined): string {
 
 export function logError(context: string, error: any): void {
   console.error(`Error in ${context}: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
+  if (error instanceof Error && error.stack) {
+    console.error(`Stack trace: ${error.stack}`);
+  }
+}
+
+export function safelyExecute<T>(
+  operation: () => Promise<T>,
+  context: string,
+  fallback: T
+): Promise<T> {
+  return operation().catch(error => {
+    logError(context, error);
+    return fallback;
+  });
+}
+
+export function validateCampaignId(campaignId: string | null | undefined): string {
+  if (!campaignId) {
+    throw new Error("Missing or invalid campaignId");
+  }
+  return campaignId;
+}
+
+export function createErrorResponse(error: any, status = 500) {
+  return new Response(
+    JSON.stringify({
+      error: error instanceof Error ? error.message : String(error),
+      status: 'error'
+    }),
+    {
+      status,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
 }
