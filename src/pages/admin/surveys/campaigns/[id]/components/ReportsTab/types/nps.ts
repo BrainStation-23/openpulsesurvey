@@ -8,6 +8,12 @@ export interface NpsData {
   avg_score?: number;
 }
 
-export interface NpsComparisonData extends NpsData {
+export interface NpsComparisonData {
   dimension: string;
+  detractors: number;
+  passives: number;
+  promoters: number;
+  total: number;
+  nps_score: number;
+  avg_score?: number;
 }

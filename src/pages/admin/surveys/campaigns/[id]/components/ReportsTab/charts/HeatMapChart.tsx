@@ -1,97 +1,134 @@
 
-import { Card } from "@/components/ui/card";
-import { HeatMapRow } from "./HeatMapRow";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 
-interface HeatMapData {
-  dimension: string;
-  unsatisfied: number;
-  neutral: number;
-  satisfied: number;
-  total: number;
-  avg_score?: number;
-}
-
-interface HeatMapChartProps {
-  data: HeatMapData[];
-  title?: string;
-}
-
-export function HeatMapChart({ data = [], title }: HeatMapChartProps) {
-  // Return early if no data is provided
-  if (!data || data.length === 0) {
-    return (
-      <div className="w-full p-4 text-center text-muted-foreground">
-        No data available
-      </div>
-    );
-  }
-
-  const getColorIntensity = (percentage: number) => {
-    // Minimum opacity of 0.1 (10%)
-    const minOpacity = 0.1;
-    // Scale the remaining 90% based on the percentage
-    const opacity = minOpacity + ((1 - minOpacity) * (percentage / 100));
-    // Convert to hex
-    const hexOpacity = Math.round(opacity * 255).toString(16).padStart(2, '0');
-    return hexOpacity;
+export function HeatMapChart({ data }: { data: any[] }) {
+  const [sortBy, setSortBy] = useState("dimension");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(column);
+      setSortOrder("asc");
+    }
   };
-
-  const getPercentage = (value: number, total: number) => {
-    return total > 0 ? Math.round((value / total) * 100) : 0;
-  };
-
-  const needsAttention = (row: HeatMapData) => {
-    const unsatisfiedPercentage = getPercentage(row.unsatisfied, row.total);
-    return unsatisfiedPercentage > 50;
-  };
-
+  
+  const sortedData = [...data].sort((a, b) => {
+    const aValue = a[sortBy];
+    const bValue = b[sortBy];
+    
+    if (typeof aValue === "number" && typeof bValue === "number") {
+      return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
+    }
+    
+    if (sortOrder === "asc") {
+      return String(aValue).localeCompare(String(bValue));
+    } else {
+      return String(bValue).localeCompare(String(aValue));
+    }
+  });
+  
   return (
-    <div className="w-full">
-      {title && (
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
-      )}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] rounded-xl border shadow-sm bg-white">
-          <thead>
-            <tr>
-              <th className="text-left p-3 bg-gray-50">Group</th>
-              <th className="text-center p-3 bg-gray-50 border-l">Unsatisfied <span className="text-xs">(1-3)</span></th>
-              <th className="text-center p-3 bg-gray-50 border-l">Neutral <span className="text-xs">(4)</span></th>
-              <th className="text-center p-3 bg-gray-50 border-l">Satisfied <span className="text-xs">(5)</span></th>
-              <th className="text-center p-3 bg-gray-50 border-l">Total</th>
-              <th className="text-center p-3 bg-gray-50 border-l">Avg</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((row) => (
-              <HeatMapRow
-                key={row.dimension}
-                row={row}
-                getPercentage={getPercentage}
-                needsAttention={needsAttention}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="text-xs text-muted-foreground mt-4 flex gap-6 flex-wrap px-1">
-        <span>
-          <Badge className="scale-75 bg-[#ef4444]/80 mr-1"></Badge>
-          Unsatisfied (1-3)
-        </span>
-        <span>
-          <Badge className="scale-75 bg-[#eab308]/80 mr-1"></Badge>
-          Neutral (4)
-        </span>
-        <span>
-          <Badge className="scale-75 bg-[#22c55e]/80 mr-1"></Badge>
-          Satisfied (5)
-        </span>
-        <span className="pl-2">
-          <strong>Note:</strong> Bar length represents percentage in each group. Row highlight means &gt; 50% unsatisfied.
-        </span>
-      </div>
+    <div className="overflow-x-auto">
+      <Table className="border-collapse border">
+        <TableHeader>
+          <TableRow>
+            <TableHead
+              className="cursor-pointer hover:bg-gray-100"
+              onClick={() => handleSort("dimension")}
+            >
+              Dimension
+              {sortBy === "dimension" && (
+                <span className="ml-1">{sortOrder === "asc" ? "▲" : "▼"}</span>
+              )}
+            </TableHead>
+            <TableHead
+              className="cursor-pointer hover:bg-gray-100 text-center"
+              onClick={() => handleSort("unsatisfied")}
+            >
+              Unsatisfied (1-2)
+              {sortBy === "unsatisfied" && (
+                <span className="ml-1">{sortOrder === "asc" ? "▲" : "▼"}</span>
+              )}
+            </TableHead>
+            <TableHead
+              className="cursor-pointer hover:bg-gray-100 text-center"
+              onClick={() => handleSort("neutral")}
+            >
+              Neutral (3)
+              {sortBy === "neutral" && (
+                <span className="ml-1">{sortOrder === "asc" ? "▲" : "▼"}</span>
+              )}
+            </TableHead>
+            <TableHead
+              className="cursor-pointer hover:bg-gray-100 text-center"
+              onClick={() => handleSort("satisfied")}
+            >
+              Satisfied (4-5)
+              {sortBy === "satisfied" && (
+                <span className="ml-1">{sortOrder === "asc" ? "▲" : "▼"}</span>
+              )}
+            </TableHead>
+            <TableHead
+              className="cursor-pointer hover:bg-gray-100 text-center"
+              onClick={() => handleSort("avg_score")}
+            >
+              Avg Score
+              {sortBy === "avg_score" && (
+                <span className="ml-1">{sortOrder === "asc" ? "▲" : "▼"}</span>
+              )}
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sortedData.map((row, index) => {
+            const total = row.total;
+            
+            // Calculate percentages
+            const unsatisfiedPct = total > 0 ? (row.unsatisfied / total) * 100 : 0;
+            const neutralPct = total > 0 ? (row.neutral / total) * 100 : 0;
+            const satisfiedPct = total > 0 ? (row.satisfied / total) * 100 : 0;
+            
+            return (
+              <TableRow key={index}>
+                <TableCell className="font-medium">{row.dimension}</TableCell>
+                <TableCell>
+                  <div className="flex items-center">
+                    <div
+                      className="bg-red-500 h-4 rounded-sm mr-2"
+                      style={{ width: `${unsatisfiedPct}%` }}
+                    ></div>
+                    <span>{row.unsatisfied} ({Math.round(unsatisfiedPct)}%)</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center">
+                    <div
+                      className="bg-yellow-500 h-4 rounded-sm mr-2"
+                      style={{ width: `${neutralPct}%` }}
+                    ></div>
+                    <span>{row.neutral} ({Math.round(neutralPct)}%)</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center">
+                    <div
+                      className="bg-green-500 h-4 rounded-sm mr-2"
+                      style={{ width: `${satisfiedPct}%` }}
+                    ></div>
+                    <span>{row.satisfied} ({Math.round(satisfiedPct)}%)</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-center">
+                  <span className="text-lg font-medium">{row.avg_score?.toFixed(1)}</span>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     </div>
   );
 }

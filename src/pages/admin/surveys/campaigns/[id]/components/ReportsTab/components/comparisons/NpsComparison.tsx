@@ -1,115 +1,56 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HeatMapChart } from "../../charts/HeatMapChart";
-import type { ProcessedResponse } from "../../hooks/useResponseProcessing";
-import { ComparisonDimension } from "../../types/comparison";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { NpsComparisonTable } from "./NpsComparisonTable";
-import { useDimensionComparison } from "../../hooks/useDimensionComparison";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { NpsComparisonData } from "../../types/nps";
+import { NpsComparisonTable } from "./NpsComparisonTable";
+import { SurveyResponse } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types/responses";
+import { ComparisonDimension } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types/comparison";
 
 interface NpsComparisonProps {
-  responses: ProcessedResponse[];
+  responses: SurveyResponse[];
   questionName: string;
   dimension: ComparisonDimension;
   isNps: boolean;
-  layout?: 'grid' | 'vertical';
   campaignId?: string;
   instanceId?: string;
 }
 
-interface HeatMapData {
-  dimension: string;
-  unsatisfied: number;
-  neutral: number;
-  satisfied: number;
-  total: number;
-  avg_score?: number;
-}
-
-export function NpsComparison({
-  questionName,
+export function NpsComparison({ 
+  responses, 
+  questionName, 
   dimension,
   isNps,
-  layout = 'vertical',
   campaignId,
   instanceId
 }: NpsComparisonProps) {
-  const { data, isLoading, error } = useDimensionComparison(
-    campaignId,
-    instanceId,
-    questionName,
-    dimension,
-    isNps
-  );
-
-  const getDimensionTitle = (dim: string) => {
-    const titles: Record<string, string> = {
-      sbu: "By Department",
-      gender: "By Gender",
-      location: "By Location",
-      employment_type: "By Employment Type",
-      level: "By Level",
-      employee_type: "By Employee Type",
-      employee_role: "By Employee Role",
-      supervisor: "By Supervisor"
-    };
-    return titles[dim] || dim;
-  };
+  const { data, isLoading } = useQuery({
+    queryKey: ['nps-comparison', campaignId, instanceId, questionName, dimension],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_nps_by_dimension', {
+        p_campaign_id: campaignId,
+        p_instance_id: instanceId || null,
+        p_question_name: questionName,
+        p_dimension: dimension
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!campaignId && !!questionName && dimension !== 'main' && dimension !== 'none',
+    refetchOnWindowFocus: false
+  });
   
   if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Loading comparison data...</CardTitle>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error loading data</AlertTitle>
-        <AlertDescription>{error.message}</AlertDescription>
-      </Alert>
-    );
+    return <div className="p-4 text-center">Loading comparison data...</div>;
   }
   
   if (!data || data.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>No data available</CardTitle>
-        </CardHeader>
-      </Card>
-    );
+    return <div className="p-4 text-center">No comparison data available</div>;
   }
-
-  // Type guard to check if the data is NPS data
-  const isNpsData = (data: any[]): data is NpsComparisonData[] => {
-    return isNps && data.length > 0 && 'detractors' in data[0];
-  };
-
-  if (isNpsData(data)) {
-    return (
-      <div className="w-full">
-        <NpsComparisonTable data={data} />
-      </div>
-    );
-  }
-
+  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{getDimensionTitle(dimension)}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <HeatMapChart data={data as HeatMapData[]} />
-      </CardContent>
-    </Card>
+    <div className="w-full">
+      <NpsComparisonTable data={data as NpsComparisonData[]} />
+    </div>
   );
 }

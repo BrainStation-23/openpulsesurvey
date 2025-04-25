@@ -1,82 +1,131 @@
 
+import { useState } from "react";
+import { SlideWrapper } from "../components/SlideWrapper";
+import { SlideProps } from "../types";
+import { ComparisonDimension } from "../types/comparison";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from "recharts";
-import { Card } from "@/components/ui/card";
-import { SlideWrapper } from "../components/SlideWrapper";
-import { CampaignData } from "../types";
+import { Pie, PieChart, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
-export function ResponseDistributionSlide({ 
-  campaignId, 
-  instanceId,
-  isActive,
-  campaign
-}: { 
+interface ResponseDistributionProps extends SlideProps {
   campaignId: string;
   instanceId?: string;
-  isActive: boolean;
-  campaign: CampaignData;
-}) {
-  const { data: distributionData } = useQuery({
-    queryKey: ["response-distribution", campaignId, instanceId],
+}
+
+export function ResponseDistributionSlide({ 
+  campaign, 
+  isActive,
+  campaignId,
+  instanceId
+}: ResponseDistributionProps) {
+  const [dimension, setDimension] = useState<ComparisonDimension>('sbu');
+  
+  const { data, isLoading } = useQuery({
+    queryKey: ['response-distribution', campaignId, instanceId, dimension],
     queryFn: async () => {
-      if (!instanceId) return [];
-
-      const { data: assignments } = await supabase
-        .from("survey_assignments")
-        .select("id")
-        .eq("campaign_id", campaignId);
-
-      if (!assignments?.length) return [];
-
-      const statusCounts: Record<string, number> = {};
-
-      await Promise.all(
-        assignments.map(async (assignment) => {
-          const { data: status } = await supabase
-            .rpc('get_instance_assignment_status', {
-              p_assignment_id: assignment.id,
-              p_instance_id: instanceId
-            });
-          statusCounts[status] = (statusCounts[status] || 0) + 1;
-        })
-      );
-
-      return Object.entries(statusCounts).map(([name, value]) => ({
-        name,
-        value
-      }));
+      const { data, error } = await supabase.rpc('get_response_distribution', {
+        p_campaign_id: campaignId,
+        p_instance_id: instanceId || null,
+        p_dimension: dimension
+      });
+      
+      if (error) throw error;
+      return data;
     },
-    enabled: !!campaignId && !!instanceId
+    enabled: isActive && !!campaignId,
+    refetchOnWindowFocus: false
   });
-
-  if (!distributionData?.length) return null;
-
+  
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
+  
+  const dimensions = [
+    { id: 'sbu', label: 'Department' },
+    { id: 'gender', label: 'Gender' },
+    { id: 'location', label: 'Location' },
+    { id: 'level', label: 'Level' },
+    { id: 'employment_type', label: 'Employment Type' },
+    { id: 'employee_type', label: 'Employee Type' }
+  ];
+  
   return (
-    <SlideWrapper isActive={isActive} campaign={campaign}>
-      <Card className="w-full h-full flex items-center justify-center p-4">
-        <ResponsiveContainer width="100%" height={400}>
-          <PieChart>
-            <Pie
-              data={distributionData}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              outerRadius={150}
-              fill="#8884d8"
-              label
+    <SlideWrapper isActive={isActive} className="bg-white">
+      <div className="p-6">
+        <h2 className="text-2xl font-bold mb-8">Response Distribution</h2>
+        
+        <div className="flex mb-4 space-x-2">
+          {dimensions.map(dim => (
+            <button
+              key={dim.id}
+              className={`px-3 py-1 text-sm rounded-full ${dimension === dim.id 
+                ? 'bg-primary text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              onClick={() => setDimension(dim.id as ComparisonDimension)}
             >
-              {distributionData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
-      </Card>
+              {dim.label}
+            </button>
+          ))}
+        </div>
+        
+        <div className="flex flex-col lg:flex-row h-[70vh]">
+          <div className="w-full lg:w-1/2 h-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={true}
+                  outerRadius="80%"
+                  fill="#8884d8"
+                  dataKey="count"
+                  nameKey="name"
+                  label={({ name, percent }) => 
+                    `${name}: ${(percent * 100).toFixed(0)}%`
+                  }
+                >
+                  {data?.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          
+          <div className="w-full lg:w-1/2 h-full p-4">
+            <h3 className="text-lg font-medium mb-4">
+              Distribution by {dimension.charAt(0).toUpperCase() + dimension.slice(1).replace('_', ' ')}
+            </h3>
+            
+            <div className="max-h-[400px] overflow-y-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="text-left p-2 border-b">Name</th>
+                    <th className="text-right p-2 border-b">Count</th>
+                    <th className="text-right p-2 border-b">Percentage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.map((item: any, index: number) => {
+                    const total = data.reduce((sum: number, d: any) => sum + d.count, 0);
+                    const percentage = (item.count / total) * 100;
+                    
+                    return (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="p-2 border-b">{item.name}</td>
+                        <td className="text-right p-2 border-b">{item.count}</td>
+                        <td className="text-right p-2 border-b">{percentage.toFixed(1)}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </SlideWrapper>
   );
 }
