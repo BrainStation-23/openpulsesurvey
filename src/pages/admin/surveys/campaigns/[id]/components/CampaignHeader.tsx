@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -7,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Check, Edit2, Play, X } from "lucide-react";
+import { Calendar, Check, Edit2, LineChart, X } from "lucide-react";
 import { format, isValid } from "date-fns";
+import { Link } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { PresentButton } from "./PresentButton";
 
 interface CampaignHeaderProps {
   campaign: {
@@ -27,6 +28,7 @@ interface CampaignHeaderProps {
     created_at: string;
     starts_at: string;
     ends_at: string;
+    instance?: { id?: string | null };
   } | undefined;
   isLoading: boolean;
   selectedInstanceId?: string;
@@ -41,7 +43,6 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
   const [editedDescription, setEditedDescription] = useState("");
   const [editedStatus, setEditedStatus] = useState("");
 
-  // Update local state when campaign data changes
   useEffect(() => {
     if (campaign) {
       setEditedName(campaign.name);
@@ -154,13 +155,15 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
         </div>
         <div className="flex gap-2">
           <Button
-            onClick={handlePresent}
+            asChild
             variant="outline"
             size="sm"
             className="gap-2"
           >
-            <Play className="h-4 w-4" />
-            Present
+            <Link to={`/admin/surveys/campaigns/${id}/performance`}>
+              <LineChart className="h-4 w-4" />
+              Campaign Performance
+            </Link>
           </Button>
           {isEditing ? (
             <>

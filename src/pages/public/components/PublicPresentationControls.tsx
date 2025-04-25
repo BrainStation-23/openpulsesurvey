@@ -1,13 +1,14 @@
 
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Maximize, Minimize, ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Minimize } from "lucide-react";
 import { CampaignData } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/types";
+import { ExportButton } from "@/pages/admin/surveys/campaigns/[id]/components/PresentationView/components/ExportButton";
 
 interface PublicPresentationControlsProps {
+  onBack: () => void;
   onPrevious: () => void;
   onNext: () => void;
   onFullscreen: () => void;
-  onBack: () => void;
   isFirstSlide: boolean;
   isLastSlide: boolean;
   isFullscreen: boolean;
@@ -17,10 +18,10 @@ interface PublicPresentationControlsProps {
 }
 
 export function PublicPresentationControls({
+  onBack,
   onPrevious,
   onNext,
   onFullscreen,
-  onBack,
   isFirstSlide,
   isLastSlide,
   isFullscreen,
@@ -35,17 +36,18 @@ export function PublicPresentationControls({
           variant="ghost"
           size="sm"
           onClick={onBack}
-          className="mr-2 text-black hover:bg-black/20 hover:text-black"
+          className="text-black hover:bg-black/20 hover:text-black"
         >
-          <ArrowLeft className="h-4 w-4 mr-1" />
+          <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
 
-        <div className="text-lg font-semibold text-black truncate">
-          {campaign.name}
-        </div>
-
         <div className="flex items-center gap-2 ml-auto">
+          <ExportButton
+            campaignId={campaign.id}
+            instanceId={campaign.instance?.id}
+          />
+
           <Button
             variant="ghost"
             size="icon"
