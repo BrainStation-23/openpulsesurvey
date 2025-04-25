@@ -7,10 +7,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, AlertTriangle } from "lucide-react";
 import { exportToPptx } from "../services/pptxExport/exportService";
 import { DEFAULT_EXPORT_CONFIG, PptxExportConfig } from "../services/pptxExport/types";
 import { useToast } from "@/hooks/use-toast";
@@ -38,12 +38,21 @@ export function ExportDialog({ open, onOpenChange, campaign, instanceId }: Expor
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [activeTab, setActiveTab] = useState("content");
+  const [error, setError] = useState<string | null>(null);
 
   // Export configuration state
   const [config, setConfig] = useState<PptxExportConfig>({ ...DEFAULT_EXPORT_CONFIG });
 
   const handleExport = async () => {
+    setError(null);
+    
     try {
+      // Validate instance ID
+      if (!campaign.instance?.id && !instanceId) {
+        setError("No instance ID available. Please try again or contact support.");
+        return;
+      }
+      
       setExporting(true);
       
       await exportToPptx(campaign, instanceId, {
@@ -57,8 +66,15 @@ export function ExportDialog({ open, onOpenChange, campaign, instanceId }: Expor
       });
       
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Export error:", error);
+      
+      // Set a user-friendly error message
+      setError(
+        error.message || 
+        "There was an error exporting your presentation. Please try again later or contact support."
+      );
+      
       toast({
         title: "Export failed",
         description: "There was an error exporting your presentation.",
@@ -95,6 +111,14 @@ export function ExportDialog({ open, onOpenChange, campaign, instanceId }: Expor
             Configure your presentation export options.
           </DialogDescription>
         </DialogHeader>
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Export Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
         {exporting ? (
           <div className="py-6 space-y-4">

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,16 +21,27 @@ export function SharePresentationModal({
 }: SharePresentationModalProps) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  const [isOpen, setIsOpen] = useState(open || false);
+  const [isOpen, setIsOpen] = useState(false);
+  
+  // Sync internal state with props
+  useEffect(() => {
+    if (open !== undefined) {
+      setIsOpen(open);
+    }
+  }, [open]);
 
   // Handle controlled/uncontrolled state
   const handleOpenChange = (newOpen: boolean) => {
+    setIsOpen(newOpen);
     if (onOpenChange) {
       onOpenChange(newOpen);
-    } else {
-      setIsOpen(newOpen);
     }
   };
+
+  // Make sure we have a valid campaignId
+  if (!campaignId) {
+    return null;
+  }
 
   const shareUrl = `${window.location.origin}/share/campaigns/${campaignId}${instanceId ? `?instance=${instanceId}` : ''}`;
 
