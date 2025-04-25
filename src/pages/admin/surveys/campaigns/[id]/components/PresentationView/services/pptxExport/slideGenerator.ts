@@ -14,7 +14,6 @@ export const createTitleSlide = (
 ) => {
   const slide = pptx.addSlide();
   slide.background = { color: "FFFFFF" };
-  slide.margin = [0.5, 0.5, 0.5, 0.5];
 
   slide.addText(campaign.name, {
     x: 0.5,
@@ -63,7 +62,6 @@ export const createCompletionSlide = (
 ) => {
   const slide = pptx.addSlide();
   slide.background = { color: "FFFFFF" };
-  slide.margin = [0.5, 1, 0.5, 0.5];
 
   slide.addText("Response Distribution", {
     x: 0.5,
@@ -127,7 +125,6 @@ export const createTrendsSlide = (
 ) => {
   const slide = pptx.addSlide();
   slide.background = { color: "FFFFFF" };
-  slide.margin = [0.5, 1, 0.5, 0.5];
 
   slide.addText("Response Trends", {
     x: 0.5,
@@ -160,7 +157,6 @@ export const createBooleanQuestionSlide = (
   // Create main question slide
   const slide = pptx.addSlide();
   slide.background = { color: "FFFFFF" };
-  slide.margin = [0.5, 1, 0.5, 0.5];
 
   slide.addText(cleanText(question.title), {
     x: 0.5,
@@ -222,7 +218,6 @@ export const createBooleanQuestionSlide = (
     if (dimensionData[dimension] && dimensionData[dimension].length > 0) {
       const dimensionSlide = pptx.addSlide();
       dimensionSlide.background = { color: "FFFFFF" };
-      dimensionSlide.margin = [0.5, 1, 0.5, 0.5];
 
       dimensionSlide.addText(cleanText(question.title), {
         x: 0.5,
@@ -273,7 +268,8 @@ export const createBooleanQuestionSlide = (
           rowH: 0.3,
           colW: [3.5, 1.5, 1.5, 1.5, 1],
           border: { pt: 1, color: theme.light },
-          bold: { rows: [0] },
+          // Fix for invalid bold property
+          bold: true,
           fontSize: 10,
         });
       } else {
@@ -321,7 +317,6 @@ export const createRatingQuestionSlide = (
   // Create main question slide
   const slide = pptx.addSlide();
   slide.background = { color: "FFFFFF" };
-  slide.margin = [0.5, 1, 0.5, 0.5];
 
   slide.addText(cleanText(question.title), {
     x: 0.5,
@@ -427,7 +422,6 @@ export const createRatingQuestionSlide = (
     if (dimensionData[dimension] && dimensionData[dimension].length > 0) {
       const dimensionSlide = pptx.addSlide();
       dimensionSlide.background = { color: "FFFFFF" };
-      dimensionSlide.margin = [0.5, 1, 0.5, 0.5];
 
       dimensionSlide.addText(cleanText(question.title), {
         x: 0.5,
@@ -475,7 +469,8 @@ export const createRatingQuestionSlide = (
             rowH: 0.3,
             colW: [2.5, 1, 1, 1, 1, 1, 1],
             border: { pt: 1, color: theme.light },
-            bold: { rows: [0] },
+            // Fix for invalid bold property
+            bold: true,
             fontSize: 10,
           });
         } else {
@@ -499,7 +494,8 @@ export const createRatingQuestionSlide = (
             rowH: 0.3,
             colW: [3, 1.5, 1.5, 1, 1, 1],
             border: { pt: 1, color: theme.light },
-            bold: { rows: [0] },
+            // Fix for invalid bold property
+            bold: true,
             fontSize: 10,
           });
         }
@@ -520,7 +516,8 @@ export const createRatingQuestionSlide = (
             dataLabelFormatCode: "0.0",
             showValue: true,
             showLegend: false,
-            chartAxisHidden: false,
+            // Fix for invalid chartAxisHidden property
+            catAxisHidden: false,
           });
         } else {
           dimensionSlide.addChart(pptx.ChartType.bar, [{
@@ -537,7 +534,8 @@ export const createRatingQuestionSlide = (
             dataLabelFormatCode: "0.0",
             showValue: true,
             showLegend: false,
-            chartAxisHidden: false,
+            // Fix for invalid chartAxisHidden property
+            catAxisHidden: false,
           });
         }
       }
