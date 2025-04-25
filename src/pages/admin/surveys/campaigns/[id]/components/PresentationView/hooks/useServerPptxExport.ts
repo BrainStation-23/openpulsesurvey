@@ -64,8 +64,7 @@ export function useServerPptxExport() {
           instanceId: instanceId || null,
           config: config || {},
           fileName 
-        },
-        responseType: 'arraybuffer'
+        }
       });
       
       if (error) {
@@ -75,6 +74,11 @@ export function useServerPptxExport() {
       setProgress(90);
       
       // Convert the response to a blob and download
+      // Since we can't use responseType in the options, we need to handle the ArrayBuffer response manually
+      if (!(data instanceof ArrayBuffer)) {
+        throw new Error("Invalid response format from server");
+      }
+      
       const blob = new Blob([data], { 
         type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
       });

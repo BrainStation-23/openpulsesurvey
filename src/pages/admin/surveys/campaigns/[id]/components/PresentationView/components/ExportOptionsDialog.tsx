@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Loader } from "lucide-react";
 import { CampaignData } from "../types";
 import { COMPARISON_DIMENSIONS } from "../constants";
+import { ComparisonDimension } from "../types/comparison";
 
 // Map dimension keys to display names
 const DIMENSION_LABELS: Record<string, string> = {
@@ -47,7 +48,7 @@ export function ExportOptionsDialog({ campaign, open, onOpenChange }: ExportOpti
   });
   
   // Handle checkbox changes for dimensions
-  const handleDimensionToggle = (dimension: string) => {
+  const handleDimensionToggle = (dimension: ComparisonDimension) => {
     setConfig(prev => ({
       ...prev,
       dimensions: prev.dimensions.includes(dimension)
@@ -75,7 +76,7 @@ export function ExportOptionsDialog({ campaign, open, onOpenChange }: ExportOpti
   // Trigger the export
   const handleStartExport = async () => {
     await handleExport(campaign, campaign.instance?.id, {
-      dimensions: config.dimensions,
+      dimensions: config.dimensions.map(d => d.toString()),
       includeTitle: config.includeTitle,
       includeCompletionRate: config.includeCompletionRate,
       includeResponseTrends: config.includeResponseTrends,
