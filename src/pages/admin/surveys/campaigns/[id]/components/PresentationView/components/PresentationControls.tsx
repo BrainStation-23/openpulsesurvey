@@ -1,11 +1,10 @@
+
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, Maximize, Minimize, Loader } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Minimize } from "lucide-react";
 import { CampaignData } from "../types";
-import { usePresentationResponses } from "../hooks/usePresentationResponses";
-import { usePptxExport } from "../hooks/usePptxExport";
-import { useToast } from "@/hooks/use-toast";
 import { SharePresentationModal } from "./SharePresentationModal";
+import { ExportButton } from "./ExportButton";
 
 interface PresentationControlsProps {
   onBack: () => void;
@@ -32,10 +31,6 @@ export function PresentationControls({
   totalSlides,
   campaign,
 }: PresentationControlsProps) {
-  const { toast } = useToast();
-  const { data: processedData } = usePresentationResponses(campaign.id, campaign.instance?.id);
-  const { handleExport, exporting, progress } = usePptxExport();
-
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-4">
@@ -55,20 +50,11 @@ export function PresentationControls({
             instanceId={campaign.instance?.id} 
           />
           
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleExport(campaign, processedData)}
-            disabled={exporting}
-            className="text-black hover:bg-black/20 hover:text-black relative"
-            title="Export to PPTX"
-          >
-            {exporting ? (
-              <Loader className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-          </Button>
+          {/* Replace old export button with new decoupled component */}
+          <ExportButton 
+            campaignId={campaign.id}
+            instanceId={campaign.instance?.id} 
+          />
 
           <Button
             variant="ghost"
@@ -108,15 +94,6 @@ export function PresentationControls({
           </Button>
         </div>
       </div>
-
-      {exporting && (
-        <div className="w-full">
-          <Progress value={progress} className="h-1" />
-          <p className="text-xs text-center text-muted-foreground mt-1">
-            Generating presentation... {progress}%
-          </p>
-        </div>
-      )}
     </div>
   );
 }
