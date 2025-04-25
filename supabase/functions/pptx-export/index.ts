@@ -591,7 +591,7 @@ async function createCompletionSlide(pptx: any, campaignData: any, theme: any) {
   });
 }
 
-// Create response trends slide
+// Create response trends slide - fixed to avoid the 'joins' method error
 async function createTrendsSlide(pptx: any, campaignData: any, instanceId: string | null, theme: any) {
   const slide = pptx.addSlide();
   Object.assign(slide, DEFAULT_SLIDE_MASTERS.CHART);
@@ -628,6 +628,8 @@ async function createTrendsSlide(pptx: any, campaignData: any, instanceId: strin
     
     // Get responses with submitted_at data
     const assignmentIds = assignments.map(a => a.id);
+    
+    // Build the query for responses
     let query = supabase
       .from("survey_responses")
       .select("submitted_at, status")
