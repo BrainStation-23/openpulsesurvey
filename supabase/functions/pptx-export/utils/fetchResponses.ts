@@ -6,7 +6,70 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-export async function fetchCampaignData(campaignId: string, instanceId: string | null) {
+interface QuestionInfo {
+  name: string;
+  type: string;
+  rateMax?: number;
+  title: string;
+}
+
+export interface SurveyData {
+  id: string;
+  name: string;
+  description: string | null;
+  json_data: {
+    pages?: Array<{
+      elements?: Array<QuestionInfo>;
+    }>;
+  };
+}
+
+export interface CampaignData {
+  id: string;
+  name: string;
+  description: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  completion_rate: number | null;
+  survey: SurveyData;
+  instance?: {
+    id: string;
+    period_number: number;
+    starts_at: string;
+    ends_at: string;
+    status: string;
+    completion_rate: number;
+  };
+}
+
+// Get all survey questions by type
+export function getQuestionsByType(surveyData: SurveyData): {
+  npsQuestions: QuestionInfo[];
+  satisfactionQuestions: QuestionInfo[];
+  booleanQuestions: QuestionInfo[];
+  textQuestions: QuestionInfo[];
+} {
+  const questions: QuestionInfo[] = [];
+  
+  // Extract all questions from survey data
+  surveyData.json_data.pages?.forEach(page => {
+    page.elements?.forEach(element => {
+      if (element.name && element.type) {
+        questions.push(element);
+      }
+    });
+  });
+  
+  // Categorize questions by type
+  return {
+    npsQuestions: questions.filter(q => q.type === 'rating' && q.rateMax === 10),
+    satisfactionQuestions: questions.filter(q => q.type === 'rating' && (!q.rateMax || q.rateMax === 5)),
+    booleanQuestions: questions.filter(q => q.type === 'boolean'),
+    textQuestions: questions.filter(q => q.type === 'text' || q.type === 'comment')
+  };
+}
+
+export async function fetchCampaignData(campaignId: string, instanceId: string | null): Promise<CampaignData> {
   const { data, error } = await supabase
     .from("survey_campaigns")
     .select(`
@@ -52,6 +115,7 @@ export async function fetchCampaignData(campaignId: string, instanceId: string |
   };
 }
 
+// Generic function to fetch responses for any question type
 export async function fetchResponsesManually(campaignId: string, instanceId: string | null, questionName: string) {
   const { data: assignments, error: assignmentsError } = await supabase
     .from("survey_assignments")
@@ -67,7 +131,7 @@ export async function fetchResponsesManually(campaignId: string, instanceId: str
   const assignmentIds = assignments.map(a => a.id);
   let query = supabase
     .from("survey_responses")
-    .select(`response_data`)
+    .select(`submitted_at, response_data`)
     .eq("status", "submitted")
     .in("assignment_id", assignmentIds);
   
@@ -78,7 +142,13 @@ export async function fetchResponsesManually(campaignId: string, instanceId: str
   const { data, error } = await query;
   
   if (error) throw error;
+
+  // For time-series data, return submission timestamps
+  if (questionName === 'submitted_at') {
+    return data.map(r => r.submitted_at);
+  }
   
+  // For question data, extract responses for the specific question
   return data
     .map(r => r.response_data[questionName])
     .filter(r => r !== undefined && r !== null);
@@ -191,3 +261,57 @@ export async function fetchRatingResponses(campaignId: string, instanceId: strin
   }
 }
 
+// Fetch dimension data using RPC functions
+export async function fetchDimensionComparisonData(
+  campaignId: string, 
+  instanceId: string, 
+  questionName: string, 
+  dimension: string, 
+  questionType: string
+) {
+  try {
+    if (questionType === 'boolean') {
+      const { data, error } = await supabase.rpc(
+        'get_dimension_bool',
+        {
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId,
+          p_question_name: questionName,
+          p_dimension: dimension
+        }
+      );
+      if (error) throw error;
+      return data;
+    } 
+    
+    if (questionType === 'nps') {
+      const { data, error } = await supabase.rpc(
+        'get_dimension_nps',
+        {
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId,
+          p_question_name: questionName,
+          p_dimension: dimension
+        }
+      );
+      if (error) throw error;
+      return data;
+    }
+    
+    // Default to satisfaction (rating 1-5)
+    const { data, error } = await supabase.rpc(
+      'get_dimension_satisfaction',
+      {
+        p_campaign_id: campaignId,
+        p_instance_id: instanceId,
+        p_question_name: questionName,
+        p_dimension: dimension
+      }
+    );
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error(`Error fetching dimension comparison data: ${error}`);
+    return [];
+  }
+}

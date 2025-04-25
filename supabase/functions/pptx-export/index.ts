@@ -2,7 +2,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import PptxGenJS from "https://esm.sh/pptxgenjs@3.12.0";
 import { corsHeaders } from "./utils/helpers.ts";
-import { createTitleSlide, createCompletionSlide, createTrendsSlide } from "./utils/slides.ts";
+import { 
+  createTitleSlide, 
+  createCompletionSlide, 
+  createTrendsSlide,
+  createQuestionSlidesForPPTX 
+} from "./utils/slides.ts";
 import { fetchCampaignData } from "./utils/fetchResponses.ts";
 
 interface ExportConfig {
@@ -11,6 +16,7 @@ interface ExportConfig {
   includeTitle?: boolean;
   includeCompletionRate?: boolean;
   includeResponseTrends?: boolean;
+  includeQuestionSlides?: boolean;
   includeTextResponses?: boolean;
   fileName?: string;
   company?: string;
@@ -56,8 +62,15 @@ async function generatePptx(
       onProgress?.(30);
     }
     
+    // Create question-specific slides
+    if (config.includeQuestionSlides !== false) {
+      await createQuestionSlidesForPPTX(pptx, campaignData, instanceId);
+      onProgress?.(80);
+    }
+    
     // Generate the PPTX file
     const buffer = await pptx.write({ outputType: "nodebuffer" });
+    onProgress?.(100);
     return buffer;
     
   } catch (error) {
@@ -116,4 +129,3 @@ serve(async (req) => {
     });
   }
 });
-

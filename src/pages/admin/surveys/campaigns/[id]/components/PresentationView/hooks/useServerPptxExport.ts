@@ -24,6 +24,7 @@ interface ExportConfig {
   includeTitle?: boolean;
   includeCompletionRate?: boolean;
   includeResponseTrends?: boolean;
+  includeQuestionSlides?: boolean;
   includeTextResponses?: boolean;
   fileName?: string;
   company?: string;
@@ -62,7 +63,10 @@ export function useServerPptxExport() {
         body: { 
           campaignId: campaign.id,
           instanceId: instanceId || null,
-          config: config || {},
+          config: {
+            ...config,
+            includeQuestionSlides: true  // Make sure this is enabled by default
+          },
           fileName 
         }
       });
