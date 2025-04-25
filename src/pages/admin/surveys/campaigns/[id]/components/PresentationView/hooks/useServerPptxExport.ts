@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -69,65 +68,53 @@ export function useServerPptxExport() {
         }
       });
       
-      // Call the edge function
+      // Call the edge function using Supabase SDK
       setProgress(20);
-      try {
-        // Get the base URL from the environment variable instead of using the protected property
-        const functionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/pptx-export`;
-        const { data: authData } = await supabase.auth.getSession();
-        
-        const response = await fetch(functionUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authData.session?.access_token || ''}`,
-            // Use the environment variable for API key instead of the protected property
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+      const { data: pptxData, error } = await supabase.functions.invoke('pptx-export', {
+        body: { 
+          campaignId: campaign.id,
+          instanceId: instanceId || null,
+          config: {
+            ...config,
+            includeQuestionSlides: true  // Make sure this is enabled by default
           },
-          body: JSON.stringify({ 
-            campaignId: campaign.id,
-            instanceId: instanceId || null,
-            config: {
-              ...config,
-              includeQuestionSlides: true  // Make sure this is enabled by default
-            },
-            fileName 
-          })
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Edge function error:", errorText);
-          throw new Error(`Failed to generate presentation: ${errorText}`);
+          fileName 
         }
-        
-        setProgress(90);
-        
-        // Get the binary data
-        const blob = await response.blob();
-        
-        // Create a temporary URL and trigger download
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        
-        // Clean up
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        
-        setProgress(100);
-        
-        toast({
-          title: "Success",
-          description: "Presentation has been exported to PPTX successfully",
-        });
-      } catch (error) {
-        console.error("Edge function invocation error:", error);
-        throw error;
+      });
+      
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(`Failed to generate presentation: ${error.message}`);
       }
+      
+      setProgress(90);
+      
+      // Convert the base64 data to a Blob
+      const binaryData = atob(pptxData as string);
+      const array = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        array[i] = binaryData.charCodeAt(i);
+      }
+      const blob = new Blob([array], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+      
+      // Create a temporary URL and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setProgress(100);
+      
+      toast({
+        title: "Success",
+        description: "Presentation has been exported to PPTX successfully",
+      });
     } catch (error) {
       console.error("Error exporting PPTX:", error);
       toast({
