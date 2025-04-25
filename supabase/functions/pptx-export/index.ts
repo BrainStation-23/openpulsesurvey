@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import PptxGenJS from "https://esm.sh/pptxgenjs@3.12.0";
@@ -269,22 +270,27 @@ async function getQuestions(campaignData: any) {
 
 // Fetch responses directly from the database with manual processing
 async function fetchResponsesManually(campaignId: string, instanceId: string | null, questionName: string) {
+  // First fetch assignments for the campaign
+  const { data: assignments, error: assignmentsError } = await supabase
+    .from("survey_assignments")
+    .select("id")
+    .eq("campaign_id", campaignId);
+  
+  if (assignmentsError) throw assignmentsError;
+  
+  if (!assignments || assignments.length === 0) {
+    return [];
+  }
+  
+  // Then fetch responses using the assignment IDs
+  const assignmentIds = assignments.map(a => a.id);
   let query = supabase
     .from("survey_responses")
     .select(`
       response_data
     `)
     .eq("status", "submitted")
-    .joins([
-      {
-        source: "survey_assignments",
-        foreignKey: "assignment_id",
-        joinType: "inner",
-        sourceKey: "id",
-        on: "survey_assignments.id=survey_responses.assignment_id"
-      }
-    ])
-    .eq("survey_assignments.campaign_id", campaignId);
+    .in("assignment_id", assignmentIds);
   
   if (instanceId) {
     query = query.eq("campaign_instance_id", instanceId);
@@ -298,38 +304,6 @@ async function fetchResponsesManually(campaignId: string, instanceId: string | n
   return data
     .map(r => r.response_data[questionName])
     .filter(r => r !== undefined && r !== null);
-}
-
-// Fetch text question responses
-async function fetchTextResponses(campaignId: string, instanceId: string | null, questionName: string) {
-  try {
-    const responses = await fetchResponsesManually(campaignId, instanceId, questionName);
-    
-    // Simple word frequency analysis
-    const wordFrequency: Record<string, number> = {};
-    
-    responses.forEach(answer => {
-      if (typeof answer === "string") {
-        const words = answer
-          .toLowerCase()
-          .replace(/[^\w\s]/g, "")
-          .split(/\s+/)
-          .filter(word => word.length > 2);
-
-        words.forEach(word => {
-          wordFrequency[word] = (wordFrequency[word] || 0) + 1;
-        });
-      }
-    });
-
-    return Object.entries(wordFrequency)
-      .map(([text, value]) => ({ text, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 50);
-  } catch (error) {
-    console.error(`Error in fetchTextResponses: ${error}`);
-    return [];
-  }
 }
 
 // Fetch boolean question responses
@@ -630,25 +604,96 @@ async function createTrendsSlide(pptx: any, campaignData: any, instanceId: strin
     color: theme.text.primary,
   });
 
-  // Fetch response trends data
-  const { data: trendsData, error } = await supabase
-    .from("survey_responses")
-    .select("submitted_at")
-    .eq("status", "submitted")
-    .order("submitted_at")
-    .joins([
-      {
-        source: "survey_assignments",
-        foreignKey: "assignment_id",
-        joinType: "inner",
-        sourceKey: "id", 
-        on: "survey_assignments.id=survey_responses.assignment_id"
-      }
-    ])
-    .eq("survey_assignments.campaign_id", campaignData.id);
+  try {
+    // First get the assignments for this campaign
+    const { data: assignments, error: assignmentsError } = await supabase
+      .from("survey_assignments")
+      .select("id")
+      .eq("campaign_id", campaignData.id);
+      
+    if (assignmentsError) throw assignmentsError;
+    
+    if (!assignments || assignments.length === 0) {
+      // No assignments, show placeholder
+      slide.addText("No response trend data available", {
+        x: 0.5,
+        y: 2,
+        w: "90%",
+        fontSize: 16,
+        color: theme.text.secondary,
+        italic: true,
+      });
+      return;
+    }
+    
+    // Get responses with submitted_at data
+    const assignmentIds = assignments.map(a => a.id);
+    let query = supabase
+      .from("survey_responses")
+      .select("submitted_at, status")
+      .eq("status", "submitted")
+      .in("assignment_id", assignmentIds)
+      .order("submitted_at");
+      
+    if (instanceId) {
+      query = query.eq("campaign_instance_id", instanceId);
+    }
+    
+    const { data: trendsData, error } = await query;
+    
+    if (error || !trendsData || trendsData.length === 0) {
+      // No data or error, show placeholder
+      slide.addText("Response trend data not available", {
+        x: 0.5,
+        y: 2,
+        w: "90%",
+        fontSize: 16,
+        color: theme.text.secondary,
+        italic: true,
+      });
+      return;
+    }
 
-  if (error) {
-    console.error("Error fetching response trends:", error);
+    // Group responses by day
+    const responsesByDay: Record<string, number> = {};
+    
+    trendsData.forEach(response => {
+      const date = new Date(response.submitted_at);
+      const dateStr = date.toISOString().split('T')[0];
+      responsesByDay[dateStr] = (responsesByDay[dateStr] || 0) + 1;
+    });
+
+    // Convert to chart data format
+    const chartData = [
+      {
+        name: "Daily Responses",
+        labels: Object.keys(responsesByDay).map(date => {
+          // Format date for display (e.g., "Jan 15")
+          const [year, month, day] = date.split('-');
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          return `${months[parseInt(month) - 1]} ${parseInt(day)}`;
+        }),
+        values: Object.values(responsesByDay)
+      }
+    ];
+
+    // Add the chart
+    slide.addChart(pptx.ChartType.bar, chartData, {
+      x: 0.5,
+      y: 1.5,
+      w: 9,
+      h: 4,
+      barDir: 'col',
+      chartColors: [theme.primary],
+      showValue: true,
+      showLegend: false,
+      dataLabelFontSize: 10,
+      catAxisLabelFontSize: 10,
+      valAxisLabelFontSize: 10,
+      valAxisMaxVal: Math.max(...Object.values(responsesByDay)) * 1.2,
+    });
+  } catch (error) {
+    console.error("Error creating trends slide:", error);
     
     // Add a placeholder message instead of the chart
     slide.addText("Response trend data not available", {
@@ -659,48 +704,7 @@ async function createTrendsSlide(pptx: any, campaignData: any, instanceId: strin
       color: theme.text.secondary,
       italic: true,
     });
-    
-    return;
   }
-
-  // Group responses by day
-  const responsesByDay: Record<string, number> = {};
-  
-  trendsData.forEach(response => {
-    const date = new Date(response.submitted_at);
-    const dateStr = date.toISOString().split('T')[0];
-    responsesByDay[dateStr] = (responsesByDay[dateStr] || 0) + 1;
-  });
-
-  // Convert to chart data format
-  const chartData = [
-    {
-      name: "Daily Responses",
-      labels: Object.keys(responsesByDay).map(date => {
-        // Format date for display (e.g., "Jan 15")
-        const [year, month, day] = date.split('-');
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        return `${months[parseInt(month) - 1]} ${parseInt(day)}`;
-      }),
-      values: Object.values(responsesByDay)
-    }
-  ];
-
-  // Add the chart
-  slide.addChart(pptx.ChartType.bar, chartData, {
-    x: 0.5,
-    y: 1.5,
-    w: 9,
-    h: 4,
-    barDir: 'col',
-    chartColors: [theme.primary],
-    showValue: true,
-    showLegend: false,
-    dataLabelFontSize: 10,
-    catAxisLabelFontSize: 10,
-    valAxisLabelFontSize: 10,
-    valAxisMaxVal: Math.max(...Object.values(responsesByDay)) * 1.2,
-  });
 }
 
 // Create question slide (main or dimension)
