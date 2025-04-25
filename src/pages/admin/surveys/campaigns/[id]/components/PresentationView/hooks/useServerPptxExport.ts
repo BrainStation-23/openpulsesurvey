@@ -72,8 +72,18 @@ export function useServerPptxExport() {
       // Call the edge function
       setProgress(20);
       try {
-        const { data, error } = await supabase.functions.invoke("pptx-export", {
-          body: { 
+        // Using raw fetch to handle binary data properly
+        const functionUrl = `${supabase.functions.url}/pptx-export`;
+        const { data: authData } = await supabase.auth.getSession();
+        
+        const response = await fetch(functionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authData.session?.access_token || ''}`,
+            'apikey': supabase.supabaseKey
+          },
+          body: JSON.stringify({ 
             campaignId: campaign.id,
             instanceId: instanceId || null,
             config: {
@@ -81,25 +91,19 @@ export function useServerPptxExport() {
               includeQuestionSlides: true  // Make sure this is enabled by default
             },
             fileName 
-          },
-          responseType: 'arraybuffer'  // Important: specify that we expect binary data
+          })
         });
         
-        if (error) {
-          console.error("Edge function error:", error);
-          throw new Error(error.message || "Failed to generate presentation");
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Edge function error:", errorText);
+          throw new Error(`Failed to generate presentation: ${errorText}`);
         }
         
         setProgress(90);
         
-        if (!data) {
-          throw new Error("The edge function returned no data");
-        }
-        
-        // Create a Blob from the ArrayBuffer response
-        const blob = new Blob([data], { 
-          type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
-        });
+        // Get the binary data
+        const blob = await response.blob();
         
         // Create a temporary URL and trigger download
         const url = window.URL.createObjectURL(blob);
