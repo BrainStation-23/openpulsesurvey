@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { ExportButton } from "./PresentationView/components/ExportButton";
 
 interface CampaignHeaderProps {
   campaign: {
@@ -27,6 +27,7 @@ interface CampaignHeaderProps {
     created_at: string;
     starts_at: string;
     ends_at: string;
+    instance?: { id?: string | null };
   } | undefined;
   isLoading: boolean;
   selectedInstanceId?: string;
@@ -41,7 +42,6 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
   const [editedDescription, setEditedDescription] = useState("");
   const [editedStatus, setEditedStatus] = useState("");
 
-  // Update local state when campaign data changes
   useEffect(() => {
     if (campaign) {
       setEditedName(campaign.name);
@@ -153,6 +153,10 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
           )}
         </div>
         <div className="flex gap-2">
+          <ExportButton 
+            campaignId={campaign?.id || ''} 
+            instanceId={campaign?.instance?.id || undefined} 
+          />
           <Button
             onClick={handlePresent}
             variant="outline"
