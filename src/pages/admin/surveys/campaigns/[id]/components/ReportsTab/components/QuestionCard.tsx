@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BooleanCharts } from "../charts/BooleanCharts";
 import { NpsChart } from "../charts/NpsChart";
@@ -12,6 +13,7 @@ import { processAnswersForQuestion } from "../utils/answerProcessing";
 import { ProcessedResponse } from "../hooks/useResponseProcessing";
 import { NpsData } from "../types/nps";
 import { ExportMenu } from "./ExportMenu";
+import { useDimensionComparison } from "../hooks/useDimensionComparison";
 
 interface QuestionCardProps {
   question: any;
@@ -41,6 +43,20 @@ export function QuestionCard({
   const chartId = `chart-${question.name}`;
   const fileName = `${question.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_data`;
 
+  // Get comparison data when a dimension is selected
+  const { data: comparisonData, isLoading } = useDimensionComparison(
+    campaignId,
+    instanceId,
+    question.name,
+    comparisonDimension,
+    isNpsQuestion,
+    question.type === "boolean"
+  );
+
+  // Determine which data to use for export based on comparison state
+  const exportData = comparisonDimension !== "none" && comparisonData ? comparisonData : 
+    Array.isArray(processedData) ? processedData : [processedData];
+
   return (
     <Card key={question.name} className="w-full overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -49,7 +65,7 @@ export function QuestionCard({
           <ExportMenu
             chartId={chartId}
             fileName={fileName}
-            data={Array.isArray(processedData) ? processedData : [processedData]}
+            data={exportData}
             isComparison={comparisonDimension !== "none"}
             isNps={isNpsQuestion}
             isBoolean={question.type === "boolean"}
