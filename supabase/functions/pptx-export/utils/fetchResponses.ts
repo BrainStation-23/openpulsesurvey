@@ -70,88 +70,116 @@ export function getQuestionsByType(surveyData: SurveyData): {
 }
 
 export async function fetchCampaignData(campaignId: string, instanceId: string | null): Promise<CampaignData> {
-  const { data, error } = await supabase
-    .from("survey_campaigns")
-    .select(`
-      id,
-      name,
-      description,
-      starts_at,
-      ends_at,
-      completion_rate,
-      survey:surveys (
+  try {
+    const { data, error } = await supabase
+      .from("survey_campaigns")
+      .select(`
         id,
         name,
         description,
-        json_data
-      )
-    `)
-    .eq("id", campaignId)
-    .single();
-
-  if (error) throw error;
-
-  let instance = null;
-  if (instanceId) {
-    const { data: instanceData, error: instanceError } = await supabase
-      .from("campaign_instances")
-      .select("*")
-      .eq("id", instanceId)
+        starts_at,
+        ends_at,
+        completion_rate,
+        survey:surveys (
+          id,
+          name,
+          description,
+          json_data
+        )
+      `)
+      .eq("id", campaignId)
       .single();
 
-    if (instanceError) throw instanceError;
-    instance = instanceData;
-  }
-
-  return {
-    ...data,
-    instance,
-    survey: {
-      ...data.survey,
-      json_data: typeof data.survey.json_data === 'string' 
-        ? JSON.parse(data.survey.json_data) 
-        : data.survey.json_data
+    if (error) {
+      console.error(`Error fetching campaign data: ${JSON.stringify(error)}`);
+      throw error;
     }
-  };
+
+    let instance = null;
+    if (instanceId) {
+      const { data: instanceData, error: instanceError } = await supabase
+        .from("campaign_instances")
+        .select("*")
+        .eq("id", instanceId)
+        .single();
+
+      if (instanceError) {
+        console.error(`Error fetching instance data: ${JSON.stringify(instanceError)}`);
+        throw instanceError;
+      }
+      instance = instanceData;
+    }
+
+    return {
+      ...data,
+      instance,
+      survey: {
+        ...data.survey,
+        json_data: typeof data.survey.json_data === 'string' 
+          ? JSON.parse(data.survey.json_data) 
+          : data.survey.json_data
+      }
+    };
+  } catch (err) {
+    console.error(`Exception in fetchCampaignData: ${err.message || err}`);
+    throw err;
+  }
 }
 
 // Generic function to fetch responses for any question type
 export async function fetchResponsesManually(campaignId: string, instanceId: string | null, questionName: string) {
-  const { data: assignments, error: assignmentsError } = await supabase
-    .from("survey_assignments")
-    .select("id")
-    .eq("campaign_id", campaignId);
-  
-  if (assignmentsError) throw assignmentsError;
-  
-  if (!assignments || assignments.length === 0) {
+  try {
+    console.log(`Fetching responses for question: ${questionName}, campaign: ${campaignId}, instance: ${instanceId || 'all'}`);
+    
+    const { data: assignments, error: assignmentsError } = await supabase
+      .from("survey_assignments")
+      .select("id")
+      .eq("campaign_id", campaignId);
+    
+    if (assignmentsError) {
+      console.error(`Error fetching assignments: ${JSON.stringify(assignmentsError)}`);
+      throw assignmentsError;
+    }
+    
+    if (!assignments || assignments.length === 0) {
+      console.log(`No assignments found for campaign ${campaignId}`);
+      return [];
+    }
+    
+    const assignmentIds = assignments.map(a => a.id);
+    let query = supabase
+      .from("survey_responses")
+      .select(`submitted_at, response_data`)
+      .eq("status", "submitted")
+      .in("assignment_id", assignmentIds);
+    
+    if (instanceId) {
+      query = query.eq("campaign_instance_id", instanceId);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error(`Error fetching responses: ${JSON.stringify(error)}`);
+      throw error;
+    }
+
+    // For time-series data, return submission timestamps
+    if (questionName === 'submitted_at') {
+      return data.map(r => r.submitted_at);
+    }
+    
+    // For question data, extract responses for the specific question
+    const extractedResponses = data
+      .map(r => r.response_data[questionName])
+      .filter(r => r !== undefined && r !== null);
+    
+    console.log(`Found ${extractedResponses.length} responses for question ${questionName}`);
+    return extractedResponses;
+  } catch (error) {
+    console.error(`Error in fetchResponsesManually: ${error}`);
     return [];
   }
-  
-  const assignmentIds = assignments.map(a => a.id);
-  let query = supabase
-    .from("survey_responses")
-    .select(`submitted_at, response_data`)
-    .eq("status", "submitted")
-    .in("assignment_id", assignmentIds);
-  
-  if (instanceId) {
-    query = query.eq("campaign_instance_id", instanceId);
-  }
-  
-  const { data, error } = await query;
-  
-  if (error) throw error;
-
-  // For time-series data, return submission timestamps
-  if (questionName === 'submitted_at') {
-    return data.map(r => r.submitted_at);
-  }
-  
-  // For question data, extract responses for the specific question
-  return data
-    .map(r => r.response_data[questionName])
-    .filter(r => r !== undefined && r !== null);
 }
 
 export async function fetchBooleanResponses(campaignId: string, instanceId: string | null, questionName: string) {
@@ -195,6 +223,8 @@ export async function fetchNpsResponses(campaignId: string, instanceId: string |
       npsScore = ((promoters / total) - (detractors / total)) * 100;
       avgScore = validResponses.reduce((sum, val) => sum + val, 0) / total;
     }
+    
+    console.log(`NPS result for ${questionName}: D=${detractors}, P=${passives}, Pr=${promoters}, Total=${total}, Score=${npsScore.toFixed(1)}`);
     
     return {
       detractors,
@@ -242,6 +272,8 @@ export async function fetchRatingResponses(campaignId: string, instanceId: strin
       }
     }
     
+    console.log(`Rating results for ${questionName}: Unsat=${unsatisfied}, Neutral=${neutral}, Sat=${satisfied}, Total=${total}`);
+    
     return {
       unsatisfied,
       neutral,
@@ -270,6 +302,8 @@ export async function fetchDimensionComparisonData(
   questionType: string
 ) {
   try {
+    console.log(`Fetching dimension data for: ${questionName}, dimension: ${dimension}, type: ${questionType}`);
+    
     if (questionType === 'boolean') {
       const { data, error } = await supabase.rpc(
         'get_dimension_bool',
@@ -280,7 +314,11 @@ export async function fetchDimensionComparisonData(
           p_dimension: dimension
         }
       );
-      if (error) throw error;
+      if (error) {
+        console.error(`Error in get_dimension_bool RPC: ${JSON.stringify(error)}`);
+        throw error;
+      }
+      console.log(`Bool dimension result count: ${data?.length || 0}`);
       return data;
     } 
     
@@ -294,7 +332,11 @@ export async function fetchDimensionComparisonData(
           p_dimension: dimension
         }
       );
-      if (error) throw error;
+      if (error) {
+        console.error(`Error in get_dimension_nps RPC: ${JSON.stringify(error)}`);
+        throw error;
+      }
+      console.log(`NPS dimension result count: ${data?.length || 0}`);
       return data;
     }
     
@@ -308,7 +350,11 @@ export async function fetchDimensionComparisonData(
         p_dimension: dimension
       }
     );
-    if (error) throw error;
+    if (error) {
+      console.error(`Error in get_dimension_satisfaction RPC: ${JSON.stringify(error)}`);
+      throw error;
+    }
+    console.log(`Satisfaction dimension result count: ${data?.length || 0}`);
     return data;
   } catch (error) {
     console.error(`Error fetching dimension comparison data: ${error}`);

@@ -58,19 +58,31 @@ async function generatePptx(
     
     // Create response trends slide
     if (config.includeResponseTrends !== false) {
-      await createTrendsSlide(pptx, campaignData, instanceId);
+      try {
+        await createTrendsSlide(pptx, campaignData, instanceId);
+      } catch (error) {
+        console.error("Error creating trends slide:", error);
+        // Continue without this slide - don't fail the whole presentation
+      }
       onProgress?.(30);
     }
     
     // Create question-specific slides
     if (config.includeQuestionSlides !== false) {
-      await createQuestionSlidesForPPTX(pptx, campaignData, instanceId);
+      try {
+        await createQuestionSlidesForPPTX(pptx, campaignData, instanceId);
+      } catch (error) {
+        console.error("Error creating question slides:", error);
+        // Continue without these slides - don't fail the whole presentation
+      }
       onProgress?.(80);
     }
     
     // Generate the PPTX file
+    console.log("Generating final PPTX buffer...");
     const buffer = await pptx.write({ outputType: "nodebuffer" });
     onProgress?.(100);
+    console.log(`PPTX generation complete, buffer size: ${buffer.byteLength} bytes`);
     return buffer;
     
   } catch (error) {
@@ -80,6 +92,7 @@ async function generatePptx(
 }
 
 serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -98,6 +111,7 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Received PPTX export request");
     const requestData = await req.json();
     const { campaignId, instanceId, config, fileName } = requestData;
 
@@ -108,8 +122,11 @@ serve(async (req) => {
       });
     }
 
+    console.log(`Processing request for campaign ${campaignId}, instance ${instanceId || 'none'}`);
     const buffer = await generatePptx(campaignId, instanceId, config);
+    console.log("PPTX generated successfully, preparing response");
 
+    // Return binary data directly
     return new Response(buffer, {
       status: 200,
       headers: {
@@ -120,7 +137,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error generating PPTX:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error.message || String(error) }), {
       status: 500,
       headers: {
         ...corsHeaders,

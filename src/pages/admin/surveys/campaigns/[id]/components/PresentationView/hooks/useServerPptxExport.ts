@@ -57,6 +57,18 @@ export function useServerPptxExport() {
       // Prepare the file name
       const fileName = `${campaign.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_presentation.pptx`;
       
+      console.log("Calling pptx-export edge function with parameters:", {
+        campaignId: campaign.id,
+        instanceId,
+        configSummary: {
+          fileName,
+          includeTitle: config?.includeTitle,
+          includeCompletionRate: config?.includeCompletionRate,
+          includeQuestionSlides: config?.includeQuestionSlides,
+          dimensions: config?.dimensions?.length
+        }
+      });
+      
       // Call the edge function
       setProgress(20);
       const { data, error } = await supabase.functions.invoke("pptx-export", {
@@ -72,23 +84,43 @@ export function useServerPptxExport() {
       });
       
       if (error) {
+        console.error("Edge function error:", error);
         throw new Error(error.message || "Failed to generate presentation");
       }
       
       setProgress(90);
       
-      // Check if the response is a blob or an ArrayBuffer
-      const responseData = data;
+      console.log("Edge function response type:", data ? typeof data : 'null');
+      if (data === null) {
+        throw new Error("The edge function returned null");
+      }
+      
+      // Create a Blob from the ArrayBuffer or response data
       let blob: Blob;
       
-      if (responseData instanceof ArrayBuffer) {
-        blob = new Blob([responseData], { 
+      if (data instanceof ArrayBuffer) {
+        console.log("Creating blob from ArrayBuffer");
+        blob = new Blob([data], { 
           type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
         });
-      } else if (typeof responseData === 'object') {
-        // If it's a regular object response, it might be an error
-        throw new Error("Invalid response format: " + JSON.stringify(responseData));
+      } else if (data instanceof Uint8Array) {
+        console.log("Creating blob from Uint8Array");
+        blob = new Blob([data], { 
+          type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
+        });
+      } else if (typeof data === 'object') {
+        // If it's a regular object response, it might contain the file as a property
+        if (data.file instanceof ArrayBuffer || data.file instanceof Uint8Array) {
+          console.log("Creating blob from response.file property");
+          blob = new Blob([data.file], { 
+            type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
+          });
+        } else {
+          console.error("Unexpected response format:", data);
+          throw new Error("Invalid response format: " + JSON.stringify(data));
+        }
       } else {
+        console.error("Unknown response format:", typeof data);
         throw new Error("Unknown response format");
       }
       
