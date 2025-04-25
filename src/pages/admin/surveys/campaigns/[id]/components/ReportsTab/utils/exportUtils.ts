@@ -23,6 +23,8 @@ export const exportAsImage = async (elementId: string, fileName: string) => {
     useCORS: true,
     logging: false,
     allowTaint: true,
+    // Extend the capture area to include more of the bottom content
+    height: element.offsetHeight + 100, // Add extra height to capture more at the bottom
   });
   
   const paddedCanvas = document.createElement('canvas');
@@ -53,6 +55,8 @@ export const exportAsPDF = async (elementId: string, fileName: string) => {
     useCORS: true,
     logging: false,
     allowTaint: true,
+    // Extend the capture area to include more of the bottom content
+    height: element.offsetHeight + 100, // Add extra height to capture more at the bottom
   });
   
   // Create padded canvas
