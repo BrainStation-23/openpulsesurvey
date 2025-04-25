@@ -21,6 +21,7 @@ import { SlideOverviewPanel } from "./components/SlideOverviewPanel";
 import { PresentationTimer } from "./components/PresentationTimer";
 import { NotesPanel } from "./components/NotesPanel";
 import { JumpToSlideDropdown } from "./components/JumpToSlideDropdown";
+
 export default function Presentation() {
   const {
     token
@@ -39,12 +40,15 @@ export default function Presentation() {
   }>({});
   const [zoom, setZoom] = useState(1);
   const [timerRunning, setTimerRunning] = useState(true);
+
   const {
     data: presentation,
     isLoading,
     error
   } = useSharedPresentation(token as string);
+
   const campaign = presentation?.campaign;
+
   useEffect(() => {
     if (error) {
       toast({
@@ -54,6 +58,7 @@ export default function Presentation() {
       });
     }
   }, [error, toast]);
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -61,14 +66,17 @@ export default function Presentation() {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
   const surveyQuestions = (campaign?.survey.json_data.pages || []).flatMap(page => page.elements || []).filter(q => q.type !== "text" && q.type !== "comment");
   const totalSlides = 3 + surveyQuestions.length * (1 + COMPARISON_DIMENSIONS.length);
   const slideTitles: string[] = ["Title", "Response Distribution", "Response Trends", ...surveyQuestions.flatMap(q => [q.title?.substring(0, 40) || q.name, ...COMPARISON_DIMENSIONS.map(dim => `${q.title?.substring(0, 22) || q.name} (${dim[0].toUpperCase() + dim.substring(1)})`)])];
+
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => setCurrentSlide(prev => Math.min(totalSlides - 1, prev + 1)),
     onSwipedRight: () => setCurrentSlide(prev => Math.max(0, prev - 1)),
     trackMouse: true
   });
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
@@ -88,6 +96,7 @@ export default function Presentation() {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [totalSlides, setCurrentSlide]);
+
   const toggleFullscreen = async () => {
     try {
       if (!document.fullscreenElement) {
@@ -101,6 +110,7 @@ export default function Presentation() {
       console.error("Error toggling fullscreen:", error);
     }
   };
+
   const handleBack = () => {
     if (isFullscreen && document.fullscreenElement) {
       document.exitFullscreen();
@@ -108,6 +118,7 @@ export default function Presentation() {
     }
     navigate(-1);
   };
+
   function MiniMap() {
     return <div className="flex gap-1 items-center px-2">
         {Array.from({
@@ -117,6 +128,7 @@ export default function Presentation() {
       }} />)}
       </div>;
   }
+
   function handleExport() {
     toast({
       title: "Export",
@@ -124,11 +136,13 @@ export default function Presentation() {
       variant: "default"
     });
   }
+
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />
       </div>;
   }
+
   if (error || !campaign) {
     return <div className="container max-w-md mx-auto mt-20 p-4">
         <Alert variant="destructive">
@@ -140,6 +154,7 @@ export default function Presentation() {
         </Alert>
       </div>;
   }
+
   return <div className="relative min-h-screen h-screen flex flex-col bg-background" {...swipeHandlers}>
       <Helmet>
         <title>{campaign?.name || "Presentation"} - Presentation</title>
@@ -195,8 +210,7 @@ export default function Presentation() {
                   <TitleSlide campaign={campaign} isActive={currentSlide === 0} />
                   <ResponseDistributionSlide campaignId={campaign.id} instanceId={presentation?.instance_id || undefined} isActive={currentSlide === 1} campaign={campaign} />
                   <ResponseTrendsSlide campaign={campaign} isActive={currentSlide === 2} />
-                  <QuestionSlidesRenderer campaign={campaign} currentSlide={currentSlide} filterTypes={["text", "comment"]} // Only render non text/comment slides
-              />
+                  <QuestionSlidesRenderer campaign={campaign} currentSlide={currentSlide} />
                 </>}
             </PresentationLayout>
           </div>
