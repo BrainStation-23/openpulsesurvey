@@ -21,7 +21,7 @@ export function SharePresentationModal({
 }: SharePresentationModalProps) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(open || false);
 
   // Handle controlled/uncontrolled state
   const handleOpenChange = (newOpen: boolean) => {
