@@ -1,10 +1,12 @@
+
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import * as ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 const EXPORT_PADDING = 40; // Horizontal padding
-const VERTICAL_PADDING = 80; // Vertical padding for images
+const VERTICAL_PADDING_TOP = 80; // Vertical padding for top
+const VERTICAL_PADDING_BOTTOM = 150; // Increased bottom padding to accommodate legends
 
 // Sanitize filename to prevent security issues
 const sanitizeFilename = (name: string): string => {
@@ -25,13 +27,13 @@ export const exportAsImage = async (elementId: string, fileName: string) => {
   
   const paddedCanvas = document.createElement('canvas');
   paddedCanvas.width = canvas.width + (EXPORT_PADDING * 2);
-  paddedCanvas.height = canvas.height + (VERTICAL_PADDING * 2);
+  paddedCanvas.height = canvas.height + (VERTICAL_PADDING_TOP + VERTICAL_PADDING_BOTTOM);
   
   const ctx = paddedCanvas.getContext('2d');
   if (ctx) {
     ctx.fillStyle = 'white'; // White background
     ctx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
-    ctx.drawImage(canvas, EXPORT_PADDING, VERTICAL_PADDING);
+    ctx.drawImage(canvas, EXPORT_PADDING, VERTICAL_PADDING_TOP);
   }
 
   const image = paddedCanvas.toDataURL('image/png', 1.0);
@@ -56,13 +58,13 @@ export const exportAsPDF = async (elementId: string, fileName: string) => {
   // Create padded canvas
   const paddedCanvas = document.createElement('canvas');
   paddedCanvas.width = canvas.width + (EXPORT_PADDING * 2);
-  paddedCanvas.height = canvas.height + (VERTICAL_PADDING * 2);
+  paddedCanvas.height = canvas.height + (VERTICAL_PADDING_TOP + VERTICAL_PADDING_BOTTOM);
   
   const ctx = paddedCanvas.getContext('2d');
   if (ctx) {
     ctx.fillStyle = 'white'; // White background
     ctx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
-    ctx.drawImage(canvas, EXPORT_PADDING, VERTICAL_PADDING);
+    ctx.drawImage(canvas, EXPORT_PADDING, VERTICAL_PADDING_TOP);
   }
   
   const imgData = paddedCanvas.toDataURL('image/png');
