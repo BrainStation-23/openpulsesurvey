@@ -1,15 +1,11 @@
-
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, Maximize, Minimize, Loader } from "lucide-react";
 import { CampaignData } from "../types";
 import { usePresentationResponses } from "../hooks/usePresentationResponses";
 import { usePptxExport } from "../hooks/usePptxExport";
-import { useServerPptxExport } from "../hooks/useServerPptxExport";
 import { useToast } from "@/hooks/use-toast";
 import { SharePresentationModal } from "./SharePresentationModal";
-import { ExportOptionsDialog } from "./ExportOptionsDialog";
-import { useState } from "react";
 
 interface PresentationControlsProps {
   onBack: () => void;
@@ -38,12 +34,7 @@ export function PresentationControls({
 }: PresentationControlsProps) {
   const { toast } = useToast();
   const { data: processedData } = usePresentationResponses(campaign.id, campaign.instance?.id);
-  const { handleExport: handleClientExport, exporting: clientExporting, progress: clientProgress } = usePptxExport();
-  const { handleExport: handleServerExport, exporting: serverExporting, progress: serverProgress } = useServerPptxExport();
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  
-  const exporting = clientExporting || serverExporting;
-  const progress = clientExporting ? clientProgress : serverProgress;
+  const { handleExport, exporting, progress } = usePptxExport();
 
   return (
     <div className="flex flex-col gap-2">
@@ -64,16 +55,10 @@ export function PresentationControls({
             instanceId={campaign.instance?.id} 
           />
           
-          <ExportOptionsDialog 
-            campaign={campaign}
-            open={exportDialogOpen}
-            onOpenChange={setExportDialogOpen}
-          />
-          
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setExportDialogOpen(true)}
+            onClick={() => handleExport(campaign, processedData)}
             disabled={exporting}
             className="text-black hover:bg-black/20 hover:text-black relative"
             title="Export to PPTX"
