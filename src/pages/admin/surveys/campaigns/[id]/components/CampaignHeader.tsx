@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Check, Edit2, Play, X } from "lucide-react";
+import { Calendar, Check, Edit2, LineChart, X } from "lucide-react";
 import { format, isValid } from "date-fns";
+import { Link } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -16,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { ExportButton } from "./PresentationView/components/ExportButton";
+import { PresentButton } from "./PresentButton";
 
 interface CampaignHeaderProps {
   campaign: {
@@ -153,18 +154,16 @@ export function CampaignHeader({ campaign, isLoading, selectedInstanceId }: Camp
           )}
         </div>
         <div className="flex gap-2">
-          <ExportButton 
-            campaignId={campaign?.id || ''} 
-            instanceId={campaign?.instance?.id || undefined} 
-          />
           <Button
-            onClick={handlePresent}
+            asChild
             variant="outline"
             size="sm"
             className="gap-2"
           >
-            <Play className="h-4 w-4" />
-            Present
+            <Link to={`/admin/surveys/campaigns/${id}/performance`}>
+              <LineChart className="h-4 w-4" />
+              Campaign Performance
+            </Link>
           </Button>
           {isEditing ? (
             <>

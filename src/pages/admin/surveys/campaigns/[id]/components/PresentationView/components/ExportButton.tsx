@@ -11,14 +11,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 interface ExportButtonProps {
   campaignId: string;
   instanceId?: string | null;
+  variant?: 'button' | 'dropdown';
 }
 
-export function ExportButton({ campaignId, instanceId }: ExportButtonProps) {
+export function ExportButton({ campaignId, instanceId, variant = 'button' }: ExportButtonProps) {
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
   
-  // Use the dedicated export data hook
   const {
     data: exportData,
     refetch,
@@ -31,7 +31,6 @@ export function ExportButton({ campaignId, instanceId }: ExportButtonProps) {
       setExporting(true);
       setProgress(0);
       
-      // Fetch data if not already loaded
       if (!exportData) {
         await refetch();
         const result = await refetch();
@@ -67,12 +66,22 @@ export function ExportButton({ campaignId, instanceId }: ExportButtonProps) {
       setProgress(progress);
     });
   };
+
+  if (variant === 'dropdown') {
+    return (
+      <div className="flex items-center w-full px-2 py-1.5 cursor-pointer" onClick={handleExport}>
+        <Download className="h-4 w-4 mr-2" />
+        <span>Download PPTX</span>
+        {(isLoadingData || exporting) && (
+          <Loader className="h-4 w-4 ml-auto animate-spin" />
+        )}
+      </div>
+    );
+  }
   
-  // Determine button state
   const isDisabled = exporting || isLoadingData;
   const showProgress = exporting;
   
-  // Get appropriate button text
   const getButtonText = () => {
     if (isLoadingData) return "Loading data...";
     if (exporting) return `Exporting... ${progress}%`;
