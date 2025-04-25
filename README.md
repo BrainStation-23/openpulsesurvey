@@ -1,4 +1,3 @@
-
 <div align="center">
   <img src="public/logo.png" alt="Open Pulse Survey Logo" width="200"/>
   
@@ -9,6 +8,13 @@
   [![Built with React](https://img.shields.io/badge/Built_with-React-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-4.9.5-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
   [![Powered by Supabase](https://img.shields.io/badge/Powered_by-Supabase-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
+  
+  [![SonarQube Cloud](https://sonarcloud.io/images/project_badges/sonarcloud-highlight.svg)](https://sonarcloud.io/summary/new_code?id=BrainStation-23_openofficesurvey)
+  [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=BrainStation-23_openofficesurvey&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=BrainStation-23_openofficesurvey)
+  [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=BrainStation-23_openofficesurvey&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=BrainStation-23_openofficesurvey)
+  [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=BrainStation-23_openofficesurvey&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=BrainStation-23_openofficesurvey)
+  [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=BrainStation-23_openofficesurvey&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=BrainStation-23_openofficesurvey)
+  [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=BrainStation-23_openofficesurvey&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=BrainStation-23_openofficesurvey)
 </div>
 
 ## ✨ Overview
@@ -121,4 +127,3 @@ Open Pulse Survey is licensed under the [MIT License](LICENSE.md)
 <div align="center">
   Made with ❤️ by Brain Station 23
 </div>
-
