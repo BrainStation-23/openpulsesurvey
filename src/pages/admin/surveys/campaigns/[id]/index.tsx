@@ -13,17 +13,21 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { LineChart } from "lucide-react";
-
 export default function CampaignDetailsPage() {
-  const { id } = useParams();
+  const {
+    id
+  } = useParams();
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>();
-
-  const { data: campaign, isLoading: isLoadingCampaign } = useQuery({
+  const {
+    data: campaign,
+    isLoading: isLoadingCampaign
+  } = useQuery({
     queryKey: ["campaign", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("survey_campaigns")
-        .select(`
+      const {
+        data,
+        error
+      } = await supabase.from("survey_campaigns").select(`
           *,
           survey:surveys(
             id,
@@ -38,85 +42,50 @@ export default function CampaignDetailsPage() {
             period_number,
             status
           )
-        `)
-        .eq("id", id)
-        .single();
-
+        `).eq("id", id).single();
       if (error) throw error;
       return data;
-    },
+    }
   });
-
   if (isLoadingCampaign) {
     return <div>Loading...</div>;
   }
-
   if (!campaign) {
     return <div>Campaign not found</div>;
   }
-
-  return (
-    <div className="container max-w-7xl mx-auto py-6 space-y-6">
-      <CampaignHeader 
-        campaign={campaign} 
-        isLoading={isLoadingCampaign} 
-        selectedInstanceId={selectedInstanceId}
-      />
+  return <div className="container max-w-7xl mx-auto py-6 space-y-6">
+      <CampaignHeader campaign={campaign} isLoading={isLoadingCampaign} selectedInstanceId={selectedInstanceId} />
       
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Campaign Details</h2>
         <div className="flex items-center gap-4">
           <Button asChild variant="outline">
-            <Link to={`/admin/surveys/campaigns/${campaign.id}/performance`} className="flex items-center gap-2">
-              <LineChart className="h-4 w-4" />
-              See Campaign Performance
-            </Link>
+            
           </Button>
-          <EnhancedInstanceSelector
-            campaignId={campaign.id}
-            selectedInstanceId={selectedInstanceId}
-            onInstanceSelect={setSelectedInstanceId}
-          />
+          <EnhancedInstanceSelector campaignId={campaign.id} selectedInstanceId={selectedInstanceId} onInstanceSelect={setSelectedInstanceId} />
         </div>
       </div>
 
       <CampaignTabs isAnonymous={campaign.anonymous} status={campaign.status}>
         <TabPanel value="overview">
-          <OverviewTab 
-            campaignId={campaign.id} 
-            selectedInstanceId={selectedInstanceId}
-          />
+          <OverviewTab campaignId={campaign.id} selectedInstanceId={selectedInstanceId} />
         </TabPanel>
 
         <TabPanel value="assignments">
-          <AssignmentsTab
-            campaignId={campaign.id}
-            surveyId={campaign.survey_id}
-            selectedInstanceId={selectedInstanceId}
-          />
+          <AssignmentsTab campaignId={campaign.id} surveyId={campaign.survey_id} selectedInstanceId={selectedInstanceId} />
         </TabPanel>
 
         <TabPanel value="responses">
-          <ResponsesTab
-            campaignId={campaign.id}
-            instanceId={selectedInstanceId}
-          />
+          <ResponsesTab campaignId={campaign.id} instanceId={selectedInstanceId} />
         </TabPanel>
 
         <TabPanel value="reports">
-          <ReportsTab
-            campaignId={campaign.id}
-            instanceId={selectedInstanceId}
-          />
+          <ReportsTab campaignId={campaign.id} instanceId={selectedInstanceId} />
         </TabPanel>
 
         <TabPanel value="analyze">
-          <AIAnalyzeTab
-            campaignId={campaign.id}
-            instanceId={selectedInstanceId}
-          />
+          <AIAnalyzeTab campaignId={campaign.id} instanceId={selectedInstanceId} />
         </TabPanel>
       </CampaignTabs>
-    </div>
-  );
+    </div>;
 }
