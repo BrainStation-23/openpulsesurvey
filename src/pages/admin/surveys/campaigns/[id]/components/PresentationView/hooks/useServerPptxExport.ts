@@ -73,15 +73,20 @@ export function useServerPptxExport() {
       
       setProgress(90);
       
-      // Convert the response to a blob and download
-      // Since we can't use responseType in the options, we need to handle the ArrayBuffer response manually
-      if (!(data instanceof ArrayBuffer)) {
-        throw new Error("Invalid response format from server");
-      }
+      // Check if the response is a blob or an ArrayBuffer
+      const responseData = data;
+      let blob: Blob;
       
-      const blob = new Blob([data], { 
-        type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
-      });
+      if (responseData instanceof ArrayBuffer) {
+        blob = new Blob([responseData], { 
+          type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
+        });
+      } else if (typeof responseData === 'object') {
+        // If it's a regular object response, it might be an error
+        throw new Error("Invalid response format: " + JSON.stringify(responseData));
+      } else {
+        throw new Error("Unknown response format");
+      }
       
       // Create a temporary URL and trigger download
       const url = window.URL.createObjectURL(blob);

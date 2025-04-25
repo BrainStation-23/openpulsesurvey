@@ -268,203 +268,7 @@ async function getQuestions(campaignData: any) {
   return pages.flatMap(page => page.elements || []);
 }
 
-// Fetch responses for a specific question
-async function fetchQuestionResponses(campaignId: string, instanceId: string | null, questionName: string, questionType: string) {
-  try {
-    if (questionType === "boolean") {
-      return await fetchBooleanResponses(campaignId, instanceId, questionName);
-    } else if (questionType === "rating" && questionName.toLowerCase().includes("recommend")) {
-      return await fetchNpsResponses(campaignId, instanceId, questionName);
-    } else if (questionType === "rating") {
-      return await fetchRatingResponses(campaignId, instanceId, questionName);
-    } else if (questionType === "text" || questionType === "comment") {
-      return await fetchTextResponses(campaignId, instanceId, questionName);
-    } else {
-      throw new Error(`Unsupported question type: ${questionType}`);
-    }
-  } catch (error) {
-    console.error(`Error fetching responses for question ${questionName}:`, error);
-    throw error;
-  }
-}
-
-// Fetch boolean question responses
-async function fetchBooleanResponses(campaignId: string, instanceId: string | null, questionName: string) {
-  const { data, error } = await supabase.rpc(
-    'get_boolean_responses',
-    {
-      p_campaign_id: campaignId,
-      p_instance_id: instanceId,
-      p_question_name: questionName
-    }
-  );
-
-  if (error) {
-    console.error("Error fetching boolean responses, falling back to manual query:", error);
-    
-    // Fallback to manual query
-    const responses = await fetchResponsesManually(campaignId, instanceId, questionName);
-    
-    // Process the responses to get boolean stats
-    const yesCount = responses.filter(r => 
-      r.toLowerCase() === 'true' || r === '1' || r.toLowerCase() === 'yes'
-    ).length;
-    
-    const noCount = responses.length - yesCount;
-    
-    return {
-      yes: yesCount,
-      no: noCount
-    };
-  }
-
-  return data;
-}
-
-// Fetch NPS question responses
-async function fetchNpsResponses(campaignId: string, instanceId: string | null, questionName: string) {
-  const { data, error } = await supabase.rpc(
-    'get_nps_responses',
-    {
-      p_campaign_id: campaignId,
-      p_instance_id: instanceId,
-      p_question_name: questionName
-    }
-  );
-
-  if (error) {
-    console.error("Error fetching NPS responses, falling back to manual query:", error);
-    
-    // Fallback to manual query
-    const responses = await fetchResponsesManually(campaignId, instanceId, questionName);
-    
-    // Convert to numbers and filter valid responses
-    const validResponses = responses
-      .map(r => parseInt(r, 10))
-      .filter(r => !isNaN(r) && r >= 0 && r <= 10);
-    
-    const detractors = validResponses.filter(r => r <= 6).length;
-    const passives = validResponses.filter(r => r >= 7 && r <= 8).length;
-    const promoters = validResponses.filter(r => r >= 9).length;
-    const total = validResponses.length;
-    
-    let npsScore = 0;
-    let avgScore = 0;
-    
-    if (total > 0) {
-      npsScore = ((promoters / total) - (detractors / total)) * 100;
-      avgScore = validResponses.reduce((sum, val) => sum + val, 0) / total;
-    }
-    
-    return {
-      detractors,
-      passives,
-      promoters,
-      total,
-      nps_score: npsScore,
-      avg_score: avgScore
-    };
-  }
-
-  return data;
-}
-
-// Fetch rating question responses
-async function fetchRatingResponses(campaignId: string, instanceId: string | null, questionName: string) {
-  const { data, error } = await supabase.rpc(
-    'get_satisfaction_responses',
-    {
-      p_campaign_id: campaignId,
-      p_instance_id: instanceId,
-      p_question_name: questionName
-    }
-  );
-
-  if (error) {
-    console.error("Error fetching rating responses, falling back to manual query:", error);
-    
-    // Fallback to manual query
-    const responses = await fetchResponsesManually(campaignId, instanceId, questionName);
-    
-    // Convert to numbers and filter valid responses
-    const validResponses = responses
-      .map(r => parseInt(r, 10))
-      .filter(r => !isNaN(r) && r >= 1 && r <= 5);
-    
-    const unsatisfied = validResponses.filter(r => r <= 2).length;
-    const neutral = validResponses.filter(r => r === 3).length;
-    const satisfied = validResponses.filter(r => r >= 4).length;
-    const total = validResponses.length;
-    
-    // Calculate median
-    let median = 0;
-    if (validResponses.length > 0) {
-      const sorted = [...validResponses].sort((a, b) => a - b);
-      const middle = Math.floor(sorted.length / 2);
-      
-      if (sorted.length % 2 === 0) {
-        median = (sorted[middle - 1] + sorted[middle]) / 2;
-      } else {
-        median = sorted[middle];
-      }
-    }
-    
-    return {
-      unsatisfied,
-      neutral,
-      satisfied,
-      total,
-      median
-    };
-  }
-
-  return data;
-}
-
-// Fetch text question responses
-async function fetchTextResponses(campaignId: string, instanceId: string | null, questionName: string) {
-  const { data, error } = await supabase.rpc(
-    'get_text_responses',
-    {
-      p_campaign_id: campaignId,
-      p_instance_id: instanceId,
-      p_question_name: questionName
-    }
-  );
-
-  if (error) {
-    console.error("Error fetching text responses, falling back to manual query:", error);
-    
-    // Fallback to manual query
-    const responses = await fetchResponsesManually(campaignId, instanceId, questionName);
-    
-    // Simple word frequency analysis
-    const wordFrequency: Record<string, number> = {};
-    
-    responses.forEach(answer => {
-      if (typeof answer === "string") {
-        const words = answer
-          .toLowerCase()
-          .replace(/[^\w\s]/g, "")
-          .split(/\s+/)
-          .filter(word => word.length > 2);
-
-        words.forEach(word => {
-          wordFrequency[word] = (wordFrequency[word] || 0) + 1;
-        });
-      }
-    });
-
-    return Object.entries(wordFrequency)
-      .map(([text, value]) => ({ text, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 50);
-  }
-
-  return data;
-}
-
-// Fallback function to manually query responses
+// Fetch responses directly from the database with manual processing
 async function fetchResponsesManually(campaignId: string, instanceId: string | null, questionName: string) {
   let query = supabase
     .from("survey_responses")
@@ -497,6 +301,157 @@ async function fetchResponsesManually(campaignId: string, instanceId: string | n
     .filter(r => r !== undefined && r !== null);
 }
 
+// Fetch text question responses
+async function fetchTextResponses(campaignId: string, instanceId: string | null, questionName: string) {
+  try {
+    const responses = await fetchResponsesManually(campaignId, instanceId, questionName);
+    
+    // Simple word frequency analysis
+    const wordFrequency: Record<string, number> = {};
+    
+    responses.forEach(answer => {
+      if (typeof answer === "string") {
+        const words = answer
+          .toLowerCase()
+          .replace(/[^\w\s]/g, "")
+          .split(/\s+/)
+          .filter(word => word.length > 2);
+
+        words.forEach(word => {
+          wordFrequency[word] = (wordFrequency[word] || 0) + 1;
+        });
+      }
+    });
+
+    return Object.entries(wordFrequency)
+      .map(([text, value]) => ({ text, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 50);
+  } catch (error) {
+    console.error(`Error in fetchTextResponses: ${error}`);
+    return [];
+  }
+}
+
+// Fetch boolean question responses
+async function fetchBooleanResponses(campaignId: string, instanceId: string | null, questionName: string) {
+  try {
+    // Fetch raw responses
+    const responses = await fetchResponsesManually(campaignId, instanceId, questionName);
+    
+    // Process the responses to get boolean stats
+    const yesCount = responses.filter(r => 
+      r === true || 
+      r === 1 || 
+      r === '1' || 
+      (typeof r === 'string' && (r.toLowerCase() === 'true' || r.toLowerCase() === 'yes'))
+    ).length;
+    
+    const noCount = responses.length - yesCount;
+    
+    return {
+      yes: yesCount,
+      no: noCount
+    };
+  } catch (error) {
+    console.error(`Error in fetchBooleanResponses: ${error}`);
+    return { yes: 0, no: 0 };
+  }
+}
+
+// Fetch NPS question responses
+async function fetchNpsResponses(campaignId: string, instanceId: string | null, questionName: string) {
+  try {
+    // Fetch raw responses
+    const responses = await fetchResponsesManually(campaignId, instanceId, questionName);
+    
+    // Convert to numbers and filter valid responses
+    const validResponses = responses
+      .map(r => typeof r === 'string' ? parseInt(r, 10) : (typeof r === 'number' ? r : NaN))
+      .filter(r => !isNaN(r) && r >= 0 && r <= 10);
+    
+    const detractors = validResponses.filter(r => r <= 6).length;
+    const passives = validResponses.filter(r => r >= 7 && r <= 8).length;
+    const promoters = validResponses.filter(r => r >= 9).length;
+    const total = validResponses.length;
+    
+    let npsScore = 0;
+    let avgScore = 0;
+    
+    if (total > 0) {
+      npsScore = ((promoters / total) - (detractors / total)) * 100;
+      avgScore = validResponses.reduce((sum, val) => sum + val, 0) / total;
+    }
+    
+    return {
+      detractors,
+      passives,
+      promoters,
+      total,
+      nps_score: npsScore,
+      avg_score: avgScore
+    };
+  } catch (error) {
+    console.error(`Error in fetchNpsResponses: ${error}`);
+    return {
+      detractors: 0,
+      passives: 0,
+      promoters: 0,
+      total: 0,
+      nps_score: 0,
+      avg_score: 0
+    };
+  }
+}
+
+// Fetch rating question responses
+async function fetchRatingResponses(campaignId: string, instanceId: string | null, questionName: string) {
+  try {
+    // Fetch raw responses
+    const responses = await fetchResponsesManually(campaignId, instanceId, questionName);
+    
+    // Convert to numbers and filter valid responses
+    const validResponses = responses
+      .map(r => typeof r === 'string' ? parseInt(r, 10) : (typeof r === 'number' ? r : NaN))
+      .filter(r => !isNaN(r) && r >= 1 && r <= 5);
+    
+    const unsatisfied = validResponses.filter(r => r <= 2).length;
+    const neutral = validResponses.filter(r => r === 3).length;
+    const satisfied = validResponses.filter(r => r >= 4).length;
+    const total = validResponses.length;
+    
+    // Calculate median
+    let median = 0;
+    if (validResponses.length > 0) {
+      const sorted = [...validResponses].sort((a, b) => a - b);
+      const middle = Math.floor(sorted.length / 2);
+      
+      if (sorted.length % 2 === 0) {
+        median = (sorted[middle - 1] + sorted[middle]) / 2;
+      } else {
+        median = sorted[middle];
+      }
+    }
+    
+    return {
+      unsatisfied,
+      neutral,
+      satisfied,
+      total,
+      median
+    };
+  } catch (error) {
+    console.error(`Error in fetchRatingResponses: ${error}`);
+    return {
+      unsatisfied: 0,
+      neutral: 0,
+      satisfied: 0,
+      total: 0,
+      median: 0
+    };
+  }
+}
+
 // Fetch dimension comparison data
 async function fetchDimensionData(
   campaignId: string, 
@@ -507,76 +462,61 @@ async function fetchDimensionData(
 ) {
   try {
     if (questionType === "boolean") {
-      return await fetchBooleanDimensionData(campaignId, instanceId, questionName, dimension);
+      const { data, error } = await supabase.rpc(
+        'get_dimension_bool',
+        {
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId,
+          p_question_name: questionName,
+          p_dimension: dimension
+        }
+      );
+
+      if (error) {
+        console.error("Error fetching boolean dimension data:", error);
+        return [];
+      }
+
+      return data;
     } else if (questionType === "rating" && questionName.toLowerCase().includes("recommend")) {
-      return await fetchNpsDimensionData(campaignId, instanceId, questionName, dimension);
+      const { data, error } = await supabase.rpc(
+        'get_dimension_nps',
+        {
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId,
+          p_question_name: questionName,
+          p_dimension: dimension
+        }
+      );
+
+      if (error) {
+        console.error("Error fetching NPS dimension data:", error);
+        return [];
+      }
+
+      return data;
     } else {
-      return await fetchSatisfactionDimensionData(campaignId, instanceId, questionName, dimension);
+      const { data, error } = await supabase.rpc(
+        'get_dimension_satisfaction',
+        {
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId,
+          p_question_name: questionName,
+          p_dimension: dimension
+        }
+      );
+
+      if (error) {
+        console.error("Error fetching satisfaction dimension data:", error);
+        return [];
+      }
+
+      return data;
     }
   } catch (error) {
     console.error(`Error fetching dimension data for ${dimension}:`, error);
     return [];
   }
-}
-
-// Fetch boolean dimension data
-async function fetchBooleanDimensionData(campaignId: string, instanceId: string | null, questionName: string, dimension: string) {
-  const { data, error } = await supabase.rpc(
-    'get_dimension_bool',
-    {
-      p_campaign_id: campaignId,
-      p_instance_id: instanceId,
-      p_question_name: questionName,
-      p_dimension: dimension
-    }
-  );
-
-  if (error) {
-    console.error(`Error fetching boolean dimension data for ${dimension}:`, error);
-    return [];
-  }
-
-  return data;
-}
-
-// Fetch NPS dimension data
-async function fetchNpsDimensionData(campaignId: string, instanceId: string | null, questionName: string, dimension: string) {
-  const { data, error } = await supabase.rpc(
-    'get_dimension_nps',
-    {
-      p_campaign_id: campaignId,
-      p_instance_id: instanceId,
-      p_question_name: questionName,
-      p_dimension: dimension
-    }
-  );
-
-  if (error) {
-    console.error(`Error fetching NPS dimension data for ${dimension}:`, error);
-    return [];
-  }
-
-  return data;
-}
-
-// Fetch satisfaction dimension data
-async function fetchSatisfactionDimensionData(campaignId: string, instanceId: string | null, questionName: string, dimension: string) {
-  const { data, error } = await supabase.rpc(
-    'get_dimension_satisfaction',
-    {
-      p_campaign_id: campaignId,
-      p_instance_id: instanceId,
-      p_question_name: questionName,
-      p_dimension: dimension
-    }
-  );
-
-  if (error) {
-    console.error(`Error fetching satisfaction dimension data for ${dimension}:`, error);
-    return [];
-  }
-
-  return data;
 }
 
 // Create the title slide
