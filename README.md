@@ -2,7 +2,7 @@
 
 # 📊 Open Pulse Survey
 
-> Enterprise-grade survey platform for measuring employee engagement and collecting actionable insights
+## Enterprise-grade survey platform for measuring employee engagement and collecting actionable insights
 
 [![Built with React](https://img.shields.io/badge/Built_with-React-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-4.9.5-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -136,8 +136,6 @@ Open Pulse Survey is a comprehensive employee feedback platform designed to help
 
 ## 📈 Dashboard Preview
 
-![Dashboard Preview](public/dashboard-preview.png)
-
 | Metric                    | Description                          |
 |---------------------------|--------------------------------------|
 | Response Rates            | Track completion %                   |
@@ -159,13 +157,7 @@ Open Pulse Survey is a comprehensive employee feedback platform designed to help
 
 ---
 
-## 🤝 Support & Community
 
-- 📚 [Documentation](https://docs.openpulsesurvey.com)  
-- 💬 [Community Forum](https://community.openpulsesurvey.com)  
-- 🐞 [Bug Reports](https://github.com/username/openpulsesurvey/issues)  
-
----
 
 ## 📄 License
 
