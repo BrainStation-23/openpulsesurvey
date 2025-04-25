@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,15 +14,17 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { LineChart } from "lucide-react";
+import { PresentButton } from "./components/PresentButton";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+
 export default function CampaignDetailsPage() {
-  const {
-    id
-  } = useParams();
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>();
-  const {
-    data: campaign,
-    isLoading: isLoadingCampaign
-  } = useQuery({
+
+  const { data: campaign, isLoading: isLoadingCampaign } = useQuery({
     queryKey: ["campaign", id],
     queryFn: async () => {
       const {
@@ -47,22 +50,44 @@ export default function CampaignDetailsPage() {
       return data;
     }
   });
+
+  const handlePresent = () => {
+    if (!selectedInstanceId) {
+      toast({
+        variant: "destructive",
+        title: "No instance selected",
+        description: "Please select an instance before starting the presentation.",
+      });
+      return;
+    }
+    navigate(`/admin/surveys/campaigns/${id}/present?instance=${selectedInstanceId}`);
+  };
+
   if (isLoadingCampaign) {
     return <div>Loading...</div>;
   }
+
   if (!campaign) {
     return <div>Campaign not found</div>;
   }
+
   return <div className="container max-w-7xl mx-auto py-6 space-y-6">
       <CampaignHeader campaign={campaign} isLoading={isLoadingCampaign} selectedInstanceId={selectedInstanceId} />
       
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Campaign Details</h2>
         <div className="flex items-center gap-4">
-          <Button asChild variant="outline">
-            
-          </Button>
-          <EnhancedInstanceSelector campaignId={campaign.id} selectedInstanceId={selectedInstanceId} onInstanceSelect={setSelectedInstanceId} />
+          <PresentButton 
+            onPresent={handlePresent}
+            campaignId={campaign.id}
+            instanceId={selectedInstanceId}
+            disabled={!selectedInstanceId}
+          />
+          <EnhancedInstanceSelector 
+            campaignId={campaign.id} 
+            selectedInstanceId={selectedInstanceId} 
+            onInstanceSelect={setSelectedInstanceId} 
+          />
         </div>
       </div>
 
