@@ -1,3 +1,4 @@
+
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -56,7 +57,6 @@ import LiveSurveyPage from "./pages/admin/surveys/live";
 import LiveSessionControlPage from "./pages/admin/surveys/live/[sessionId]";
 import AdminIssueBoards from "./pages/admin/surveys/issue-boards";
 import AdminIssueBoardView from "./pages/admin/surveys/issue-boards/[id]";
-import PresentationView from "./pages/admin/surveys/campaigns/[id]/components/PresentationView/index";
 import PlatformConfigLayout from "./components/layouts/PlatformConfigLayout";
 import SBUsConfig from "./pages/admin/config/sbus";
 import SBUDetails from "./pages/admin/config/sbus/[id]";
@@ -145,7 +145,6 @@ const App = () => (
               <Route path="surveys/campaigns/:id" element={<CampaignDetailsPage />} />
               <Route path="surveys/campaigns/:id/performance" element={<CampaignPerformance />} />
               <Route path="surveys/campaigns/:id/instances" element={<CampaignInstancesPage />} />
-              <Route path="surveys/campaigns/:id/present" element={<PresentationView />} />
               <Route path="surveys/live" element={<LiveSurveyPage />} />
               <Route path="surveys/live/:sessionId" element={<LiveSessionControlPage />} />
               

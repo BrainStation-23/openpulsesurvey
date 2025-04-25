@@ -51,18 +51,6 @@ export default function CampaignDetailsPage() {
     }
   });
 
-  const handlePresent = () => {
-    if (!selectedInstanceId) {
-      toast({
-        variant: "destructive",
-        title: "No instance selected",
-        description: "Please select an instance before starting the presentation.",
-      });
-      return;
-    }
-    navigate(`/admin/surveys/campaigns/${id}/present?instance=${selectedInstanceId}`);
-  };
-
   if (isLoadingCampaign) {
     return <div>Loading...</div>;
   }
@@ -78,7 +66,6 @@ export default function CampaignDetailsPage() {
         <h2 className="text-lg font-semibold">Campaign Details</h2>
         <div className="flex items-center gap-4">
           <PresentButton 
-            onPresent={handlePresent}
             campaignId={campaign.id}
             instanceId={selectedInstanceId}
             disabled={!selectedInstanceId}
