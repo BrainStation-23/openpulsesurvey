@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import PptxGenJS from "https://esm.sh/pptxgenjs@3.12.0";
@@ -937,4 +938,213 @@ async function addMainQuestionChart(
 // Add comparison chart for dimension slides
 async function addComparisonChart(
   slide: any,
-  pptx:
+  pptx: any,
+  campaignData: any,
+  instanceId: string | null,
+  question: any,
+  dimension: string,
+  theme: any
+) {
+  const questionType = question.type;
+  const questionName = question.name;
+  
+  try {
+    const dimensionData = await fetchDimensionData(
+      campaignData.id,
+      instanceId,
+      questionName,
+      dimension,
+      questionType
+    );
+    
+    if (!dimensionData || dimensionData.length === 0) {
+      slide.addText("No dimension data available for this question", {
+        x: 0.5,
+        y: 2,
+        w: "90%",
+        fontSize: 16,
+        color: theme.text.secondary,
+        italic: true,
+      });
+      return;
+    }
+
+    if (questionType === "boolean") {
+      // Create a bar chart for boolean responses by dimension
+      const labels = dimensionData.map(d => d.dimension);
+      
+      // Two series: one for "Yes" and one for "No"
+      const yesValues = dimensionData.map(d => d.yes_count);
+      const noValues = dimensionData.map(d => d.no_count);
+      
+      const chartData = [
+        {
+          name: "Yes",
+          labels,
+          values: yesValues
+        },
+        {
+          name: "No",
+          labels,
+          values: noValues
+        }
+      ];
+      
+      // Horizontal bar chart for better readability with many dimensions
+      slide.addChart(pptx.ChartType.bar, chartData, {
+        x: 0.5,
+        y: 1.8,
+        w: 9,
+        h: 4.5,
+        barDir: 'bar', // Horizontal bars
+        barGrouping: 'stacked',
+        chartColors: [theme.primary, theme.light],
+        showLegend: true,
+        legendPos: 'b',
+        dataLabelFontSize: 10,
+        showValue: dimensionData.length <= 5, // Only show values if there are few categories
+      });
+      
+    } else if (questionType === "rating" && questionName.toLowerCase().includes("recommend")) {
+      // NPS question by dimension
+      // For an NPS question, we'll create a horizontal bar chart with NPS score by dimension
+      const labels = dimensionData.map(d => d.dimension);
+      const npsScores = dimensionData.map(d => d.nps_score);
+      
+      const chartData = [{
+        name: "NPS Score",
+        labels,
+        values: npsScores
+      }];
+      
+      // Horizontal bar chart for better readability
+      slide.addChart(pptx.ChartType.bar, chartData, {
+        x: 0.5,
+        y: 1.8,
+        w: 9,
+        h: 4.5,
+        barDir: 'bar', // Horizontal bars
+        chartColors: [theme.primary],
+        showLegend: false,
+        dataLabelFontSize: 10,
+        showValue: true,
+        catAxisLabelFontSize: 11,
+        valAxisLabelFontSize: 11,
+      });
+      
+    } else {
+      // Rating question by dimension
+      // For satisfaction, we'll create a stacked bar chart with Satisfied, Neutral, Unsatisfied
+      const labels = dimensionData.map(d => d.dimension);
+      
+      // Three series for satisfaction levels
+      const satisfiedValues = dimensionData.map(d => d.satisfied);
+      const neutralValues = dimensionData.map(d => d.neutral);
+      const unsatisfiedValues = dimensionData.map(d => d.unsatisfied);
+      
+      const chartData = [
+        {
+          name: "Satisfied",
+          labels,
+          values: satisfiedValues
+        },
+        {
+          name: "Neutral",
+          labels,
+          values: neutralValues
+        },
+        {
+          name: "Unsatisfied",
+          labels,
+          values: unsatisfiedValues
+        }
+      ];
+      
+      // Horizontal stacked bar chart
+      slide.addChart(pptx.ChartType.bar, chartData, {
+        x: 0.5,
+        y: 1.8,
+        w: 9,
+        h: 4.5,
+        barDir: 'bar', // Horizontal bars
+        barGrouping: 'stacked',
+        chartColors: [theme.primary, theme.light, theme.danger],
+        showLegend: true,
+        legendPos: 'b',
+        dataLabelFontSize: 9,
+        showValue: dimensionData.length <= 5,
+        catAxisLabelFontSize: 10,
+      });
+    }
+    
+  } catch (error) {
+    console.error(`Error creating comparison chart for dimension ${dimension}:`, error);
+    
+    // Add error message to slide
+    slide.addText(`Data not available for dimension: ${dimension}`, {
+      x: 0.5,
+      y: 2,
+      w: "90%",
+      fontSize: 16,
+      color: theme.text.secondary,
+      italic: true,
+    });
+  }
+}
+
+// Handle incoming HTTP requests
+serve(async (req) => {
+  // This is a preflight request
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        ...corsHeaders,
+        'Access-Control-Allow-Methods': 'POST'
+      }
+    });
+  }
+
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    return new Response('Method Not Allowed', {
+      status: 405,
+      headers: corsHeaders
+    });
+  }
+
+  try {
+    // Parse request body
+    const requestData = await req.json();
+    const { campaignId, instanceId, config, fileName } = requestData;
+
+    if (!campaignId) {
+      return new Response('Missing campaignId parameter', {
+        status: 400,
+        headers: corsHeaders
+      });
+    }
+
+    // Create the PPTX document
+    const buffer = await generatePptx(campaignId, instanceId, config);
+
+    // Return the file as an ArrayBuffer
+    return new Response(buffer, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'Content-Disposition': `attachment; filename="${fileName || 'survey_presentation.pptx'}"`,
+      }
+    });
+  } catch (error) {
+    console.error('Error generating PPTX:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+});
