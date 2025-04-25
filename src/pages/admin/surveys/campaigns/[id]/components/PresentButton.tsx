@@ -20,10 +20,16 @@ interface PresentButtonProps {
 
 export function PresentButton({ onPresent, campaignId, instanceId, disabled }: PresentButtonProps) {
   const [showShareModal, setShowShareModal] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const handleShareClick = () => {
+    setDropdownOpen(false); // Close the dropdown
+    setShowShareModal(true); // Open the share modal
+  };
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="default"
@@ -47,7 +53,7 @@ export function PresentButton({ onPresent, campaignId, instanceId, disabled }: P
               variant="dropdown"
             />
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setShowShareModal(true)}>
+          <DropdownMenuItem onClick={handleShareClick}>
             <Share2 className="h-4 w-4 mr-2" />
             Share Presentation
           </DropdownMenuItem>

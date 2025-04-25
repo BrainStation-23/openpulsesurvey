@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -12,31 +13,33 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
+
 interface SharePresentationModalProps {
   campaignId: string;
   instanceId?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
+
 export function SharePresentationModal({
   campaignId,
   instanceId,
   open,
   onOpenChange
 }: SharePresentationModalProps) {
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [shareLink, setShareLink] = useState("");
   const [showExpiryDate, setShowExpiryDate] = useState(false);
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [copied, setCopied] = useState(false);
+
   useEffect(() => {
     if (open) {
       fetchExistingShareLink();
     }
   }, [open]);
+
   const fetchExistingShareLink = async () => {
     setIsLoading(true);
     try {
@@ -55,6 +58,7 @@ export function SharePresentationModal({
       setIsLoading(false);
     }
   };
+
   const generateShareLink = async () => {
     setIsLoading(true);
     try {
@@ -94,6 +98,7 @@ export function SharePresentationModal({
       setIsLoading(false);
     }
   };
+
   const copyToClipboard = () => {
     navigator.clipboard.writeText(shareLink);
     setCopied(true);
@@ -103,6 +108,7 @@ export function SharePresentationModal({
     });
     setTimeout(() => setCopied(false), 2000);
   };
+
   return <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         
@@ -156,7 +162,7 @@ export function SharePresentationModal({
                   <Loader className="mr-2 h-4 w-4 animate-spin" />
                   Generating...
                 </> : "Generate Link"}
-            </Button> : <Button onClick={() => setIsOpen(false)}>Done</Button>}
+            </Button> : <Button onClick={() => onOpenChange && onOpenChange(false)}>Done</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>;
