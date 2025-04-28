@@ -2837,6 +2837,218 @@ COMMENT ON FUNCTION "public"."get_campaign_supervisor_performance"("p_campaign_i
 
 
 
+CREATE OR REPLACE FUNCTION "public"."get_dimension_bool"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") RETURNS TABLE("dimension" "text", "yes_count" bigint, "no_count" bigint, "total_count" bigint)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  RETURN QUERY
+  WITH response_stats AS (
+    SELECT 
+      CASE p_dimension
+        WHEN 'supervisor' THEN CONCAT(sup.first_name, ' ', sup.last_name)
+        WHEN 'sbu' THEN s.name
+        WHEN 'location' THEN loc.name
+        WHEN 'employment_type' THEN et.name
+        WHEN 'employee_type' THEN ety.name
+        WHEN 'employee_role' THEN er.name
+        WHEN 'level' THEN l.name
+        WHEN 'gender' THEN 
+          CASE 
+            WHEN p.gender IS NULL THEN 'Not Specified'
+            ELSE p.gender::text
+          END
+        ELSE 'Unknown'
+      END AS dimension_value,
+      CASE 
+        WHEN LOWER(sr.response_data->>p_question_name) IN ('true', '1', 'yes') THEN true
+        ELSE false
+      END AS bool_value
+    FROM survey_responses sr
+    JOIN survey_assignments sa ON sr.assignment_id = sa.id
+    JOIN profiles p ON p.id = sa.user_id
+    LEFT JOIN user_supervisors us ON us.user_id = p.id AND us.is_primary = TRUE
+    LEFT JOIN profiles sup ON sup.id = us.supervisor_id
+    LEFT JOIN user_sbus usbu ON usbu.user_id = p.id AND usbu.is_primary = TRUE
+    LEFT JOIN sbus s ON s.id = usbu.sbu_id
+    LEFT JOIN locations loc ON loc.id = p.location_id
+    LEFT JOIN employment_types et ON et.id = p.employment_type_id
+    LEFT JOIN employee_types ety ON ety.id = p.employee_type_id
+    LEFT JOIN employee_roles er ON er.id = p.employee_role_id
+    LEFT JOIN levels l ON l.id = p.level_id
+    WHERE sa.campaign_id = p_campaign_id
+    AND (p_instance_id IS NULL OR sr.campaign_instance_id = p_instance_id)
+    AND sr.status = 'submitted'
+    AND sr.response_data ? p_question_name
+  )
+  SELECT
+    rs.dimension_value AS dimension,
+    SUM(CASE WHEN rs.bool_value THEN 1 ELSE 0 END) AS yes_count,
+    SUM(CASE WHEN NOT rs.bool_value THEN 1 ELSE 0 END) AS no_count,
+    COUNT(*) AS total_count
+  FROM response_stats rs
+  WHERE rs.dimension_value IS NOT NULL
+  GROUP BY rs.dimension_value
+  HAVING 
+    -- Only apply minimum response count for supervisor dimension
+    CASE 
+      WHEN p_dimension = 'supervisor' THEN COUNT(*) >= 4
+      ELSE true
+    END
+  ORDER BY yes_count DESC;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_dimension_bool"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_dimension_nps"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") RETURNS TABLE("dimension" "text", "detractors" bigint, "passives" bigint, "promoters" bigint, "total" bigint, "nps_score" numeric, "avg_score" numeric)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $_$
+BEGIN
+  RETURN QUERY
+  WITH response_stats AS (
+    SELECT 
+      CASE p_dimension
+        WHEN 'supervisor' THEN CONCAT(sup.first_name, ' ', sup.last_name)
+        WHEN 'sbu' THEN s.name
+        WHEN 'location' THEN loc.name
+        WHEN 'employment_type' THEN et.name
+        WHEN 'employee_type' THEN ety.name
+        WHEN 'employee_role' THEN er.name
+        WHEN 'level' THEN l.name
+        WHEN 'gender' THEN 
+          CASE 
+            WHEN p.gender IS NULL THEN 'Not Specified'
+            ELSE p.gender::text
+          END
+        ELSE 'Unknown'
+      END AS dimension_value,
+      (sr.response_data->>p_question_name)::NUMERIC AS rating_value
+    FROM survey_responses sr
+    JOIN survey_assignments sa ON sa.id = sr.assignment_id
+    JOIN profiles p ON p.id = sa.user_id
+    LEFT JOIN user_supervisors us ON us.user_id = p.id AND us.is_primary = TRUE
+    LEFT JOIN profiles sup ON sup.id = us.supervisor_id
+    LEFT JOIN user_sbus usbu ON usbu.user_id = p.id AND usbu.is_primary = TRUE
+    LEFT JOIN sbus s ON s.id = usbu.sbu_id
+    LEFT JOIN locations loc ON loc.id = p.location_id
+    LEFT JOIN employment_types et ON et.id = p.employment_type_id
+    LEFT JOIN employee_types ety ON ety.id = p.employee_type_id
+    LEFT JOIN employee_roles er ON er.id = p.employee_role_id
+    LEFT JOIN levels l ON l.id = p.level_id
+    WHERE sa.campaign_id = p_campaign_id
+    AND (p_instance_id IS NULL OR sr.campaign_instance_id = p_instance_id)
+    AND sr.status = 'submitted'
+    AND sr.response_data->>p_question_name ~ '^[0-9]+$'
+  ),
+  dimension_stats AS (
+    SELECT
+      dimension_value,
+      COUNT(*) AS total_responses,
+      SUM(CASE WHEN rating_value <= 6 THEN 1 ELSE 0 END) AS detractors_count,
+      SUM(CASE WHEN rating_value BETWEEN 7 AND 8 THEN 1 ELSE 0 END) AS passives_count,
+      SUM(CASE WHEN rating_value >= 9 THEN 1 ELSE 0 END) AS promoters_count,
+      ROUND(AVG(rating_value)::NUMERIC, 2) AS avg_rating_score,
+      ROUND(
+        ((SUM(CASE WHEN rating_value >= 9 THEN 1 ELSE 0 END)::NUMERIC - 
+          SUM(CASE WHEN rating_value <= 6 THEN 1 ELSE 0 END)::NUMERIC) / 
+         COUNT(*)::NUMERIC) * 100,
+        1
+      ) AS calculated_nps_score
+    FROM response_stats
+    WHERE dimension_value IS NOT NULL
+    GROUP BY dimension_value
+  )
+  SELECT 
+    dimension_value AS dimension,
+    detractors_count AS detractors,
+    passives_count AS passives,
+    promoters_count AS promoters,
+    total_responses AS total,
+    calculated_nps_score AS nps_score,
+    avg_rating_score AS avg_score
+  FROM dimension_stats
+  ORDER BY calculated_nps_score DESC;
+END;
+$_$;
+
+
+ALTER FUNCTION "public"."get_dimension_nps"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_dimension_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") RETURNS TABLE("dimension" "text", "unsatisfied" bigint, "neutral" bigint, "satisfied" bigint, "total" bigint, "avg_score" numeric)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $_$BEGIN
+  RETURN QUERY
+  WITH response_stats AS (
+    SELECT 
+      -- Dynamic dimension selection based on input parameter
+      CASE p_dimension
+        WHEN 'supervisor' THEN CONCAT(sup.first_name, ' ', sup.last_name)
+        WHEN 'sbu' THEN s.name
+        WHEN 'location' THEN loc.name
+        WHEN 'employment_type' THEN et.name
+        WHEN 'employee_type' THEN ety.name
+        WHEN 'employee_role' THEN er.name
+        WHEN 'level' THEN l.name
+        WHEN 'gender' THEN 
+          CASE 
+            WHEN p.gender IS NULL THEN 'Not Specified'
+            ELSE p.gender::text  -- Cast the enum to text to prevent enum validation errors
+          END
+        ELSE 'Unknown'
+      END AS dimension_value,
+      -- Get the rating value for the specific question
+      (sr.response_data->>p_question_name)::NUMERIC AS rating_value
+    FROM survey_responses sr
+    JOIN survey_assignments sa ON sr.assignment_id = sa.id
+    JOIN profiles p ON p.id = sa.user_id
+    -- Join all dimension tables with LEFT JOIN to handle nulls
+    LEFT JOIN user_supervisors us ON us.user_id = p.id AND us.is_primary = TRUE
+    LEFT JOIN profiles sup ON sup.id = us.supervisor_id
+    LEFT JOIN user_sbus usbu ON usbu.user_id = p.id AND usbu.is_primary = TRUE
+    LEFT JOIN sbus s ON s.id = usbu.sbu_id
+    LEFT JOIN locations loc ON loc.id = p.location_id
+    LEFT JOIN employment_types et ON et.id = p.employment_type_id
+    LEFT JOIN employee_types ety ON ety.id = p.employee_type_id
+    LEFT JOIN employee_roles er ON er.id = p.employee_role_id
+    LEFT JOIN levels l ON l.id = p.level_id
+    WHERE sa.campaign_id = p_campaign_id
+    AND (p_instance_id IS NULL OR sr.campaign_instance_id = p_instance_id)
+    AND sr.status = 'submitted'
+    -- Ensure we have a numeric rating
+    AND sr.response_data->>p_question_name ~ '^[0-9]+$'
+    AND (sr.response_data->>p_question_name)::NUMERIC BETWEEN 1 AND 5
+  ),
+  dimension_stats AS (
+    SELECT
+      dimension_value,
+      COUNT(*) AS total_responses,
+      SUM(CASE WHEN rating_value <= 3 THEN 1 ELSE 0 END) AS unsatisfied_count,
+      SUM(CASE WHEN rating_value = 4 THEN 1 ELSE 0 END) AS neutral_count,
+      SUM(CASE WHEN rating_value = 5 THEN 1 ELSE 0 END) AS satisfied_count,
+      ROUND(AVG(rating_value)::NUMERIC, 2) AS avg_rating_score
+    FROM response_stats
+    WHERE dimension_value IS NOT NULL
+    GROUP BY dimension_value
+    -- Only include dimensions with at least 4 responses for statistical significance
+  )
+  SELECT 
+    dimension_value AS dimension,
+    unsatisfied_count AS unsatisfied,
+    neutral_count AS neutral,
+    satisfied_count AS satisfied,
+    total_responses AS total,
+    avg_rating_score AS avg_score
+  FROM dimension_stats
+  ORDER BY avg_rating_score DESC;
+END;$_$;
+
+
+ALTER FUNCTION "public"."get_dimension_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_instance_analysis_data"("p_campaign_id" "uuid", "p_instance_id" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql"
     AS $$
@@ -3532,61 +3744,6 @@ $$;
 ALTER FUNCTION "public"."get_pending_surveys_count"("p_user_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_supervisor_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") RETURNS TABLE("dimension" "text", "unsatisfied" bigint, "neutral" bigint, "satisfied" bigint, "total" bigint)
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $_$
-BEGIN
-  RETURN QUERY
-  WITH supervisor_responses AS (
-    SELECT 
-      -- Get supervisor name
-      CONCAT(sup.first_name, ' ', sup.last_name) AS supervisor_name,
-      -- Get the rating value for the specific question
-      (sr.response_data->>p_question_name)::NUMERIC AS rating_value
-    FROM survey_responses sr
-    JOIN survey_assignments sa ON sr.assignment_id = sa.id
-    JOIN profiles p ON p.id = sa.user_id
-    -- Join to get the user's supervisor
-    JOIN user_supervisors us ON us.user_id = p.id AND us.is_primary = TRUE
-    JOIN profiles sup ON sup.id = us.supervisor_id
-    WHERE sa.campaign_id = p_campaign_id
-    AND (p_instance_id IS NULL OR sr.campaign_instance_id = p_instance_id)
-    AND sr.status = 'submitted'
-    -- Ensure we have a numeric rating
-    AND sr.response_data->>p_question_name ~ '^[0-9]+$'
-    AND (sr.response_data->>p_question_name)::NUMERIC BETWEEN 1 AND 5
-  ),
-  supervisor_stats AS (
-    SELECT
-      supervisor_name,
-      COUNT(*) AS total_responses,
-      SUM(CASE WHEN rating_value BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS unsatisfied_count,
-      SUM(CASE WHEN rating_value = 4 THEN 1 ELSE 0 END) AS neutral_count,
-      SUM(CASE WHEN rating_value = 5 THEN 1 ELSE 0 END) AS satisfied_count
-    FROM supervisor_responses
-    GROUP BY supervisor_name
-    -- Only include supervisors with at least 4 responses
-    HAVING COUNT(*) >= 4
-  )
-  SELECT 
-    supervisor_stats.supervisor_name AS dimension,
-    supervisor_stats.unsatisfied_count AS unsatisfied,
-    supervisor_stats.neutral_count AS neutral,
-    supervisor_stats.satisfied_count AS satisfied,
-    supervisor_stats.total_responses AS total
-  FROM supervisor_stats
-  ORDER BY supervisor_stats.unsatisfied_count DESC, supervisor_stats.total_responses DESC;
-END;
-$_$;
-
-
-ALTER FUNCTION "public"."get_supervisor_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."get_supervisor_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") IS 'Returns satisfaction metrics for supervisors based on employee ratings, filtering to supervisors with at least 4 responses';
-
-
-
 CREATE OR REPLACE FUNCTION "public"."get_survey_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid" DEFAULT NULL::"uuid") RETURNS "json"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -3782,6 +3939,109 @@ $$;
 
 
 ALTER FUNCTION "public"."handle_alignment_delete_progress"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") RETURNS integer
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+  v_updated_count INTEGER := 0;
+  v_buffer_minutes INTEGER := 2; -- Buffer time to ensure we don't miss instances
+BEGIN
+  -- Update instances that are past their start time but are still 'upcoming'
+  UPDATE campaign_instances
+  SET status = 'active', updated_at = NOW()
+  WHERE campaign_id = p_campaign_id
+    AND status = 'upcoming'
+    AND starts_at <= (NOW() + (v_buffer_minutes || ' minutes')::INTERVAL)
+    AND ends_at > NOW();
+    
+  GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+  
+  -- Log the execution
+  IF v_updated_count > 0 THEN
+    INSERT INTO campaign_instance_status_logs (
+      updated_to_active, 
+      updated_to_completed, 
+      run_at, 
+      details
+    ) VALUES (
+      v_updated_count,
+      0,
+      NOW(),
+      jsonb_build_object(
+        'campaign_id', p_campaign_id,
+        'current_time', NOW(),
+        'buffer_minutes', v_buffer_minutes,
+        'instances_actually_updated', v_updated_count,
+        'execution_details', 'Found ' || v_updated_count || ' eligible instances, activated ' || v_updated_count
+      )
+    );
+  END IF;
+  
+  RETURN v_updated_count;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."handle_instance_completion"("p_campaign_id" "uuid") RETURNS integer
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+  v_updated_count INTEGER := 0;
+  v_buffer_minutes INTEGER := 2; -- Buffer time
+  instance_id UUID;
+BEGIN
+  -- Update instances that are past their end time but are still 'active'
+  UPDATE campaign_instances
+  SET status = 'completed', updated_at = NOW()
+  WHERE campaign_id = p_campaign_id
+    AND status = 'active'
+    AND ends_at <= (NOW() + (v_buffer_minutes || ' minutes')::INTERVAL);
+    
+  GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+  
+  -- Recalculate completion rates for each completed instance
+  IF v_updated_count > 0 THEN
+    -- Log the execution
+    INSERT INTO campaign_instance_status_logs (
+      updated_to_active, 
+      updated_to_completed, 
+      run_at, 
+      details
+    ) VALUES (
+      0,
+      v_updated_count,
+      NOW(),
+      jsonb_build_object(
+        'campaign_id', p_campaign_id,
+        'current_time', NOW(),
+        'buffer_minutes', v_buffer_minutes,
+        'instances_actually_updated', v_updated_count,
+        'execution_details', 'Found ' || v_updated_count || ' eligible instances, completed ' || v_updated_count
+      )
+    );
+    
+    -- Update completion rates
+    FOR instance_id IN 
+      SELECT id FROM campaign_instances 
+      WHERE campaign_id = p_campaign_id 
+      AND status = 'completed' 
+      AND updated_at >= (NOW() - INTERVAL '5 minutes')
+    LOOP
+      PERFORM calculate_instance_completion_rate(instance_id);
+    END LOOP;
+  END IF;
+  
+  RETURN v_updated_count;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_instance_completion"("p_campaign_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."handle_key_result_changes"() RETURNS "trigger"
@@ -4200,6 +4460,89 @@ $$;
 ALTER FUNCTION "public"."link_response_to_active_instance"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."manage_instance_cron_job"("p_campaign_id" "uuid", "p_job_type" "text", "p_cron_schedule" "text", "p_is_active" boolean) RETURNS "text"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+DECLARE
+  v_job_name TEXT;
+  v_function_name TEXT;
+  v_old_job_record RECORD;
+  v_cron_job_id INTEGER;
+BEGIN
+  -- Validate job type
+  IF p_job_type NOT IN ('activation', 'completion') THEN
+    RAISE EXCEPTION 'Invalid job type. Must be "activation" or "completion"';
+  END IF;
+  
+  -- Set function name based on job type
+  IF p_job_type = 'activation' THEN
+    v_function_name := 'handle_instance_activation';
+  ELSE
+    v_function_name := 'handle_instance_completion';
+  END IF;
+  
+  -- Create standardized job name
+  v_job_name := 'campaign_' || p_campaign_id || '_instance_' || p_job_type;
+  
+  -- Check if the job already exists
+  SELECT * INTO v_old_job_record 
+  FROM campaign_cron_jobs
+  WHERE campaign_id = p_campaign_id AND job_type = p_job_type;
+  
+  -- If job exists in our tracking table, check cron.job
+  IF FOUND THEN
+    -- Try to unschedule the existing job if it's in cron.job
+    BEGIN
+      PERFORM cron.unschedule(v_old_job_record.job_name);
+    EXCEPTION WHEN OTHERS THEN
+      -- Job might not exist in cron.job table, ignore error
+      NULL;
+    END;
+  END IF;
+  
+  -- Schedule the new job if it should be active
+  IF p_is_active THEN
+    v_cron_job_id := cron.schedule(
+      v_job_name, 
+      p_cron_schedule, 
+      format('SELECT %s(''%s'')', v_function_name, p_campaign_id)
+    );
+  END IF;
+  
+  -- Update or insert entry in campaign_cron_jobs table
+  IF FOUND THEN
+    UPDATE campaign_cron_jobs
+    SET 
+      cron_schedule = p_cron_schedule,
+      is_active = p_is_active,
+      job_name = v_job_name,
+      updated_at = NOW()
+    WHERE campaign_id = p_campaign_id AND job_type = p_job_type;
+  ELSE
+    INSERT INTO campaign_cron_jobs (
+      campaign_id,
+      job_type,
+      job_name,
+      cron_schedule,
+      is_active
+    ) VALUES (
+      p_campaign_id,
+      p_job_type,
+      v_job_name,
+      p_cron_schedule,
+      p_is_active
+    );
+  END IF;
+  
+  RETURN v_job_name;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."manage_instance_cron_job"("p_campaign_id" "uuid", "p_job_type" "text", "p_cron_schedule" "text", "p_is_active" boolean) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."prevent_duplicate_responses"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -4393,6 +4736,38 @@ $$;
 
 
 ALTER FUNCTION "public"."reorder_questions"("p_session_id" "uuid", "p_question_id" "uuid", "p_old_order" integer, "p_new_order" integer, "p_direction" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."run_instance_job_now"("p_campaign_id" "uuid", "p_job_type" "text") RETURNS integer
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+DECLARE
+  v_result INTEGER;
+BEGIN
+  -- Validate job type
+  IF p_job_type NOT IN ('activation', 'completion') THEN
+    RAISE EXCEPTION 'Invalid job type. Must be "activation" or "completion"';
+  END IF;
+  
+  -- Call the appropriate function
+  IF p_job_type = 'activation' THEN
+    SELECT handle_instance_activation(p_campaign_id) INTO v_result;
+  ELSE
+    SELECT handle_instance_completion(p_campaign_id) INTO v_result;
+  END IF;
+  
+  -- Update last_run timestamp
+  UPDATE campaign_cron_jobs
+  SET last_run = NOW()
+  WHERE campaign_id = p_campaign_id AND job_type = p_job_type;
+  
+  RETURN v_result;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."run_instance_job_now"("p_campaign_id" "uuid", "p_job_type" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."search_live_sessions"("search_text" "text", "status_filters" "text"[], "created_by_user" "uuid") RETURNS TABLE("id" "uuid", "name" "text", "join_code" "text", "status" "public"."session_status", "created_at" timestamp with time zone, "description" "text", "survey_id" "uuid", "created_by" "uuid")
@@ -4952,6 +5327,56 @@ $$;
 ALTER FUNCTION "public"."search_users"("search_text" "text", "page_number" integer, "page_size" integer, "sbu_filter" "uuid", "level_filter" "uuid", "location_filter" "uuid", "employment_type_filter" "uuid", "employee_role_filter" "uuid", "employee_type_filter" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."toggle_instance_cron_job"("p_campaign_id" "uuid", "p_job_type" "text", "p_is_active" boolean) RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+DECLARE
+  v_job_record RECORD;
+BEGIN
+  -- Get the job record
+  SELECT * INTO v_job_record 
+  FROM campaign_cron_jobs
+  WHERE campaign_id = p_campaign_id AND job_type = p_job_type;
+  
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'No job found for campaign_id % and job_type %', p_campaign_id, p_job_type;
+  END IF;
+  
+  -- If we're activating and the job is currently inactive
+  IF p_is_active AND NOT v_job_record.is_active THEN
+    -- Schedule the job
+    PERFORM cron.schedule(
+      v_job_record.job_name, 
+      v_job_record.cron_schedule, 
+      CASE 
+        WHEN v_job_record.job_type = 'activation' THEN 
+          format('SELECT handle_instance_activation(''%s'')', p_campaign_id)
+        ELSE 
+          format('SELECT handle_instance_completion(''%s'')', p_campaign_id)
+      END
+    );
+  -- If we're deactivating and the job is currently active
+  ELSIF NOT p_is_active AND v_job_record.is_active THEN
+    -- Unschedule the job
+    PERFORM cron.unschedule(v_job_record.job_name);
+  END IF;
+  
+  -- Update the record
+  UPDATE campaign_cron_jobs
+  SET 
+    is_active = p_is_active,
+    updated_at = NOW()
+  WHERE campaign_id = p_campaign_id AND job_type = p_job_type;
+  
+  RETURN TRUE;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."toggle_instance_cron_job"("p_campaign_id" "uuid", "p_job_type" "text", "p_is_active" boolean) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."trigger_check_achievements"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -5003,6 +5428,51 @@ $$;
 
 
 ALTER FUNCTION "public"."update_campaign_completion_rate"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_campaign_instance"("p_instance_id" "uuid", "p_new_starts_at" timestamp with time zone, "p_new_ends_at" timestamp with time zone, "p_new_status" "text") RETURNS TABLE("id" "uuid", "campaign_id" "uuid", "period_number" integer, "starts_at" timestamp with time zone, "ends_at" timestamp with time zone, "status" "text", "completion_rate" numeric, "created_at" timestamp with time zone, "updated_at" timestamp with time zone, "error_message" "text")
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+  v_instance RECORD;
+BEGIN
+  -- Fetch current instance data
+  SELECT * INTO v_instance FROM campaign_instances WHERE campaign_instances.id = p_instance_id;
+  IF NOT FOUND THEN
+    RETURN QUERY SELECT NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Instance not found';
+    RETURN;
+  END IF;
+
+  -- Update the instance explicitly using the table alias 'ci'
+  UPDATE campaign_instances ci
+  SET
+    starts_at = p_new_starts_at,
+    ends_at = p_new_ends_at,
+    status = p_new_status::instance_status,
+    updated_at = now()
+  WHERE ci.id = p_instance_id;
+
+  -- Return the updated row with all columns explicitly qualified
+  RETURN QUERY
+    SELECT
+      ci.id,
+      ci.campaign_id,
+      ci.period_number,
+      ci.starts_at,
+      ci.ends_at,
+      ci.status::text,
+      ci.completion_rate,
+      ci.created_at,
+      ci.updated_at,
+      NULL::text as error_message
+    FROM campaign_instances ci
+    WHERE ci.id = p_instance_id;
+
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_campaign_instance"("p_instance_id" "uuid", "p_new_starts_at" timestamp with time zone, "p_new_ends_at" timestamp with time zone, "p_new_status" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_cascaded_objective_progress"() RETURNS "trigger"
@@ -5259,29 +5729,17 @@ CREATE TABLE IF NOT EXISTS "public"."analysis_prompts" (
 ALTER TABLE "public"."analysis_prompts" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."campaign_cron_job_logs" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "campaign_id" "uuid",
-    "job_name" "text",
-    "cron_schedule" "text",
-    "status" "text",
-    "error_message" "text",
-    "created_at" timestamp with time zone DEFAULT "now"()
-);
-
-
-ALTER TABLE "public"."campaign_cron_job_logs" OWNER TO "postgres";
-
-
 CREATE TABLE IF NOT EXISTS "public"."campaign_cron_jobs" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "campaign_id" "uuid",
+    "campaign_id" "uuid" NOT NULL,
     "job_name" "text" NOT NULL,
+    "job_type" "text" NOT NULL,
     "cron_schedule" "text" NOT NULL,
+    "is_active" boolean DEFAULT true,
+    "last_run" timestamp with time zone,
     "created_at" timestamp with time zone DEFAULT "now"(),
     "updated_at" timestamp with time zone DEFAULT "now"(),
-    "is_active" boolean DEFAULT true,
-    "job_type" "public"."cron_job_type" DEFAULT 'instance_activation'::"public"."cron_job_type" NOT NULL
+    CONSTRAINT "campaign_cron_jobs_job_type_check" CHECK (("job_type" = ANY (ARRAY['activation'::"text", 'completion'::"text"])))
 );
 
 
@@ -5315,23 +5773,6 @@ CREATE TABLE IF NOT EXISTS "public"."campaign_instances" (
 
 
 ALTER TABLE "public"."campaign_instances" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."contact_messages" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "name" "text" NOT NULL,
-    "email" "text" NOT NULL,
-    "message" "text" NOT NULL,
-    "status" "public"."contact_message_status" DEFAULT 'pending'::"public"."contact_message_status" NOT NULL,
-    "sent_to" "text"[] DEFAULT ARRAY[]::"text"[],
-    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "error_message" "text",
-    CONSTRAINT "valid_email" CHECK (("email" ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'::"text"))
-);
-
-
-ALTER TABLE "public"."contact_messages" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."employee_roles" (
@@ -5611,21 +6052,6 @@ CREATE TABLE IF NOT EXISTS "public"."email_config" (
 
 
 ALTER TABLE "public"."email_config" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."email_responses" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "session_id" "uuid" NOT NULL,
-    "original_email" "jsonb" NOT NULL,
-    "response_email" "jsonb",
-    "submitted_at" timestamp with time zone,
-    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "attempt_number" integer DEFAULT 1 NOT NULL
-);
-
-
-ALTER TABLE "public"."email_responses" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."issue_board_permissions" (
@@ -6540,11 +6966,6 @@ ALTER TABLE ONLY "public"."analysis_prompts"
 
 
 
-ALTER TABLE ONLY "public"."campaign_cron_job_logs"
-    ADD CONSTRAINT "campaign_cron_job_logs_pkey" PRIMARY KEY ("id");
-
-
-
 ALTER TABLE ONLY "public"."campaign_cron_jobs"
     ADD CONSTRAINT "campaign_cron_jobs_pkey" PRIMARY KEY ("id");
 
@@ -6565,11 +6986,6 @@ ALTER TABLE ONLY "public"."campaign_instances"
 
 
 
-ALTER TABLE ONLY "public"."contact_messages"
-    ADD CONSTRAINT "contact_messages_pkey" PRIMARY KEY ("id");
-
-
-
 ALTER TABLE ONLY "public"."email_config"
     ADD CONSTRAINT "email_config_pkey" PRIMARY KEY ("id");
 
@@ -6577,11 +6993,6 @@ ALTER TABLE ONLY "public"."email_config"
 
 ALTER TABLE ONLY "public"."email_config"
     ADD CONSTRAINT "email_config_provider_key" UNIQUE ("provider");
-
-
-
-ALTER TABLE ONLY "public"."email_responses"
-    ADD CONSTRAINT "email_responses_pkey" PRIMARY KEY ("id");
 
 
 
@@ -7097,15 +7508,7 @@ CREATE OR REPLACE TRIGGER "update_campaign_instances_updated_at" BEFORE UPDATE O
 
 
 
-CREATE OR REPLACE TRIGGER "update_contact_messages_updated_at" BEFORE UPDATE ON "public"."contact_messages" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
-
-
-
 CREATE OR REPLACE TRIGGER "update_email_config_updated_at" BEFORE UPDATE ON "public"."email_config" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
-
-
-
-CREATE OR REPLACE TRIGGER "update_email_responses_updated_at" BEFORE UPDATE ON "public"."email_responses" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
 
@@ -7232,11 +7635,6 @@ ALTER TABLE ONLY "public"."achievement_progress"
 
 ALTER TABLE ONLY "public"."achievement_progress"
     ADD CONSTRAINT "achievement_progress_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."campaign_cron_job_logs"
-    ADD CONSTRAINT "campaign_cron_job_logs_campaign_id_fkey" FOREIGN KEY ("campaign_id") REFERENCES "public"."survey_campaigns"("id") ON DELETE CASCADE;
 
 
 
@@ -7738,6 +8136,12 @@ CREATE POLICY "Allow admin to manage achievements" ON "public"."achievements" TO
 CREATE POLICY "Allow anonymous insert for active sessions" ON "public"."live_session_participants" FOR INSERT TO "authenticated", "anon" WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."live_survey_sessions" "s"
   WHERE (("s"."id" = "live_session_participants"."session_id") AND ("s"."status" = ANY (ARRAY['initial'::"public"."session_status", 'active'::"public"."session_status"]))))));
+
+
+
+CREATE POLICY "Allow full access for admins" ON "public"."campaign_cron_jobs" USING ((EXISTS ( SELECT 1
+   FROM "public"."user_roles" "ur"
+  WHERE (("ur"."user_id" = "auth"."uid"()) AND ("ur"."role" = 'admin'::"public"."user_role")))));
 
 
 
@@ -8261,6 +8665,9 @@ CREATE POLICY "admin_view_objectives" ON "public"."objectives" FOR SELECT USING 
 ALTER TABLE "public"."analysis_prompts" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."campaign_cron_jobs" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."campaign_instances" ENABLE ROW LEVEL SECURITY;
 
 
@@ -8272,9 +8679,6 @@ CREATE POLICY "department_visibility_objectives" ON "public"."objectives" FOR SE
 
 
 ALTER TABLE "public"."email_config" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."email_responses" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."employee_roles" ENABLE ROW LEVEL SECURITY;
@@ -8468,6 +8872,10 @@ ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."live_session_resp
 
 
 
+SET SESSION AUTHORIZATION "postgres";
+RESET SESSION AUTHORIZATION;
+SET SESSION AUTHORIZATION "postgres";
+RESET SESSION AUTHORIZATION;
 
 
 
@@ -8498,6 +8906,10 @@ GRANT ALL ON TYPE "public"."achievement_condition_type" TO "authenticated";
 
 
 
+SET SESSION AUTHORIZATION "postgres";
+RESET SESSION AUTHORIZATION;
+SET SESSION AUTHORIZATION "postgres";
+RESET SESSION AUTHORIZATION;
 
 
 
@@ -8507,6 +8919,10 @@ GRANT ALL ON TYPE "public"."achievement_condition_type" TO "authenticated";
 
 
 
+SET SESSION AUTHORIZATION "postgres";
+RESET SESSION AUTHORIZATION;
+SET SESSION AUTHORIZATION "postgres";
+RESET SESSION AUTHORIZATION;
 
 
 
@@ -8892,6 +9308,24 @@ GRANT ALL ON FUNCTION "public"."get_campaign_supervisor_performance"("p_campaign
 
 
 
+GRANT ALL ON FUNCTION "public"."get_dimension_bool"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_dimension_bool"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_dimension_bool"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_dimension_nps"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_dimension_nps"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_dimension_nps"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_dimension_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_dimension_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_dimension_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_instance_analysis_data"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_instance_analysis_data"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_instance_analysis_data"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "service_role";
@@ -8934,12 +9368,6 @@ GRANT ALL ON FUNCTION "public"."get_pending_surveys_count"("p_user_id" "uuid") T
 
 
 
-GRANT ALL ON FUNCTION "public"."get_supervisor_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_supervisor_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_supervisor_satisfaction"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text") TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."get_survey_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_survey_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_survey_responses"("p_campaign_id" "uuid", "p_instance_id" "uuid") TO "service_role";
@@ -8961,6 +9389,18 @@ GRANT ALL ON FUNCTION "public"."get_text_analysis"("p_campaign_id" "uuid", "p_in
 GRANT ALL ON FUNCTION "public"."handle_alignment_delete_progress"() TO "anon";
 GRANT ALL ON FUNCTION "public"."handle_alignment_delete_progress"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."handle_alignment_delete_progress"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."handle_instance_completion"("p_campaign_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_instance_completion"("p_campaign_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_instance_completion"("p_campaign_id" "uuid") TO "service_role";
 
 
 
@@ -9048,6 +9488,12 @@ GRANT ALL ON FUNCTION "public"."link_response_to_active_instance"() TO "service_
 
 
 
+GRANT ALL ON FUNCTION "public"."manage_instance_cron_job"("p_campaign_id" "uuid", "p_job_type" "text", "p_cron_schedule" "text", "p_is_active" boolean) TO "anon";
+GRANT ALL ON FUNCTION "public"."manage_instance_cron_job"("p_campaign_id" "uuid", "p_job_type" "text", "p_cron_schedule" "text", "p_is_active" boolean) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."manage_instance_cron_job"("p_campaign_id" "uuid", "p_job_type" "text", "p_cron_schedule" "text", "p_is_active" boolean) TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."prevent_duplicate_responses"() TO "anon";
 GRANT ALL ON FUNCTION "public"."prevent_duplicate_responses"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."prevent_duplicate_responses"() TO "service_role";
@@ -9084,6 +9530,12 @@ GRANT ALL ON FUNCTION "public"."reorder_questions"("p_session_id" "uuid", "p_que
 
 
 
+GRANT ALL ON FUNCTION "public"."run_instance_job_now"("p_campaign_id" "uuid", "p_job_type" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."run_instance_job_now"("p_campaign_id" "uuid", "p_job_type" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."run_instance_job_now"("p_campaign_id" "uuid", "p_job_type" "text") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."search_live_sessions"("search_text" "text", "status_filters" "text"[], "created_by_user" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."search_live_sessions"("search_text" "text", "status_filters" "text"[], "created_by_user" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."search_live_sessions"("search_text" "text", "status_filters" "text"[], "created_by_user" "uuid") TO "service_role";
@@ -9108,6 +9560,12 @@ GRANT ALL ON FUNCTION "public"."search_users"("search_text" "text", "page_number
 
 
 
+GRANT ALL ON FUNCTION "public"."toggle_instance_cron_job"("p_campaign_id" "uuid", "p_job_type" "text", "p_is_active" boolean) TO "anon";
+GRANT ALL ON FUNCTION "public"."toggle_instance_cron_job"("p_campaign_id" "uuid", "p_job_type" "text", "p_is_active" boolean) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."toggle_instance_cron_job"("p_campaign_id" "uuid", "p_job_type" "text", "p_is_active" boolean) TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."trigger_check_achievements"() TO "anon";
 GRANT ALL ON FUNCTION "public"."trigger_check_achievements"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."trigger_check_achievements"() TO "service_role";
@@ -9117,6 +9575,12 @@ GRANT ALL ON FUNCTION "public"."trigger_check_achievements"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."update_campaign_completion_rate"() TO "anon";
 GRANT ALL ON FUNCTION "public"."update_campaign_completion_rate"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_campaign_completion_rate"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."update_campaign_instance"("p_instance_id" "uuid", "p_new_starts_at" timestamp with time zone, "p_new_ends_at" timestamp with time zone, "p_new_status" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."update_campaign_instance"("p_instance_id" "uuid", "p_new_starts_at" timestamp with time zone, "p_new_ends_at" timestamp with time zone, "p_new_status" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_campaign_instance"("p_instance_id" "uuid", "p_new_starts_at" timestamp with time zone, "p_new_ends_at" timestamp with time zone, "p_new_status" "text") TO "service_role";
 
 
 
@@ -9207,15 +9671,9 @@ GRANT ALL ON TABLE "public"."analysis_prompts" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."campaign_cron_job_logs" TO "anon";
-GRANT ALL ON TABLE "public"."campaign_cron_job_logs" TO "authenticated";
-GRANT ALL ON TABLE "public"."campaign_cron_job_logs" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."campaign_cron_jobs" TO "anon";
-GRANT ALL ON TABLE "public"."campaign_cron_jobs" TO "authenticated";
-GRANT ALL ON TABLE "public"."campaign_cron_jobs" TO "service_role";
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE "public"."campaign_cron_jobs" TO "anon";
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE "public"."campaign_cron_jobs" TO "authenticated";
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON TABLE "public"."campaign_cron_jobs" TO "service_role";
 
 
 
@@ -9228,12 +9686,6 @@ GRANT ALL ON TABLE "public"."campaign_instance_status_logs" TO "service_role";
 GRANT ALL ON TABLE "public"."campaign_instances" TO "anon";
 GRANT ALL ON TABLE "public"."campaign_instances" TO "authenticated";
 GRANT ALL ON TABLE "public"."campaign_instances" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."contact_messages" TO "anon";
-GRANT ALL ON TABLE "public"."contact_messages" TO "authenticated";
-GRANT ALL ON TABLE "public"."contact_messages" TO "service_role";
 
 
 
@@ -9342,12 +9794,6 @@ GRANT ALL ON TABLE "public"."department_performance" TO "service_role";
 GRANT ALL ON TABLE "public"."email_config" TO "anon";
 GRANT ALL ON TABLE "public"."email_config" TO "authenticated";
 GRANT ALL ON TABLE "public"."email_config" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."email_responses" TO "anon";
-GRANT ALL ON TABLE "public"."email_responses" TO "authenticated";
-GRANT ALL ON TABLE "public"."email_responses" TO "service_role";
 
 
 
