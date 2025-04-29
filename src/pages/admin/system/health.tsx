@@ -10,11 +10,14 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { HealthStatusList } from "@/components/admin/health/HealthStatusList";
+import { StatusBadge } from "@/components/admin/health/StatusBadge";
+import { LogsPanel } from "@/components/admin/health/LogsPanel";
 
 // Service status types
-type ServiceStatus = "operational" | "degraded" | "failed" | "pending";
+export type ServiceStatus = "operational" | "degraded" | "failed" | "pending";
 
-interface ServiceCheck {
+export interface ServiceCheck {
   name: string;
   status: ServiceStatus;
   responseTime?: number;
@@ -23,7 +26,7 @@ interface ServiceCheck {
 }
 
 // Edge function types
-interface EdgeFunctionCheck extends ServiceCheck {
+export interface EdgeFunctionCheck extends ServiceCheck {
   endpoint: string;
 }
 
@@ -34,27 +37,23 @@ export default function HealthPage() {
   const [services, setServices] = useState<ServiceCheck[]>([
     {
       name: "API Service",
-      status: "operational",
-      responseTime: 42,
-      lastChecked: "2 minutes ago"
+      status: "pending",
+      lastChecked: "Never"
     },
     {
       name: "Database",
-      status: "operational",
-      responseTime: 78,
-      lastChecked: "2 minutes ago"
+      status: "pending",
+      lastChecked: "Never"
     },
     {
       name: "Storage",
-      status: "operational",
-      responseTime: 65,
-      lastChecked: "2 minutes ago"
+      status: "pending",
+      lastChecked: "Never"
     },
     {
       name: "Authentication",
-      status: "degraded",
-      responseTime: 187,
-      lastChecked: "2 minutes ago"
+      status: "pending",
+      lastChecked: "Never"
     }
   ]);
   
@@ -174,12 +173,11 @@ export default function HealthPage() {
       try {
         setLogs([...logs, `Testing edge function: ${func.name}...`]);
         
-        // Simple OPTIONS request to verify the endpoint exists and responds
-        const response = await fetch(`${supabase.functions.url}/${func.endpoint}`, {
+        // Use the invoke method to test the edge function exists
+        const { data, error } = await supabase.functions.invoke(func.endpoint, {
           method: 'OPTIONS',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabase.auth.getSession()}`,
           }
         });
         
@@ -188,13 +186,13 @@ export default function HealthPage() {
         
         updatedFunctions[i] = {
           ...func,
-          status: response.ok ? "operational" : "failed",
+          status: error ? "failed" : "operational",
           responseTime,
           lastChecked: new Date().toLocaleTimeString(),
-          error: response.ok ? undefined : "Function returned error status"
+          error: error ? error.message : undefined
         };
         
-        setLogs([...logs, `Edge function ${func.name}: ${response.ok ? "OK" : "Failed"} (${responseTime}ms)`]);
+        setLogs([...logs, `Edge function ${func.name}: ${error ? "Failed" : "OK"} (${responseTime}ms)`]);
       } catch (error) {
         updatedFunctions[i] = {
           ...func,
@@ -223,7 +221,7 @@ export default function HealthPage() {
       try {
         setLogs([...logs, `Testing table: ${table.name}...`]);
         
-        // Simple count query to test table access
+        // Map the display name to the actual table name
         let queryTable;
         
         // Map the display name to the actual table name
@@ -371,22 +369,6 @@ export default function HealthPage() {
     // Update state
     setServices(updatedServices);
   };
-  
-  // Helper function to render status badge
-  const renderStatusBadge = (status: ServiceStatus) => {
-    switch (status) {
-      case "operational":
-        return <Badge className="bg-green-500 hover:bg-green-600"><CheckCircle className="h-3 w-3 mr-1" /> Operational</Badge>;
-      case "degraded":
-        return <Badge className="bg-yellow-500 hover:bg-yellow-600"><AlertTriangle className="h-3 w-3 mr-1" /> Degraded</Badge>;
-      case "failed":
-        return <Badge className="bg-red-500 hover:bg-red-600"><AlertTriangle className="h-3 w-3 mr-1" /> Failed</Badge>;
-      case "pending":
-        return <Badge className="bg-gray-500 hover:bg-gray-600"><Clock className="h-3 w-3 mr-1" /> Pending</Badge>;
-      default:
-        return <Badge className="bg-gray-500 hover:bg-gray-600"><Clock className="h-3 w-3 mr-1" /> Unknown</Badge>;
-    }
-  };
 
   return (
     <div className="container mx-auto py-6">
@@ -430,23 +412,7 @@ export default function HealthPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4">
-                <div className="grid grid-cols-4 items-center gap-4 border-b pb-4">
-                  <div className="font-medium">Service</div>
-                  <div className="font-medium">Status</div>
-                  <div className="font-medium">Last Checked</div>
-                  <div className="font-medium">Response Time</div>
-                </div>
-                
-                {services.map((service, index) => (
-                  <div key={index} className="grid grid-cols-4 items-center gap-4 border-b pb-4">
-                    <div>{service.name}</div>
-                    <div>{renderStatusBadge(service.status)}</div>
-                    <div className="text-sm">{service.lastChecked}</div>
-                    <div className="text-sm">{service.responseTime ? `${service.responseTime}ms` : 'N/A'}</div>
-                  </div>
-                ))}
-              </div>
+              <HealthStatusList items={services} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -461,23 +427,7 @@ export default function HealthPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4">
-                <div className="grid grid-cols-4 items-center gap-4 border-b pb-4">
-                  <div className="font-medium">Function</div>
-                  <div className="font-medium">Status</div>
-                  <div className="font-medium">Last Checked</div>
-                  <div className="font-medium">Response Time</div>
-                </div>
-                
-                {edgeFunctions.map((func, index) => (
-                  <div key={index} className="grid grid-cols-4 items-center gap-4 border-b pb-4">
-                    <div>{func.name}</div>
-                    <div>{renderStatusBadge(func.status)}</div>
-                    <div className="text-sm">{func.lastChecked}</div>
-                    <div className="text-sm">{func.responseTime ? `${func.responseTime}ms` : 'N/A'}</div>
-                  </div>
-                ))}
-              </div>
+              <HealthStatusList items={edgeFunctions} />
             </CardContent>
             {edgeFunctions.some(func => func.status === "failed") && (
               <CardFooter>
@@ -503,23 +453,7 @@ export default function HealthPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4">
-                <div className="grid grid-cols-4 items-center gap-4 border-b pb-4">
-                  <div className="font-medium">Table</div>
-                  <div className="font-medium">Status</div>
-                  <div className="font-medium">Last Checked</div>
-                  <div className="font-medium">Response Time</div>
-                </div>
-                
-                {databaseTables.map((table, index) => (
-                  <div key={index} className="grid grid-cols-4 items-center gap-4 border-b pb-4">
-                    <div>{table.name}</div>
-                    <div>{renderStatusBadge(table.status)}</div>
-                    <div className="text-sm">{table.lastChecked}</div>
-                    <div className="text-sm">{table.responseTime ? `${table.responseTime}ms` : 'N/A'}</div>
-                  </div>
-                ))}
-              </div>
+              <HealthStatusList items={databaseTables} />
             </CardContent>
             {databaseTables.some(table => table.status === "failed") && (
               <CardFooter>
@@ -536,90 +470,9 @@ export default function HealthPage() {
         </TabsContent>
         
         <TabsContent value="logs">
-          <Card>
-            <CardHeader className="flex flex-row items-center gap-4">
-              <Activity className="h-8 w-8 text-primary" />
-              <div>
-                <CardTitle>System Logs</CardTitle>
-                <CardDescription>Test execution logs and error messages</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md h-96 overflow-y-auto font-mono text-sm">
-                {logs.length === 0 ? (
-                  <p className="text-muted-foreground">No logs available. Run tests to generate logs.</p>
-                ) : (
-                  logs.map((log, index) => (
-                    <div key={index} className="mb-1">
-                      <span className="text-muted-foreground mr-2">[{new Date().toLocaleTimeString()}]</span>
-                      <span>{log}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                variant="outline" 
-                onClick={() => setLogs([])}
-                size="sm"
-                className="ml-auto"
-              >
-                Clear Logs
-              </Button>
-            </CardFooter>
-          </Card>
+          <LogsPanel logs={logs} onClearLogs={() => setLogs([])} />
         </TabsContent>
       </Tabs>
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>System Metrics</CardTitle>
-          <CardDescription>Performance metrics for the last 24 hours</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">CPU Usage</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">24%</div>
-                <p className="text-xs text-muted-foreground">Average over 24h</p>
-                <div className="mt-2 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                  <div className="bg-green-500 h-full rounded-full" style={{ width: "24%" }}></div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">42%</div>
-                <p className="text-xs text-muted-foreground">Average over 24h</p>
-                <div className="mt-2 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                  <div className="bg-green-500 h-full rounded-full" style={{ width: "42%" }}></div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Disk Space</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">58%</div>
-                <p className="text-xs text-muted-foreground">Used space</p>
-                <div className="mt-2 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                  <div className="bg-yellow-500 h-full rounded-full" style={{ width: "58%" }}></div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
