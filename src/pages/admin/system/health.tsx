@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Activity, CheckCircle, AlertTriangle, Clock, Database, Server, Globe, FileCode } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
@@ -28,6 +27,15 @@ export interface ServiceCheck {
 // Edge function types
 export interface EdgeFunctionCheck extends ServiceCheck {
   endpoint: string;
+}
+
+// Database function types
+export interface DbFunctionCheck extends ServiceCheck {
+  functionName: string;
+  schema?: string;
+  category?: string;
+  parameters?: any[];
+  result?: any;
 }
 
 export default function HealthPage() {
@@ -95,6 +103,96 @@ export default function HealthPage() {
       lastChecked: "Never"
     }
   ]);
+
+  const [dbFunctions, setDbFunctions] = useState<DbFunctionCheck[]>([
+    // User-related functions
+    {
+      name: "Check Admin Status",
+      functionName: "is_admin",
+      status: "pending",
+      category: "User Management",
+      lastChecked: "Never"
+    },
+    {
+      name: "Delete User Cascade",
+      functionName: "delete_user_cascade",
+      status: "pending",
+      category: "User Management",
+      lastChecked: "Never"
+    },
+    {
+      name: "Handle New User",
+      functionName: "handle_new_user",
+      status: "pending",
+      category: "User Management",
+      lastChecked: "Never"
+    },
+    {
+      name: "Search Users",
+      functionName: "search_users",
+      status: "pending",
+      category: "User Management",
+      lastChecked: "Never"
+    },
+    // Survey functions
+    {
+      name: "Get Campaign Instances",
+      functionName: "get_campaign_instances", 
+      status: "pending",
+      category: "Surveys",
+      lastChecked: "Never"
+    },
+    {
+      name: "Get Survey Responses",
+      functionName: "get_survey_responses",
+      status: "pending",
+      category: "Surveys",
+      lastChecked: "Never"
+    },
+    {
+      name: "Calculate Instance Completion Rate",
+      functionName: "calculate_instance_completion_rate",
+      status: "pending",
+      category: "Surveys",
+      lastChecked: "Never"
+    },
+    {
+      name: "Get Campaign Analysis Data",
+      functionName: "get_campaign_analysis_data",
+      status: "pending",
+      category: "Surveys",
+      lastChecked: "Never"
+    },
+    // OKR functions
+    {
+      name: "Search Objectives",
+      functionName: "search_objectives",
+      status: "pending",
+      category: "OKR Management",
+      lastChecked: "Never"
+    },
+    {
+      name: "Calculate Objective Progress",
+      functionName: "calculate_cascaded_objective_progress",
+      status: "pending",
+      category: "OKR Management",
+      lastChecked: "Never"
+    },
+    {
+      name: "Check Objective Permission",
+      functionName: "check_okr_objective_access",
+      status: "pending",
+      category: "OKR Management",
+      lastChecked: "Never"
+    },
+    {
+      name: "Calculate Key Result Progress",
+      functionName: "calculate_key_result_progress",
+      status: "pending",
+      category: "OKR Management",
+      lastChecked: "Never"
+    }
+  ]);
   
   const [databaseTables, setDatabaseTables] = useState<ServiceCheck[]>([
     {
@@ -130,14 +228,18 @@ export default function HealthPage() {
     try {
       // Test database connectivity first
       await testDatabaseTables();
-      setProgress(30);
+      setProgress(25);
       
-      // Test edge functions
-      await testEdgeFunctions();
-      setProgress(60);
+      // Test database functions
+      await testDatabaseFunctions();
+      setProgress(50);
       
       // Test services
       await testServices();
+      setProgress(75);
+      
+      // Test edge functions
+      await testEdgeFunctions();
       setProgress(100);
       
       toast({
@@ -160,6 +262,124 @@ export default function HealthPage() {
       setIsRunningTests(false);
     }
   };
+
+  // Test database functions
+  const testDatabaseFunctions = async () => {
+    let updatedFunctions = [...dbFunctions];
+    setLogs([...logs, "Testing database functions..."]);
+    
+    for (let i = 0; i < updatedFunctions.length; i++) {
+      const func = updatedFunctions[i];
+      const startTime = Date.now();
+      
+      try {
+        setLogs([...logs, `Testing database function: ${func.name}...`]);
+        
+        // Prepare test parameters based on function name
+        let testParams = getTestParamsForFunction(func.functionName);
+        let result;
+        
+        // Execute RPC call
+        if (testParams) {
+          result = await supabase.rpc(func.functionName, testParams);
+        } else {
+          result = await supabase.rpc(func.functionName);
+        }
+        
+        const endTime = Date.now();
+        const responseTime = endTime - startTime;
+        
+        if (result.error) {
+          updatedFunctions[i] = {
+            ...func,
+            status: "failed",
+            responseTime,
+            lastChecked: new Date().toLocaleTimeString(),
+            error: result.error.message,
+            result: null
+          };
+          
+          setLogs([...logs, `Database function ${func.name} failed: ${result.error.message} (${responseTime}ms)`]);
+        } else {
+          updatedFunctions[i] = {
+            ...func,
+            status: "operational",
+            responseTime,
+            lastChecked: new Date().toLocaleTimeString(),
+            error: undefined,
+            result: result.data
+          };
+          
+          setLogs([...logs, `Database function ${func.name}: OK (${responseTime}ms)`]);
+        }
+      } catch (error) {
+        updatedFunctions[i] = {
+          ...func,
+          status: "failed",
+          lastChecked: new Date().toLocaleTimeString(),
+          error: error.message
+        };
+        
+        setLogs([...logs, `Database function ${func.name}: Error - ${error.message}`]);
+      }
+      
+      // Update state after each test to show progress
+      setDbFunctions(updatedFunctions);
+      
+      // Update partial progress
+      const partialProgress = 25 + ((i + 1) / updatedFunctions.length) * 25;
+      setProgress(Math.round(partialProgress));
+    }
+  };
+
+  // Helper to get test parameters for function testing
+  const getTestParamsForFunction = (functionName: string): any => {
+    // Return minimal test parameters based on function name
+    switch (functionName) {
+      case "is_admin":
+        return { user_uid: "00000000-0000-0000-0000-000000000000" };
+      case "search_users":
+        return { search_text: "", page_number: 1, page_size: 1 };
+      case "search_objectives":
+        return { 
+          p_search_text: "",
+          p_page_number: 1, 
+          p_page_size: 1,
+          p_is_admin: true
+        };
+      case "get_campaign_instances":
+        return { 
+          p_campaign_id: "00000000-0000-0000-0000-000000000000",
+          p_page: 1,
+          p_page_size: 1
+        };
+      case "get_survey_responses":
+        return { 
+          p_campaign_id: "00000000-0000-0000-0000-000000000000"
+        };
+      case "calculate_instance_completion_rate":
+        return { 
+          instance_id: "00000000-0000-0000-0000-000000000000"
+        };
+      case "check_okr_objective_access":
+        return {
+          p_user_id: "00000000-0000-0000-0000-000000000000",
+          p_objective_id: "00000000-0000-0000-0000-000000000000",
+          p_access_type: "view"
+        };
+      case "calculate_key_result_progress":
+        return {
+          p_measurement_type: "numeric",
+          p_current_value: 50,
+          p_start_value: 0,
+          p_target_value: 100,
+          p_boolean_value: null
+        };
+      // Add more parameter sets as needed
+      default:
+        return null; // Functions with no required parameters
+    }
+  };
   
   // Test edge functions
   const testEdgeFunctions = async () => {
@@ -175,7 +395,7 @@ export default function HealthPage() {
         
         // Use the invoke method to test the edge function exists
         const { data, error } = await supabase.functions.invoke(func.endpoint, {
-          method: 'OPTIONS',
+          method: 'GET', // Use GET instead of OPTIONS
           headers: {
             'Content-Type': 'application/json',
           }
@@ -236,7 +456,7 @@ export default function HealthPage() {
             queryTable = "surveys";
             break;
           case "Campaigns":
-            queryTable = "campaigns";
+            queryTable = "survey_campaigns";
             break;
           default:
             queryTable = table.name.toLowerCase();
@@ -370,6 +590,21 @@ export default function HealthPage() {
     setServices(updatedServices);
   };
 
+  // Group functions by category
+  const getGroupedDbFunctions = () => {
+    const grouped: { [key: string]: DbFunctionCheck[] } = {};
+    
+    dbFunctions.forEach(func => {
+      const category = func.category || 'Uncategorized';
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      grouped[category].push(func);
+    });
+    
+    return grouped;
+  };
+
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">
@@ -397,6 +632,7 @@ export default function HealthPage() {
       <Tabs defaultValue="services" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="services">Core Services</TabsTrigger>
+          <TabsTrigger value="db-functions">Database Functions</TabsTrigger>
           <TabsTrigger value="edge-functions">Edge Functions</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
@@ -414,6 +650,40 @@ export default function HealthPage() {
             <CardContent>
               <HealthStatusList items={services} />
             </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="db-functions">
+          <Card>
+            <CardHeader className="flex flex-row items-center gap-4">
+              <Database className="h-8 w-8 text-primary" />
+              <div>
+                <CardTitle>Database Functions</CardTitle>
+                <CardDescription>Status of Supabase database functions</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {Object.entries(getGroupedDbFunctions()).map(([category, functions]) => (
+                  <div key={category} className="space-y-4">
+                    <h3 className="text-lg font-semibold">{category}</h3>
+                    <HealthStatusList items={functions} />
+                    <Separator className="my-4" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            {dbFunctions.some(func => func.status === "failed") && (
+              <CardFooter>
+                <Alert variant="destructive" className="mt-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Database Function Errors</AlertTitle>
+                  <AlertDescription>
+                    Some database functions are not responding correctly. Check the logs for details.
+                  </AlertDescription>
+                </Alert>
+              </CardFooter>
+            )}
           </Card>
         </TabsContent>
         
