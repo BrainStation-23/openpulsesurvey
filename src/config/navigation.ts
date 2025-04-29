@@ -1,3 +1,4 @@
+
 import { 
   LayoutDashboard, 
   Settings, 
@@ -29,8 +30,7 @@ import {
   FormInput,
   PanelTop,
   History,
-  Info,
-  Activity
+  Info
 } from "lucide-react";
 
 // Navigation item with optional children for nested navigation
@@ -207,11 +207,6 @@ export const navigationItems: NavigationItem[] = [
         title: "About",
         icon: Info,
         path: "/admin/system/about",
-      },
-      {
-        title: "Health",
-        icon: Activity,
-        path: "/admin/system/health",
       }
     ],
   },
