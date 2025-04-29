@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -18,6 +19,11 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Add an alias for problematic modules
+      "use-sync-external-store/shim/with-selector": path.resolve(
+        __dirname,
+        "./node_modules/use-sync-external-store/shim/with-selector.js"
+      ),
     },
   },
 
@@ -39,6 +45,12 @@ export default defineConfig(({ mode }) => ({
   },
 
   optimizeDeps: {
+    esbuildOptions: {
+      // Configure proper handling of CommonJS/ESM interop
+      define: {
+        global: "globalThis",
+      },
+    },
     exclude: [
       "@tanstack/react-query",
       "framer-motion",
