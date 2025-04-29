@@ -36,37 +36,7 @@ const SUPABASE_URL = "https://your_new_project_id.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "your_new_anon_key";
 ```
 
-## Step 3: Migrate Database Schema
-
-### Option 1: Using Supabase CLI for Migration
-
-```bash
-# Login to Supabase CLI
-supabase login
-
-# Link to the new project
-supabase link --project-ref your_new_project_id
-
-# Generate database types for TypeScript
-supabase gen types typescript --linked > src/integrations/supabase/types.ts
-
-# Optionally, generate a migration from the current schema
-supabase db dump -f schema_dump.sql
-```
-
-### Option 2: Manual Schema Migration
-
-1. Export your current database schema:
-   - Go to the SQL Editor in the Supabase dashboard
-   - Run: `SELECT * FROM pg_dump_all();`
-   - Save the output as `schema_dump.sql`
-
-2. Apply the schema to the new project:
-   - Go to the SQL Editor in the new Supabase dashboard
-   - Run the saved SQL dump file
-   - Resolve any conflicts manually
-
-## Step 4: Migrate Edge Functions
+## Step 3: Migrate Edge Functions
 
 1. Deploy all edge functions to the new project:
 
@@ -88,17 +58,9 @@ done
 supabase functions list --project-ref your_new_project_id
 ```
 
-## Step 5: Configure Function Secrets
+## Step 4: Configure Function Secrets
 
 1. Set up all the required secrets in the new project:
-
-```bash
-# List all current secrets first for reference
-supabase secrets list --project-ref your_old_project_id
-
-# Set each secret in the new project
-supabase secrets set SECRET_NAME=SECRET_VALUE --project-ref your_new_project_id
-```
 
 Important secrets that need to be transferred:
 - `SUPABASE_URL`
@@ -109,21 +71,7 @@ Important secrets that need to be transferred:
 - `GEMINI_MODEL_NAME`
 - `GEMINI_API_KEY`
 
-## Step 6: Set Up Storage Buckets
-
-Create all necessary storage buckets in the new project with appropriate RLS policies:
-
-1. Go to Storage in the Supabase dashboard
-2. Create buckets matching those in the original project
-3. Configure access policies for each bucket
-
-## Step 7: Update Authentication Settings
-
-1. Configure authentication providers in the new project
-2. Set up email templates
-3. Configure any additional auth settings (password policy, etc.)
-
-## Step 8: Test the Application
+## Step 5: Test the Application
 
 1. Make sure to test all critical paths in the application:
    - Authentication (sign up, sign in, reset password)
@@ -131,13 +79,6 @@ Create all necessary storage buckets in the new project with appropriate RLS pol
    - Edge function execution
    - File uploads and downloads
    - Any integrated third-party services
-
-## Step 9: Update Environment Variables
-
-If you're using environment variables in deployment environments:
-
-1. Update environment variables in your production/staging environments
-2. Update CI/CD pipelines if applicable
 
 ## Troubleshooting Common Issues
 
@@ -172,10 +113,9 @@ If you're using environment variables in deployment environments:
 - [ ] Migrated database schema
 - [ ] Deployed all edge functions
 - [ ] Configured all required secrets
-- [ ] Set up storage buckets and policies
 - [ ] Configured authentication settings
 - [ ] Updated environment variables
 - [ ] Tested all critical application features
-- [ ] Updated documentation references to Supabase project
+
 
 For additional help, refer to the [Supabase documentation](https://supabase.com/docs).
