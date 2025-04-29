@@ -54,7 +54,8 @@ export default defineConfig(({ mode }) => ({
     exclude: [
       "@tanstack/react-query",
       "framer-motion",
-      "@xyflow/react"
+      "@xyflow/react",
+      "zustand" // Add zustand to the exclude list
     ],
   },
 }));
