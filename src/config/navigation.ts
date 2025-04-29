@@ -28,7 +28,9 @@ import {
   LineChart,
   FormInput,
   PanelTop,
-  History
+  History,
+  Info,
+  Activity
 } from "lucide-react";
 
 // Navigation item with optional children for nested navigation
@@ -195,6 +197,24 @@ export const navigationItems: NavigationItem[] = [
       }
     ],
   },
+  {
+    title: "System",
+    icon: Database,
+    path: "/admin/system",
+    section: "system",
+    children: [
+      {
+        title: "About",
+        icon: Info,
+        path: "/admin/system/about",
+      },
+      {
+        title: "Health",
+        icon: Activity,
+        path: "/admin/system/health",
+      }
+    ],
+  },
 ];
 
 // Grouping data for the sidebar sections
@@ -204,4 +224,5 @@ export const navigationSections = [
   { id: "issue_boards", label: "Issue Management" },
   { id: "okrs", label: "OKR System" },
   { id: "config", label: "Configuration" },
+  { id: "system", label: "System" },
 ];

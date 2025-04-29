@@ -83,6 +83,10 @@ import OkrHistory from "./pages/admin/okrs/History";
 
 import { TokenInputForm } from "./pages/public/presentation/TokenInputForm";
 
+// Import new system pages
+import SystemAboutPage from "./pages/admin/system/about";
+import SystemHealthPage from "./pages/admin/system/health";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -162,6 +166,10 @@ const App = () => (
               <Route path="okrs/objectives/:id" element={<AdminObjectiveDetails />} />
               <Route path="okrs/history" element={<OkrHistory />} />
               <Route path="okrs/settings" element={<OkrSettingsPage />} />
+              
+              {/* Add new System routes */}
+              <Route path="system/about" element={<SystemAboutPage />} />
+              <Route path="system/health" element={<SystemHealthPage />} />
               
               <Route path="config" element={<PlatformConfigLayout />}>
                 <Route index element={<AdminConfig />} />
