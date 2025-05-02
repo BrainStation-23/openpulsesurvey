@@ -7,16 +7,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    allowedHosts: [
-      "5ceaf3e4-4de6-48d1-a7eb-05695776ba3d.lovableproject.com",
-      // Keep this pattern to allow any subdomain of lovableproject.com
-      ".lovableproject.com"
-    ]
+    allowedHosts: [".lovableproject.com"],
   },
 
   plugins: [
     react(),
-    mode === 'development' && componentTagger(),
+    mode === "development" && componentTagger(),
   ].filter(Boolean),
 
   resolve: {
@@ -26,21 +22,34 @@ export default defineConfig(({ mode }) => ({
   },
 
   build: {
-    sourcemap: true,
+    sourcemap: mode !== "development", // disable sourcemap in dev to reduce memory usage
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom'],
-          query: ['@tanstack/react-query'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
-          charts: ['recharts'],
-          flow: ['@xyflow/react'],
+          vendor: ["react", "react-dom"],
+          query: ["@tanstack/react-query"],
+          ui: ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu"],
+          charts: ["recharts"],
+          flow: ["@xyflow/react"],
         },
       },
     },
     chunkSizeWarningLimit: 2000,
-    // Using esbuild for minification which is built into Vite
-    // This avoids the need for terser as a separate dependency
-    minify: 'esbuild',
+    minify: "esbuild",
+    define: {
+      global: "globalThis", // good practice for interop with Node-ish packages
+    },
+  },
+
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: "globalThis",
+      },
+    },
+    exclude: [
+      "@tanstack/react-query",
+      "framer-motion",
+    ],
   },
 }));

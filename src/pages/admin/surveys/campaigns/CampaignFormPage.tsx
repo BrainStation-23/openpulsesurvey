@@ -34,11 +34,25 @@ export default function CampaignFormPage() {
       if (error) throw error;
 
       if (data) {
-        return {
-          ...data,
-          starts_at: new Date(data.starts_at),
-          ends_at: data.ends_at ? new Date(data.ends_at) : undefined,
-        };
+        try {
+          return {
+            ...data,
+            starts_at: new Date(data.starts_at),
+            ends_at: data.ends_at ? new Date(data.ends_at) : undefined,
+          };
+        } catch (error) {
+          console.error("Error converting campaign dates:", error);
+          // Return data with fallback dates if conversion fails
+          const now = new Date();
+          const oneWeekLater = new Date();
+          oneWeekLater.setDate(now.getDate() + 7);
+          
+          return {
+            ...data,
+            starts_at: now,
+            ends_at: oneWeekLater,
+          };
+        }
       }
       return null;
     },
@@ -78,11 +92,37 @@ export default function CampaignFormPage() {
       let instanceEndTime: string | null = null;
       
       if (formData.is_recurring && formData.instance_end_time) {
-        const [hours, minutes] = formData.instance_end_time.split(':').map(Number);
-        // Create date in local timezone and set the time
-        const endTimeDate = new Date();
-        endTimeDate.setHours(hours, minutes, 0, 0);
-        instanceEndTime = endTimeDate.toISOString();
+        try {
+          // Safely parse time parts with fallbacks
+          const timeParts = formData.instance_end_time.split(':');
+          let hours = 0;
+          let minutes = 0;
+          
+          // Handle potential 12-hour format (with AM/PM)
+          if (formData.instance_end_time.includes('AM') || formData.instance_end_time.includes('PM')) {
+            const isPM = formData.instance_end_time.includes('PM');
+            const timeWithoutAMPM = formData.instance_end_time.replace(/\s?(AM|PM)/i, '');
+            const [hourStr, minuteStr] = timeWithoutAMPM.split(':');
+            
+            hours = parseInt(hourStr, 10) || 0;
+            if (isPM && hours < 12) hours += 12;
+            if (!isPM && hours === 12) hours = 0;
+            
+            minutes = parseInt(minuteStr, 10) || 0;
+          } else {
+            // 24-hour format
+            hours = parseInt(timeParts[0], 10) || 0;
+            minutes = parseInt(timeParts[1], 10) || 0;
+          }
+          
+          // Create a new date object with just the time portion
+          const endTimeDate = new Date();
+          endTimeDate.setHours(hours, minutes, 0, 0);
+          instanceEndTime = endTimeDate.toISOString();
+        } catch (error) {
+          console.error("Error parsing instance end time:", error);
+          instanceEndTime = null;
+        }
       }
 
       const dataToSubmit: CampaignInsert = {
