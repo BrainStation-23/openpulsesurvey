@@ -10,28 +10,17 @@ import { ReviewStep } from "./ReviewStep";
 import { ArrowLeft, ArrowRight, Send } from "lucide-react";
 import { useState } from "react";
 
-// Helper function to validate dates
-const isValidDate = (date: any): boolean => {
-  return date instanceof Date && !isNaN(date.getTime());
-};
-
 const campaignSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   survey_id: z.string().min(1, "Survey is required"),
   starts_at: z.date({
     required_error: "Start date is required",
-    invalid_type_error: "Start date must be a valid date",
-  }).refine(isValidDate, {
-    message: "Start date is invalid",
   }),
   is_recurring: z.boolean().default(false),
   recurring_frequency: z.string().optional(),
   ends_at: z.date({
     required_error: "End date is required",
-    invalid_type_error: "End date must be a valid date",
-  }).refine(isValidDate, {
-    message: "End date is invalid",
   }),
   instance_duration_days: z.number().optional(),
   instance_end_time: z.string().optional(),
@@ -64,17 +53,6 @@ export function CampaignForm({
   const today = new Date();
   const defaultEndDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 0, 0);
 
-  // Ensure default values have valid dates
-  const safeDefaultValues = {
-    ...defaultValues,
-    starts_at: defaultValues?.starts_at && isValidDate(defaultValues.starts_at) 
-      ? defaultValues.starts_at 
-      : new Date(),
-    ends_at: defaultValues?.ends_at && isValidDate(defaultValues.ends_at)
-      ? defaultValues.ends_at
-      : defaultEndDate
-  };
-
   const form = useForm<CampaignFormData>({
     resolver: zodResolver(campaignSchema),
     defaultValues: {
@@ -89,7 +67,7 @@ export function CampaignForm({
       instance_end_time: "00:00", // Set default response due time to 12:00 AM
       status: "draft",
       anonymous: false,
-      ...safeDefaultValues,
+      ...defaultValues,
     },
   });
 

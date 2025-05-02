@@ -13,12 +13,6 @@ interface TimePickerProps {
   disabled?: boolean;
 }
 
-function validateTimeString(time: string): boolean {
-  // Check if time is in format HH:MM or H:MM
-  const timeRegex = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/;
-  return timeRegex.test(time);
-}
-
 function getTimeOfDay(minutes: number) {
   if (minutes >= 360 && minutes < 720) return "morning";
   if (minutes >= 720 && minutes < 1080) return "afternoon";
@@ -40,24 +34,11 @@ function formatTime(minutes: number, use24Hour: boolean): string {
 }
 
 function getMinutesFromTimeString(time: string): number {
-  if (!validateTimeString(time)) {
-    console.warn(`Invalid time format: ${time}, using 00:00 instead`);
-    return 0; // Default to midnight
-  }
-  
   const isPM = time.toLowerCase().includes('pm');
   const isAM = time.toLowerCase().includes('am');
   
   const cleanTime = time.toLowerCase().replace(/(am|pm)/i, '').trim();
-  const [hoursStr, minutesStr] = cleanTime.split(':');
-  
-  const hours = parseInt(hoursStr, 10);
-  const minutes = parseInt(minutesStr, 10);
-  
-  if (isNaN(hours) || isNaN(minutes)) {
-    console.warn(`Invalid time values in: ${time}, using 00:00 instead`);
-    return 0;
-  }
+  const [hours, minutes] = cleanTime.split(':').map(Number);
   
   let adjustedHours = hours;
   if (isPM && hours !== 12) adjustedHours += 12;
@@ -68,17 +49,7 @@ function getMinutesFromTimeString(time: string): number {
 
 export function TimePicker({ value, onChange, className, disabled = false }: TimePickerProps) {
   const [use24Hour, setUse24Hour] = React.useState(true);
-  
-  // Validate and normalize the input value
-  const safeValue = React.useMemo(() => {
-    if (!validateTimeString(value)) {
-      console.warn(`Invalid time format received: ${value}, using 00:00 instead`);
-      return "00:00";
-    }
-    return value;
-  }, [value]);
-  
-  const minutes = getMinutesFromTimeString(safeValue);
+  const minutes = getMinutesFromTimeString(value);
   const timeOfDay = getTimeOfDay(minutes);
   const isNextDay = minutes < 360; // Before 6 AM
 

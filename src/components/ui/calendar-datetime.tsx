@@ -21,83 +21,30 @@ export function CalendarDateTime({
   value,
   onChange,
 }: CalendarDateTimeProps) {
-  // Make sure we have a valid time string
-  const getInitialTimeString = () => {
-    if (!value || !(value instanceof Date) || isNaN(value.getTime())) {
-      return "00:00";
-    }
-    try {
-      return format(value, "HH:mm");
-    } catch (error) {
-      console.error("Error formatting time:", error);
-      return "00:00";
-    }
-  };
-
-  const [time, setTime] = React.useState(getInitialTimeString);
-
-  // Update time when value changes
-  React.useEffect(() => {
-    if (value && value instanceof Date && !isNaN(value.getTime())) {
-      try {
-        setTime(format(value, "HH:mm"));
-      } catch (error) {
-        console.error("Error updating time from value:", error);
-      }
-    }
-  }, [value]);
+  const [time, setTime] = React.useState(
+    value ? format(value, "HH:mm") : "00:00"
+  );
 
   const handleDateSelect = (date: Date | undefined) => {
     if (!date || !onChange) return;
 
-    try {
-      const [hours, minutes] = time.split(":").map(Number);
-      const newDate = new Date(date);
-      newDate.setHours(hours);
-      newDate.setMinutes(minutes);
-      
-      // Validate the date before calling onChange
-      if (!isNaN(newDate.getTime())) {
-        onChange(newDate);
-      } else {
-        console.error("Invalid date created in handleDateSelect");
-      }
-    } catch (error) {
-      console.error("Error in handleDateSelect:", error);
-    }
+    const [hours, minutes] = time.split(":").map(Number);
+    date.setHours(hours);
+    date.setMinutes(minutes);
+    onChange(date);
   };
 
   const handleTimeChange = (newTime: string) => {
     setTime(newTime);
 
     if (value && onChange) {
-      try {
-        const newDate = new Date(value);
-        const [hours, minutes] = newTime.split(":").map(Number);
-        
-        // Validate hour and minute values
-        if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-          console.error("Invalid time values:", hours, minutes);
-          return;
-        }
-        
-        newDate.setHours(hours);
-        newDate.setMinutes(minutes);
-        
-        // Validate the date before calling onChange
-        if (!isNaN(newDate.getTime())) {
-          onChange(newDate);
-        } else {
-          console.error("Invalid date created in handleTimeChange");
-        }
-      } catch (error) {
-        console.error("Error in handleTimeChange:", error);
-      }
+      const newDate = new Date(value);
+      const [hours, minutes] = newTime.split(":").map(Number);
+      newDate.setHours(hours);
+      newDate.setMinutes(minutes);
+      onChange(newDate);
     }
   };
-
-  // Ensure we have a valid date value for display
-  const isValidDate = value && value instanceof Date && !isNaN(value.getTime());
 
   return (
     <div className="grid gap-2">
@@ -107,21 +54,20 @@ export function CalendarDateTime({
             variant={"outline"}
             className={cn(
               "justify-start text-left font-normal",
-              !isValidDate && "text-muted-foreground"
+              !value && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {isValidDate ? format(value, "PPP") : <span>Pick a date</span>}
+            {value ? format(value, "PPP") : <span>Pick a date</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
             mode="single"
-            selected={isValidDate ? value : undefined}
+            selected={value}
             onSelect={handleDateSelect}
-            defaultMonth={isValidDate ? value : undefined}
+            defaultMonth={value}
             initialFocus
-            className="pointer-events-auto"
           />
         </PopoverContent>
       </Popover>
