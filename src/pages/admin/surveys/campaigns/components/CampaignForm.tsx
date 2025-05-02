@@ -49,18 +49,9 @@ export function CampaignForm({
 }: CampaignFormProps) {
   const [isReadyToProceed, setIsReadyToProceed] = useState(false);
   
-  // Create default dates with proper time values
+  // Set default end date to today at 12:00 PM
   const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  // Set default start date to today at 9:00 AM
-  const defaultStartDate = new Date(today);
-  defaultStartDate.setHours(9, 0, 0, 0);
-  
-  // Set default end date to tomorrow at 6:00 PM
-  const defaultEndDate = new Date(tomorrow);
-  defaultEndDate.setHours(18, 0, 0, 0);
+  const defaultEndDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 0, 0);
 
   const form = useForm<CampaignFormData>({
     resolver: zodResolver(campaignSchema),
@@ -68,12 +59,12 @@ export function CampaignForm({
       name: "",
       description: "",
       survey_id: "",
-      starts_at: defaultStartDate,
+      starts_at: new Date(),
       is_recurring: false,
       recurring_frequency: "daily", // Set default frequency to daily
       ends_at: defaultEndDate,
       instance_duration_days: 1,
-      instance_end_time: "18:00", // Set default response due time to 6:00 PM
+      instance_end_time: "00:00", // Set default response due time to 12:00 AM
       status: "draft",
       anonymous: false,
       ...defaultValues,

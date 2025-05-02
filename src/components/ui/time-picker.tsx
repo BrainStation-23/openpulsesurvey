@@ -34,60 +34,22 @@ function formatTime(minutes: number, use24Hour: boolean): string {
 }
 
 function getMinutesFromTimeString(time: string): number {
-  // Handle empty or invalid input
-  if (!time || typeof time !== 'string') {
-    return 0;
-  }
-
-  try {
-    const isPM = time.toLowerCase().includes('pm');
-    const isAM = time.toLowerCase().includes('am');
-    
-    // Remove AM/PM and trim whitespace
-    const cleanTime = time.toLowerCase().replace(/(am|pm)/i, '').trim();
-    
-    // Validate time format (HH:MM)
-    if (!/^\d{1,2}:\d{1,2}$/.test(cleanTime)) {
-      // Try to handle 24-hour format (HH:MM)
-      const parts = cleanTime.split(':');
-      if (parts.length !== 2) {
-        console.warn(`Invalid time format: ${time}`);
-        return 0;
-      }
-    }
-    
-    const [hours, minutes] = cleanTime.split(':').map(Number);
-    
-    // Validate hours and minutes
-    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-      console.warn(`Invalid time values: ${time}`);
-      return 0;
-    }
-    
-    let adjustedHours = hours;
-    if (isPM && hours !== 12) adjustedHours += 12;
-    if (isAM && hours === 12) adjustedHours = 0;
-    
-    return adjustedHours * 60 + minutes;
-  } catch (error) {
-    console.error("Error parsing time:", error);
-    return 0;
-  }
+  const isPM = time.toLowerCase().includes('pm');
+  const isAM = time.toLowerCase().includes('am');
+  
+  const cleanTime = time.toLowerCase().replace(/(am|pm)/i, '').trim();
+  const [hours, minutes] = cleanTime.split(':').map(Number);
+  
+  let adjustedHours = hours;
+  if (isPM && hours !== 12) adjustedHours += 12;
+  if (isAM && hours === 12) adjustedHours = 0;
+  
+  return adjustedHours * 60 + minutes;
 }
 
 export function TimePicker({ value, onChange, className, disabled = false }: TimePickerProps) {
   const [use24Hour, setUse24Hour] = React.useState(true);
-  
-  // Safely parse the time value, with a fallback to 0 (midnight)
-  const minutes = React.useMemo(() => {
-    try {
-      return getMinutesFromTimeString(value);
-    } catch (e) {
-      console.error("Error parsing time value:", value, e);
-      return 0;
-    }
-  }, [value]);
-  
+  const minutes = getMinutesFromTimeString(value);
   const timeOfDay = getTimeOfDay(minutes);
   const isNextDay = minutes < 360; // Before 6 AM
 
@@ -101,17 +63,7 @@ export function TimePicker({ value, onChange, className, disabled = false }: Tim
 
   const handleFormatChange = (checked: boolean) => {
     setUse24Hour(checked);
-    
-    try {
-      // When changing format, re-format the current time value
-      const currentMinutes = getMinutesFromTimeString(value);
-      const newFormattedTime = formatTime(currentMinutes, checked);
-      onChange(newFormattedTime);
-    } catch (error) {
-      console.error("Error changing time format:", error);
-      // Fallback to current value
-      onChange(formatTime(minutes, checked));
-    }
+    onChange(formatTime(minutes, checked));
   };
 
   return (
