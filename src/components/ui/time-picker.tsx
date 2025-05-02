@@ -33,37 +33,90 @@ function formatTime(minutes: number, use24Hour: boolean): string {
   }
 }
 
-function getMinutesFromTimeString(time: string): number {
-  const isPM = time.toLowerCase().includes('pm');
-  const isAM = time.toLowerCase().includes('am');
-  
-  const cleanTime = time.toLowerCase().replace(/(am|pm)/i, '').trim();
-  const [hours, minutes] = cleanTime.split(':').map(Number);
-  
-  let adjustedHours = hours;
-  if (isPM && hours !== 12) adjustedHours += 12;
-  if (isAM && hours === 12) adjustedHours = 0;
-  
-  return adjustedHours * 60 + minutes;
+function getMinutesFromTimeString(timeString: string): number {
+  try {
+    // Handle empty or invalid input
+    if (!timeString || typeof timeString !== 'string') {
+      return 0;
+    }
+    
+    const isPM = timeString.toLowerCase().includes('pm');
+    const isAM = timeString.toLowerCase().includes('am');
+    
+    // Remove AM/PM indicators and trim the string
+    const cleanTime = timeString.toLowerCase().replace(/(am|pm)/i, '').trim();
+    
+    // Split hours and minutes
+    const [hoursStr, minutesStr] = cleanTime.split(':');
+    
+    // Parse as numbers, defaulting to 0 if parsing fails
+    const hours = parseInt(hoursStr, 10);
+    const minutes = parseInt(minutesStr, 10);
+    
+    // Validate parsed values
+    if (isNaN(hours) || isNaN(minutes)) {
+      return 0;
+    }
+    
+    // Calculate total minutes with 12-hour format adjustment
+    let adjustedHours = hours;
+    if (isPM && hours !== 12) adjustedHours += 12;
+    if (isAM && hours === 12) adjustedHours = 0;
+    
+    return adjustedHours * 60 + minutes;
+  } catch (error) {
+    console.error("Error parsing time string:", error, timeString);
+    return 0; // Return default value if parsing fails
+  }
 }
 
 export function TimePicker({ value, onChange, className, disabled = false }: TimePickerProps) {
   const [use24Hour, setUse24Hour] = React.useState(true);
-  const minutes = getMinutesFromTimeString(value);
+  
+  // Safely get minutes from the time string, with fallback
+  const minutes = React.useMemo(() => {
+    try {
+      return getMinutesFromTimeString(value);
+    } catch (e) {
+      console.error("Error converting time to minutes:", e);
+      return 0;
+    }
+  }, [value]);
+  
   const timeOfDay = getTimeOfDay(minutes);
   const isNextDay = minutes < 360; // Before 6 AM
 
   const handleSliderChange = (newValue: number[]) => {
     if (!disabled) {
-      onChange(formatTime(newValue[0], use24Hour));
+      try {
+        const formattedTime = formatTime(newValue[0], use24Hour);
+        onChange(formattedTime);
+      } catch (e) {
+        console.error("Error formatting time:", e);
+      }
     }
   };
 
-  const formattedValue = formatTime(minutes, use24Hour);
+  // Format the current value safely
+  const formattedValue = React.useMemo(() => {
+    try {
+      return formatTime(minutes, use24Hour);
+    } catch (e) {
+      console.error("Error formatting value:", e);
+      return use24Hour ? "00:00" : "12:00 AM";
+    }
+  }, [minutes, use24Hour]);
 
   const handleFormatChange = (checked: boolean) => {
     setUse24Hour(checked);
-    onChange(formatTime(minutes, checked));
+    try {
+      // Reformat the current time with the new format preference
+      onChange(formatTime(minutes, checked));
+    } catch (e) {
+      console.error("Error switching time format:", e);
+      // Provide a safe default if format switching fails
+      onChange(checked ? "00:00" : "12:00 AM");
+    }
   };
 
   return (
