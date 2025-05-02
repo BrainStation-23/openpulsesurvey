@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -18,6 +19,8 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Add this alias to help Vite resolve the package correctly
+      'use-sync-external-store/shim/with-selector': path.resolve(__dirname, 'node_modules/use-sync-external-store/shim/with-selector.js'),
     },
   },
 
@@ -46,12 +49,25 @@ export default defineConfig(({ mode }) => ({
       define: {
         global: "globalThis",
       },
+      // Ensure proper ESM/CJS interop for these packages
+      plugins: [
+        {
+          name: 'fix-cjs-imports',
+          setup(build) {
+            build.onResolve({ filter: /^use-sync-external-store/ }, (args) => {
+              return { path: args.path, namespace: 'use-sync-external-store' };
+            });
+          },
+        },
+      ],
     },
+    // Add zustand to the exclude list to prevent pre-optimization
     exclude: [
       "@tanstack/react-query",
       "framer-motion",
       "@xyflow/react",
       "zustand",
+      "use-sync-external-store",
     ],
   },
 }));
