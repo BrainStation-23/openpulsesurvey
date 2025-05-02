@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +11,11 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Campaign = Database['public']['Tables']['survey_campaigns']['Row'];
 type CampaignInsert = Database['public']['Tables']['survey_campaigns']['Insert'];
+
+// Helper function to validate dates
+const isValidDate = (date: any): boolean => {
+  return date instanceof Date && !isNaN(date.getTime());
+};
 
 export default function CampaignFormPage() {
   const { id } = useParams();
@@ -34,11 +38,24 @@ export default function CampaignFormPage() {
       if (error) throw error;
 
       if (data) {
-        return {
-          ...data,
-          starts_at: new Date(data.starts_at),
-          ends_at: data.ends_at ? new Date(data.ends_at) : undefined,
-        };
+        try {
+          const startsAt = new Date(data.starts_at);
+          const endsAt = data.ends_at ? new Date(data.ends_at) : undefined;
+          
+          // Validate dates before returning
+          return {
+            ...data,
+            starts_at: isValidDate(startsAt) ? startsAt : new Date(),
+            ends_at: endsAt && isValidDate(endsAt) ? endsAt : undefined,
+          };
+        } catch (error) {
+          console.error('Error parsing dates:', error);
+          return {
+            ...data,
+            starts_at: new Date(),
+            ends_at: new Date(),
+          };
+        }
       }
       return null;
     },
@@ -74,15 +91,41 @@ export default function CampaignFormPage() {
         return;
       }
 
+      // Validate dates before submission
+      if (!isValidDate(formData.starts_at) || !isValidDate(formData.ends_at)) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Invalid date values. Please check your dates and try again.",
+        });
+        return;
+      }
+
       // For recurring campaigns, create a proper timestamptz preserving local timezone
       let instanceEndTime: string | null = null;
       
       if (formData.is_recurring && formData.instance_end_time) {
-        const [hours, minutes] = formData.instance_end_time.split(':').map(Number);
-        // Create date in local timezone and set the time
-        const endTimeDate = new Date();
-        endTimeDate.setHours(hours, minutes, 0, 0);
-        instanceEndTime = endTimeDate.toISOString();
+        try {
+          const [hours, minutes] = formData.instance_end_time.split(':').map(Number);
+          
+          // Validate time values
+          if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+            throw new Error("Invalid time format");
+          }
+          
+          // Create date in local timezone and set the time
+          const endTimeDate = new Date();
+          endTimeDate.setHours(hours, minutes, 0, 0);
+          instanceEndTime = endTimeDate.toISOString();
+        } catch (error) {
+          console.error("Error processing instance end time:", error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Invalid time format. Please check the time and try again.",
+          });
+          return;
+        }
       }
 
       const dataToSubmit: CampaignInsert = {
@@ -166,7 +209,7 @@ export default function CampaignFormPage() {
         <div className="lg:col-span-2">
           <CampaignForm 
             onSubmit={handleSubmit}
-            surveys={surveys || []}
+            surveys={campaign ? [{id: campaign.survey_id, name: 'Loading...'}] : []}
             defaultValues={campaign}
             currentStep={currentStep}
             onStepComplete={(step: number) => {

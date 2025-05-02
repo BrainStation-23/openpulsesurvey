@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import {
   FormControl,
@@ -20,6 +21,7 @@ import { UseFormReturn, useWatch } from "react-hook-form";
 import { CalendarDateTime } from "@/components/ui/calendar-datetime";
 import { CampaignFormData } from "./CampaignForm";
 import { TimePicker } from "@/components/ui/time-picker";
+import { useEffect } from "react";
 
 interface ScheduleConfigProps {
   form: UseFormReturn<CampaignFormData>;
@@ -44,6 +46,13 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
     name: "recurring_frequency",
   });
 
+  // Set a default instance_end_time when component mounts or when isRecurring changes
+  useEffect(() => {
+    if (isRecurring && !form.getValues("instance_end_time")) {
+      form.setValue("instance_end_time", "17:00"); // Default to 5:00 PM
+    }
+  }, [isRecurring, form]);
+
   const getMaxDays = () => {
     const option = frequencyOptions.find(opt => opt.value === frequency);
     return option?.maxDays || 1;
@@ -58,6 +67,25 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
       form.setValue("instance_duration_days", maxDays);
     }
   };
+
+  // Validate dates in form (for debugging)
+  const validateDates = () => {
+    const startsAt = form.getValues("starts_at");
+    const endsAt = form.getValues("ends_at");
+    
+    if (!(startsAt instanceof Date) || isNaN(startsAt.getTime())) {
+      console.error("Invalid starts_at date:", startsAt);
+    }
+    
+    if (!(endsAt instanceof Date) || isNaN(endsAt.getTime())) {
+      console.error("Invalid ends_at date:", endsAt);
+    }
+  };
+
+  // Run validation on render
+  useEffect(() => {
+    validateDates();
+  }, []);
 
   return (
     <Card className="p-6">
@@ -93,7 +121,13 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
                 <FormControl>
                   <CalendarDateTime 
                     value={field.value} 
-                    onChange={field.onChange}
+                    onChange={(date) => {
+                      if (date instanceof Date && !isNaN(date.getTime())) {
+                        field.onChange(date);
+                      } else {
+                        console.error("Invalid date in starts_at CalendarDateTime:", date);
+                      }
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -110,7 +144,13 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
                 <FormControl>
                   <CalendarDateTime 
                     value={field.value} 
-                    onChange={field.onChange}
+                    onChange={(date) => {
+                      if (date instanceof Date && !isNaN(date.getTime())) {
+                        field.onChange(date);
+                      } else {
+                        console.error("Invalid date in ends_at CalendarDateTime:", date);
+                      }
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -157,7 +197,7 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
                       <FormLabel>Response Due Time</FormLabel>
                       <FormControl>
                         <TimePicker 
-                          value={field.value} 
+                          value={field.value || "17:00"} // Default to 5:00 PM if not set
                           onChange={field.onChange}
                           className="w-full"
                         />
