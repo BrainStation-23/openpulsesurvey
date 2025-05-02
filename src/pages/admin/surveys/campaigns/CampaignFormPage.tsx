@@ -34,11 +34,26 @@ export default function CampaignFormPage() {
       if (error) throw error;
 
       if (data) {
-        return {
+        // Parse dates with consistent timezone handling
+        const campaignData = {
           ...data,
           starts_at: new Date(data.starts_at),
           ends_at: data.ends_at ? new Date(data.ends_at) : undefined,
         };
+        
+        // If instance_end_time exists, ensure it's in the correct format
+        if (data.instance_end_time) {
+          try {
+            const date = new Date(data.instance_end_time);
+            const hours = date.getHours();
+            const minutes = date.getMinutes();
+            campaignData.instance_end_time = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+          } catch (error) {
+            console.error("Error parsing instance_end_time:", error);
+          }
+        }
+        
+        return campaignData;
       }
       return null;
     },
@@ -78,11 +93,27 @@ export default function CampaignFormPage() {
       let instanceEndTime: string | null = null;
       
       if (formData.is_recurring && formData.instance_end_time) {
-        const [hours, minutes] = formData.instance_end_time.split(':').map(Number);
-        // Create date in local timezone and set the time
-        const endTimeDate = new Date();
-        endTimeDate.setHours(hours, minutes, 0, 0);
-        instanceEndTime = endTimeDate.toISOString();
+        try {
+          // Parse the time string consistently
+          const [hours, minutes] = formData.instance_end_time.split(':').map(Number);
+          // Validate time values
+          if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+            // Create date in local timezone and set the time
+            const endTimeDate = new Date();
+            endTimeDate.setHours(hours, minutes, 0, 0);
+            instanceEndTime = endTimeDate.toISOString();
+          } else {
+            throw new Error(`Invalid time format: ${formData.instance_end_time}`);
+          }
+        } catch (error) {
+          console.error("Error processing instance_end_time:", error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Invalid time format for Response Due Time",
+          });
+          return;
+        }
       }
 
       const dataToSubmit: CampaignInsert = {
