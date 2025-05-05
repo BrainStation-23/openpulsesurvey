@@ -2,7 +2,7 @@
 import { useSystemVersion } from '@/hooks/useSystemVersion';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { InfoCircle } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function VersionDisplay() {
@@ -24,7 +24,7 @@ export function VersionDisplay() {
             <Badge variant="outline" className="text-xs">
               v{version.version}
             </Badge>
-            <InfoCircle className="h-3 w-3 text-muted-foreground" />
+            <ChevronDown className="h-3 w-3 text-muted-foreground" />
           </div>
         </TooltipTrigger>
         <TooltipContent className="w-80 p-4">
