@@ -41,6 +41,7 @@ import UserObjectiveDetails from "./pages/user/okrs/ObjectiveDetails";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminConfig from "./pages/admin/Config";
 import AdminSettings from "./pages/admin/Settings";
+import SystemInfo from "./pages/admin/settings/SystemInfo";
 import Users from "./pages/admin/users";
 import EditUserPage from "./pages/admin/users/[id]/edit";
 import MySurveysPage from "./pages/admin/my-surveys";
@@ -179,6 +180,7 @@ const App = () => (
               <Route path="achievements/create" element={<AchievementFormPage />} />
               <Route path="achievements/:id/edit" element={<AchievementFormPage />} />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="settings/system-info" element={<SystemInfo />} />
               <Route path="surveys/campaigns/:id/performance" element={<CampaignPerformance />} />
             </Route>
           </Routes>
