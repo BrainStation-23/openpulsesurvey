@@ -2837,6 +2837,30 @@ COMMENT ON FUNCTION "public"."get_campaign_supervisor_performance"("p_campaign_i
 
 
 
+CREATE OR REPLACE FUNCTION "public"."get_current_system_version"() RETURNS TABLE("version" character varying, "released_at" timestamp with time zone, "applied_at" timestamp with time zone, "schema_version" character varying, "frontend_version" character varying, "edge_functions_version" character varying, "changelog" "text", "release_notes" "text")
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    sv.version,
+    sv.released_at,
+    sv.applied_at,
+    sv.schema_version,
+    sv.frontend_version,
+    sv.edge_functions_version,
+    sv.changelog,
+    sv.release_notes
+  FROM system_versions sv
+  WHERE sv.is_current = TRUE
+  LIMIT 1;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_current_system_version"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_dimension_bool"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") RETURNS TABLE("dimension" "text", "yes_count" bigint, "no_count" bigint, "total_count" bigint)
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -4616,6 +4640,22 @@ END;
 $$;
 
 
+-- First, let's ensure the triggers don't already exist (clean slate)
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP TRIGGER IF EXISTS before_delete_user ON auth.users;
+
+-- Create trigger for new user creation
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Create trigger for user deletion
+CREATE TRIGGER before_delete_user
+  BEFORE DELETE ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.delete_user_cascade();
+
+
+
 ALTER FUNCTION "public"."propagate_alignment_progress"() OWNER TO "postgres";
 
 
@@ -5563,6 +5603,47 @@ $$;
 
 
 ALTER FUNCTION "public"."update_issue_vote_count"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_system_version"("p_version" character varying, "p_schema_version" character varying, "p_frontend_version" character varying, "p_edge_functions_version" character varying, "p_changelog" "text", "p_release_notes" "text", "p_migration_scripts" "text"[], "p_created_by" "uuid") RETURNS "uuid"
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+  v_new_id UUID;
+BEGIN
+  -- Set all existing versions to not current
+  UPDATE system_versions
+  SET is_current = FALSE;
+  
+  -- Insert new version
+  INSERT INTO system_versions (
+    version,
+    schema_version,
+    frontend_version,
+    edge_functions_version,
+    changelog,
+    release_notes,
+    migration_scripts,
+    created_by,
+    is_current
+  ) VALUES (
+    p_version,
+    p_schema_version,
+    p_frontend_version,
+    p_edge_functions_version,
+    p_changelog,
+    p_release_notes,
+    p_migration_scripts,
+    p_created_by,
+    TRUE
+  ) RETURNING id INTO v_new_id;
+  
+  RETURN v_new_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_system_version"("p_version" character varying, "p_schema_version" character varying, "p_frontend_version" character varying, "p_edge_functions_version" character varying, "p_changelog" "text", "p_release_notes" "text", "p_migration_scripts" "text"[], "p_created_by" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_updated_at_column"() RETURNS "trigger"
@@ -6765,6 +6846,25 @@ CREATE OR REPLACE VIEW "public"."survey_response_trends" WITH ("security_invoker
 ALTER TABLE "public"."survey_response_trends" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."system_versions" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "version" character varying(20) NOT NULL,
+    "released_at" timestamp with time zone DEFAULT "now"(),
+    "applied_at" timestamp with time zone DEFAULT "now"(),
+    "is_current" boolean DEFAULT true,
+    "schema_version" character varying(20) NOT NULL,
+    "frontend_version" character varying(20) NOT NULL,
+    "edge_functions_version" character varying(20) NOT NULL,
+    "migration_scripts" "text"[] DEFAULT '{}'::"text"[],
+    "changelog" "text",
+    "release_notes" "text",
+    "created_by" "uuid"
+);
+
+
+ALTER TABLE "public"."system_versions" OWNER TO "postgres";
+
+
 CREATE OR REPLACE VIEW "public"."top_performing_managers" WITH ("security_invoker"='on') AS
  WITH "rating_responses" AS (
          SELECT "sr"."user_id" AS "respondent_id",
@@ -7178,6 +7278,11 @@ ALTER TABLE ONLY "public"."survey_responses"
 
 ALTER TABLE ONLY "public"."surveys"
     ADD CONSTRAINT "surveys_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."system_versions"
+    ADD CONSTRAINT "system_versions_pkey" PRIMARY KEY ("id");
 
 
 
@@ -7936,6 +8041,11 @@ ALTER TABLE ONLY "public"."surveys"
 
 
 
+ALTER TABLE ONLY "public"."system_versions"
+    ADD CONSTRAINT "system_versions_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
+
+
+
 ALTER TABLE ONLY "public"."user_achievements"
     ADD CONSTRAINT "user_achievements_achievement_id_fkey" FOREIGN KEY ("achievement_id") REFERENCES "public"."achievements"("id") ON DELETE CASCADE;
 
@@ -7976,6 +8086,12 @@ ALTER TABLE ONLY "public"."user_supervisors"
 
 
 COMMENT ON CONSTRAINT "user_supervisors_user_id_fkey" ON "public"."user_supervisors" IS 'Cascade deletes supervisor relationships when a user is deleted';
+
+
+
+CREATE POLICY "Admin has all access" ON "public"."system_versions" TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."user_roles"
+  WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role")))));
 
 
 
@@ -8814,6 +8930,9 @@ ALTER TABLE "public"."survey_responses" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."surveys" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."system_versions" ENABLE ROW LEVEL SECURITY;
+
+
 CREATE POLICY "team_visibility_objectives" ON "public"."objectives" FOR SELECT USING ((("visibility" = 'team'::"public"."okr_visibility") AND (EXISTS ( SELECT 1
    FROM ("public"."user_sbus" "us1"
      JOIN "public"."user_sbus" "us2" ON (("us1"."sbu_id" = "us2"."sbu_id")))
@@ -9308,6 +9427,12 @@ GRANT ALL ON FUNCTION "public"."get_campaign_supervisor_performance"("p_campaign
 
 
 
+GRANT ALL ON FUNCTION "public"."get_current_system_version"() TO "anon";
+GRANT ALL ON FUNCTION "public"."get_current_system_version"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_current_system_version"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_dimension_bool"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_dimension_bool"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_dimension_bool"("p_campaign_id" "uuid", "p_instance_id" "uuid", "p_question_name" "text", "p_dimension" "text") TO "service_role";
@@ -9605,6 +9730,12 @@ GRANT ALL ON FUNCTION "public"."update_issue_downvote_count"() TO "service_role"
 GRANT ALL ON FUNCTION "public"."update_issue_vote_count"() TO "anon";
 GRANT ALL ON FUNCTION "public"."update_issue_vote_count"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_issue_vote_count"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."update_system_version"("p_version" character varying, "p_schema_version" character varying, "p_frontend_version" character varying, "p_edge_functions_version" character varying, "p_changelog" "text", "p_release_notes" "text", "p_migration_scripts" "text"[], "p_created_by" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."update_system_version"("p_version" character varying, "p_schema_version" character varying, "p_frontend_version" character varying, "p_edge_functions_version" character varying, "p_changelog" "text", "p_release_notes" "text", "p_migration_scripts" "text"[], "p_created_by" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_system_version"("p_version" character varying, "p_schema_version" character varying, "p_frontend_version" character varying, "p_edge_functions_version" character varying, "p_changelog" "text", "p_release_notes" "text", "p_migration_scripts" "text"[], "p_created_by" "uuid") TO "service_role";
 
 
 
@@ -9992,6 +10123,12 @@ GRANT ALL ON TABLE "public"."survey_overview_metrics" TO "service_role";
 GRANT ALL ON TABLE "public"."survey_response_trends" TO "anon";
 GRANT ALL ON TABLE "public"."survey_response_trends" TO "authenticated";
 GRANT ALL ON TABLE "public"."survey_response_trends" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."system_versions" TO "anon";
+GRANT ALL ON TABLE "public"."system_versions" TO "authenticated";
+GRANT ALL ON TABLE "public"."system_versions" TO "service_role";
 
 
 
