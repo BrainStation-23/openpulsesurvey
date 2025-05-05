@@ -28,7 +28,8 @@ import {
   LineChart,
   FormInput,
   PanelTop,
-  History
+  History,
+  Info
 } from "lucide-react";
 
 // Navigation item with optional children for nested navigation
@@ -192,6 +193,11 @@ export const navigationItems: NavigationItem[] = [
         title: "Achievements",
         icon: Trophy,
         path: "/admin/achievements",
+      },
+      {
+        title: "System Info",
+        icon: Info,
+        path: "/admin/settings/system-info",
       }
     ],
   },

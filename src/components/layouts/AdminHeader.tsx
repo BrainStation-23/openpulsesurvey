@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import {
   Breadcrumb,
@@ -8,6 +9,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { VersionDisplay } from "@/components/admin/system/VersionDisplay";
 
 type BreadcrumbItem = {
   title: string;
@@ -47,7 +49,7 @@ export default function AdminHeader() {
     <header className="border-b bg-background">
       <div className="flex items-center p-4">
         <SidebarTrigger className="mr-4" />
-        <Breadcrumb>
+        <Breadcrumb className="flex-1">
           <BreadcrumbList>
             <BreadcrumbItem>
               <Link to="/admin" className="text-muted-foreground hover:text-foreground">
@@ -68,6 +70,9 @@ export default function AdminHeader() {
             ))}
           </BreadcrumbList>
         </Breadcrumb>
+        <div className="ml-auto">
+          <VersionDisplay />
+        </div>
       </div>
     </header>
   );
