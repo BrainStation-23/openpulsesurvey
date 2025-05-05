@@ -52,7 +52,6 @@ export default function SystemInfo() {
           <TabsList>
             <TabsTrigger value="current">Current Version</TabsTrigger>
             <TabsTrigger value="history">Version History</TabsTrigger>
-            <TabsTrigger value="docs">Documentation</TabsTrigger>
           </TabsList>
 
           <TabsContent value="current" className="space-y-4 pt-4">
@@ -140,74 +139,6 @@ export default function SystemInfo() {
                 <p>No version history available</p>
               </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="docs" className="space-y-4 pt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Version Management Guide</CardTitle>
-                <CardDescription>
-                  Documentation for managing system versions
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="prose prose-sm max-w-none">
-                <h3>Architecture Overview</h3>
-                <p>
-                  Each instance of Survey Pulse operates independently with:
-                </p>
-                <ul>
-                  <li>Its own Supabase backend</li>
-                  <li>Its own frontend deployment</li>
-                  <li>No connection to other instances</li>
-                </ul>
-
-                <h3>Manual Migration Process</h3>
-                <p>
-                  To update an instance to a new version:
-                </p>
-                
-                <ol>
-                  <li>
-                    <strong>Preparation</strong>:
-                    <ul>
-                      <li>Identify the current version</li>
-                      <li>Gather migration SQL scripts</li>
-                      <li>Back up the database (recommended)</li>
-                    </ul>
-                  </li>
-                  <li>
-                    <strong>Database Migration</strong>:
-                    <ul>
-                      <li>Run migration scripts sequentially</li>
-                      <li>Verify successful execution</li>
-                    </ul>
-                  </li>
-                  <li>
-                    <strong>Edge Functions Update</strong>:
-                    <ul>
-                      <li>Deploy updated edge functions</li>
-                    </ul>
-                  </li>
-                  <li>
-                    <strong>Frontend Deployment</strong>:
-                    <ul>
-                      <li>Deploy the new frontend code</li>
-                    </ul>
-                  </li>
-                  <li>
-                    <strong>Version Record Update</strong>:
-                    <ul>
-                      <li>Execute the <code>update_system_version</code> function</li>
-                    </ul>
-                  </li>
-                </ol>
-
-                <h3>For more information</h3>
-                <p>
-                  See the complete documentation in <code>docs/VERSION_MANAGEMENT.md</code>
-                </p>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </div>
