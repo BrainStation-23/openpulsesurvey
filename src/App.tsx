@@ -1,3 +1,4 @@
+
 import React, { Suspense } from "react";
 import {
   createBrowserRouter,
@@ -32,7 +33,8 @@ import LiveSessions from "./pages/admin/surveys/LiveSessions";
 import LiveSessionDetails from "./pages/admin/surveys/live/[sessionId]";
 import IssueBoards from "./pages/admin/surveys/IssueBoards";
 import OKRHistory from "./pages/admin/okrs/OKRHistory";
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toaster";
+import SystemInfo from "./pages/admin/settings/SystemInfo";
 
 const queryClient = new QueryClient();
 
@@ -101,7 +103,7 @@ function App() {
                 },
                 {
                   path: "/admin/settings/system-info",
-                  element: <React.lazy(() => import("./pages/admin/settings/SystemInfo")) />,
+                  element: <Suspense fallback={<div>Loading...</div>}><SystemInfo /></Suspense>,
                 },
                 {
                   path: "/admin/config/sbus",
@@ -165,7 +167,7 @@ function App() {
         }
       />
       <Toaster />
-    </RouterProvider>
+    </QueryClientProvider>
   );
 }
 

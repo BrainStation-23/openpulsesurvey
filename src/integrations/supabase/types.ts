@@ -2154,6 +2154,66 @@ export type Database = {
           },
         ]
       }
+      system_versions: {
+        Row: {
+          applied_at: string | null
+          changelog: string | null
+          created_by: string | null
+          edge_functions_version: string
+          frontend_version: string
+          id: string
+          is_current: boolean | null
+          migration_scripts: string[] | null
+          release_notes: string | null
+          released_at: string | null
+          schema_version: string
+          version: string
+        }
+        Insert: {
+          applied_at?: string | null
+          changelog?: string | null
+          created_by?: string | null
+          edge_functions_version: string
+          frontend_version: string
+          id?: string
+          is_current?: boolean | null
+          migration_scripts?: string[] | null
+          release_notes?: string | null
+          released_at?: string | null
+          schema_version: string
+          version: string
+        }
+        Update: {
+          applied_at?: string | null
+          changelog?: string | null
+          created_by?: string | null
+          edge_functions_version?: string
+          frontend_version?: string
+          id?: string
+          is_current?: boolean | null
+          migration_scripts?: string[] | null
+          release_notes?: string | null
+          released_at?: string | null
+          schema_version?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_achievements: {
         Row: {
           achievement_id: string
@@ -2895,6 +2955,19 @@ export type Database = {
           completion_rate: number
         }[]
       }
+      get_current_system_version: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          version: string
+          released_at: string
+          applied_at: string
+          schema_version: string
+          frontend_version: string
+          edge_functions_version: string
+          changelog: string
+          release_notes: string
+        }[]
+      }
       get_dimension_bool: {
         Args: {
           p_campaign_id: string
@@ -3181,6 +3254,19 @@ export type Database = {
           updated_at: string
           error_message: string
         }[]
+      }
+      update_system_version: {
+        Args: {
+          p_version: string
+          p_schema_version: string
+          p_frontend_version: string
+          p_edge_functions_version: string
+          p_changelog: string
+          p_release_notes: string
+          p_migration_scripts: string[]
+          p_created_by: string
+        }
+        Returns: string
       }
     }
     Enums: {
