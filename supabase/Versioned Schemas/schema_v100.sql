@@ -4640,22 +4640,6 @@ END;
 $$;
 
 
--- First, let's ensure the triggers don't already exist (clean slate)
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-DROP TRIGGER IF EXISTS before_delete_user ON auth.users;
-
--- Create trigger for new user creation
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- Create trigger for user deletion
-CREATE TRIGGER before_delete_user
-  BEFORE DELETE ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.delete_user_cascade();
-
-
-
 ALTER FUNCTION "public"."propagate_alignment_progress"() OWNER TO "postgres";
 
 
@@ -6855,14 +6839,18 @@ CREATE TABLE IF NOT EXISTS "public"."system_versions" (
     "schema_version" character varying(20) NOT NULL,
     "frontend_version" character varying(20) NOT NULL,
     "edge_functions_version" character varying(20) NOT NULL,
-    "migration_scripts" "text"[] DEFAULT '{}'::"text"[],
     "changelog" "text",
     "release_notes" "text",
-    "created_by" "uuid"
+    "created_by" "uuid",
+    "migration_script" "text"
 );
 
 
 ALTER TABLE "public"."system_versions" OWNER TO "postgres";
+
+
+COMMENT ON COLUMN "public"."system_versions"."migration_script" IS 'Stores the Schema at this release point';
+
 
 
 CREATE OR REPLACE VIEW "public"."top_performing_managers" WITH ("security_invoker"='on') AS
