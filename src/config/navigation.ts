@@ -15,20 +15,9 @@ import {
   Trophy,
   Radio,
   Kanban,
-  Target,
   Building2,
-  Database,
-  BarChart,
-  ChevronDown,
-  Rocket,
   UserCircle,
-  Sliders,
-  BarChart3,
-  PieChart,
-  LineChart,
   FormInput,
-  PanelTop,
-  History,
   Info
 } from "lucide-react";
 
@@ -106,39 +95,6 @@ export const navigationItems: NavigationItem[] = [
     section: "issue_boards"
   },
   {
-    title: "OKRs",
-    icon: Target,
-    path: "/admin/okrs",
-    section: "okrs",
-    children: [
-      {
-        title: "Dashboard",
-        icon: BarChart,
-        path: "/admin/okrs/dashboard",
-      },
-      {
-        title: "Cycles",
-        icon: Grid,
-        path: "/admin/okrs/cycles",
-      },
-      {
-        title: "Objectives",
-        icon: Rocket,
-        path: "/admin/okrs/objectives",
-      },
-      {
-        title: "History",
-        icon: History,
-        path: "/admin/okrs/history",
-      },
-      {
-        title: "Settings",
-        icon: Sliders,
-        path: "/admin/okrs/settings",
-      }
-    ],
-  },
-  {
     title: "Platform Config",
     icon: Settings,
     path: "/admin/config",
@@ -208,6 +164,5 @@ export const navigationSections = [
   { id: "core", label: "User Account" },
   { id: "surveys", label: "Survey Management" },
   { id: "issue_boards", label: "Issue Management" },
-  { id: "okrs", label: "OKR System" },
   { id: "config", label: "Configuration" },
 ];
