@@ -155,16 +155,6 @@ CREATE TYPE "public"."campaign_status" AS ENUM (
 ALTER TYPE "public"."campaign_status" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."check_in_status" AS ENUM (
-    'on_track',
-    'at_risk',
-    'behind'
-);
-
-
-ALTER TYPE "public"."check_in_status" OWNER TO "postgres";
-
-
 CREATE TYPE "public"."config_status" AS ENUM (
     'active',
     'inactive'
@@ -172,17 +162,6 @@ CREATE TYPE "public"."config_status" AS ENUM (
 
 
 ALTER TYPE "public"."config_status" OWNER TO "postgres";
-
-
-CREATE TYPE "public"."contact_message_status" AS ENUM (
-    'pending',
-    'sent',
-    'error',
-    'partially_sent'
-);
-
-
-ALTER TYPE "public"."contact_message_status" OWNER TO "postgres";
 
 
 CREATE TYPE "public"."cron_job_type" AS ENUM (
@@ -277,19 +256,6 @@ CREATE TYPE "public"."issue_status" AS ENUM (
 ALTER TYPE "public"."issue_status" OWNER TO "postgres";
 
 
-CREATE TYPE "public"."kr_status" AS ENUM (
-    'not_started',
-    'in_progress',
-    'at_risk',
-    'on_track',
-    'completed',
-    'abandoned'
-);
-
-
-ALTER TYPE "public"."kr_status" OWNER TO "postgres";
-
-
 CREATE TYPE "public"."level_status" AS ENUM (
     'active',
     'inactive'
@@ -297,40 +263,6 @@ CREATE TYPE "public"."level_status" AS ENUM (
 
 
 ALTER TYPE "public"."level_status" OWNER TO "postgres";
-
-
-CREATE TYPE "public"."objective_status" AS ENUM (
-    'draft',
-    'in_progress',
-    'at_risk',
-    'on_track',
-    'completed'
-);
-
-
-ALTER TYPE "public"."objective_status" OWNER TO "postgres";
-
-
-CREATE TYPE "public"."okr_cycle_status" AS ENUM (
-    'active',
-    'upcoming',
-    'completed',
-    'archived'
-);
-
-
-ALTER TYPE "public"."okr_cycle_status" OWNER TO "postgres";
-
-
-CREATE TYPE "public"."okr_visibility" AS ENUM (
-    'private',
-    'team',
-    'department',
-    'organization'
-);
-
-
-ALTER TYPE "public"."okr_visibility" OWNER TO "postgres";
 
 
 CREATE TYPE "public"."profile_status" AS ENUM (
@@ -436,197 +368,6 @@ CREATE TYPE "public"."user_role" AS ENUM (
 ALTER TYPE "public"."user_role" OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."analyze_okr_progress_logs"("p_objective_id" "uuid" DEFAULT NULL::"uuid", "p_limit" integer DEFAULT 100) RETURNS TABLE("event_time" timestamp with time zone, "entity_id" "uuid", "entity_type" "text", "change_type" "text", "details" "jsonb")
-    LANGUAGE "plpgsql"
-    AS $$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    h.changed_at AS event_time,
-    h.entity_id,
-    h.entity_type,
-    h.change_type,
-    COALESCE(h.new_data, h.previous_data) AS details
-  FROM okr_history h
-  WHERE (p_objective_id IS NULL OR h.entity_id = p_objective_id)
-  AND (h.entity_type LIKE '%objective%' OR h.entity_type LIKE '%key_result%')
-  ORDER BY h.changed_at DESC
-  LIMIT p_limit;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."analyze_okr_progress_logs"("p_objective_id" "uuid", "p_limit" integer) OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."calculate_cascaded_objective_progress"("objective_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql"
-    AS $$
-DECLARE
-    total_weight NUMERIC := 0;
-    weighted_progress NUMERIC := 0;
-    kr_count INT := 0;
-    alignment_count INT := 0;
-    child_objective_record RECORD;
-    key_result_record RECORD;
-    alignment_record RECORD;
-    is_locked BOOLEAN;
-    v_calculation_method TEXT;
-BEGIN
-    -- Check if this objective is already being processed (to prevent infinite loops)
-    SELECT locked INTO is_locked FROM okr_progress_calculation_lock 
-    WHERE okr_progress_calculation_lock.objective_id = calculate_cascaded_objective_progress.objective_id
-    FOR UPDATE;
-    
-    IF is_locked THEN
-        -- Skip if already being processed
-        RAISE NOTICE 'Objective % is locked for progress calculation', calculate_cascaded_objective_progress.objective_id;
-        RETURN;
-    END IF;
-    
-    -- Try to get a lock or create the lock record if it doesn't exist
-    IF NOT FOUND THEN
-        INSERT INTO okr_progress_calculation_lock (objective_id, locked)
-        VALUES (calculate_cascaded_objective_progress.objective_id, TRUE);
-    ELSE
-        UPDATE okr_progress_calculation_lock SET locked = TRUE
-        WHERE okr_progress_calculation_lock.objective_id = calculate_cascaded_objective_progress.objective_id;
-    END IF;
-
-    -- Get calculation method
-    SELECT COALESCE(progress_calculation_method, 'weighted_sum') INTO v_calculation_method 
-    FROM objectives 
-    WHERE id = calculate_cascaded_objective_progress.objective_id;
-    
-    -- Get weight and progress from key results
-    FOR key_result_record IN 
-        SELECT weight, progress 
-        FROM key_results 
-        WHERE key_results.objective_id = calculate_cascaded_objective_progress.objective_id
-    LOOP
-        -- Normalize progress to 0-1 range (it's stored as 0-100 in the DB)
-        weighted_progress := weighted_progress + ((key_result_record.progress / 100) * key_result_record.weight);
-        total_weight := total_weight + key_result_record.weight;
-        kr_count := kr_count + 1;
-    END LOOP;
-    
-    -- Get weight and progress from child objectives (via alignments)
-    FOR alignment_record IN 
-        SELECT a.weight, o.progress
-        FROM okr_alignments a
-        JOIN objectives o ON a.aligned_objective_id = o.id
-        WHERE a.source_objective_id = calculate_cascaded_objective_progress.objective_id
-        AND a.alignment_type = 'parent_child'
-    LOOP
-        -- Normalize progress to 0-1 range (it's stored as 0-100 in the DB)
-        weighted_progress := weighted_progress + ((alignment_record.progress / 100) * alignment_record.weight);
-        total_weight := total_weight + alignment_record.weight;
-        alignment_count := alignment_count + 1;
-    END LOOP;
-    
-    -- Update the objective's progress based on the calculation method
-    IF total_weight > 0 THEN
-        -- Convert back to 0-100 range for storage
-        IF v_calculation_method = 'weighted_sum' THEN
-            -- For weighted sum, we just use the sum of weighted progress values
-            weighted_progress := weighted_progress * 100;
-        ELSE -- 'weighted_avg'
-            -- For weighted average, calculate the average - if all items are at 100%, result should be 100%
-            -- regardless of weights (as long as all weights are positive)
-            IF kr_count + alignment_count > 0 THEN
-                -- Calculate weighted average properly
-                IF kr_count > 0 AND alignment_count = 0 THEN
-                    -- If we only have key results, calculate their average
-                    SELECT AVG(progress) INTO weighted_progress
-                    FROM key_results
-                    WHERE key_results.objective_id = calculate_cascaded_objective_progress.objective_id;
-                ELSIF kr_count = 0 AND alignment_count > 0 THEN
-                    -- If we only have child objectives, calculate their average
-                    SELECT AVG(o.progress) INTO weighted_progress
-                    FROM okr_alignments a
-                    JOIN objectives o ON a.aligned_objective_id = o.id
-                    WHERE a.source_objective_id = calculate_cascaded_objective_progress.objective_id
-                    AND a.alignment_type = 'parent_child';
-                ELSE
-                    -- If we have both key results and child objectives, calculate their combined average
-                    -- This is a special case that needs custom handling
-                    SELECT (
-                        (SELECT COALESCE(AVG(progress), 0) FROM key_results 
-                         WHERE key_results.objective_id = calculate_cascaded_objective_progress.objective_id) * kr_count +
-                        (SELECT COALESCE(AVG(o.progress), 0) FROM okr_alignments a
-                         JOIN objectives o ON a.aligned_objective_id = o.id
-                         WHERE a.source_objective_id = calculate_cascaded_objective_progress.objective_id
-                         AND a.alignment_type = 'parent_child') * alignment_count
-                    ) / (kr_count + alignment_count) INTO weighted_progress;
-                END IF;
-            ELSE
-                weighted_progress := 0;
-            END IF;
-        END IF;
-    ELSE
-        weighted_progress := 0;
-    END IF;
-    
-    -- Update the objective's progress
-    UPDATE objectives
-    SET 
-        progress = LEAST(100, weighted_progress),
-        -- Auto-update status based on progress
-        status = CASE 
-            WHEN weighted_progress >= 100 THEN 'completed'::objective_status
-            WHEN status = 'draft' AND weighted_progress > 0 THEN 'in_progress'::objective_status
-            ELSE status
-        END
-    WHERE id = calculate_cascaded_objective_progress.objective_id;
-    
-    -- Release the lock
-    UPDATE okr_progress_calculation_lock 
-    SET locked = FALSE
-    WHERE okr_progress_calculation_lock.objective_id = calculate_cascaded_objective_progress.objective_id;
-    
-    -- Log the calculation
-    BEGIN
-        INSERT INTO okr_history (
-            entity_id, 
-            entity_type,
-            change_type,
-            changed_by,
-            new_data
-        ) VALUES (
-            calculate_cascaded_objective_progress.objective_id,
-            'objective',
-            'progress_calculation',
-            COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000000'),
-            jsonb_build_object(
-                'method', v_calculation_method,
-                'total_weight', total_weight,
-                'weighted_progress', weighted_progress,
-                'kr_count', kr_count,
-                'alignment_count', alignment_count
-            )
-        );
-    EXCEPTION WHEN OTHERS THEN
-        -- Ignore logging errors
-        NULL;
-    END;
-    
-    -- Finally, propagate the progress update to parent objectives
-    FOR child_objective_record IN
-        SELECT source_objective_id
-        FROM okr_alignments
-        WHERE aligned_objective_id = calculate_cascaded_objective_progress.objective_id
-        AND alignment_type = 'parent_child'
-    LOOP
-        -- Recursively update parent objectives
-        PERFORM calculate_cascaded_objective_progress(child_objective_record.source_objective_id);
-    END LOOP;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."calculate_cascaded_objective_progress"("objective_id" "uuid") OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."calculate_instance_completion_rate"("instance_id" "uuid") RETURNS numeric
     LANGUAGE "plpgsql"
     AS $$
@@ -687,167 +428,6 @@ $$;
 ALTER FUNCTION "public"."calculate_instance_completion_rate"("instance_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."calculate_key_result_progress"("p_measurement_type" "text", "p_current_value" numeric, "p_start_value" numeric, "p_target_value" numeric, "p_boolean_value" boolean) RETURNS numeric
-    LANGUAGE "plpgsql"
-    AS $$
-DECLARE
-    v_progress numeric;
-BEGIN
-    -- Calculate progress based on measurement type
-    CASE p_measurement_type
-        WHEN 'boolean' THEN
-            v_progress := CASE WHEN p_boolean_value THEN 100 ELSE 0 END;
-        ELSE
-            -- For numeric types, calculate percentage of progress
-            IF p_target_value = p_start_value THEN
-                v_progress := CASE WHEN p_current_value >= p_target_value THEN 100 ELSE 0 END;
-            ELSE
-                v_progress := ((p_current_value - p_start_value) / (p_target_value - p_start_value)) * 100;
-                -- Ensure progress is between 0-100
-                v_progress := GREATEST(0, LEAST(100, v_progress));
-            END IF;
-    END CASE;
-    
-    RETURN v_progress;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."calculate_key_result_progress"("p_measurement_type" "text", "p_current_value" numeric, "p_start_value" numeric, "p_target_value" numeric, "p_boolean_value" boolean) OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."calculate_objective_progress_for_single_objective"("objective_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql"
-    AS $$
-DECLARE
-    v_total_weight NUMERIC := 0;
-    v_weighted_progress NUMERIC := 0;
-    v_error_message TEXT;
-    v_old_progress NUMERIC;
-BEGIN
-    -- Get current objective progress for logging
-    SELECT progress INTO v_old_progress
-    FROM objectives
-    WHERE id = objective_id;
-    
-    -- Log the operation for debugging
-    INSERT INTO okr_history (
-        entity_id,
-        entity_type,
-        change_type,
-        changed_by,
-        new_data
-    ) VALUES (
-        objective_id,
-        'objective_progress_update',
-        'progress_calculation_started',
-        auth.uid(),
-        jsonb_build_object(
-            'old_objective_progress', v_old_progress,
-            'calculation_type', 'single_objective'
-        )
-    );
-    
-    BEGIN
-        -- Calculate the total weight and weighted progress sum
-        -- Fix the ambiguous column reference by specifying the table name
-        SELECT 
-            COALESCE(SUM(weight), 0),
-            COALESCE(SUM(progress * weight), 0)
-        INTO
-            v_total_weight,
-            v_weighted_progress
-        FROM
-            key_results kr
-        WHERE
-            kr.objective_id = calculate_objective_progress_for_single_objective.objective_id;
-        
-        -- Update the objective progress
-        IF v_total_weight = 0 THEN
-            UPDATE objectives
-            SET progress = 0
-            WHERE id = objective_id;
-            
-            -- Log the update
-            INSERT INTO okr_history (
-                entity_id,
-                entity_type,
-                change_type,
-                changed_by,
-                new_data
-            ) VALUES (
-                objective_id,
-                'objective_progress_update',
-                'progress_updated_zero_weight',
-                auth.uid(),
-                jsonb_build_object(
-                    'new_progress', 0,
-                    'total_weight', v_total_weight
-                )
-            );
-        ELSE
-            -- Calculate weighted average and round to 2 decimal places
-            DECLARE
-                v_new_progress NUMERIC := ROUND((v_weighted_progress / v_total_weight)::NUMERIC, 2);
-            BEGIN
-                UPDATE objectives
-                SET 
-                    progress = v_new_progress,
-                    updated_at = NOW()
-                WHERE id = objective_id;
-                
-                -- Log the update
-                INSERT INTO okr_history (
-                    entity_id,
-                    entity_type,
-                    change_type,
-                    changed_by,
-                    new_data
-                ) VALUES (
-                    objective_id,
-                    'objective_progress_update',
-                    'progress_updated_success',
-                    auth.uid(),
-                    jsonb_build_object(
-                        'old_progress', v_old_progress,
-                        'new_progress', v_new_progress,
-                        'total_weight', v_total_weight,
-                        'weighted_progress', v_weighted_progress
-                    )
-                );
-            END;
-        END IF;
-    EXCEPTION WHEN OTHERS THEN
-        -- Log any errors
-        GET STACKED DIAGNOSTICS v_error_message = MESSAGE_TEXT;
-        
-        INSERT INTO okr_history (
-            entity_id,
-            entity_type,
-            change_type,
-            changed_by,
-            previous_data
-        ) VALUES (
-            objective_id,
-            'objective_progress_error',
-            'calculation_error',
-            auth.uid(),
-            jsonb_build_object(
-                'error', v_error_message,
-                'calculation_type', 'single_objective'
-            )
-        );
-        
-        -- Continue without failing
-        RAISE WARNING 'Error calculating objective progress for objective %: %', objective_id, v_error_message;
-    END;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."calculate_objective_progress_for_single_objective"("objective_id" "uuid") OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."calculate_progress"("p_measurement_type" "text", "p_current_value" double precision, "p_start_value" double precision, "p_target_value" double precision, "p_boolean_value" boolean) RETURNS double precision
     LANGUAGE "plpgsql"
     AS $$
@@ -875,347 +455,6 @@ $$;
 
 
 ALTER FUNCTION "public"."calculate_progress"("p_measurement_type" "text", "p_current_value" double precision, "p_start_value" double precision, "p_target_value" double precision, "p_boolean_value" boolean) OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."can_create_alignment"("p_user_id" "uuid") RETURNS boolean
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-  v_is_admin BOOLEAN;
-  v_employee_role_id UUID;
-  v_can_create BOOLEAN := FALSE;
-BEGIN
-  -- Check if user is admin (admins always have permission)
-  SELECT EXISTS (
-    SELECT 1 
-    FROM user_roles 
-    WHERE user_id = p_user_id 
-    AND role = 'admin'
-  ) INTO v_is_admin;
-  
-  IF v_is_admin THEN
-    RETURN TRUE;
-  END IF;
-  
-  -- Get user's employee role
-  SELECT employee_role_id INTO v_employee_role_id
-  FROM profiles
-  WHERE id = p_user_id;
-  
-  -- If user has no employee role, they don't have permission
-  IF v_employee_role_id IS NULL THEN
-    RETURN FALSE;
-  END IF;
-  
-  -- Check if the user's role is in any of the alignment permission arrays
-  -- or if the arrays are empty (which means anyone can create)
-  SELECT 
-    (
-      -- Either the array is empty (allows all)
-      array_length(can_create_alignments, 1) IS NULL OR
-      v_employee_role_id = ANY(can_create_alignments) OR
-      array_length(can_align_with_org_objectives, 1) IS NULL OR
-      v_employee_role_id = ANY(can_align_with_org_objectives) OR
-      array_length(can_align_with_dept_objectives, 1) IS NULL OR
-      v_employee_role_id = ANY(can_align_with_dept_objectives) OR
-      array_length(can_align_with_team_objectives, 1) IS NULL OR
-      v_employee_role_id = ANY(can_align_with_team_objectives)
-    )
-  INTO v_can_create
-  FROM okr_role_settings
-  LIMIT 1;
-  
-  RETURN COALESCE(v_can_create, FALSE);
-END;
-$$;
-
-
-ALTER FUNCTION "public"."can_create_alignment"("p_user_id" "uuid") OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."can_create_alignment"("p_user_id" "uuid") IS 'Checks if a user has permission to create any type of alignment';
-
-
-
-CREATE OR REPLACE FUNCTION "public"."can_create_alignment_by_visibility"("p_user_id" "uuid", "p_visibility" "text") RETURNS boolean
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-  v_is_admin BOOLEAN;
-  v_employee_role_id UUID;
-  v_can_create BOOLEAN := FALSE;
-  v_permission_array UUID[];
-BEGIN
-  -- Check if user is admin (admins always have permission)
-  SELECT EXISTS (
-    SELECT 1 
-    FROM user_roles 
-    WHERE user_id = p_user_id 
-    AND role = 'admin'
-  ) INTO v_is_admin;
-  
-  IF v_is_admin THEN
-    RETURN TRUE;
-  END IF;
-  
-  -- Get user's employee role
-  SELECT employee_role_id INTO v_employee_role_id
-  FROM profiles
-  WHERE id = p_user_id;
-  
-  -- If user has no employee role, they don't have permission
-  IF v_employee_role_id IS NULL THEN
-    RETURN FALSE;
-  END IF;
-  
-  -- Get the appropriate permission array based on visibility
-  SELECT
-    CASE 
-      WHEN p_visibility = 'organization' THEN can_align_with_org_objectives
-      WHEN p_visibility = 'department' THEN can_align_with_dept_objectives
-      WHEN p_visibility = 'team' THEN can_align_with_team_objectives
-      ELSE can_create_alignments
-    END
-  INTO v_permission_array
-  FROM okr_role_settings
-  LIMIT 1;
-  
-  -- Check if the permission array is empty (anyone can create) or if the user's role is in it
-  RETURN array_length(v_permission_array, 1) IS NULL OR v_employee_role_id = ANY(v_permission_array);
-END;
-$$;
-
-
-ALTER FUNCTION "public"."can_create_alignment_by_visibility"("p_user_id" "uuid", "p_visibility" "text") OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."can_create_alignment_by_visibility"("p_user_id" "uuid", "p_visibility" "text") IS 'Checks if a user has permission to create alignments with objectives of a specific visibility';
-
-
-
-CREATE OR REPLACE FUNCTION "public"."can_create_key_result"("p_user_id" "uuid") RETURNS boolean
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-  v_is_admin BOOLEAN;
-  v_employee_role_id UUID;
-  v_can_create BOOLEAN := FALSE;
-BEGIN
-  -- Check if user is admin (admins always have permission)
-  SELECT EXISTS (
-    SELECT 1 
-    FROM user_roles 
-    WHERE user_id = p_user_id 
-    AND role = 'admin'
-  ) INTO v_is_admin;
-  
-  IF v_is_admin THEN
-    RETURN TRUE;
-  END IF;
-  
-  -- Get user's employee role
-  SELECT employee_role_id INTO v_employee_role_id
-  FROM profiles
-  WHERE id = p_user_id;
-  
-  -- If user has no employee role, they don't have permission
-  IF v_employee_role_id IS NULL THEN
-    RETURN FALSE;
-  END IF;
-  
-  -- Check if the user's role is in the key results permission array
-  -- or if the array is empty (which means anyone can create)
-  SELECT 
-    (
-      array_length(can_create_key_results, 1) IS NULL OR
-      v_employee_role_id = ANY(can_create_key_results)
-    )
-  INTO v_can_create
-  FROM okr_role_settings
-  LIMIT 1;
-  
-  RETURN COALESCE(v_can_create, FALSE);
-END;
-$$;
-
-
-ALTER FUNCTION "public"."can_create_key_result"("p_user_id" "uuid") OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."can_create_key_result"("p_user_id" "uuid") IS 'Checks if a user has permission to create key results';
-
-
-
-CREATE OR REPLACE FUNCTION "public"."can_create_objective"("p_user_id" "uuid") RETURNS boolean
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-  v_is_admin BOOLEAN;
-  v_employee_role_id UUID;
-  v_can_create BOOLEAN := FALSE;
-BEGIN
-  -- Check if user is admin (admins always have permission)
-  SELECT EXISTS (
-    SELECT 1 
-    FROM user_roles 
-    WHERE user_id = p_user_id 
-    AND role = 'admin'
-  ) INTO v_is_admin;
-  
-  IF v_is_admin THEN
-    RETURN TRUE;
-  END IF;
-  
-  -- Get user's employee role
-  SELECT employee_role_id INTO v_employee_role_id
-  FROM profiles
-  WHERE id = p_user_id;
-  
-  -- If user has no employee role, they don't have permission
-  IF v_employee_role_id IS NULL THEN
-    RETURN FALSE;
-  END IF;
-  
-  -- Check if the user's role is in any of the permission arrays
-  -- or if the arrays are empty (which means anyone can create)
-  SELECT 
-    (
-      -- Either the array is empty (allows all)
-      array_length(can_create_objectives, 1) IS NULL OR
-      v_employee_role_id = ANY(can_create_objectives) OR
-      array_length(can_create_org_objectives, 1) IS NULL OR
-      v_employee_role_id = ANY(can_create_org_objectives) OR
-      array_length(can_create_dept_objectives, 1) IS NULL OR
-      v_employee_role_id = ANY(can_create_dept_objectives) OR
-      array_length(can_create_team_objectives, 1) IS NULL OR
-      v_employee_role_id = ANY(can_create_team_objectives)
-    )
-  INTO v_can_create
-  FROM okr_role_settings
-  LIMIT 1;
-  
-  RETURN COALESCE(v_can_create, FALSE);
-END;
-$$;
-
-
-ALTER FUNCTION "public"."can_create_objective"("p_user_id" "uuid") OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."can_create_objective"("p_user_id" "uuid") IS 'Checks if a user has permission to create any type of objective';
-
-
-
-CREATE OR REPLACE FUNCTION "public"."can_create_objective_alignment"("p_user_id" "uuid", "p_source_objective_id" "uuid", "p_aligned_objective_id" "uuid") RETURNS boolean
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-  v_is_admin BOOLEAN;
-  v_can_create_general BOOLEAN;
-  v_source_visibility TEXT;
-  v_aligned_visibility TEXT;
-  v_can_align_with_source BOOLEAN;
-  v_can_align_with_aligned BOOLEAN;
-BEGIN
-  -- Check if user is admin (admins always have permission)
-  SELECT EXISTS (
-    SELECT 1 
-    FROM user_roles 
-    WHERE user_id = p_user_id 
-    AND role = 'admin'
-  ) INTO v_is_admin;
-  
-  IF v_is_admin THEN
-    RETURN TRUE;
-  END IF;
-  
-  -- Check if user has general alignment creation permission
-  SELECT can_create_alignment(p_user_id) INTO v_can_create_general;
-  
-  IF NOT v_can_create_general THEN
-    RETURN FALSE;
-  END IF;
-  
-  -- Get visibility of both objectives
-  SELECT visibility INTO v_source_visibility
-  FROM objectives
-  WHERE id = p_source_objective_id;
-  
-  SELECT visibility INTO v_aligned_visibility
-  FROM objectives
-  WHERE id = p_aligned_objective_id;
-  
-  -- Check permission for each objective's visibility level
-  SELECT can_create_alignment_by_visibility(p_user_id, v_source_visibility) INTO v_can_align_with_source;
-  SELECT can_create_alignment_by_visibility(p_user_id, v_aligned_visibility) INTO v_can_align_with_aligned;
-  
-  -- User needs permission for both objectives
-  RETURN v_can_align_with_source AND v_can_align_with_aligned;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."can_create_objective_alignment"("p_user_id" "uuid", "p_source_objective_id" "uuid", "p_aligned_objective_id" "uuid") OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."can_create_objective_alignment"("p_user_id" "uuid", "p_source_objective_id" "uuid", "p_aligned_objective_id" "uuid") IS 'Checks if a user has permission to create an alignment between two specific objectives';
-
-
-
-CREATE OR REPLACE FUNCTION "public"."can_create_objective_by_visibility"("p_user_id" "uuid", "p_visibility" "text") RETURNS boolean
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-  v_is_admin BOOLEAN;
-  v_employee_role_id UUID;
-  v_can_create BOOLEAN := FALSE;
-  v_permission_array UUID[];
-BEGIN
-  -- Check if user is admin (admins always have permission)
-  SELECT EXISTS (
-    SELECT 1 
-    FROM user_roles 
-    WHERE user_id = p_user_id 
-    AND role = 'admin'
-  ) INTO v_is_admin;
-  
-  IF v_is_admin THEN
-    RETURN TRUE;
-  END IF;
-  
-  -- Get user's employee role
-  SELECT employee_role_id INTO v_employee_role_id
-  FROM profiles
-  WHERE id = p_user_id;
-  
-  -- If user has no employee role, they don't have permission
-  IF v_employee_role_id IS NULL THEN
-    RETURN FALSE;
-  END IF;
-  
-  -- Get the appropriate permission array based on visibility
-  SELECT
-    CASE 
-      WHEN p_visibility = 'organization' THEN can_create_org_objectives
-      WHEN p_visibility = 'department' THEN can_create_dept_objectives
-      WHEN p_visibility = 'team' THEN can_create_team_objectives
-      ELSE can_create_objectives
-    END
-  INTO v_permission_array
-  FROM okr_role_settings
-  LIMIT 1;
-  
-  -- Check if the permission array is empty (anyone can create) or if the user's role is in it
-  RETURN array_length(v_permission_array, 1) IS NULL OR v_employee_role_id = ANY(v_permission_array);
-END;
-$$;
-
-
-ALTER FUNCTION "public"."can_create_objective_by_visibility"("p_user_id" "uuid", "p_visibility" "text") OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."can_create_objective_by_visibility"("p_user_id" "uuid", "p_visibility" "text") IS 'Checks if a user has permission to create objectives with a specific visibility';
-
 
 
 CREATE OR REPLACE FUNCTION "public"."check_and_award_achievements"("p_user_id" "uuid") RETURNS "void"
@@ -1339,178 +578,6 @@ $$;
 
 
 ALTER FUNCTION "public"."check_and_award_achievements"("p_user_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."check_objective_owner_permission"("p_user_id" "uuid", "p_objective_id" "uuid") RETURNS boolean
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-  v_is_admin BOOLEAN;
-  v_is_owner BOOLEAN;
-BEGIN
-  -- Check if user is admin
-  SELECT EXISTS (
-    SELECT 1 
-    FROM user_roles 
-    WHERE user_id = p_user_id 
-    AND role = 'admin'
-  ) INTO v_is_admin;
-  
-  IF v_is_admin THEN
-    RETURN TRUE;
-  END IF;
-  
-  -- Check if user is the owner of the objective
-  SELECT EXISTS (
-    SELECT 1 
-    FROM objectives 
-    WHERE id = p_objective_id 
-    AND owner_id = p_user_id
-  ) INTO v_is_owner;
-  
-  RETURN v_is_owner;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."check_objective_owner_permission"("p_user_id" "uuid", "p_objective_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."check_okr_create_permission"("p_user_id" "uuid", "p_permission_type" "text", "p_visibility" "text" DEFAULT NULL::"text") RETURNS boolean
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-  v_is_admin BOOLEAN;
-  v_employee_role_id UUID;
-  v_permission_array UUID[];
-BEGIN
-  -- Check if user is admin (admins always have permission)
-  SELECT EXISTS (
-    SELECT 1 
-    FROM user_roles 
-    WHERE user_id = p_user_id 
-    AND role = 'admin'
-  ) INTO v_is_admin;
-  
-  IF v_is_admin THEN
-    RETURN TRUE;
-  END IF;
-  
-  -- Get user's employee role
-  SELECT employee_role_id INTO v_employee_role_id
-  FROM profiles
-  WHERE id = p_user_id;
-  
-  -- If user has no employee role, they don't have permission
-  IF v_employee_role_id IS NULL THEN
-    RETURN FALSE;
-  END IF;
-  
-  -- Get the appropriate permission array based on permission type and visibility
-  CASE 
-    WHEN p_permission_type = 'create_objectives' AND p_visibility IS NULL THEN
-      SELECT can_create_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
-    WHEN p_permission_type = 'create_objectives' AND p_visibility = 'organization' THEN
-      SELECT can_create_org_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
-    WHEN p_permission_type = 'create_objectives' AND p_visibility = 'department' THEN
-      SELECT can_create_dept_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
-    WHEN p_permission_type = 'create_objectives' AND p_visibility = 'team' THEN
-      SELECT can_create_team_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
-    WHEN p_permission_type = 'create_key_results' THEN
-      SELECT can_create_key_results INTO v_permission_array FROM okr_role_settings LIMIT 1;
-    WHEN p_permission_type = 'create_alignments' AND p_visibility IS NULL THEN
-      SELECT can_create_alignments INTO v_permission_array FROM okr_role_settings LIMIT 1;
-    WHEN p_permission_type = 'create_alignments' AND p_visibility = 'organization' THEN
-      SELECT can_align_with_org_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
-    WHEN p_permission_type = 'create_alignments' AND p_visibility = 'department' THEN
-      SELECT can_align_with_dept_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
-    WHEN p_permission_type = 'create_alignments' AND p_visibility = 'team' THEN
-      SELECT can_align_with_team_objectives INTO v_permission_array FROM okr_role_settings LIMIT 1;
-    ELSE
-      RETURN FALSE;
-  END CASE;
-  
-  -- Check if the user's role is in the permission array
-  -- Empty array means no restrictions (all roles have permission)
-  RETURN array_length(v_permission_array, 1) IS NULL OR v_employee_role_id = ANY(v_permission_array);
-END;
-$$;
-
-
-ALTER FUNCTION "public"."check_okr_create_permission"("p_user_id" "uuid", "p_permission_type" "text", "p_visibility" "text") OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."check_okr_create_permission"("p_user_id" "uuid", "p_permission_type" "text", "p_visibility" "text") IS 'Checks if a user has permission to perform specific OKR actions based on employee role';
-
-
-
-CREATE OR REPLACE FUNCTION "public"."check_okr_objective_access"("p_user_id" "uuid", "p_objective_id" "uuid", "p_access_type" "text") RETURNS boolean
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-    v_profile RECORD;
-    v_has_access BOOLEAN;
-BEGIN
-    -- Get user profile information with admin status
-    SELECT 
-        p.*,
-        EXISTS (
-            SELECT 1 FROM user_roles ur 
-            WHERE ur.user_id = p_user_id 
-            AND ur.role = 'admin'
-        ) as is_admin
-    INTO v_profile
-    FROM profiles p
-    WHERE p.id = p_user_id;
-
-    -- Admins always have access
-    IF v_profile.is_admin THEN
-        RETURN TRUE;
-    END IF;
-
-    -- Check if user is the owner of the objective
-    SELECT EXISTS (
-        SELECT 1 FROM objectives o
-        WHERE o.id = p_objective_id
-        AND o.owner_id = p_user_id
-    ) INTO v_has_access;
-    
-    IF v_has_access THEN
-        RETURN TRUE;
-    END IF;
-
-    -- Check if user has explicit permission via okr_permissions
-    SELECT EXISTS (
-        SELECT 1
-        FROM okr_permissions op
-        WHERE op.objective_id = p_objective_id
-        AND (
-            -- User directly listed in user_ids
-            (p_user_id = ANY(op.user_ids))
-            OR
-            -- User's SBU listed in sbu_ids
-            (EXISTS (
-                SELECT 1 FROM user_sbus us 
-                WHERE us.user_id = p_user_id 
-                AND us.sbu_id = ANY(op.sbu_ids)
-            ))
-            OR
-            -- User's role listed in employee_role_ids
-            (v_profile.employee_role_id = ANY(op.employee_role_ids))
-        )
-        AND (
-            (p_access_type = 'view' AND op.can_view = TRUE) OR
-            (p_access_type = 'edit' AND op.can_edit = TRUE) OR
-            (p_access_type = 'comment' AND op.can_comment = TRUE)
-        )
-    ) INTO v_has_access;
-
-    RETURN v_has_access;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."check_okr_objective_access"("p_user_id" "uuid", "p_objective_id" "uuid", "p_access_type" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."check_user_board_access"("p_user_id" "uuid", "p_board_id" "uuid", "p_access_type" "text") RETURNS boolean
@@ -1966,120 +1033,6 @@ $$;
 
 
 ALTER FUNCTION "public"."delete_user_cascade"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."drop_and_recreate_question_responses_function"() RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $_$
-BEGIN
-    -- Drop the function if it exists
-    DROP FUNCTION IF EXISTS public.get_instance_question_responses(uuid, uuid);
-    
-    -- Recreate the function with the new signature
-    CREATE OR REPLACE FUNCTION public.get_instance_question_responses(
-        p_campaign_id UUID,
-        p_instance_id UUID
-    )
-    RETURNS TABLE(
-        campaign_instance_id UUID,
-        response_count INTEGER,
-        avg_numeric_value NUMERIC,
-        yes_percentage NUMERIC,
-        question_key TEXT,
-        text_responses TEXT[]
-    )
-    LANGUAGE plpgsql
-    SECURITY DEFINER
-    AS $func$
-    BEGIN
-        RETURN QUERY
-        WITH survey_questions AS (
-            -- Get questions from survey data
-            SELECT 
-                q.value->>'name' AS question_key,
-                q.value->>'type' AS question_type
-            FROM 
-                survey_campaigns sc
-                JOIN surveys s ON s.id = sc.survey_id,
-                jsonb_array_elements(s.json_data->'pages') as pages,
-                jsonb_array_elements(pages->'elements') as q
-            WHERE 
-                sc.id = p_campaign_id
-                AND q.value->>'name' IS NOT NULL
-        ),
-        response_data AS (
-            -- Get responses for the instance
-            SELECT 
-                sr.campaign_instance_id,
-                sr.response_data
-            FROM 
-                survey_responses sr
-                JOIN survey_assignments sa ON sr.assignment_id = sa.id
-            WHERE 
-                sa.campaign_id = p_campaign_id
-                AND sr.campaign_instance_id = p_instance_id
-                AND sr.status = 'submitted'
-        ),
-        processed_responses AS (
-            -- Process each response by question type
-            SELECT 
-                rd.campaign_instance_id,
-                sq.question_key,
-                sq.question_type,
-                rd.response_data->>sq.question_key AS response_value
-            FROM 
-                survey_questions sq
-                CROSS JOIN response_data rd
-            WHERE 
-                rd.response_data ? sq.question_key
-                AND rd.response_data->>sq.question_key IS NOT NULL
-        )
-        -- Final aggregation
-        SELECT
-            pr.campaign_instance_id,
-            COUNT(*)::INTEGER AS response_count,
-            -- Handle rating questions
-            CASE 
-                WHEN pr.question_type = 'rating' 
-                AND pr.response_value ~ '^[0-9]+(\.[0-9]+)?$'
-                THEN AVG(pr.response_value::NUMERIC)
-                ELSE NULL 
-            END AS avg_numeric_value,
-            -- Handle boolean questions
-            CASE 
-                WHEN pr.question_type = 'boolean' 
-                THEN (
-                    SUM(
-                        CASE 
-                            WHEN LOWER(pr.response_value) IN ('true', '1', 'yes') THEN 1 
-                            ELSE 0 
-                        END
-                    )::NUMERIC / COUNT(*)::NUMERIC * 100
-                )
-                ELSE NULL 
-            END AS yes_percentage,
-            pr.question_key,
-            -- Handle text responses
-            CASE 
-                WHEN pr.question_type IN ('text', 'comment') 
-                THEN array_remove(array_agg(pr.response_value), NULL)
-                ELSE NULL 
-            END AS text_responses
-        FROM 
-            processed_responses pr
-        GROUP BY 
-            pr.campaign_instance_id,
-            pr.question_key,
-            pr.question_type
-        ORDER BY 
-            pr.question_key;
-    END;
-    $func$;
-END;
-$_$;
-
-
-ALTER FUNCTION "public"."drop_and_recreate_question_responses_function"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."fix_all_instance_completion_rates"() RETURNS "void"
@@ -3948,23 +2901,6 @@ COMMENT ON FUNCTION "public"."get_text_analysis"("p_campaign_id" "uuid", "p_inst
 
 
 
-CREATE OR REPLACE FUNCTION "public"."handle_alignment_delete_progress"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-BEGIN
-    -- If it's a parent-child alignment, update the source (parent) objective
-    IF OLD.alignment_type = 'parent_child' THEN
-        PERFORM calculate_cascaded_objective_progress(OLD.source_objective_id);
-    END IF;
-    
-    RETURN OLD;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."handle_alignment_delete_progress"() OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") RETURNS integer
     LANGUAGE "plpgsql"
     AS $$
@@ -4068,55 +3004,6 @@ $$;
 ALTER FUNCTION "public"."handle_instance_completion"("p_campaign_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."handle_key_result_changes"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-BEGIN
-    -- Calculate progress for the objective this key result belongs to
-    PERFORM calculate_cascaded_objective_progress(NEW.objective_id);
-    
-    RETURN NEW;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."handle_key_result_changes"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."handle_key_result_deletion"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-BEGIN
-    -- Calculate progress for the objective after a key result is deleted
-    PERFORM calculate_cascaded_objective_progress(OLD.objective_id);
-    
-    RETURN OLD;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."handle_key_result_deletion"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."handle_kr_delete_cascaded_progress"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-BEGIN
-    -- Clean up any stale locks
-    DELETE FROM okr_progress_calculation_lock
-    WHERE updated_at < NOW() - INTERVAL '10 minutes';
-    
-    -- Update the objective progress for the objective that owned this key result
-    PERFORM calculate_cascaded_objective_progress(OLD.objective_id);
-    
-    RETURN OLD;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."handle_kr_delete_cascaded_progress"() OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."handle_live_session_questions"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -4191,154 +3078,6 @@ $$;
 
 
 ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."handle_objective_cascade_to_parent"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-BEGIN
-    -- If parent objective ID changed or progress changed significantly
-    IF (OLD.parent_objective_id IS DISTINCT FROM NEW.parent_objective_id) OR 
-       (ABS(COALESCE(OLD.progress, 0) - COALESCE(NEW.progress, 0)) > 0.01) THEN
-        
-        -- Update the old parent if it exists
-        IF OLD.parent_objective_id IS NOT NULL THEN
-            PERFORM calculate_cascaded_objective_progress(OLD.parent_objective_id);
-        END IF;
-        
-        -- Update the new parent if it exists
-        IF NEW.parent_objective_id IS NOT NULL THEN
-            PERFORM calculate_cascaded_objective_progress(NEW.parent_objective_id);
-        END IF;
-    END IF;
-    
-    RETURN NEW;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."handle_objective_cascade_to_parent"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."handle_objective_delete_alignments"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-BEGIN
-    -- Delete all alignments where this objective is the source
-    DELETE FROM okr_alignments 
-    WHERE source_objective_id = OLD.id;
-    
-    -- Delete all alignments where this objective is the target
-    DELETE FROM okr_alignments 
-    WHERE aligned_objective_id = OLD.id;
-    
-    -- Now we can proceed with deleting the objective itself
-    -- (this happens automatically after the trigger)
-    
-    -- Log the cascade deletion
-    INSERT INTO okr_history (
-        entity_id,
-        entity_type,
-        change_type,
-        changed_by,
-        previous_data
-    ) VALUES (
-        OLD.id,
-        'objective_alignment_cascade',
-        'delete_cascade',
-        auth.uid(),
-        jsonb_build_object(
-            'objective_id', OLD.id,
-            'objective_title', OLD.title,
-            'cascade_type', 'alignments'
-        )
-    );
-    
-    RETURN OLD;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."handle_objective_delete_alignments"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."handle_objective_delete_cascade"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-BEGIN
-    -- First, update any child objectives to remove the parent reference
-    -- This addresses the foreign key constraint issue
-    UPDATE objectives
-    SET parent_objective_id = NULL
-    WHERE parent_objective_id = OLD.id;
-    
-    -- Delete all alignments where this objective is the source
-    DELETE FROM okr_alignments 
-    WHERE source_objective_id = OLD.id;
-    
-    -- Delete all alignments where this objective is the target
-    DELETE FROM okr_alignments 
-    WHERE aligned_objective_id = OLD.id;
-    
-    -- Log the cascade deletion
-    INSERT INTO okr_history (
-        entity_id,
-        entity_type,
-        change_type,
-        changed_by,
-        previous_data
-    ) VALUES (
-        OLD.id,
-        'objective_cascade_deletion',
-        'delete_cascade',
-        auth.uid(),
-        jsonb_build_object(
-            'objective_id', OLD.id,
-            'objective_title', OLD.title,
-            'cascade_types', jsonb_build_array('parent_child_relationships', 'alignments')
-        )
-    );
-    
-    RETURN OLD;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."handle_objective_delete_cascade"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."handle_objective_deletion"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-BEGIN
-    -- Log the objective deletion in okr_history
-    INSERT INTO okr_history (
-        entity_id,
-        entity_type,
-        change_type,
-        changed_by,
-        previous_data
-    ) VALUES (
-        OLD.id,
-        'objective',
-        'delete',
-        auth.uid(),
-        jsonb_build_object(
-            'id', OLD.id,
-            'title', OLD.title,
-            'description', OLD.description,
-            'status', OLD.status,
-            'progress', OLD.progress,
-            'visibility', OLD.visibility
-        )
-    );
-    
-    RETURN OLD;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."handle_objective_deletion"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."handle_question_activation"() RETURNS "trigger"
@@ -4609,117 +3348,6 @@ $$;
 ALTER FUNCTION "public"."prevent_modifying_submitted_responses"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."propagate_alignment_progress"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-DECLARE
-    v_source_objective_id UUID;
-    v_aligned_objective_id UUID;
-    v_alignment_type TEXT;
-BEGIN
-    -- Get the alignment details
-    SELECT 
-        a.source_objective_id,
-        a.aligned_objective_id,
-        a.alignment_type
-    INTO 
-        v_source_objective_id,
-        v_aligned_objective_id,
-        v_alignment_type
-    FROM okr_alignments a
-    WHERE a.id = NEW.id;
-    
-    -- Only handle progress updates for parent-child alignments
-    IF v_alignment_type = 'parent_child' THEN
-        -- The source is the parent, so update its progress
-        PERFORM calculate_cascaded_objective_progress(v_source_objective_id);
-    END IF;
-    
-    RETURN NEW;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."propagate_alignment_progress"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."recalculate_all_cascaded_objective_progress"() RETURNS "void"
-    LANGUAGE "plpgsql"
-    AS $$
-DECLARE
-    v_objective RECORD;
-BEGIN
-    -- First clean up any locks that might be left from failed calculations
-    UPDATE okr_progress_calculation_lock SET locked = FALSE;
-    
-    -- First process leaf objectives (those without children)
-    FOR v_objective IN 
-        SELECT o.id 
-        FROM objectives o
-        WHERE NOT EXISTS (
-            SELECT 1 FROM objectives child 
-            WHERE child.parent_objective_id = o.id
-        )
-        ORDER BY o.id
-    LOOP
-        PERFORM calculate_cascaded_objective_progress(v_objective.id);
-    END LOOP;
-    
-    -- Then process any remaining objectives that have children
-    -- but haven't been processed yet (because their children changed them)
-    FOR v_objective IN 
-        SELECT o.id 
-        FROM objectives o
-        WHERE EXISTS (
-            SELECT 1 FROM objectives child 
-            WHERE child.parent_objective_id = o.id
-        )
-        AND NOT EXISTS (
-            SELECT 1 FROM okr_progress_calculation_lock
-            WHERE objective_id = o.id AND locked = TRUE
-        )
-        ORDER BY o.id
-    LOOP
-        PERFORM calculate_cascaded_objective_progress(v_objective.id);
-    END LOOP;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."recalculate_all_cascaded_objective_progress"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."recalculate_all_objective_progress"() RETURNS integer
-    LANGUAGE "plpgsql"
-    AS $$
-DECLARE
-    obj_record RECORD;  -- Changed to RECORD type
-    count INTEGER := 0;
-BEGIN
-    -- First, clear all locks to prevent issues
-    DELETE FROM okr_progress_calculation_lock;
-    
-    -- Start with root objectives (those without parents)
-    FOR obj_record IN 
-        SELECT id FROM objectives 
-        WHERE parent_objective_id IS NULL
-    LOOP
-        PERFORM calculate_cascaded_objective_progress(obj_record.id);
-        count := count + 1;
-    END LOOP;
-    
-    RETURN count;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."recalculate_all_objective_progress"() OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."recalculate_all_objective_progress"() IS 'Recalculates progress for all objectives in the system, starting with root objectives.';
-
-
-
 CREATE OR REPLACE FUNCTION "public"."reorder_questions"("p_session_id" "uuid", "p_question_id" "uuid", "p_old_order" integer, "p_new_order" integer, "p_direction" "text") RETURNS boolean
     LANGUAGE "plpgsql"
     AS $$
@@ -4831,269 +3459,6 @@ $$;
 
 
 ALTER FUNCTION "public"."search_live_sessions"("search_text" "text", "status_filters" "text"[], "created_by_user" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."search_objectives"("p_search_text" "text" DEFAULT ''::"text", "p_status_filters" "text"[] DEFAULT NULL::"text"[], "p_visibility_filters" "text"[] DEFAULT NULL::"text"[], "p_cycle_id" "uuid" DEFAULT NULL::"uuid", "p_sbu_id" "uuid" DEFAULT NULL::"uuid", "p_is_admin" boolean DEFAULT false, "p_user_id" "uuid" DEFAULT NULL::"uuid", "p_page_number" integer DEFAULT 1, "p_page_size" integer DEFAULT 10, "p_sort_column" "text" DEFAULT 'created_at'::"text", "p_sort_direction" "text" DEFAULT 'desc'::"text") RETURNS "jsonb"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-  v_offset INTEGER := (p_page_number - 1) * p_page_size;
-  v_results JSONB;
-  v_total_count INTEGER;
-  v_sort_column TEXT := p_sort_column;
-  v_sort_direction TEXT := p_sort_direction;
-BEGIN
-  -- Log function call for debugging
-  INSERT INTO okr_history (
-    entity_id,
-    entity_type,
-    change_type,
-    changed_by,
-    new_data
-  ) VALUES (
-    '00000000-0000-0000-0000-000000000000',
-    'search_objectives_function',
-    'function_call',
-    p_user_id,
-    jsonb_build_object(
-      'search_text', p_search_text,
-      'status_filters', p_status_filters,
-      'visibility_filters', p_visibility_filters,
-      'cycle_id', p_cycle_id,
-      'sbu_id', p_sbu_id,
-      'is_admin', p_is_admin,
-      'page_number', p_page_number,
-      'page_size', p_page_size,
-      'sort_column', p_sort_column,
-      'sort_direction', p_sort_direction
-    )
-  );
-
-  -- Validate and sanitize sort inputs
-  IF v_sort_column NOT IN ('title', 'owner', 'status', 'progress', 'created_at') THEN
-    v_sort_column := 'created_at';
-  END IF;
-  
-  IF v_sort_direction NOT IN ('asc', 'desc') THEN
-    v_sort_direction := 'desc';
-  END IF;
-
-  -- Calculate total count first
-  SELECT COUNT(DISTINCT o.id) INTO v_total_count
-  FROM objectives o
-  LEFT JOIN profiles p ON o.owner_id = p.id
-  WHERE (
-    p_is_admin -- Admin can see all objectives
-    OR
-    o.owner_id = p_user_id -- User can see their own objectives
-    OR
-    o.visibility = 'organization' -- Public objectives are visible to everyone
-    OR
-    (
-      o.visibility = 'department' -- SBU objectives visible to members of the same SBU
-      AND EXISTS (
-        SELECT 1 FROM user_sbus us 
-        WHERE us.user_id = p_user_id AND us.sbu_id = o.sbu_id
-      )
-    )
-    OR
-    ( -- User has explicit permission via okr_permissions
-      EXISTS (
-        SELECT 1 
-        FROM okr_permissions op 
-        WHERE op.objective_id = o.id 
-        AND (
-          p_user_id = ANY(op.user_ids)
-          OR EXISTS (
-            SELECT 1 FROM user_sbus us 
-            WHERE us.user_id = p_user_id AND us.sbu_id = ANY(op.sbu_ids)
-          )
-          OR EXISTS (
-            SELECT 1 FROM profiles prof 
-            WHERE prof.id = p_user_id AND prof.employee_role_id = ANY(op.employee_role_ids)
-          )
-        )
-        AND op.can_view = true
-      )
-    )
-  )
-  -- Apply search filter if provided
-  AND (
-    p_search_text = '' 
-    OR o.title ILIKE '%' || p_search_text || '%' 
-    OR o.description ILIKE '%' || p_search_text || '%'
-    OR p.first_name ILIKE '%' || p_search_text || '%'
-    OR p.last_name ILIKE '%' || p_search_text || '%'
-    OR CONCAT(p.first_name, ' ', p.last_name) ILIKE '%' || p_search_text || '%'
-  )
-  -- Apply status filter if provided
-  AND (p_status_filters IS NULL OR o.status::TEXT = ANY(p_status_filters))
-  -- Apply visibility filter if provided
-  AND (p_visibility_filters IS NULL OR o.visibility::TEXT = ANY(p_visibility_filters))
-  -- Apply cycle filter if provided
-  AND (p_cycle_id IS NULL OR o.cycle_id = p_cycle_id)
-  -- Apply SBU filter if provided
-  AND (p_sbu_id IS NULL OR o.sbu_id = p_sbu_id);
-
-  -- Check if there are any results before proceeding
-  IF v_total_count = 0 THEN
-    -- Return empty result structure
-    RETURN jsonb_build_array(
-      jsonb_build_object(
-        'objectives', jsonb_build_array(),
-        'total_count', 0
-      )
-    );
-  END IF;
-
-  -- Now get the actual results with sorting and pagination
-  WITH filtered_objectives AS (
-    SELECT 
-      o.*,
-      -- Owner details
-      p.first_name AS owner_first_name,
-      p.last_name AS owner_last_name,
-      -- Child count (for hierarchical view)
-      (SELECT COUNT(*) FROM objectives child WHERE child.parent_objective_id = o.id) AS child_count,
-      -- Key results count
-      (SELECT COUNT(*) FROM key_results kr WHERE kr.objective_id = o.id) AS key_results_count
-    FROM 
-      objectives o
-    LEFT JOIN 
-      profiles p ON o.owner_id = p.id
-    WHERE 
-      (
-        p_is_admin -- Admin can see all objectives
-        OR
-        o.owner_id = p_user_id -- User can see their own objectives
-        OR
-        o.visibility = 'organization'
-        OR
-        (
-          o.visibility = 'department' -- SBU objectives visible to members of the same SBU
-          AND EXISTS (
-            SELECT 1 FROM user_sbus us 
-            WHERE us.user_id = p_user_id AND us.sbu_id = o.sbu_id
-          )
-        )
-        OR
-        ( -- User has explicit permission via okr_permissions
-          EXISTS (
-            SELECT 1 
-            FROM okr_permissions op 
-            WHERE op.objective_id = o.id 
-            AND (
-              p_user_id = ANY(op.user_ids)
-              OR EXISTS (
-                SELECT 1 FROM user_sbus us 
-                WHERE us.user_id = p_user_id AND us.sbu_id = ANY(op.sbu_ids)
-              )
-              OR EXISTS (
-                SELECT 1 FROM profiles prof 
-                WHERE prof.id = p_user_id AND prof.employee_role_id = ANY(op.employee_role_ids)
-              )
-            )
-            AND op.can_view = true
-          )
-        )
-      )
-      -- Apply search filter if provided
-      AND (
-        p_search_text = '' 
-        OR o.title ILIKE '%' || p_search_text || '%' 
-        OR o.description ILIKE '%' || p_search_text || '%'
-        OR p.first_name ILIKE '%' || p_search_text || '%'
-        OR p.last_name ILIKE '%' || p_search_text || '%'
-        OR CONCAT(p.first_name, ' ', p.last_name) ILIKE '%' || p_search_text || '%'
-      )
-      -- Apply status filter if provided
-      AND (p_status_filters IS NULL OR o.status::TEXT = ANY(p_status_filters))
-      -- Apply visibility filter if provided
-      AND (p_visibility_filters IS NULL OR o.visibility::TEXT = ANY(p_visibility_filters))
-      -- Apply cycle filter if provided
-      AND (p_cycle_id IS NULL OR o.cycle_id = p_cycle_id)
-      -- Apply SBU filter if provided
-      AND (p_sbu_id IS NULL OR o.sbu_id = p_sbu_id)
-  ),
-  prepared_data AS (
-    SELECT * FROM filtered_objectives
-    ORDER BY
-      CASE WHEN v_sort_column = 'title' AND v_sort_direction = 'asc' THEN title END,
-      CASE WHEN v_sort_column = 'title' AND v_sort_direction = 'desc' THEN title END DESC,
-      CASE WHEN v_sort_column = 'owner' AND v_sort_direction = 'asc' THEN CONCAT(owner_first_name, ' ', owner_last_name) END,
-      CASE WHEN v_sort_column = 'owner' AND v_sort_direction = 'desc' THEN CONCAT(owner_first_name, ' ', owner_last_name) END DESC,
-      CASE WHEN v_sort_column = 'status' AND v_sort_direction = 'asc' THEN status END,
-      CASE WHEN v_sort_column = 'status' AND v_sort_direction = 'desc' THEN status END DESC,
-      CASE WHEN v_sort_column = 'progress' AND v_sort_direction = 'asc' THEN progress END,
-      CASE WHEN v_sort_column = 'progress' AND v_sort_direction = 'desc' THEN progress END DESC,
-      CASE WHEN v_sort_column = 'created_at' AND v_sort_direction = 'asc' THEN created_at END,
-      CASE WHEN v_sort_column = 'created_at' AND v_sort_direction = 'desc' THEN created_at END DESC
-    LIMIT p_page_size
-    OFFSET v_offset
-  )
-  SELECT 
-    jsonb_build_object(
-      'objectives', COALESCE(
-        jsonb_agg(
-          jsonb_build_object(
-            'id', f.id,
-            'title', f.title,
-            'description', f.description,
-            'status', f.status,
-            'progress', f.progress,
-            'visibility', f.visibility,
-            'ownerId', f.owner_id,
-            'cycleId', f.cycle_id,
-            'parentObjectiveId', f.parent_objective_id,
-            'sbuId', f.sbu_id,
-            'createdAt', f.created_at,
-            'updatedAt', f.updated_at,
-            'approvalStatus', f.approval_status,
-            'ownerName', CASE WHEN f.owner_first_name IS NOT NULL 
-                            THEN CONCAT(f.owner_first_name, ' ', f.owner_last_name) 
-                            ELSE NULL END,
-            'keyResultsCount', f.key_results_count,
-            'childCount', f.child_count
-          )
-        ),
-        '[]'::jsonb  -- Return empty array if no rows found
-      ),
-      'total_count', v_total_count
-    ) INTO v_results
-  FROM prepared_data f;
-
-  -- Log successful execution with result size
-  INSERT INTO okr_history (
-    entity_id,
-    entity_type,
-    change_type,
-    changed_by,
-    new_data
-  ) VALUES (
-    '00000000-0000-0000-0000-000000000000',
-    'search_objectives_function',
-    'execution_result',
-    p_user_id,
-    jsonb_build_object(
-      'total_count', v_total_count,
-      'result_size', CASE 
-                        WHEN v_results->'objectives' IS NULL THEN 0
-                        ELSE jsonb_array_length(v_results->'objectives')
-                      END,
-      'execution_time', clock_timestamp()
-    )
-  );
-
-  RETURN jsonb_build_array(v_results);
-END;
-$$;
-
-
-ALTER FUNCTION "public"."search_objectives"("p_search_text" "text", "p_status_filters" "text"[], "p_visibility_filters" "text"[], "p_cycle_id" "uuid", "p_sbu_id" "uuid", "p_is_admin" boolean, "p_user_id" "uuid", "p_page_number" integer, "p_page_size" integer, "p_sort_column" "text", "p_sort_direction" "text") OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."search_objectives"("p_search_text" "text", "p_status_filters" "text"[], "p_visibility_filters" "text"[], "p_cycle_id" "uuid", "p_sbu_id" "uuid", "p_is_admin" boolean, "p_user_id" "uuid", "p_page_number" integer, "p_page_size" integer, "p_sort_column" "text", "p_sort_direction" "text") IS 'Searches and filters objectives based on provided parameters with pagination, visibility rules and sorting';
-
 
 
 CREATE OR REPLACE FUNCTION "public"."search_users"("search_text" "text", "page_number" integer, "page_size" integer, "sbu_filter" "uuid" DEFAULT NULL::"uuid") RETURNS TABLE("profile" "json", "total_count" bigint)
@@ -5499,25 +3864,6 @@ $$;
 ALTER FUNCTION "public"."update_campaign_instance"("p_instance_id" "uuid", "p_new_starts_at" timestamp with time zone, "p_new_ends_at" timestamp with time zone, "p_new_status" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_cascaded_objective_progress"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-BEGIN
-    -- Clean up any stale locks
-    DELETE FROM okr_progress_calculation_lock
-    WHERE updated_at < NOW() - INTERVAL '10 minutes';
-    
-    -- Update the direct objective progress
-    PERFORM calculate_cascaded_objective_progress(NEW.objective_id);
-    
-    RETURN NEW;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."update_cascaded_objective_progress"() OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."update_instance_completion_rate"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -5673,76 +4019,6 @@ $$;
 
 
 ALTER FUNCTION "public"."validate_campaign_dates"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."validate_kr_values"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-BEGIN
-    -- Handle boolean type specifically
-    IF NEW.measurement_type = 'boolean' THEN
-        -- For boolean type, set progress based on boolean_value
-        NEW.progress := CASE WHEN NEW.boolean_value THEN 100.0 ELSE 0.0 END;
-    ELSE
-        -- For numeric types, calculate percentage of progress
-        IF NEW.target_value != NEW.start_value THEN
-            NEW.progress := ((NEW.current_value - NEW.start_value) / (NEW.target_value - NEW.start_value)) * 100.0;
-            -- Ensure progress is between 0-100
-            NEW.progress := GREATEST(0.0, LEAST(100.0, NEW.progress));
-        ELSE
-            NEW.progress := CASE WHEN NEW.current_value >= NEW.target_value THEN 100.0 ELSE 0.0 END;
-        END IF;
-    END IF;
-    
-    RETURN NEW;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."validate_kr_values"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."validate_kr_values_old"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-BEGIN
-    -- Validation only applies to numeric measurement types
-    IF NEW.measurement_type IN ('numeric', 'percentage', 'currency') THEN
-        -- Validate numeric ranges
-        IF NEW.start_value IS NOT NULL AND (NEW.start_value < -999.99 OR NEW.start_value > 999.99) THEN
-            RAISE EXCEPTION 'Start value must be between -999.99 and 999.99';
-        END IF;
-        
-        IF NEW.current_value IS NOT NULL AND (NEW.current_value < -999.99 OR NEW.current_value > 999.99) THEN
-            RAISE EXCEPTION 'Current value must be between -999.99 and 999.99';
-        END IF;
-        
-        IF NEW.target_value IS NOT NULL AND (NEW.target_value < -999.99 OR NEW.target_value > 999.99) THEN
-            RAISE EXCEPTION 'Target value must be between -999.99 and 999.99';
-        END IF;
-    END IF;
-    
-    -- Handle boolean type specifically - this calculation will be kept
-    IF NEW.measurement_type = 'boolean' THEN
-        -- For boolean type, set progress based on boolean_value
-        NEW.progress := CASE WHEN NEW.boolean_value THEN 100.0 ELSE 0.0 END;
-    ELSE
-        -- For numeric types, calculate percentage of progress
-        IF NEW.target_value != NEW.start_value THEN
-            NEW.progress := ((NEW.current_value - NEW.start_value) / (NEW.target_value - NEW.start_value)) * 100.0;
-            -- Ensure progress is between 0-100
-            NEW.progress := GREATEST(0.0, LEAST(100.0, NEW.progress));
-        ELSE
-            NEW.progress := CASE WHEN NEW.current_value >= NEW.target_value THEN 100.0 ELSE 0.0 END;
-        END IF;
-    END IF;
-    
-    RETURN NEW;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."validate_kr_values_old"() OWNER TO "postgres";
 
 SET default_tablespace = '';
 
@@ -6192,146 +4468,6 @@ CREATE TABLE IF NOT EXISTS "public"."issues" (
 ALTER TABLE "public"."issues" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."key_results" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "title" "text" NOT NULL,
-    "description" "text",
-    "objective_id" "uuid" NOT NULL,
-    "owner_id" "uuid" NOT NULL,
-    "kr_type" "text" NOT NULL,
-    "start_value" double precision DEFAULT 0,
-    "current_value" double precision DEFAULT 0,
-    "target_value" double precision NOT NULL,
-    "unit" "text",
-    "weight" double precision DEFAULT 1,
-    "status" "public"."kr_status" DEFAULT 'not_started'::"public"."kr_status" NOT NULL,
-    "progress" double precision DEFAULT 0,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "measurement_type" "text" DEFAULT 'numeric'::"text",
-    "boolean_value" boolean,
-    "due_date" timestamp with time zone,
-    CONSTRAINT "key_results_measurement_type_check" CHECK (("measurement_type" = ANY (ARRAY['numeric'::"text", 'percentage'::"text", 'currency'::"text", 'boolean'::"text"]))),
-    CONSTRAINT "key_results_progress_check" CHECK ((("progress" >= ((0)::numeric)::double precision) AND ("progress" <= ((100)::numeric)::double precision))),
-    CONSTRAINT "key_results_weight_check" CHECK (("weight" > ((0)::numeric)::double precision))
-);
-
-
-ALTER TABLE "public"."key_results" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."objectives" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "title" "text" NOT NULL,
-    "description" "text",
-    "cycle_id" "uuid" NOT NULL,
-    "owner_id" "uuid" NOT NULL,
-    "status" "public"."objective_status" DEFAULT 'draft'::"public"."objective_status" NOT NULL,
-    "progress" double precision DEFAULT 0,
-    "visibility" "public"."okr_visibility" DEFAULT 'team'::"public"."okr_visibility" NOT NULL,
-    "parent_objective_id" "uuid",
-    "sbu_id" "uuid",
-    "approval_status" "public"."approval_status" DEFAULT 'pending'::"public"."approval_status",
-    "approved_by" "uuid",
-    "approved_at" timestamp with time zone,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "progress_calculation_method" character varying(20) DEFAULT 'weighted_sum'::character varying,
-    CONSTRAINT "objectives_progress_calculation_method_check" CHECK ((("progress_calculation_method")::"text" = ANY ((ARRAY['weighted_sum'::character varying, 'weighted_avg'::character varying])::"text"[]))),
-    CONSTRAINT "objectives_progress_check" CHECK ((("progress" IS NULL) OR (("progress" >= (0)::double precision) AND ("progress" <= (100)::double precision))))
-);
-
-
-ALTER TABLE "public"."objectives" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."okr_check_ins" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "key_result_id" "uuid" NOT NULL,
-    "previous_value" numeric,
-    "new_value" numeric NOT NULL,
-    "notes" "text",
-    "status" "public"."check_in_status",
-    "confidence_level" integer,
-    "check_in_date" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "created_by" "uuid" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "okr_check_ins_confidence_level_check" CHECK ((("confidence_level" >= 1) AND ("confidence_level" <= 10)))
-);
-
-
-ALTER TABLE "public"."okr_check_ins" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."okr_comments" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "content" "text" NOT NULL,
-    "parent_comment_id" "uuid",
-    "objective_id" "uuid",
-    "key_result_id" "uuid",
-    "created_by" "uuid" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "comment_target_check" CHECK (((("objective_id" IS NOT NULL) AND ("key_result_id" IS NULL)) OR (("objective_id" IS NULL) AND ("key_result_id" IS NOT NULL))))
-);
-
-
-ALTER TABLE "public"."okr_comments" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."okr_cycles" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "name" "text" NOT NULL,
-    "description" "text",
-    "start_date" timestamp with time zone NOT NULL,
-    "end_date" timestamp with time zone NOT NULL,
-    "status" "public"."okr_cycle_status" DEFAULT 'upcoming'::"public"."okr_cycle_status" NOT NULL,
-    "created_by" "uuid" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
-);
-
-
-ALTER TABLE "public"."okr_cycles" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."key_result_statistics" WITH ("security_invoker"='on') AS
- SELECT "kr"."id",
-    "kr"."title",
-    "kr"."description",
-    "kr"."kr_type",
-    "kr"."measurement_type",
-    "kr"."unit",
-    "kr"."start_value",
-    "kr"."current_value",
-    "kr"."target_value",
-    "kr"."weight",
-    "kr"."status",
-    "kr"."progress",
-    "kr"."objective_id",
-    "kr"."owner_id",
-    "o"."title" AS "objective_title",
-    "oc"."id" AS "cycle_id",
-    "oc"."name" AS "cycle_name",
-    (("p"."first_name" || ' '::"text") || "p"."last_name") AS "owner_name",
-    ( SELECT "max"("ci"."created_at") AS "max"
-           FROM "public"."okr_check_ins" "ci"
-          WHERE ("ci"."key_result_id" = "kr"."id")) AS "last_check_in",
-    ( SELECT "count"(*) AS "count"
-           FROM "public"."okr_check_ins" "ci"
-          WHERE ("ci"."key_result_id" = "kr"."id")) AS "check_ins_count",
-    ( SELECT "count"(*) AS "count"
-           FROM "public"."okr_comments" "cmt"
-          WHERE ("cmt"."key_result_id" = "kr"."id")) AS "comments_count"
-   FROM ((("public"."key_results" "kr"
-     JOIN "public"."objectives" "o" ON (("kr"."objective_id" = "o"."id")))
-     JOIN "public"."okr_cycles" "oc" ON (("o"."cycle_id" = "oc"."id")))
-     LEFT JOIN "public"."profiles" "p" ON (("kr"."owner_id" = "p"."id")));
-
-
-ALTER TABLE "public"."key_result_statistics" OWNER TO "postgres";
-
-
 CREATE TABLE IF NOT EXISTS "public"."live_session_participants" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "session_id" "uuid" NOT NULL,
@@ -6494,151 +4630,6 @@ COMMENT ON VIEW "public"."managers_needing_improvement" IS 'Shows bottom 10 mana
 Requires minimum 3 respondents per manager. Scores are normalized to percentage scale.
 These managers may need additional support or training to improve their performance.';
 
-
-
-CREATE TABLE IF NOT EXISTS "public"."okr_alignments" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "source_objective_id" "uuid" NOT NULL,
-    "aligned_objective_id" "uuid" NOT NULL,
-    "alignment_type" "text" NOT NULL,
-    "weight" numeric(5,2) DEFAULT 1,
-    "created_by" "uuid" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "no_self_alignment" CHECK (("source_objective_id" <> "aligned_objective_id")),
-    CONSTRAINT "okr_alignment_weight_check" CHECK (("weight" > (0)::numeric))
-);
-
-
-ALTER TABLE "public"."okr_alignments" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."objective_statistics" WITH ("security_invoker"='on') AS
- SELECT "o"."id",
-    "o"."title",
-    "o"."description",
-    "o"."status",
-    "o"."progress",
-    "o"."visibility",
-    "o"."parent_objective_id",
-    "o"."sbu_id",
-    "o"."approval_status",
-    "o"."owner_id",
-    "o"."cycle_id",
-    "oc"."name" AS "cycle_name",
-    (("p"."first_name" || ' '::"text") || "p"."last_name") AS "owner_name",
-    "s"."name" AS "sbu_name",
-    ( SELECT "count"(*) AS "count"
-           FROM "public"."key_results" "kr"
-          WHERE ("kr"."objective_id" = "o"."id")) AS "key_results_count",
-    ( SELECT "count"(*) AS "count"
-           FROM "public"."key_results" "kr"
-          WHERE (("kr"."objective_id" = "o"."id") AND ("kr"."status" = 'completed'::"public"."kr_status"))) AS "completed_key_results",
-    ( SELECT "count"(*) AS "count"
-           FROM "public"."okr_alignments" "al"
-          WHERE (("al"."source_objective_id" = "o"."id") OR ("al"."aligned_objective_id" = "o"."id"))) AS "alignments_count",
-    ( SELECT "count"(*) AS "count"
-           FROM "public"."okr_comments" "c"
-          WHERE ("c"."objective_id" = "o"."id")) AS "comments_count",
-    ( SELECT "count"(*) AS "count"
-           FROM ("public"."okr_check_ins" "ci"
-             JOIN "public"."key_results" "kr" ON (("ci"."key_result_id" = "kr"."id")))
-          WHERE ("kr"."objective_id" = "o"."id")) AS "check_ins_count"
-   FROM ((("public"."objectives" "o"
-     JOIN "public"."okr_cycles" "oc" ON (("o"."cycle_id" = "oc"."id")))
-     LEFT JOIN "public"."profiles" "p" ON (("o"."owner_id" = "p"."id")))
-     LEFT JOIN "public"."sbus" "s" ON (("o"."sbu_id" = "s"."id")));
-
-
-ALTER TABLE "public"."objective_statistics" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."okr_default_settings" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "default_progress_calculation_method" character varying(20) DEFAULT 'weighted_sum'::character varying
-);
-
-
-ALTER TABLE "public"."okr_default_settings" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."okr_history" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "entity_type" "text" NOT NULL,
-    "entity_id" "uuid" NOT NULL,
-    "change_type" "text" NOT NULL,
-    "previous_data" "jsonb",
-    "new_data" "jsonb",
-    "changed_by" "uuid" NOT NULL,
-    "changed_at" timestamp with time zone DEFAULT "now"() NOT NULL
-);
-
-
-ALTER TABLE "public"."okr_history" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."okr_notifications" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "user_id" "uuid" NOT NULL,
-    "title" "text" NOT NULL,
-    "message" "text" NOT NULL,
-    "link" "text",
-    "read" boolean DEFAULT false,
-    "notification_type" "text" NOT NULL,
-    "entity_type" "text" NOT NULL,
-    "entity_id" "uuid" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
-);
-
-
-ALTER TABLE "public"."okr_notifications" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."okr_permissions" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "objective_id" "uuid" NOT NULL,
-    "sbu_ids" "uuid"[] DEFAULT ARRAY[]::"uuid"[],
-    "user_ids" "uuid"[] DEFAULT ARRAY[]::"uuid"[],
-    "employee_role_ids" "uuid"[] DEFAULT ARRAY[]::"uuid"[],
-    "can_view" boolean DEFAULT true,
-    "can_comment" boolean DEFAULT false,
-    "can_edit" boolean DEFAULT false,
-    "created_by" "uuid" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
-);
-
-
-ALTER TABLE "public"."okr_permissions" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."okr_progress_calculation_lock" (
-    "objective_id" "uuid" NOT NULL,
-    "locked" boolean DEFAULT false NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
-);
-
-
-ALTER TABLE "public"."okr_progress_calculation_lock" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."okr_role_settings" (
-    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "updated_at" timestamp with time zone DEFAULT "now"(),
-    "can_create_objectives" "uuid"[] DEFAULT '{}'::"uuid"[],
-    "can_create_org_objectives" "uuid"[] DEFAULT '{}'::"uuid"[],
-    "can_create_dept_objectives" "uuid"[] DEFAULT '{}'::"uuid"[],
-    "can_create_team_objectives" "uuid"[] DEFAULT '{}'::"uuid"[],
-    "can_create_key_results" "uuid"[] DEFAULT '{}'::"uuid"[],
-    "can_create_alignments" "uuid"[] DEFAULT '{}'::"uuid"[],
-    "can_align_with_org_objectives" "uuid"[] DEFAULT '{}'::"uuid"[],
-    "can_align_with_dept_objectives" "uuid"[] DEFAULT '{}'::"uuid"[],
-    "can_align_with_team_objectives" "uuid"[] DEFAULT '{}'::"uuid"[]
-);
-
-
-ALTER TABLE "public"."okr_role_settings" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."survey_campaigns" (
@@ -7134,11 +5125,6 @@ ALTER TABLE ONLY "public"."issues"
 
 
 
-ALTER TABLE ONLY "public"."key_results"
-    ADD CONSTRAINT "key_results_pkey" PRIMARY KEY ("id");
-
-
-
 ALTER TABLE ONLY "public"."levels"
     ADD CONSTRAINT "levels_pkey" PRIMARY KEY ("id");
 
@@ -7171,61 +5157,6 @@ ALTER TABLE ONLY "public"."live_survey_sessions"
 
 ALTER TABLE ONLY "public"."locations"
     ADD CONSTRAINT "locations_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."objectives"
-    ADD CONSTRAINT "objectives_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_alignments"
-    ADD CONSTRAINT "okr_alignments_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_check_ins"
-    ADD CONSTRAINT "okr_check_ins_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_comments"
-    ADD CONSTRAINT "okr_comments_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_cycles"
-    ADD CONSTRAINT "okr_cycles_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_default_settings"
-    ADD CONSTRAINT "okr_default_settings_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_history"
-    ADD CONSTRAINT "okr_history_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_notifications"
-    ADD CONSTRAINT "okr_notifications_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_permissions"
-    ADD CONSTRAINT "okr_permissions_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_progress_calculation_lock"
-    ADD CONSTRAINT "okr_progress_calculation_lock_pkey" PRIMARY KEY ("objective_id");
-
-
-
-ALTER TABLE ONLY "public"."okr_role_settings"
-    ADD CONSTRAINT "okr_role_settings_pkey" PRIMARY KEY ("id");
 
 
 
@@ -7271,11 +5202,6 @@ ALTER TABLE ONLY "public"."surveys"
 
 ALTER TABLE ONLY "public"."system_versions"
     ADD CONSTRAINT "system_versions_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_alignments"
-    ADD CONSTRAINT "unique_alignment" UNIQUE ("source_objective_id", "aligned_objective_id");
 
 
 
@@ -7329,30 +5255,6 @@ ALTER TABLE ONLY "public"."user_supervisors"
 
 
 
-CREATE INDEX "idx_alignments_aligned" ON "public"."okr_alignments" USING "btree" ("aligned_objective_id");
-
-
-
-CREATE INDEX "idx_alignments_source" ON "public"."okr_alignments" USING "btree" ("source_objective_id");
-
-
-
-CREATE INDEX "idx_check_ins_key_result" ON "public"."okr_check_ins" USING "btree" ("key_result_id");
-
-
-
-CREATE INDEX "idx_comments_key_result" ON "public"."okr_comments" USING "btree" ("key_result_id");
-
-
-
-CREATE INDEX "idx_comments_objective" ON "public"."okr_comments" USING "btree" ("objective_id");
-
-
-
-CREATE INDEX "idx_history_entity_type_id" ON "public"."okr_history" USING "btree" ("entity_type", "entity_id");
-
-
-
 CREATE INDEX "idx_issue_board_permissions_board_id" ON "public"."issue_board_permissions" USING "btree" ("board_id");
 
 
@@ -7366,14 +5268,6 @@ CREATE INDEX "idx_issue_votes_user_id" ON "public"."issue_votes" USING "btree" (
 
 
 CREATE INDEX "idx_issues_board_id" ON "public"."issues" USING "btree" ("board_id");
-
-
-
-CREATE INDEX "idx_key_results_objective" ON "public"."key_results" USING "btree" ("objective_id");
-
-
-
-CREATE INDEX "idx_key_results_owner" ON "public"."key_results" USING "btree" ("owner_id");
 
 
 
@@ -7394,30 +5288,6 @@ CREATE INDEX "idx_live_session_responses_question_key" ON "public"."live_session
 
 
 CREATE INDEX "idx_live_survey_sessions_join_code" ON "public"."live_survey_sessions" USING "btree" ("join_code");
-
-
-
-CREATE INDEX "idx_notifications_user" ON "public"."okr_notifications" USING "btree" ("user_id");
-
-
-
-CREATE INDEX "idx_objectives_cycle" ON "public"."objectives" USING "btree" ("cycle_id");
-
-
-
-CREATE INDEX "idx_objectives_owner" ON "public"."objectives" USING "btree" ("owner_id");
-
-
-
-CREATE INDEX "idx_objectives_sbu" ON "public"."objectives" USING "btree" ("sbu_id");
-
-
-
-CREATE INDEX "idx_okr_progress_calculation_lock_locked" ON "public"."okr_progress_calculation_lock" USING "btree" ("locked");
-
-
-
-CREATE INDEX "idx_permissions_objective" ON "public"."okr_permissions" USING "btree" ("objective_id");
 
 
 
@@ -7505,18 +5375,6 @@ CREATE OR REPLACE TRIGGER "before_delete_campaign" BEFORE DELETE ON "public"."su
 
 
 
-CREATE OR REPLACE TRIGGER "cascade_kr_delete_progress" AFTER DELETE ON "public"."key_results" FOR EACH ROW EXECUTE FUNCTION "public"."handle_kr_delete_cascaded_progress"();
-
-
-
-CREATE OR REPLACE TRIGGER "cascade_kr_progress_update" AFTER INSERT OR UPDATE ON "public"."key_results" FOR EACH ROW EXECUTE FUNCTION "public"."update_cascaded_objective_progress"();
-
-
-
-CREATE OR REPLACE TRIGGER "cascade_objective_to_parent" AFTER UPDATE ON "public"."objectives" FOR EACH ROW EXECUTE FUNCTION "public"."handle_objective_cascade_to_parent"();
-
-
-
 CREATE OR REPLACE TRIGGER "check_achievements_after_survey" AFTER INSERT OR UPDATE OF "status" ON "public"."survey_responses" FOR EACH ROW EXECUTE FUNCTION "public"."trigger_check_achievements"();
 
 
@@ -7533,35 +5391,7 @@ CREATE OR REPLACE TRIGGER "generate_instances_trigger" AFTER INSERT ON "public".
 
 
 
-CREATE OR REPLACE TRIGGER "handle_alignment_delete_trigger" AFTER DELETE ON "public"."okr_alignments" FOR EACH ROW EXECUTE FUNCTION "public"."handle_alignment_delete_progress"();
-
-
-
-CREATE OR REPLACE TRIGGER "handle_key_result_changes_trigger" AFTER INSERT OR UPDATE ON "public"."key_results" FOR EACH ROW EXECUTE FUNCTION "public"."handle_key_result_changes"();
-
-
-
-CREATE OR REPLACE TRIGGER "handle_key_result_deletion_trigger" AFTER DELETE ON "public"."key_results" FOR EACH ROW EXECUTE FUNCTION "public"."handle_key_result_deletion"();
-
-
-
-CREATE OR REPLACE TRIGGER "handle_objective_delete_cascade_trigger" BEFORE DELETE ON "public"."objectives" FOR EACH ROW EXECUTE FUNCTION "public"."handle_objective_delete_cascade"();
-
-
-
-COMMENT ON TRIGGER "handle_objective_delete_cascade_trigger" ON "public"."objectives" IS 'Trigger to handle cascading deletions when an objective is deleted - updates child objectives and removes alignments';
-
-
-
-CREATE OR REPLACE TRIGGER "handle_objective_deletion_trigger" BEFORE DELETE ON "public"."objectives" FOR EACH ROW EXECUTE FUNCTION "public"."handle_objective_deletion"();
-
-
-
 CREATE OR REPLACE TRIGGER "issue_downvote_count_trigger" AFTER INSERT OR DELETE ON "public"."issue_downvotes" FOR EACH ROW EXECUTE FUNCTION "public"."update_issue_downvote_count"();
-
-
-
-CREATE OR REPLACE TRIGGER "key_results_validate_trigger" BEFORE INSERT OR UPDATE ON "public"."key_results" FOR EACH ROW EXECUTE FUNCTION "public"."validate_kr_values"();
 
 
 
@@ -7574,10 +5404,6 @@ CREATE OR REPLACE TRIGGER "prevent_duplicate_responses_trigger" BEFORE INSERT ON
 
 
 CREATE OR REPLACE TRIGGER "prevent_submitted_response_modification" BEFORE UPDATE ON "public"."survey_responses" FOR EACH ROW EXECUTE FUNCTION "public"."prevent_modifying_submitted_responses"();
-
-
-
-CREATE OR REPLACE TRIGGER "propagate_alignment_progress_trigger" AFTER INSERT ON "public"."okr_alignments" FOR EACH ROW EXECUTE FUNCTION "public"."propagate_alignment_progress"();
 
 
 
@@ -7633,10 +5459,6 @@ CREATE OR REPLACE TRIGGER "update_issues_updated_at" BEFORE UPDATE ON "public"."
 
 
 
-CREATE OR REPLACE TRIGGER "update_key_results_updated_at" BEFORE UPDATE ON "public"."key_results" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
-
-
-
 CREATE OR REPLACE TRIGGER "update_levels_updated_at" BEFORE UPDATE ON "public"."levels" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
@@ -7658,26 +5480,6 @@ CREATE OR REPLACE TRIGGER "update_live_survey_sessions_updated_at" BEFORE UPDATE
 
 
 CREATE OR REPLACE TRIGGER "update_locations_updated_at" BEFORE UPDATE ON "public"."locations" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
-
-
-
-CREATE OR REPLACE TRIGGER "update_objectives_updated_at" BEFORE UPDATE ON "public"."objectives" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
-
-
-
-CREATE OR REPLACE TRIGGER "update_okr_comments_updated_at" BEFORE UPDATE ON "public"."okr_comments" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
-
-
-
-CREATE OR REPLACE TRIGGER "update_okr_cycles_updated_at" BEFORE UPDATE ON "public"."okr_cycles" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
-
-
-
-CREATE OR REPLACE TRIGGER "update_okr_permissions_updated_at" BEFORE UPDATE ON "public"."okr_permissions" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
-
-
-
-CREATE OR REPLACE TRIGGER "update_okr_role_settings_updated_at" BEFORE UPDATE ON "public"."okr_role_settings" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
 
@@ -7791,16 +5593,6 @@ ALTER TABLE ONLY "public"."issues"
 
 
 
-ALTER TABLE ONLY "public"."key_results"
-    ADD CONSTRAINT "key_results_objective_id_fkey" FOREIGN KEY ("objective_id") REFERENCES "public"."objectives"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."key_results"
-    ADD CONSTRAINT "key_results_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "public"."profiles"("id");
-
-
-
 ALTER TABLE ONLY "public"."live_session_participants"
     ADD CONSTRAINT "live_session_participants_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "public"."live_survey_sessions"("id") ON DELETE CASCADE;
 
@@ -7823,101 +5615,6 @@ ALTER TABLE ONLY "public"."live_survey_sessions"
 
 ALTER TABLE ONLY "public"."live_survey_sessions"
     ADD CONSTRAINT "live_survey_sessions_survey_id_fkey" FOREIGN KEY ("survey_id") REFERENCES "public"."surveys"("id");
-
-
-
-ALTER TABLE ONLY "public"."objectives"
-    ADD CONSTRAINT "objectives_approved_by_fkey" FOREIGN KEY ("approved_by") REFERENCES "public"."profiles"("id");
-
-
-
-ALTER TABLE ONLY "public"."objectives"
-    ADD CONSTRAINT "objectives_cycle_id_fkey" FOREIGN KEY ("cycle_id") REFERENCES "public"."okr_cycles"("id");
-
-
-
-ALTER TABLE ONLY "public"."objectives"
-    ADD CONSTRAINT "objectives_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "public"."profiles"("id");
-
-
-
-ALTER TABLE ONLY "public"."objectives"
-    ADD CONSTRAINT "objectives_parent_objective_id_fkey" FOREIGN KEY ("parent_objective_id") REFERENCES "public"."objectives"("id");
-
-
-
-ALTER TABLE ONLY "public"."objectives"
-    ADD CONSTRAINT "objectives_sbu_id_fkey" FOREIGN KEY ("sbu_id") REFERENCES "public"."sbus"("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_alignments"
-    ADD CONSTRAINT "okr_alignments_aligned_objective_id_fkey" FOREIGN KEY ("aligned_objective_id") REFERENCES "public"."objectives"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."okr_alignments"
-    ADD CONSTRAINT "okr_alignments_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_alignments"
-    ADD CONSTRAINT "okr_alignments_source_objective_id_fkey" FOREIGN KEY ("source_objective_id") REFERENCES "public"."objectives"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."okr_check_ins"
-    ADD CONSTRAINT "okr_check_ins_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_check_ins"
-    ADD CONSTRAINT "okr_check_ins_key_result_id_fkey" FOREIGN KEY ("key_result_id") REFERENCES "public"."key_results"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."okr_comments"
-    ADD CONSTRAINT "okr_comments_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_comments"
-    ADD CONSTRAINT "okr_comments_key_result_id_fkey" FOREIGN KEY ("key_result_id") REFERENCES "public"."key_results"("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_comments"
-    ADD CONSTRAINT "okr_comments_objective_id_fkey" FOREIGN KEY ("objective_id") REFERENCES "public"."objectives"("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_comments"
-    ADD CONSTRAINT "okr_comments_parent_comment_id_fkey" FOREIGN KEY ("parent_comment_id") REFERENCES "public"."okr_comments"("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_cycles"
-    ADD CONSTRAINT "okr_cycles_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_history"
-    ADD CONSTRAINT "okr_history_changed_by_fkey" FOREIGN KEY ("changed_by") REFERENCES "public"."profiles"("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_notifications"
-    ADD CONSTRAINT "okr_notifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_permissions"
-    ADD CONSTRAINT "okr_permissions_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
-
-
-
-ALTER TABLE ONLY "public"."okr_permissions"
-    ADD CONSTRAINT "okr_permissions_objective_id_fkey" FOREIGN KEY ("objective_id") REFERENCES "public"."objectives"("id") ON DELETE CASCADE;
 
 
 
@@ -8083,12 +5780,6 @@ CREATE POLICY "Admin has all access" ON "public"."system_versions" TO "authentic
 
 
 
-CREATE POLICY "Administrators have full access to key results" ON "public"."key_results" USING ((EXISTS ( SELECT 1
-   FROM "public"."user_roles"
-  WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role")))));
-
-
-
 CREATE POLICY "Admins can delete prompts" ON "public"."analysis_prompts" FOR DELETE TO "authenticated" USING ("public"."is_admin"("auth"."uid"()));
 
 
@@ -8168,12 +5859,6 @@ CREATE POLICY "Admins can insert prompts" ON "public"."analysis_prompts" FOR INS
 
 
 CREATE POLICY "Admins can insert roles" ON "public"."user_roles" FOR INSERT WITH CHECK ("public"."is_admin"("auth"."uid"()));
-
-
-
-CREATE POLICY "Admins can manage all objectives" ON "public"."objectives" USING ((EXISTS ( SELECT 1
-   FROM "public"."user_roles"
-  WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role")))));
 
 
 
@@ -8330,10 +6015,6 @@ CREATE POLICY "Allow users to view responses in their sessions" ON "public"."liv
 
 
 
-CREATE POLICY "Anyone can create notifications" ON "public"."okr_notifications" FOR INSERT TO "authenticated" WITH CHECK (true);
-
-
-
 CREATE POLICY "Can insert own responses" ON "public"."live_session_responses" FOR INSERT WITH CHECK (((EXISTS ( SELECT 1
    FROM "public"."live_session_participants" "lsp"
   WHERE (("lsp"."session_id" = "live_session_responses"."session_id") AND ("lsp"."participant_id" = "live_session_responses"."participant_id")))) AND (EXISTS ( SELECT 1
@@ -8360,19 +6041,11 @@ CREATE POLICY "Enable read access for all users" ON "public"."issue_boards" FOR 
 
 
 
-CREATE POLICY "Enable read access for all users" ON "public"."key_results" FOR SELECT USING (true);
-
-
-
 CREATE POLICY "Enable read access for all users" ON "public"."live_session_questions" FOR SELECT USING (true);
 
 
 
 CREATE POLICY "Enable read access for all users" ON "public"."live_session_responses" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."okr_role_settings" FOR SELECT USING (true);
 
 
 
@@ -8427,27 +6100,11 @@ CREATE POLICY "Enable write access for session creators" ON "public"."live_sessi
 
 
 
-CREATE POLICY "Everyone can view OKR cycles" ON "public"."okr_cycles" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Only admins can create OKR cycles" ON "public"."okr_cycles" FOR INSERT WITH CHECK ("public"."is_admin"("auth"."uid"()));
-
-
-
-CREATE POLICY "Only admins can delete OKR cycles" ON "public"."okr_cycles" FOR DELETE USING ("public"."is_admin"("auth"."uid"()));
-
-
-
 CREATE POLICY "Only admins can modify campaign instances" ON "public"."campaign_instances" USING ((EXISTS ( SELECT 1
    FROM "public"."user_roles"
   WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role"))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."user_roles"
   WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role")))));
-
-
-
-CREATE POLICY "Only admins can update OKR cycles" ON "public"."okr_cycles" FOR UPDATE USING ("public"."is_admin"("auth"."uid"()));
 
 
 
@@ -8462,22 +6119,6 @@ CREATE POLICY "System can manage user achievements" ON "public"."user_achievemen
 
 
 
-CREATE POLICY "Users can create alignments" ON "public"."okr_alignments" FOR INSERT TO "authenticated" WITH CHECK (("auth"."uid"() = "created_by"));
-
-
-
-CREATE POLICY "Users can create check-ins" ON "public"."okr_check_ins" FOR INSERT TO "authenticated" WITH CHECK (("auth"."uid"() = "created_by"));
-
-
-
-CREATE POLICY "Users can create comments" ON "public"."okr_comments" FOR INSERT TO "authenticated" WITH CHECK (("auth"."uid"() = "created_by"));
-
-
-
-CREATE POLICY "Users can create history entries" ON "public"."okr_history" FOR INSERT TO "authenticated" WITH CHECK (true);
-
-
-
 CREATE POLICY "Users can create issues in boards they have access to" ON "public"."issues" FOR INSERT TO "authenticated" WITH CHECK (((EXISTS ( SELECT 1
    FROM (("public"."issue_board_permissions" "ibp"
      JOIN "public"."profiles" "p" ON (("auth"."uid"() = "p"."id")))
@@ -8488,67 +6129,9 @@ CREATE POLICY "Users can create issues in boards they have access to" ON "public
 
 
 
-CREATE POLICY "Users can create key results" ON "public"."key_results" FOR INSERT WITH CHECK ((("auth"."uid"() = "owner_id") AND (EXISTS ( SELECT 1
-   FROM "public"."objectives"
-  WHERE (("objectives"."id" = "key_results"."objective_id") AND (("objectives"."owner_id" = "auth"."uid"()) OR ("objectives"."visibility" = 'organization'::"public"."okr_visibility") OR (("objectives"."visibility" = 'team'::"public"."okr_visibility") AND (EXISTS ( SELECT 1
-           FROM "public"."user_sbus"
-          WHERE (("user_sbus"."user_id" = "auth"."uid"()) AND ("user_sbus"."sbu_id" = "objectives"."sbu_id")))))))))));
-
-
-
-CREATE POLICY "Users can create key results for objectives they own" ON "public"."key_results" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
-   FROM "public"."objectives"
-  WHERE (("objectives"."id" = "key_results"."objective_id") AND ("objectives"."owner_id" = "auth"."uid"())))));
-
-
-
-CREATE POLICY "Users can create permissions" ON "public"."okr_permissions" FOR INSERT TO "authenticated" WITH CHECK (("auth"."uid"() = "created_by"));
-
-
-
-CREATE POLICY "Users can delete key results for objectives they own" ON "public"."key_results" FOR DELETE USING ((EXISTS ( SELECT 1
-   FROM "public"."objectives"
-  WHERE (("objectives"."id" = "key_results"."objective_id") AND ("objectives"."owner_id" = "auth"."uid"())))));
-
-
-
-CREATE POLICY "Users can delete permissions they created" ON "public"."okr_permissions" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "created_by"));
-
-
-
-CREATE POLICY "Users can delete their alignments" ON "public"."okr_alignments" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "created_by"));
-
-
-
-CREATE POLICY "Users can delete their check-ins" ON "public"."okr_check_ins" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "created_by"));
-
-
-
-CREATE POLICY "Users can delete their comments" ON "public"."okr_comments" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "created_by"));
-
-
-
-CREATE POLICY "Users can delete their key results" ON "public"."key_results" FOR DELETE USING ((("auth"."uid"() = "owner_id") OR (EXISTS ( SELECT 1
-   FROM "public"."objectives"
-  WHERE (("objectives"."id" = "key_results"."objective_id") AND ("objectives"."owner_id" = "auth"."uid"()))))));
-
-
-
-CREATE POLICY "Users can delete their notifications" ON "public"."okr_notifications" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "user_id"));
-
-
-
 CREATE POLICY "Users can delete their own issues or if admin" ON "public"."issues" FOR DELETE USING ((("auth"."uid"() = "created_by") OR (EXISTS ( SELECT 1
    FROM "public"."user_roles"
   WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role"))))));
-
-
-
-CREATE POLICY "Users can delete their own objectives" ON "public"."objectives" FOR DELETE USING (("auth"."uid"() = "owner_id"));
-
-
-
-CREATE POLICY "Users can insert their own objectives" ON "public"."objectives" FOR INSERT WITH CHECK (("auth"."uid"() = "owner_id"));
 
 
 
@@ -8595,28 +6178,6 @@ CREATE POLICY "Users can read votes on accessible issues" ON "public"."issue_vot
 
 
 
-CREATE POLICY "Users can update key results for objectives they own" ON "public"."key_results" FOR UPDATE USING ((EXISTS ( SELECT 1
-   FROM "public"."objectives"
-  WHERE (("objectives"."id" = "key_results"."objective_id") AND ("objectives"."owner_id" = "auth"."uid"())))));
-
-
-
-CREATE POLICY "Users can update permissions they created" ON "public"."okr_permissions" FOR UPDATE TO "authenticated" USING (("auth"."uid"() = "created_by"));
-
-
-
-CREATE POLICY "Users can update their alignments" ON "public"."okr_alignments" FOR UPDATE TO "authenticated" USING (("auth"."uid"() = "created_by"));
-
-
-
-CREATE POLICY "Users can update their check-ins" ON "public"."okr_check_ins" FOR UPDATE TO "authenticated" USING (("auth"."uid"() = "created_by"));
-
-
-
-CREATE POLICY "Users can update their comments" ON "public"."okr_comments" FOR UPDATE TO "authenticated" USING (("auth"."uid"() = "created_by"));
-
-
-
 CREATE POLICY "Users can update their extended profile fields" ON "public"."profiles" FOR UPDATE TO "authenticated" USING ((("auth"."uid"() = "id") OR (EXISTS ( SELECT 1
    FROM "public"."user_roles"
   WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role")))))) WITH CHECK ((("auth"."uid"() = "id") OR (EXISTS ( SELECT 1
@@ -8625,21 +6186,7 @@ CREATE POLICY "Users can update their extended profile fields" ON "public"."prof
 
 
 
-CREATE POLICY "Users can update their key results" ON "public"."key_results" FOR UPDATE USING ((("auth"."uid"() = "owner_id") OR (EXISTS ( SELECT 1
-   FROM "public"."objectives"
-  WHERE (("objectives"."id" = "key_results"."objective_id") AND ("objectives"."owner_id" = "auth"."uid"()))))));
-
-
-
-CREATE POLICY "Users can update their notifications" ON "public"."okr_notifications" FOR UPDATE TO "authenticated" USING (("auth"."uid"() = "user_id"));
-
-
-
 CREATE POLICY "Users can update their own issues" ON "public"."issues" FOR UPDATE TO "authenticated" USING (("created_by" = "auth"."uid"()));
-
-
-
-CREATE POLICY "Users can update their own objectives" ON "public"."objectives" FOR UPDATE USING (("auth"."uid"() = "owner_id"));
 
 
 
@@ -8669,37 +6216,13 @@ CREATE POLICY "Users can view active levels" ON "public"."levels" FOR SELECT USI
 
 
 
-CREATE POLICY "Users can view alignments" ON "public"."okr_alignments" FOR SELECT TO "authenticated" USING (true);
-
-
-
 CREATE POLICY "Users can view all locations" ON "public"."locations" FOR SELECT TO "authenticated" USING (true);
-
-
-
-CREATE POLICY "Users can view check-ins" ON "public"."okr_check_ins" FOR SELECT TO "authenticated" USING (true);
-
-
-
-CREATE POLICY "Users can view comments" ON "public"."okr_comments" FOR SELECT TO "authenticated" USING (true);
-
-
-
-CREATE POLICY "Users can view history" ON "public"."okr_history" FOR SELECT TO "authenticated" USING (true);
 
 
 
 CREATE POLICY "Users can view instances of campaigns they're assigned to" ON "public"."campaign_instances" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."survey_assignments"
   WHERE (("survey_assignments"."campaign_id" = "campaign_instances"."campaign_id") AND ("survey_assignments"."user_id" = "auth"."uid"())))));
-
-
-
-CREATE POLICY "Users can view organization objectives" ON "public"."objectives" FOR SELECT USING (("visibility" = ANY (ARRAY['team'::"public"."okr_visibility", 'organization'::"public"."okr_visibility", 'department'::"public"."okr_visibility"])));
-
-
-
-CREATE POLICY "Users can view permissions" ON "public"."okr_permissions" FOR SELECT TO "authenticated" USING (true);
 
 
 
@@ -8716,19 +6239,11 @@ CREATE POLICY "Users can view surveys assigned to them" ON "public"."surveys" FO
 
 
 
-CREATE POLICY "Users can view their notifications" ON "public"."okr_notifications" FOR SELECT TO "authenticated" USING (("auth"."uid"() = "user_id"));
-
-
-
 CREATE POLICY "Users can view their own achievement progress" ON "public"."achievement_progress" FOR SELECT TO "authenticated" USING (("auth"."uid"() = "user_id"));
 
 
 
 CREATE POLICY "Users can view their own achievements" ON "public"."user_achievements" FOR SELECT TO "authenticated" USING (("auth"."uid"() = "user_id"));
-
-
-
-CREATE POLICY "Users can view their own objectives" ON "public"."objectives" FOR SELECT USING (("auth"."uid"() = "owner_id"));
 
 
 
@@ -8760,12 +6275,6 @@ CREATE POLICY "admin_all_user_supervisors" ON "public"."user_supervisors" TO "au
 
 
 
-CREATE POLICY "admin_view_objectives" ON "public"."objectives" FOR SELECT USING ((EXISTS ( SELECT 1
-   FROM "public"."user_roles"
-  WHERE (("user_roles"."user_id" = "auth"."uid"()) AND ("user_roles"."role" = 'admin'::"public"."user_role")))));
-
-
-
 ALTER TABLE "public"."analysis_prompts" ENABLE ROW LEVEL SECURITY;
 
 
@@ -8773,13 +6282,6 @@ ALTER TABLE "public"."campaign_cron_jobs" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."campaign_instances" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "department_visibility_objectives" ON "public"."objectives" FOR SELECT USING ((("visibility" = 'department'::"public"."okr_visibility") AND (EXISTS ( SELECT 1
-   FROM ("public"."sbus" "s"
-     JOIN "public"."user_sbus" "us" ON (("us"."sbu_id" = "s"."id")))
-  WHERE (("s"."id" = "objectives"."sbu_id") AND ("us"."user_id" = "auth"."uid"()))))));
-
 
 
 ALTER TABLE "public"."email_config" ENABLE ROW LEVEL SECURITY;
@@ -8792,16 +6294,6 @@ ALTER TABLE "public"."employee_types" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."employment_types" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "granted_permissions_objectives" ON "public"."objectives" FOR SELECT USING ((EXISTS ( SELECT 1
-   FROM "public"."okr_permissions"
-  WHERE (("okr_permissions"."objective_id" = "objectives"."id") AND (("auth"."uid"() = ANY ("okr_permissions"."user_ids")) OR (EXISTS ( SELECT 1
-           FROM "public"."user_sbus" "us"
-          WHERE (("us"."user_id" = "auth"."uid"()) AND ("us"."sbu_id" = ANY ("okr_permissions"."sbu_ids"))))) OR (EXISTS ( SELECT 1
-           FROM "public"."profiles" "p"
-          WHERE (("p"."id" = "auth"."uid"()) AND ("p"."employee_role_id" = ANY ("okr_permissions"."employee_role_ids")))))) AND ("okr_permissions"."can_view" = true)))));
-
 
 
 ALTER TABLE "public"."issue_board_permissions" ENABLE ROW LEVEL SECURITY;
@@ -8817,9 +6309,6 @@ ALTER TABLE "public"."issue_votes" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."issues" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."key_results" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."levels" ENABLE ROW LEVEL SECURITY;
@@ -8848,45 +6337,6 @@ CREATE POLICY "manage_own_responses" ON "public"."survey_responses" TO "authenti
 
 
 
-ALTER TABLE "public"."objectives" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."okr_alignments" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."okr_check_ins" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."okr_comments" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."okr_cycles" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."okr_history" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."okr_notifications" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."okr_permissions" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."okr_role_settings" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "okr_role_settings_admin_policy" ON "public"."okr_role_settings" USING ("public"."is_admin"("auth"."uid"()));
-
-
-
-CREATE POLICY "organization_visibility_objectives" ON "public"."objectives" FOR SELECT USING (("visibility" = 'organization'::"public"."okr_visibility"));
-
-
-
-CREATE POLICY "own_view_objectives" ON "public"."objectives" FOR SELECT USING (("owner_id" = "auth"."uid"()));
-
-
-
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
 
@@ -8898,12 +6348,6 @@ ALTER TABLE "public"."sbus" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."shared_presentations" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "supervisor_view_objectives" ON "public"."objectives" FOR SELECT USING ((EXISTS ( SELECT 1
-   FROM "public"."user_supervisors"
-  WHERE (("user_supervisors"."supervisor_id" = "auth"."uid"()) AND ("user_supervisors"."user_id" = "objectives"."owner_id")))));
-
 
 
 ALTER TABLE "public"."survey_assignments" ENABLE ROW LEVEL SECURITY;
@@ -8919,13 +6363,6 @@ ALTER TABLE "public"."surveys" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."system_versions" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "team_visibility_objectives" ON "public"."objectives" FOR SELECT USING ((("visibility" = 'team'::"public"."okr_visibility") AND (EXISTS ( SELECT 1
-   FROM ("public"."user_sbus" "us1"
-     JOIN "public"."user_sbus" "us2" ON (("us1"."sbu_id" = "us2"."sbu_id")))
-  WHERE (("us1"."user_id" = "objectives"."owner_id") AND ("us2"."user_id" = "auth"."uid"()))))));
-
 
 
 CREATE POLICY "update_own_assignments" ON "public"."survey_assignments" FOR UPDATE TO "authenticated" USING (("user_id" = "auth"."uid"())) WITH CHECK (("user_id" = "auth"."uid"()));
@@ -9210,33 +6647,9 @@ RESET SESSION AUTHORIZATION;
 
 
 
-GRANT ALL ON FUNCTION "public"."analyze_okr_progress_logs"("p_objective_id" "uuid", "p_limit" integer) TO "anon";
-GRANT ALL ON FUNCTION "public"."analyze_okr_progress_logs"("p_objective_id" "uuid", "p_limit" integer) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."analyze_okr_progress_logs"("p_objective_id" "uuid", "p_limit" integer) TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."calculate_cascaded_objective_progress"("objective_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."calculate_cascaded_objective_progress"("objective_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."calculate_cascaded_objective_progress"("objective_id" "uuid") TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."calculate_instance_completion_rate"("instance_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."calculate_instance_completion_rate"("instance_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."calculate_instance_completion_rate"("instance_id" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."calculate_key_result_progress"("p_measurement_type" "text", "p_current_value" numeric, "p_start_value" numeric, "p_target_value" numeric, "p_boolean_value" boolean) TO "anon";
-GRANT ALL ON FUNCTION "public"."calculate_key_result_progress"("p_measurement_type" "text", "p_current_value" numeric, "p_start_value" numeric, "p_target_value" numeric, "p_boolean_value" boolean) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."calculate_key_result_progress"("p_measurement_type" "text", "p_current_value" numeric, "p_start_value" numeric, "p_target_value" numeric, "p_boolean_value" boolean) TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."calculate_objective_progress_for_single_objective"("objective_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."calculate_objective_progress_for_single_objective"("objective_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."calculate_objective_progress_for_single_objective"("objective_id" "uuid") TO "service_role";
 
 
 
@@ -9246,63 +6659,9 @@ GRANT ALL ON FUNCTION "public"."calculate_progress"("p_measurement_type" "text",
 
 
 
-GRANT ALL ON FUNCTION "public"."can_create_alignment"("p_user_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."can_create_alignment"("p_user_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."can_create_alignment"("p_user_id" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."can_create_alignment_by_visibility"("p_user_id" "uuid", "p_visibility" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."can_create_alignment_by_visibility"("p_user_id" "uuid", "p_visibility" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."can_create_alignment_by_visibility"("p_user_id" "uuid", "p_visibility" "text") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."can_create_key_result"("p_user_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."can_create_key_result"("p_user_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."can_create_key_result"("p_user_id" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."can_create_objective"("p_user_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."can_create_objective"("p_user_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."can_create_objective"("p_user_id" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."can_create_objective_alignment"("p_user_id" "uuid", "p_source_objective_id" "uuid", "p_aligned_objective_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."can_create_objective_alignment"("p_user_id" "uuid", "p_source_objective_id" "uuid", "p_aligned_objective_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."can_create_objective_alignment"("p_user_id" "uuid", "p_source_objective_id" "uuid", "p_aligned_objective_id" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."can_create_objective_by_visibility"("p_user_id" "uuid", "p_visibility" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."can_create_objective_by_visibility"("p_user_id" "uuid", "p_visibility" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."can_create_objective_by_visibility"("p_user_id" "uuid", "p_visibility" "text") TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."check_and_award_achievements"("p_user_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."check_and_award_achievements"("p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."check_and_award_achievements"("p_user_id" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."check_objective_owner_permission"("p_user_id" "uuid", "p_objective_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."check_objective_owner_permission"("p_user_id" "uuid", "p_objective_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."check_objective_owner_permission"("p_user_id" "uuid", "p_objective_id" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."check_okr_create_permission"("p_user_id" "uuid", "p_permission_type" "text", "p_visibility" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."check_okr_create_permission"("p_user_id" "uuid", "p_permission_type" "text", "p_visibility" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."check_okr_create_permission"("p_user_id" "uuid", "p_permission_type" "text", "p_visibility" "text") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."check_okr_objective_access"("p_user_id" "uuid", "p_objective_id" "uuid", "p_access_type" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."check_okr_objective_access"("p_user_id" "uuid", "p_objective_id" "uuid", "p_access_type" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."check_okr_objective_access"("p_user_id" "uuid", "p_objective_id" "uuid", "p_access_type" "text") TO "service_role";
 
 
 
@@ -9346,12 +6705,6 @@ GRANT ALL ON FUNCTION "public"."delete_survey_assignment"("p_assignment_id" "uui
 GRANT ALL ON FUNCTION "public"."delete_user_cascade"() TO "anon";
 GRANT ALL ON FUNCTION "public"."delete_user_cascade"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."delete_user_cascade"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."drop_and_recreate_question_responses_function"() TO "anon";
-GRANT ALL ON FUNCTION "public"."drop_and_recreate_question_responses_function"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."drop_and_recreate_question_responses_function"() TO "service_role";
 
 
 
@@ -9499,12 +6852,6 @@ GRANT ALL ON FUNCTION "public"."get_text_analysis"("p_campaign_id" "uuid", "p_in
 
 
 
-GRANT ALL ON FUNCTION "public"."handle_alignment_delete_progress"() TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_alignment_delete_progress"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_alignment_delete_progress"() TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."handle_instance_activation"("p_campaign_id" "uuid") TO "service_role";
@@ -9517,24 +6864,6 @@ GRANT ALL ON FUNCTION "public"."handle_instance_completion"("p_campaign_id" "uui
 
 
 
-GRANT ALL ON FUNCTION "public"."handle_key_result_changes"() TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_key_result_changes"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_key_result_changes"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."handle_key_result_deletion"() TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_key_result_deletion"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_key_result_deletion"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."handle_kr_delete_cascaded_progress"() TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_kr_delete_cascaded_progress"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_kr_delete_cascaded_progress"() TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."handle_live_session_questions"() TO "anon";
 GRANT ALL ON FUNCTION "public"."handle_live_session_questions"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."handle_live_session_questions"() TO "service_role";
@@ -9544,30 +6873,6 @@ GRANT ALL ON FUNCTION "public"."handle_live_session_questions"() TO "service_rol
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "anon";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."handle_objective_cascade_to_parent"() TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_objective_cascade_to_parent"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_objective_cascade_to_parent"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."handle_objective_delete_alignments"() TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_objective_delete_alignments"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_objective_delete_alignments"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."handle_objective_delete_cascade"() TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_objective_delete_cascade"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_objective_delete_cascade"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."handle_objective_deletion"() TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_objective_deletion"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_objective_deletion"() TO "service_role";
 
 
 
@@ -9619,24 +6924,6 @@ GRANT ALL ON FUNCTION "public"."prevent_modifying_submitted_responses"() TO "ser
 
 
 
-GRANT ALL ON FUNCTION "public"."propagate_alignment_progress"() TO "anon";
-GRANT ALL ON FUNCTION "public"."propagate_alignment_progress"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."propagate_alignment_progress"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."recalculate_all_cascaded_objective_progress"() TO "anon";
-GRANT ALL ON FUNCTION "public"."recalculate_all_cascaded_objective_progress"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."recalculate_all_cascaded_objective_progress"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."recalculate_all_objective_progress"() TO "anon";
-GRANT ALL ON FUNCTION "public"."recalculate_all_objective_progress"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."recalculate_all_objective_progress"() TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."reorder_questions"("p_session_id" "uuid", "p_question_id" "uuid", "p_old_order" integer, "p_new_order" integer, "p_direction" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."reorder_questions"("p_session_id" "uuid", "p_question_id" "uuid", "p_old_order" integer, "p_new_order" integer, "p_direction" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."reorder_questions"("p_session_id" "uuid", "p_question_id" "uuid", "p_old_order" integer, "p_new_order" integer, "p_direction" "text") TO "service_role";
@@ -9652,12 +6939,6 @@ GRANT ALL ON FUNCTION "public"."run_instance_job_now"("p_campaign_id" "uuid", "p
 GRANT ALL ON FUNCTION "public"."search_live_sessions"("search_text" "text", "status_filters" "text"[], "created_by_user" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."search_live_sessions"("search_text" "text", "status_filters" "text"[], "created_by_user" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."search_live_sessions"("search_text" "text", "status_filters" "text"[], "created_by_user" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."search_objectives"("p_search_text" "text", "p_status_filters" "text"[], "p_visibility_filters" "text"[], "p_cycle_id" "uuid", "p_sbu_id" "uuid", "p_is_admin" boolean, "p_user_id" "uuid", "p_page_number" integer, "p_page_size" integer, "p_sort_column" "text", "p_sort_direction" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."search_objectives"("p_search_text" "text", "p_status_filters" "text"[], "p_visibility_filters" "text"[], "p_cycle_id" "uuid", "p_sbu_id" "uuid", "p_is_admin" boolean, "p_user_id" "uuid", "p_page_number" integer, "p_page_size" integer, "p_sort_column" "text", "p_sort_direction" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."search_objectives"("p_search_text" "text", "p_status_filters" "text"[], "p_visibility_filters" "text"[], "p_cycle_id" "uuid", "p_sbu_id" "uuid", "p_is_admin" boolean, "p_user_id" "uuid", "p_page_number" integer, "p_page_size" integer, "p_sort_column" "text", "p_sort_direction" "text") TO "service_role";
 
 
 
@@ -9697,12 +6978,6 @@ GRANT ALL ON FUNCTION "public"."update_campaign_instance"("p_instance_id" "uuid"
 
 
 
-GRANT ALL ON FUNCTION "public"."update_cascaded_objective_progress"() TO "anon";
-GRANT ALL ON FUNCTION "public"."update_cascaded_objective_progress"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."update_cascaded_objective_progress"() TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."update_instance_completion_rate"() TO "anon";
 GRANT ALL ON FUNCTION "public"."update_instance_completion_rate"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_instance_completion_rate"() TO "service_role";
@@ -9736,18 +7011,6 @@ GRANT ALL ON FUNCTION "public"."update_updated_at_column"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."validate_campaign_dates"() TO "anon";
 GRANT ALL ON FUNCTION "public"."validate_campaign_dates"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."validate_campaign_dates"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."validate_kr_values"() TO "anon";
-GRANT ALL ON FUNCTION "public"."validate_kr_values"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."validate_kr_values"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."validate_kr_values_old"() TO "anon";
-GRANT ALL ON FUNCTION "public"."validate_kr_values_old"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."validate_kr_values_old"() TO "service_role";
 
 
 
@@ -9946,42 +7209,6 @@ GRANT ALL ON TABLE "public"."issues" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."key_results" TO "anon";
-GRANT ALL ON TABLE "public"."key_results" TO "authenticated";
-GRANT ALL ON TABLE "public"."key_results" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."objectives" TO "anon";
-GRANT ALL ON TABLE "public"."objectives" TO "authenticated";
-GRANT ALL ON TABLE "public"."objectives" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."okr_check_ins" TO "anon";
-GRANT ALL ON TABLE "public"."okr_check_ins" TO "authenticated";
-GRANT ALL ON TABLE "public"."okr_check_ins" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."okr_comments" TO "anon";
-GRANT ALL ON TABLE "public"."okr_comments" TO "authenticated";
-GRANT ALL ON TABLE "public"."okr_comments" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."okr_cycles" TO "anon";
-GRANT ALL ON TABLE "public"."okr_cycles" TO "authenticated";
-GRANT ALL ON TABLE "public"."okr_cycles" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."key_result_statistics" TO "anon";
-GRANT ALL ON TABLE "public"."key_result_statistics" TO "authenticated";
-GRANT ALL ON TABLE "public"."key_result_statistics" TO "service_role";
-
-
-
 GRANT ALL ON TABLE "public"."live_session_participants" TO "anon";
 GRANT ALL ON TABLE "public"."live_session_participants" TO "authenticated";
 GRANT ALL ON TABLE "public"."live_session_participants" TO "service_role";
@@ -10021,54 +7248,6 @@ GRANT ALL ON TABLE "public"."user_supervisors" TO "service_role";
 GRANT ALL ON TABLE "public"."managers_needing_improvement" TO "anon";
 GRANT ALL ON TABLE "public"."managers_needing_improvement" TO "authenticated";
 GRANT ALL ON TABLE "public"."managers_needing_improvement" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."okr_alignments" TO "anon";
-GRANT ALL ON TABLE "public"."okr_alignments" TO "authenticated";
-GRANT ALL ON TABLE "public"."okr_alignments" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."objective_statistics" TO "anon";
-GRANT ALL ON TABLE "public"."objective_statistics" TO "authenticated";
-GRANT ALL ON TABLE "public"."objective_statistics" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."okr_default_settings" TO "anon";
-GRANT ALL ON TABLE "public"."okr_default_settings" TO "authenticated";
-GRANT ALL ON TABLE "public"."okr_default_settings" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."okr_history" TO "anon";
-GRANT ALL ON TABLE "public"."okr_history" TO "authenticated";
-GRANT ALL ON TABLE "public"."okr_history" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."okr_notifications" TO "anon";
-GRANT ALL ON TABLE "public"."okr_notifications" TO "authenticated";
-GRANT ALL ON TABLE "public"."okr_notifications" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."okr_permissions" TO "anon";
-GRANT ALL ON TABLE "public"."okr_permissions" TO "authenticated";
-GRANT ALL ON TABLE "public"."okr_permissions" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."okr_progress_calculation_lock" TO "anon";
-GRANT ALL ON TABLE "public"."okr_progress_calculation_lock" TO "authenticated";
-GRANT ALL ON TABLE "public"."okr_progress_calculation_lock" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."okr_role_settings" TO "anon";
-GRANT ALL ON TABLE "public"."okr_role_settings" TO "authenticated";
-GRANT ALL ON TABLE "public"."okr_role_settings" TO "service_role";
 
 
 
