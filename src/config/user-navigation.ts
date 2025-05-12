@@ -5,11 +5,8 @@ import {
   Settings2, 
   Trophy, 
   Kanban, 
-  Target, 
   UserCircle, 
   Users,
-  Rocket,
-  BarChart
 } from "lucide-react";
 
 // Navigation item with optional children for nested navigation
@@ -71,24 +68,6 @@ export const userNavigationItems: UserNavigationItem[] = [
     ]
   },
   {
-    title: "OKRs",
-    icon: Target,
-    path: "/user/okrs",
-    section: "okrs",
-    children: [
-      {
-        title: "Dashboard",
-        icon: BarChart,
-        path: "/user/okrs/dashboard",
-      },
-      {
-        title: "Objectives",
-        icon: Rocket,
-        path: "/user/okrs/objectives",
-      },
-    ],
-  },
-  {
     title: "Achievements",
     icon: Trophy,
     path: "/user/achievements",
@@ -101,6 +80,5 @@ export const userNavigationSections = [
   { id: "core", label: "Main" },
   { id: "user", label: "User Center" },
   { id: "surveys", label: "Survey Management" },
-  { id: "okrs", label: "OKR System" },
   { id: "achievements", label: "Recognition" },
 ];

@@ -1,5 +1,3 @@
-
-import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,7 +12,6 @@ import AuthCallback from "./pages/auth/AuthCallback";
 import ResetPassword from "./pages/auth/ResetPassword";
 import AdminLayout from "./components/layouts/AdminLayout";
 import UserLayout from "./components/layouts/UserLayout";
-import Dashboard from "./pages/Dashboard";
 
 import PublicSurveyPage from "./pages/public/Survey";
 import ThankYouPage from "./pages/public/ThankYou";
@@ -34,9 +31,6 @@ import UserAchievementsPage from "./pages/user/achievements";
 import UserIssueBoards from "./pages/user/issue-boards";
 import UserIssueBoardView from "./pages/user/issue-boards/[id]";
 
-import UserOKRDashboard from "./pages/user/okrs/Dashboard";
-import UserObjectives from "./pages/user/okrs/Objectives";
-import UserObjectiveDetails from "./pages/user/okrs/ObjectiveDetails";
 
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminConfig from "./pages/admin/Config";
@@ -73,14 +67,6 @@ import AchievementFormPage from "./pages/admin/achievements/AchievementFormPage"
 import CreateIssueBoard from "./pages/admin/surveys/issue-boards/CreateIssueBoard";
 import EditIssueBoard from "./pages/admin/surveys/issue-boards/EditIssueBoard";
 
-import AdminOKRDashboard from "./pages/admin/okrs/Dashboard";
-import AdminOKRCycles from "./pages/admin/okrs/Cycles";
-import AdminCreateOKRCycle from "./pages/admin/okrs/CreateCycle";
-import AdminOKRCycleDetails from "./pages/admin/okrs/CycleDetails";
-import AdminAllObjectives from "./pages/admin/okrs/Objectives";
-import AdminObjectiveDetails from "./pages/admin/okrs/ObjectiveDetails";
-import OkrSettingsPage from "./pages/admin/okrs/OkrSettings";
-import OkrHistory from "./pages/admin/okrs/History";
 
 import { TokenInputForm } from "./pages/public/presentation/TokenInputForm";
 
@@ -122,10 +108,6 @@ const App = () => (
               <Route path="achievements" element={<UserAchievementsPage />} />
               <Route path="issue-boards" element={<UserIssueBoards />} />
               <Route path="issue-boards/:id" element={<UserIssueBoardView />} />
-              <Route path="okrs" element={<Navigate to="/user/okrs/dashboard" replace />} />
-              <Route path="okrs/dashboard" element={<UserOKRDashboard />} />
-              <Route path="okrs/objectives" element={<UserObjectives />} />
-              <Route path="okrs/objectives/:id" element={<UserObjectiveDetails />} />
             </Route>
             
             <Route path="/admin" element={<AdminLayout />}>
@@ -153,17 +135,7 @@ const App = () => (
               <Route path="surveys/issue-boards/create" element={<CreateIssueBoard />} />
               <Route path="surveys/issue-boards/:id" element={<EditIssueBoard />} />
               <Route path="surveys/issue-boards/:id/view" element={<AdminIssueBoardView />} />
-              
-              <Route path="okrs" element={<Navigate to="/admin/okrs/dashboard" replace />} />
-              <Route path="okrs/dashboard" element={<AdminOKRDashboard />} />
-              <Route path="okrs/cycles" element={<AdminOKRCycles />} />
-              <Route path="okrs/cycles/create" element={<AdminCreateOKRCycle />} />
-              <Route path="okrs/cycles/:id" element={<AdminOKRCycleDetails />} />
-              <Route path="okrs/objectives" element={<AdminAllObjectives />} />
-              <Route path="okrs/objectives/:id" element={<AdminObjectiveDetails />} />
-              <Route path="okrs/history" element={<OkrHistory />} />
-              <Route path="okrs/settings" element={<OkrSettingsPage />} />
-              
+                   
               <Route path="config" element={<PlatformConfigLayout />}>
                 <Route index element={<AdminConfig />} />
                 <Route path="sbus" element={<SBUsConfig />} />
