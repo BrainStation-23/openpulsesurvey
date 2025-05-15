@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, BarChart, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
