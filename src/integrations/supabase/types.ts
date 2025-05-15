@@ -874,7 +874,6 @@ export type Database = {
         }
         Relationships: []
       }
-      
       profiles: {
         Row: {
           created_at: string
@@ -1418,7 +1417,7 @@ export type Database = {
           frontend_version: string
           id: string
           is_current: boolean | null
-          migration_scripts: string[] | null
+          migration_script: string | null
           release_notes: string | null
           released_at: string | null
           schema_version: string
@@ -1432,7 +1431,7 @@ export type Database = {
           frontend_version: string
           id?: string
           is_current?: boolean | null
-          migration_scripts?: string[] | null
+          migration_script?: string | null
           release_notes?: string | null
           released_at?: string | null
           schema_version: string
@@ -1446,7 +1445,7 @@ export type Database = {
           frontend_version?: string
           id?: string
           is_current?: boolean | null
-          migration_scripts?: string[] | null
+          migration_script?: string | null
           release_notes?: string | null
           released_at?: string | null
           schema_version?: string
@@ -1700,7 +1699,6 @@ export type Database = {
         }
         Relationships: []
       }
-      
       managers_needing_improvement: {
         Row: {
           average_score: number | null
@@ -1727,7 +1725,6 @@ export type Database = {
           },
         ]
       }
-      
       recent_activities: {
         Row: {
           activity_time: string | null
@@ -1884,12 +1881,10 @@ export type Database = {
       }
     }
     Functions: {
-     
       calculate_instance_completion_rate: {
         Args: { instance_id: string }
         Returns: number
       }
-      
       calculate_progress: {
         Args: {
           p_measurement_type: string
@@ -1900,13 +1895,10 @@ export type Database = {
         }
         Returns: number
       }
-     
       check_and_award_achievements: {
         Args: { p_user_id: string }
         Returns: undefined
       }
-      
-
       check_user_board_access: {
         Args: { p_user_id: string; p_board_id: string; p_access_type: string }
         Returns: boolean
@@ -1926,10 +1918,6 @@ export type Database = {
       delete_survey_assignment: {
         Args: { p_assignment_id: string }
         Returns: Json
-      }
-      drop_and_recreate_question_responses_function: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
       }
       fix_all_instance_completion_rates: {
         Args: Record<PropertyKey, never>
@@ -2158,6 +2146,15 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      get_supervisor_team_feedback: {
+        Args: {
+          p_campaign_id: string
+          p_instance_id: string
+          p_supervisor_id: string
+          p_question_name?: string
+        }
+        Returns: Json
+      }
       get_survey_responses: {
         Args: { p_campaign_id: string; p_instance_id?: string }
         Returns: Json
@@ -2205,7 +2202,6 @@ export type Database = {
         }
         Returns: string
       }
-      
       reorder_questions: {
         Args: {
           p_session_id: string
@@ -2237,7 +2233,6 @@ export type Database = {
           created_by: string
         }[]
       }
-     
       search_users: {
         Args:
           | {
@@ -2326,9 +2321,7 @@ export type Database = {
       approval_status: "pending" | "approved" | "rejected" | "requested_changes"
       assignment_status: "pending" | "completed" | "expired"
       campaign_status: "draft" | "active" | "completed" | "archived"
-      check_in_status: "on_track" | "at_risk" | "behind"
       config_status: "active" | "inactive"
-      contact_message_status: "pending" | "sent" | "error" | "partially_sent"
       cron_job_type:
         | "instance_activation"
         | "instance_due_time"
@@ -2342,13 +2335,6 @@ export type Database = {
       instance_status: "upcoming" | "active" | "completed"
       issue_board_status: "active" | "disabled"
       issue_status: "open" | "closed"
-      kr_status:
-        | "not_started"
-        | "in_progress"
-        | "at_risk"
-        | "on_track"
-        | "completed"
-        | "abandoned"
       level_status: "active" | "inactive"
       profile_status: "active" | "disabled"
       prompt_category:
@@ -2512,9 +2498,7 @@ export const Constants = {
       approval_status: ["pending", "approved", "rejected", "requested_changes"],
       assignment_status: ["pending", "completed", "expired"],
       campaign_status: ["draft", "active", "completed", "archived"],
-      check_in_status: ["on_track", "at_risk", "behind"],
       config_status: ["active", "inactive"],
-      contact_message_status: ["pending", "sent", "error", "partially_sent"],
       cron_job_type: [
         "instance_activation",
         "instance_due_time",
@@ -2529,14 +2513,6 @@ export const Constants = {
       instance_status: ["upcoming", "active", "completed"],
       issue_board_status: ["active", "disabled"],
       issue_status: ["open", "closed"],
-      kr_status: [
-        "not_started",
-        "in_progress",
-        "at_risk",
-        "on_track",
-        "completed",
-        "abandoned",
-      ],
       level_status: ["active", "inactive"],
       profile_status: ["active", "disabled"],
       prompt_category: [
