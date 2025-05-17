@@ -65,17 +65,12 @@ export function CampaignSelector({
       // Get unique campaign IDs
       const uniqueCampaignIds = [...new Set(assignments.map(a => a.campaign_id))];
 
-      // Fetch campaign details
+      // Fetch campaign details - Fix the relationship issue by removing the nested selection
       const { data: campaigns, error: campaignsError } = await supabase
         .from('survey_campaigns')
         .select(`
           id,
-          name,
-          campaign_instances (
-            id,
-            period_number,
-            status
-          )
+          name
         `)
         .in('id', uniqueCampaignIds)
         .eq('status', 'active');
@@ -85,12 +80,23 @@ export function CampaignSelector({
         throw campaignsError;
       }
 
-      // Extract and transform the data
-      return campaigns?.map(campaign => ({
-        id: campaign.id,
-        name: campaign.name,
-        hasInstances: campaign.campaign_instances.length > 0
-      })) || [];
+      // Now fetch instances in a separate query to check which campaigns have instances
+      if (campaigns && campaigns.length > 0) {
+        const campaignIds = campaigns.map(c => c.id);
+        const { data: instances } = await supabase
+          .from('campaign_instances')
+          .select('campaign_id, id')
+          .in('campaign_id', campaignIds);
+          
+        // Add hasInstances flag to each campaign
+        return campaigns.map(campaign => ({
+          id: campaign.id,
+          name: campaign.name,
+          hasInstances: instances ? instances.some(i => i.campaign_id === campaign.id) : false
+        }));
+      }
+
+      return [];
     },
     enabled: !!user?.id,
   });
