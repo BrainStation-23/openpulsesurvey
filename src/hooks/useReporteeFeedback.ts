@@ -54,7 +54,9 @@ export const useReporteeFeedback = (campaignId?: string, instanceId?: string) =>
       );
       
       if (error) throw error;
-      return data as TeamFeedbackResponse;
+      
+      // Apply type assertion to fix the TypeScript error
+      return data as unknown as TeamFeedbackResponse;
     },
     enabled: !!user?.id,
   });
