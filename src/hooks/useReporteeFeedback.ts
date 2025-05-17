@@ -43,6 +43,13 @@ export const useReporteeFeedback = (campaignId?: string, instanceId?: string) =>
     queryFn: async (): Promise<TeamFeedbackResponse> => {
       if (!user?.id) throw new Error('User not authenticated');
       
+      console.log('Fetching reportee feedback with params:', {
+        campaignId,
+        instanceId,
+        supervisorId: user.id,
+        questionName: selectedQuestionName
+      });
+      
       const { data, error } = await supabase.rpc(
         'get_supervisor_team_feedback',
         {
@@ -53,11 +60,23 @@ export const useReporteeFeedback = (campaignId?: string, instanceId?: string) =>
         }
       );
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching team feedback:', error);
+        throw error;
+      }
       
       // Make sure data isn't null before returning
       if (!data) {
+        console.log('No data returned from get_supervisor_team_feedback');
         return { status: 'error', message: 'No data returned from the server' };
+      }
+      
+      // Log the first question's distribution to debug
+      if (data.status === 'success' && data.data?.questions?.length > 0) {
+        const firstQuestion = data.data.questions[0];
+        console.log(`First question (${firstQuestion.question_name}) distribution:`, 
+          firstQuestion.distribution, 
+          'type:', firstQuestion.question_type);
       }
       
       // Apply type assertion to fix the TypeScript error
