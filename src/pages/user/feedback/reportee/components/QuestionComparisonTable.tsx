@@ -2,7 +2,6 @@
 import React from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
-import { TrendingDown, TrendingUp, Minus } from 'lucide-react';
 import { TeamFeedbackQuestion } from '@/hooks/useReporteeFeedback';
 
 interface QuestionComparisonTableProps {
@@ -63,27 +62,6 @@ export function QuestionComparisonTable({ questions }: QuestionComparisonTablePr
       cell: ({ row }) => (
         <div className="font-mono">{row.original.response_count}</div>
       ),
-    },
-    {
-      id: 'trend',
-      header: 'Trend',
-      cell: ({ row }) => {
-        const question = row.original;
-        // This is a placeholder - in a real implementation you would compare with previous period
-        const trendValue = question.question_name.charCodeAt(0) % 3 - 1; // Just for demo purposes
-        
-        return (
-          <div className="flex items-center">
-            {trendValue > 0 ? (
-              <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
-            ) : trendValue < 0 ? (
-              <TrendingDown className="mr-1 h-4 w-4 text-red-500" />
-            ) : (
-              <Minus className="mr-1 h-4 w-4 text-gray-400" />
-            )}
-          </div>
-        );
-      },
     }
   ];
 
