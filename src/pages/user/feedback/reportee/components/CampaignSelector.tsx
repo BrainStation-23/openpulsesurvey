@@ -41,38 +41,40 @@ export function CampaignSelector({
       const { data: assignments, error } = await supabase
         .from('survey_assignments')
         .select(`
-          campaign_id,
-          survey_campaigns:campaign_id (
-            id,
-            name,
-            survey_id,
-            campaign_instances:campaign_instances (
-              id,
-              period_number,
-              status
-            )
-          )
+          campaign_id
         `)
-        .in('user_id', userIds)
-        .is('survey_campaigns.status', 'active');
+        .in('user_id', userIds);
 
       if (error) throw error;
 
-      // Extract unique campaigns
-      const uniqueCampaigns = Array.from(
-        new Map(
-          assignments?.map(a => [
-            a.campaign_id, 
-            { 
-              id: a.survey_campaigns.id,
-              name: a.survey_campaigns.name,
-              hasInstances: a.survey_campaigns.campaign_instances.length > 0
-            }
-          ])
-        ).values()
-      );
+      if (!assignments.length) return [];
 
-      return uniqueCampaigns;
+      // Get unique campaign IDs
+      const uniqueCampaignIds = [...new Set(assignments.map(a => a.campaign_id))];
+
+      // Fetch campaign details
+      const { data: campaigns, error: campaignsError } = await supabase
+        .from('survey_campaigns')
+        .select(`
+          id,
+          name,
+          campaign_instances (
+            id,
+            period_number,
+            status
+          )
+        `)
+        .in('id', uniqueCampaignIds)
+        .eq('status', 'active');
+
+      if (campaignsError) throw campaignsError;
+
+      // Extract and transform the data
+      return campaigns?.map(campaign => ({
+        id: campaign.id,
+        name: campaign.name,
+        hasInstances: campaign.campaign_instances.length > 0
+      })) || [];
     },
     enabled: !!user?.id,
   });
