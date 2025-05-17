@@ -55,6 +55,11 @@ export const useReporteeFeedback = (campaignId?: string, instanceId?: string) =>
       
       if (error) throw error;
       
+      // Make sure data isn't null before returning
+      if (!data) {
+        return { status: 'error', message: 'No data returned from the server' };
+      }
+      
       // Apply type assertion to fix the TypeScript error
       return data as unknown as TeamFeedbackResponse;
     },

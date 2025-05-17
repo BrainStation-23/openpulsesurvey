@@ -78,8 +78,8 @@ export default function ReporteeFeedbackPage() {
     );
   }
 
-  // Prepare data for the overview
-  const { team_size, response_count, response_rate, questions } = feedbackData.data;
+  // Safely access the data
+  const { team_size = 0, response_count = 0, response_rate = 0, questions = [] } = feedbackData.data;
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -127,7 +127,7 @@ export default function ReporteeFeedbackPage() {
               <TabsTrigger value="visualizations">Visualizations</TabsTrigger>
             </TabsList>
             <TabsContent value="questions" className="space-y-6">
-              {questions.length === 0 ? (
+              {!Array.isArray(questions) || questions.length === 0 ? (
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>No questions found</AlertTitle>
@@ -165,7 +165,9 @@ export default function ReporteeFeedbackPage() {
                       
                       {question.question_type === 'text' && question.distribution && (
                         <div>
-                          <p className="text-sm text-muted-foreground mb-2">Text Responses: {Array.isArray(question.distribution) ? question.distribution.length : 0}</p>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Text Responses: {Array.isArray(question.distribution) ? question.distribution.length : 0}
+                          </p>
                           {Array.isArray(question.distribution) && question.distribution.length > 0 && (
                             <Button variant="outline" size="sm">View Text Responses</Button>
                           )}
@@ -178,15 +180,15 @@ export default function ReporteeFeedbackPage() {
             </TabsContent>
             <TabsContent value="visualizations">
               <div className="space-y-8">
-                {questions
-                  .filter(q => q.question_type === 'rating' && q.distribution)
+                {Array.isArray(questions) && questions
+                  .filter(q => q.question_type === 'rating' && q.distribution && Array.isArray(q.distribution))
                   .map((question) => (
                     <div key={question.question_name} className="space-y-2">
                       <h3 className="text-lg font-medium">{question.question_title}</h3>
                       <div className="h-64 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart
-                            data={question.distribution.map((item: any) => ({
+                            data={question.distribution.map((item) => ({
                               value: item.value,
                               count: item.count
                             }))}
@@ -203,7 +205,7 @@ export default function ReporteeFeedbackPage() {
                     </div>
                   ))}
                 
-                {questions
+                {Array.isArray(questions) && questions
                   .filter(q => q.question_type === 'boolean' && q.distribution)
                   .map((question) => (
                     <div key={question.question_name} className="space-y-2">
@@ -212,8 +214,8 @@ export default function ReporteeFeedbackPage() {
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart
                             data={[
-                              { name: 'Yes', value: question.distribution.true_count || 0 },
-                              { name: 'No', value: question.distribution.false_count || 0 }
+                              { name: 'Yes', value: question.distribution?.true_count || 0 },
+                              { name: 'No', value: question.distribution?.false_count || 0 }
                             ]}
                             margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
                           >
