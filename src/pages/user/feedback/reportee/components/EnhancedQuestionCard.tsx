@@ -9,6 +9,7 @@ import { BooleanPieChart } from './charts/BooleanPieChart';
 import { TextResponseSummary } from './charts/TextResponseSummary';
 import { QuestionInsight } from './QuestionInsight';
 import { QuestionHeader } from './QuestionHeader';
+import { ViewTextResponsesButton } from './ViewTextResponsesButton';
 
 interface EnhancedQuestionCardProps {
   question: TeamFeedbackQuestion;
@@ -31,7 +32,7 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
 
   // Chart configuration for styling - proper format to match ChartConfig type
   const chartConfig: ChartConfig = {
-    rating: {
+    'rating': {
       color: '#8B5CF6'
     },
     'boolean-yes': {
@@ -63,6 +64,13 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
     return null;
   };
 
+  const handleViewTextResponses = () => {
+    analytics.logEvent('view_text_responses', {
+      question_id: question.question_name
+    });
+    // In a real implementation, this would open a modal or navigate to a page with text responses
+  };
+
   return (
     <Card 
       className={`w-full transition-all duration-200 hover:shadow-md ${expanded ? 'border-primary/50' : ''}`}
@@ -80,8 +88,18 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
         <CardContent>
           {renderChart()}
           
-          {question.question_type === 'rating' && question.avg_value !== null && (
+          {/* Show insights for both rating and boolean types */}
+          {(question.question_type === 'rating' || question.question_type === 'boolean') && question.avg_value !== null && (
             <QuestionInsight avgValue={question.avg_value} />
+          )}
+
+          {/* Add button to view text responses for text questions */}
+          {question.question_type === 'text' && question.distribution && question.distribution.length > 0 && (
+            <ViewTextResponsesButton 
+              questionTitle={question.question_title}
+              responsesCount={question.distribution.length}
+              onClick={handleViewTextResponses}
+            />
           )}
         </CardContent>
       )}

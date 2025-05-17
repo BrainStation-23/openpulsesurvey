@@ -4,21 +4,42 @@ import { Lightbulb } from 'lucide-react';
 
 interface QuestionInsightProps {
   avgValue: number | null;
+  questionType?: 'rating' | 'boolean';
 }
 
-export function QuestionInsight({ avgValue }: QuestionInsightProps) {
+export function QuestionInsight({ avgValue, questionType = 'rating' }: QuestionInsightProps) {
   if (avgValue === null) return null;
+  
+  let insightText = '';
+  
+  if (questionType === 'boolean') {
+    // For boolean questions, the average is the percentage of "Yes" responses
+    const yesPercentage = avgValue * 100;
+    if (yesPercentage >= 75) {
+      insightText = "Strong positive consensus. Most team members agree on this matter.";
+    } else if (yesPercentage >= 50) {
+      insightText = "Moderate positive consensus. A majority of team members agree, but there's room for improvement.";
+    } else if (yesPercentage >= 25) {
+      insightText = "Divided opinions with a negative tendency. Consider addressing this area.";
+    } else {
+      insightText = "Strong negative consensus. This area needs immediate attention.";
+    }
+  } else {
+    // For rating questions
+    if (avgValue >= 4) {
+      insightText = "This rating is positive. Team members seem satisfied in this area.";
+    } else if (avgValue >= 3) {
+      insightText = "This rating is neutral. Consider exploring ways to improve this area.";
+    } else {
+      insightText = "This rating needs attention. Consider addressing this area promptly.";
+    }
+  }
   
   return (
     <div className="mt-4 flex items-center">
       <Lightbulb className="h-5 w-5 mr-2 text-amber-500" />
       <p className="text-sm text-muted-foreground">
-        {avgValue >= 4 
-          ? "This rating is positive. Team members seem satisfied in this area."
-          : avgValue >= 3 
-          ? "This rating is neutral. Consider exploring ways to improve this area."
-          : "This rating needs attention. Consider addressing this area promptly."
-        }
+        {insightText}
       </p>
     </div>
   );
