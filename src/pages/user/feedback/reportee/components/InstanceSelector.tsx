@@ -33,8 +33,12 @@ export function InstanceSelector({
         .eq('campaign_id', campaignId)
         .order('period_number', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching campaign instances:', error);
+        throw error;
+      }
+      
+      return data || [];
     },
     enabled: !!campaignId,
   });
@@ -65,7 +69,7 @@ export function InstanceSelector({
   if (isLoading) return <div>Loading instances...</div>;
 
   if (!instances?.length) {
-    return <div className="text-sm text-muted-foreground">No instances available</div>;
+    return <div className="text-sm text-muted-foreground">No instances available for this campaign</div>;
   }
 
   return (

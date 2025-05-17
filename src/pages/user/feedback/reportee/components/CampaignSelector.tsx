@@ -28,26 +28,39 @@ export function CampaignSelector({
       if (!user?.id) return [];
 
       // Get the team members supervised by this user
-      const { data: teamMembers } = await supabase
+      const { data: teamMembers, error: teamError } = await supabase
         .from('user_supervisors')
         .select('user_id')
         .eq('supervisor_id', user.id);
 
-      if (!teamMembers?.length) return [];
+      if (teamError) {
+        console.error('Error fetching team members:', teamError);
+        return [];
+      }
+
+      // If no team members found, log it but continue with empty array
+      if (!teamMembers?.length) {
+        console.log('No team members found for supervisor:', user.id);
+        return [];
+      }
 
       const userIds = teamMembers.map(tm => tm.user_id);
 
-      // Get assignments for these team members
-      const { data: assignments, error } = await supabase
+      // Get unique campaign IDs from assignments
+      const { data: assignments, error: assignmentError } = await supabase
         .from('survey_assignments')
-        .select(`
-          campaign_id
-        `)
+        .select('campaign_id')
         .in('user_id', userIds);
 
-      if (error) throw error;
+      if (assignmentError) {
+        console.error('Error fetching assignments:', assignmentError);
+        return [];
+      }
 
-      if (!assignments.length) return [];
+      if (!assignments.length) {
+        console.log('No assignments found for team members');
+        return [];
+      }
 
       // Get unique campaign IDs
       const uniqueCampaignIds = [...new Set(assignments.map(a => a.campaign_id))];
@@ -67,7 +80,10 @@ export function CampaignSelector({
         .in('id', uniqueCampaignIds)
         .eq('status', 'active');
 
-      if (campaignsError) throw campaignsError;
+      if (campaignsError) {
+        console.error('Error fetching campaigns:', campaignsError);
+        throw campaignsError;
+      }
 
       // Extract and transform the data
       return campaigns?.map(campaign => ({
@@ -89,7 +105,7 @@ export function CampaignSelector({
   if (isLoading) return <div>Loading campaigns...</div>;
 
   if (!campaigns?.length) {
-    return <div className="text-sm text-muted-foreground">No campaigns available</div>;
+    return <div className="text-sm text-muted-foreground">No campaigns available for your team members. Please ensure you have team members assigned to you as a supervisor and they have active survey assignments.</div>;
   }
 
   return (
