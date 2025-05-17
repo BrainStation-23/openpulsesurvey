@@ -2,17 +2,13 @@
 import React from 'react';
 import { CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { TeamFeedbackQuestion } from '@/hooks/useReporteeFeedback';
 
 interface QuestionHeaderProps {
   question: TeamFeedbackQuestion;
-  expanded: boolean;
-  toggleExpanded: (e: React.MouseEvent) => void;
 }
 
-export function QuestionHeader({ question, expanded, toggleExpanded }: QuestionHeaderProps) {
+export function QuestionHeader({ question }: QuestionHeaderProps) {
   return (
     <div className="flex justify-between items-start">
       <div>
@@ -21,6 +17,11 @@ export function QuestionHeader({ question, expanded, toggleExpanded }: QuestionH
           {question.question_type === 'rating' && question.avg_value !== null && (
             <Badge className="ml-2 bg-primary/10 text-primary hover:bg-primary/20">
               Avg: {question.avg_value.toFixed(1)}
+            </Badge>
+          )}
+          {question.question_type === 'boolean' && question.avg_value !== null && (
+            <Badge className="ml-2 bg-primary/10 text-primary hover:bg-primary/20">
+              Yes: {(question.avg_value * 100).toFixed(0)}%
             </Badge>
           )}
         </CardTitle>
@@ -42,21 +43,6 @@ export function QuestionHeader({ question, expanded, toggleExpanded }: QuestionH
           </span>
         </CardDescription>
       </div>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0" 
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleExpanded(e);
-        }}
-      >
-        {expanded ? (
-          <ChevronUp className="h-4 w-4" />
-        ) : (
-          <ChevronDown className="h-4 w-4" />
-        )}
-      </Button>
     </div>
   );
 }

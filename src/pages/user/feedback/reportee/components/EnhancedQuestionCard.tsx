@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { TeamFeedbackQuestion } from '@/hooks/useReporteeFeedback';
 import { ChartConfig } from '@/components/ui/chart';
@@ -16,21 +16,9 @@ interface EnhancedQuestionCardProps {
 }
 
 export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
-  const [expanded, setExpanded] = useState(false);
   const analytics = useFeedbackAnalytics();
   
-  const toggleExpanded = (e: React.MouseEvent) => {
-    setExpanded(!expanded);
-    
-    // Log user interaction
-    analytics.logEvent('toggle_question_card', { 
-      question_id: question.question_name,
-      question_type: question.question_type,
-      expanded: !expanded
-    });
-  };
-
-  // Chart configuration for styling - proper format to match ChartConfig type
+  // Chart configuration for styling
   const chartConfig: ChartConfig = {
     'rating': {
       color: '#8B5CF6'
@@ -72,37 +60,34 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
   };
 
   return (
-    <Card 
-      className={`w-full transition-all duration-200 hover:shadow-md ${expanded ? 'border-primary/50' : ''}`}
-      onClick={toggleExpanded}
-    >
-      <CardHeader className="cursor-pointer">
-        <QuestionHeader 
-          question={question} 
-          expanded={expanded} 
-          toggleExpanded={toggleExpanded} 
-        />
+    <Card className="w-full transition-all duration-200 hover:shadow-md">
+      <CardHeader>
+        <QuestionHeader question={question} />
       </CardHeader>
       
-      {expanded && (
-        <CardContent>
-          {renderChart()}
-          
-          {/* Show insights for both rating and boolean types */}
-          {(question.question_type === 'rating' || question.question_type === 'boolean') && question.avg_value !== null && (
-            <QuestionInsight avgValue={question.avg_value} />
-          )}
+      <CardContent>
+        {renderChart()}
+        
+        {/* Show insights for both rating and boolean types */}
+        {(question.question_type === 'rating' || question.question_type === 'boolean') && 
+          question.avg_value !== null && (
+            <QuestionInsight 
+              avgValue={question.avg_value} 
+              questionType={question.question_type} 
+            />
+        )}
 
-          {/* Add button to view text responses for text questions */}
-          {question.question_type === 'text' && question.distribution && question.distribution.length > 0 && (
+        {/* Add button to view text responses for text questions */}
+        {question.question_type === 'text' && 
+          question.distribution && 
+          question.distribution.length > 0 && (
             <ViewTextResponsesButton 
               questionTitle={question.question_title}
               responsesCount={question.distribution.length}
               onClick={handleViewTextResponses}
             />
-          )}
-        </CardContent>
-      )}
+        )}
+      </CardContent>
     </Card>
   );
 }
