@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell, PieChart, Pie, Legend } from 'recharts';
 import { TeamFeedbackQuestion } from '@/hooks/useReporteeFeedback';
-import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
+import { ChartConfig, ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { Lightbulb, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
 
@@ -28,14 +28,18 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
     });
   };
 
-  // Chart configuration for styling
-  const chartConfig = {
+  // Chart configuration for styling - proper format to match ChartConfig type
+  const chartConfig: ChartConfig = {
     rating: {
       color: '#8B5CF6'
     },
-    boolean: {
-      yes: { color: '#10B981' },
-      no: { color: '#EF4444' },
+    'boolean-yes': {
+      color: '#10B981',
+      label: 'Yes'
+    },
+    'boolean-no': {
+      color: '#EF4444',
+      label: 'No'
     }
   };
 
@@ -111,8 +115,8 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
       
       // For boolean questions, use a pie chart for consistency
       const data = [
-        { name: 'Yes', value: trueCount, percentage: total > 0 ? (trueCount / total) * 100 : 0 },
-        { name: 'No', value: falseCount, percentage: total > 0 ? (falseCount / total) * 100 : 0 }
+        { name: 'boolean-yes', value: trueCount, percentage: total > 0 ? (trueCount / total) * 100 : 0 },
+        { name: 'boolean-no', value: falseCount, percentage: total > 0 ? (falseCount / total) * 100 : 0 }
       ];
       
       const COLORS = ['#10B981', '#EF4444'];
@@ -130,14 +134,18 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percentage }) => `${name}: ${percentage.toFixed(0)}%`}
+                  nameKey="name"
+                  label={({ name, value, percent }) => `${name === 'boolean-yes' ? 'Yes' : 'No'}: ${(percent * 100).toFixed(0)}%`}
                 >
                   {data.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value, name) => [`${value} (${(data.find(item => item.name === name)?.percentage || 0).toFixed(0)}%)`, name]}
+                  formatter={(value, name) => [
+                    `${value} (${(data.find(item => item.name === name)?.percentage || 0).toFixed(0)}%)`, 
+                    name === 'boolean-yes' ? 'Yes' : 'No'
+                  ]}
                 />
               </PieChart>
             </ResponsiveContainer>
