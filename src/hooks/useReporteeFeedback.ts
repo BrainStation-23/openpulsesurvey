@@ -43,7 +43,7 @@ export const useReporteeFeedback = (campaignId?: string, instanceId?: string) =>
     queryFn: async (): Promise<TeamFeedbackResponse> => {
       if (!user?.id) throw new Error('User not authenticated');
       
-      const { data, error } = await supabase.rpc(
+      const { data: responseData, error } = await supabase.rpc(
         'get_supervisor_team_feedback',
         {
           p_campaign_id: campaignId || null,
@@ -56,12 +56,12 @@ export const useReporteeFeedback = (campaignId?: string, instanceId?: string) =>
       if (error) throw error;
       
       // Make sure data isn't null before returning
-      if (!data) {
+      if (!responseData) {
         return { status: 'error', message: 'No data returned from the server' };
       }
       
       // Apply type assertion to fix the TypeScript error
-      return data as unknown as TeamFeedbackResponse;
+      return responseData as unknown as TeamFeedbackResponse;
     },
     enabled: !!user?.id,
   });

@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { TeamFeedbackQuestion } from '@/hooks/useReporteeFeedback';
 import { ChartConfig } from '@/components/ui/chart';
 import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
-import { RatingBarChart } from './charts/RatingBarChart';
 import { BooleanPieChart } from './charts/BooleanPieChart';
 import { TextResponseSummary } from './charts/TextResponseSummary';
 import { QuestionInsight } from './QuestionInsight';
@@ -20,9 +19,6 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
   
   // Chart configuration for styling
   const chartConfig: ChartConfig = {
-    'rating': {
-      color: '#8B5CF6'
-    },
     'boolean-yes': {
       color: '#10B981',
       label: 'Yes'
@@ -33,9 +29,22 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
     }
   };
 
-  const renderChart = () => {
-    if (question.question_type === 'rating' && question.distribution && Array.isArray(question.distribution)) {
-      return <RatingBarChart distribution={question.distribution} chartConfig={chartConfig} />;
+  const renderContent = () => {
+    if (question.question_type === 'rating') {
+      return (
+        <div className="mt-4 p-4 bg-slate-50 rounded-md">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-slate-700">Average Rating</span>
+            <span className="text-xl font-bold text-primary">
+              {question.avg_value !== null ? question.avg_value.toFixed(1) : 'N/A'}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-slate-700">Response Count</span>
+            <span className="text-lg font-semibold">{question.response_count}</span>
+          </div>
+        </div>
+      );
     }
     
     if (question.question_type === 'boolean' && question.distribution) {
@@ -49,7 +58,11 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
       return <TextResponseSummary distribution={question.distribution} />;
     }
     
-    return null;
+    return (
+      <div className="p-4 text-center text-slate-500">
+        No response data available
+      </div>
+    );
   };
 
   const handleViewTextResponses = () => {
@@ -66,7 +79,7 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
       </CardHeader>
       
       <CardContent>
-        {renderChart()}
+        {renderContent()}
         
         {/* Show insights for both rating and boolean types */}
         {(question.question_type === 'rating' || question.question_type === 'boolean') && 
