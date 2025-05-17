@@ -63,7 +63,7 @@
     "crypto-random-string": "^5.0.0",
     "d3": "^7.9.0",
     "d3-cloud": "^1.2.7",
-    "date-fns": "^3.6.0",
+    "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.3.0",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",

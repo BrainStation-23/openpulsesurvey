@@ -9,10 +9,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { AlertCircle, MessageSquare, AlertTriangle, PieChart, Users } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { CampaignSelector } from './components/CampaignSelector';
+import { InstanceSelector } from './components/InstanceSelector';
 
 export default function ReporteeFeedbackPage() {
   const { user } = useCurrentUser();
-  const { feedbackData, isLoading, error } = useReporteeFeedback();
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | undefined>();
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | undefined>();
+  const { feedbackData, isLoading, error } = useReporteeFeedback(selectedCampaignId, selectedInstanceId);
 
   if (isLoading) {
     return (
@@ -56,6 +60,19 @@ export default function ReporteeFeedbackPage() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Reportee Feedback</CardTitle>
+            <div className="flex flex-col md:flex-row gap-4 mt-4">
+              <CampaignSelector 
+                selectedCampaignId={selectedCampaignId}
+                onCampaignSelect={setSelectedCampaignId}
+              />
+              {selectedCampaignId && (
+                <InstanceSelector 
+                  campaignId={selectedCampaignId}
+                  selectedInstanceId={selectedInstanceId}
+                  onInstanceSelect={setSelectedInstanceId}
+                />
+              )}
+            </div>
           </CardHeader>
           <CardContent className="p-6">
             <p className="text-muted-foreground mb-4">
@@ -85,6 +102,20 @@ export default function ReporteeFeedbackPage() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold tracking-tight">Reportee Feedback</h1>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4 mb-4">
+        <CampaignSelector 
+          selectedCampaignId={selectedCampaignId}
+          onCampaignSelect={setSelectedCampaignId}
+        />
+        {selectedCampaignId && (
+          <InstanceSelector 
+            campaignId={selectedCampaignId}
+            selectedInstanceId={selectedInstanceId}
+            onInstanceSelect={setSelectedInstanceId}
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
