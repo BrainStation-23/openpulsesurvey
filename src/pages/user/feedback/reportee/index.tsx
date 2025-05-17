@@ -1,29 +1,140 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useReporteeFeedback } from '@/hooks/useReporteeFeedback';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { AlertCircle, MessageSquare, AlertTriangle, PieChart, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useReporteeFeedback, TeamFeedbackQuestion } from '@/hooks/useReporteeFeedback';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { CampaignSelector } from './components/CampaignSelector';
 import { InstanceSelector } from './components/InstanceSelector';
+import { FeedbackOverview } from './components/FeedbackOverview';
+import { EnhancedQuestionCard } from './components/EnhancedQuestionCard';
+import { QuestionComparisonTable } from './components/QuestionComparisonTable';
+import { TextResponsesViewer } from './components/TextResponsesViewer';
+import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
+import { AlertCircle, Search, Filter, Download, TableIcon, Grid } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ReporteeFeedbackPage() {
   const { user } = useCurrentUser();
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | undefined>();
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | undefined>();
-  const { feedbackData, isLoading, error } = useReporteeFeedback(selectedCampaignId, selectedInstanceId);
+  const [viewType, setViewType] = useState<'cards' | 'table'>('cards');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedQuestionType, setSelectedQuestionType] = useState<string>('all');
+  const [selectedTextQuestion, setSelectedTextQuestion] = useState<TeamFeedbackQuestion | null>(null);
+  const { toast } = useToast();
+  const analytics = useFeedbackAnalytics();
+  
+  const { 
+    feedbackData, 
+    isLoading, 
+    error,
+    refetch
+  } = useReporteeFeedback(selectedCampaignId, selectedInstanceId);
+
+  // Log page load
+  useEffect(() => {
+    analytics.logEvent('page_view', { page: 'reportee_feedback' });
+    
+    // Measure initial loading performance
+    const startTime = performance.now();
+    
+    return () => {
+      const loadTime = performance.now() - startTime;
+      analytics.logPerformanceMetric('page_load', loadTime);
+    };
+  }, []);
+  
+  // Log campaign/instance selection
+  useEffect(() => {
+    if (selectedCampaignId) {
+      analytics.logFilterChange('campaign', selectedCampaignId);
+    }
+    if (selectedInstanceId) {
+      analytics.logFilterChange('instance', selectedInstanceId);
+    }
+  }, [selectedCampaignId, selectedInstanceId]);
+
+  const handleCampaignSelect = (campaignId: string) => {
+    setSelectedCampaignId(campaignId);
+    setSelectedInstanceId(undefined);
+    analytics.logEvent('campaign_selected', { campaignId });
+  };
+
+  const handleInstanceSelect = (instanceId: string) => {
+    setSelectedInstanceId(instanceId);
+    analytics.logEvent('instance_selected', { instanceId });
+  };
+  
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    
+    // Don't log every keystroke, maybe add debounce in real implementation
+    if (e.target.value.length > 2 || e.target.value === '') {
+      analytics.logSearch(e.target.value, 0); // Count would be calculated after filtering
+    }
+  };
+  
+  const handleQuestionTypeChange = (type: string) => {
+    setSelectedQuestionType(type);
+    analytics.logFilterChange('question_type', type);
+  };
+  
+  const handleViewDetails = (question: TeamFeedbackQuestion) => {
+    if (question.question_type === 'text') {
+      setSelectedTextQuestion(question);
+      analytics.logQuestionView(question.question_name, question.question_title);
+    } else {
+      // For other question types, we could show a modal with detailed analytics
+      // or navigate to a detail page
+      toast({
+        title: "Coming soon",
+        description: "Detailed view for this question type is coming soon.",
+      });
+    }
+  };
+  
+  const handleExportAll = () => {
+    analytics.logEvent('export_all', { format: 'csv' });
+    
+    toast({
+      title: "Exporting all data",
+      description: "Your data export is being prepared and will download shortly.",
+    });
+    
+    // In a real implementation, this would trigger the actual export
+  };
+
+  // Filter questions based on search and type filter
+  const filteredQuestions = feedbackData?.data?.questions?.filter(q => {
+    const matchesSearch = searchQuery === '' || 
+      q.question_title.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesType = selectedQuestionType === 'all' || 
+      q.question_type === selectedQuestionType;
+    
+    return matchesSearch && matchesType;
+  }) || [];
 
   if (isLoading) {
     return (
       <div className="container mx-auto py-6 space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col space-y-2">
           <h1 className="text-2xl font-bold tracking-tight">Reportee Feedback</h1>
+          <p className="text-muted-foreground">
+            View and analyze feedback from your team members
+          </p>
         </div>
+        
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="w-[280px] h-10 bg-gray-200 animate-pulse rounded-md"></div>
+          <div className="w-[280px] h-10 bg-gray-200 animate-pulse rounded-md"></div>
+        </div>
+        
         <Card>
           <CardContent className="p-6 flex justify-center items-center min-h-[300px]">
             <LoadingSpinner size="lg" />
@@ -63,13 +174,13 @@ export default function ReporteeFeedbackPage() {
             <div className="flex flex-col md:flex-row gap-4 mt-4">
               <CampaignSelector 
                 selectedCampaignId={selectedCampaignId}
-                onCampaignSelect={setSelectedCampaignId}
+                onCampaignSelect={handleCampaignSelect}
               />
               {selectedCampaignId && (
                 <InstanceSelector 
                   campaignId={selectedCampaignId}
                   selectedInstanceId={selectedInstanceId}
-                  onInstanceSelect={setSelectedInstanceId}
+                  onInstanceSelect={handleInstanceSelect}
                 />
               )}
             </div>
@@ -82,7 +193,7 @@ export default function ReporteeFeedbackPage() {
             
             <div className="p-8 flex flex-col items-center justify-center text-center">
               <div className="rounded-full bg-primary/10 p-6 mb-4">
-                <MessageSquare className="h-10 w-10 text-primary" />
+                <AlertCircle className="h-10 w-10 text-primary" />
               </div>
               <h3 className="text-xl font-medium mb-2">No feedback data available</h3>
               <p className="text-muted-foreground max-w-md">
@@ -95,174 +206,211 @@ export default function ReporteeFeedbackPage() {
     );
   }
 
-  // Safely access the data
-  const { team_size = 0, response_count = 0, response_rate = 0, questions = [] } = feedbackData.data;
+  // Show text responses viewer if a text question is selected
+  if (selectedTextQuestion) {
+    return (
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold tracking-tight">Reportee Feedback</h1>
+          <Button 
+            variant="outline" 
+            onClick={() => setSelectedTextQuestion(null)}
+          >
+            Back to Questions
+          </Button>
+        </div>
+        
+        <TextResponsesViewer 
+          questionTitle={selectedTextQuestion.question_title}
+          responses={Array.isArray(selectedTextQuestion.distribution) 
+            ? selectedTextQuestion.distribution 
+            : []}
+          onClose={() => setSelectedTextQuestion(null)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col space-y-2">
         <h1 className="text-2xl font-bold tracking-tight">Reportee Feedback</h1>
+        <p className="text-muted-foreground">
+          View and analyze feedback from your team members
+        </p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 mb-4">
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
         <CampaignSelector 
           selectedCampaignId={selectedCampaignId}
-          onCampaignSelect={setSelectedCampaignId}
+          onCampaignSelect={handleCampaignSelect}
         />
         {selectedCampaignId && (
           <InstanceSelector 
             campaignId={selectedCampaignId}
             selectedInstanceId={selectedInstanceId}
-            onInstanceSelect={setSelectedInstanceId}
+            onInstanceSelect={handleInstanceSelect}
           />
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-            <Users className="h-8 w-8 text-primary mb-2" />
-            <p className="text-sm text-muted-foreground">Team Size</p>
-            <p className="text-3xl font-bold">{team_size}</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-            <MessageSquare className="h-8 w-8 text-primary mb-2" />
-            <p className="text-sm text-muted-foreground">Responses</p>
-            <p className="text-3xl font-bold">{response_count}</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-            <PieChart className="h-8 w-8 text-primary mb-2" />
-            <p className="text-sm text-muted-foreground">Response Rate</p>
-            <p className="text-3xl font-bold">{response_rate}%</p>
-          </CardContent>
-        </Card>
-      </div>
+      {feedbackData.data && (
+        <FeedbackOverview 
+          data={feedbackData.data} 
+          isLoading={isLoading} 
+        />
+      )}
 
       <Card>
-        <CardHeader>
-          <CardTitle>Feedback Questions Summary</CardTitle>
-          <CardDescription>
-            Overview of all feedback questions from your team members
-          </CardDescription>
+        <CardHeader className="pb-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle>Feedback Questions</CardTitle>
+              <CardDescription>
+                Analysis of all feedback questions from your team members
+              </CardDescription>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 md:w-auto">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search questions..."
+                  className="pl-8 w-full md:w-[200px]"
+                  value={searchQuery}
+                  onChange={handleSearch}
+                />
+              </div>
+              
+              <div className="flex items-center rounded-md border">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`rounded-l-md ${viewType === 'cards' ? 'bg-muted' : ''}`}
+                  onClick={() => setViewType('cards')}
+                >
+                  <Grid className="h-4 w-4 mr-2" />
+                  Cards
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`rounded-r-md ${viewType === 'table' ? 'bg-muted' : ''}`}
+                  onClick={() => setViewType('table')}
+                >
+                  <TableIcon className="h-4 w-4 mr-2" />
+                  Table
+                </Button>
+              </div>
+              
+              <Button variant="outline" size="sm" onClick={handleExportAll}>
+                <Download className="h-4 w-4 mr-2" />
+                Export All
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="questions">
-            <TabsList>
-              <TabsTrigger value="questions">Questions</TabsTrigger>
-              <TabsTrigger value="visualizations">Visualizations</TabsTrigger>
-            </TabsList>
-            <TabsContent value="questions" className="space-y-6">
-              {!Array.isArray(questions) || questions.length === 0 ? (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>No questions found</AlertTitle>
-                  <AlertDescription>
-                    There are no feedback questions available to display.
-                  </AlertDescription>
-                </Alert>
+          <Tabs defaultValue="all" onValueChange={handleQuestionTypeChange}>
+            <div className="mb-6">
+              <TabsList>
+                <TabsTrigger value="all">All Questions</TabsTrigger>
+                <TabsTrigger value="rating">Rating</TabsTrigger>
+                <TabsTrigger value="boolean">Yes/No</TabsTrigger>
+                <TabsTrigger value="text">Text</TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <TabsContent value="all" className="space-y-0">
+              {viewType === 'table' ? (
+                <QuestionComparisonTable questions={filteredQuestions} />
               ) : (
-                questions.map((question) => (
-                  <Card key={question.question_name} className="overflow-hidden">
-                    <CardHeader className="bg-muted p-4">
-                      <CardTitle className="text-base">{question.question_title}</CardTitle>
-                      <CardDescription>Type: {question.question_type} | Responses: {question.response_count}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      {question.question_type === 'rating' && question.avg_value !== null && (
-                        <div className="flex items-center">
-                          <span className="text-2xl font-semibold mr-2">{question.avg_value.toFixed(1)}</span>
-                          <span className="text-sm text-muted-foreground">Average Rating</span>
-                        </div>
-                      )}
-                      
-                      {question.question_type === 'boolean' && question.distribution && (
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                            <span className="text-sm">{question.distribution.true_count || 0} Yes</span>
-                          </div>
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                            <span className="text-sm">{question.distribution.false_count || 0} No</span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {question.question_type === 'text' && question.distribution && (
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            Text Responses: {Array.isArray(question.distribution) ? question.distribution.length : 0}
-                          </p>
-                          {Array.isArray(question.distribution) && question.distribution.length > 0 && (
-                            <Button variant="outline" size="sm">View Text Responses</Button>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {filteredQuestions.map((question) => (
+                    <EnhancedQuestionCard 
+                      key={question.question_name}
+                      question={question}
+                      onViewDetails={handleViewDetails}
+                    />
+                  ))}
+                </div>
               )}
             </TabsContent>
-            <TabsContent value="visualizations">
-              <div className="space-y-8">
-                {Array.isArray(questions) && questions
-                  .filter(q => q.question_type === 'rating' && q.distribution && Array.isArray(q.distribution))
-                  .map((question) => (
-                    <div key={question.question_name} className="space-y-2">
-                      <h3 className="text-lg font-medium">{question.question_title}</h3>
-                      <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart
-                            data={question.distribution.map((item) => ({
-                              value: item.value,
-                              count: item.count
-                            }))}
-                            margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
-                          >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="value" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="count" fill="#8884d8" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  ))}
-                
-                {Array.isArray(questions) && questions
-                  .filter(q => q.question_type === 'boolean' && q.distribution)
-                  .map((question) => (
-                    <div key={question.question_name} className="space-y-2">
-                      <h3 className="text-lg font-medium">{question.question_title}</h3>
-                      <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart
-                            data={[
-                              { name: 'Yes', value: question.distribution?.true_count || 0 },
-                              { name: 'No', value: question.distribution?.false_count || 0 }
-                            ]}
-                            margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
-                          >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="value" fill="#8884d8" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  ))}
-              </div>
+            
+            <TabsContent value="rating" className="space-y-0">
+              {viewType === 'table' ? (
+                <QuestionComparisonTable 
+                  questions={filteredQuestions.filter(q => q.question_type === 'rating')} 
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {filteredQuestions
+                    .filter(q => q.question_type === 'rating')
+                    .map((question) => (
+                      <EnhancedQuestionCard 
+                        key={question.question_name}
+                        question={question}
+                        onViewDetails={handleViewDetails}
+                      />
+                    ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="boolean" className="space-y-0">
+              {viewType === 'table' ? (
+                <QuestionComparisonTable 
+                  questions={filteredQuestions.filter(q => q.question_type === 'boolean')} 
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {filteredQuestions
+                    .filter(q => q.question_type === 'boolean')
+                    .map((question) => (
+                      <EnhancedQuestionCard 
+                        key={question.question_name}
+                        question={question}
+                        onViewDetails={handleViewDetails}
+                      />
+                    ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="text" className="space-y-0">
+              {viewType === 'table' ? (
+                <QuestionComparisonTable 
+                  questions={filteredQuestions.filter(q => q.question_type === 'text')} 
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {filteredQuestions
+                    .filter(q => q.question_type === 'text')
+                    .map((question) => (
+                      <EnhancedQuestionCard 
+                        key={question.question_name}
+                        question={question}
+                        onViewDetails={handleViewDetails}
+                      />
+                    ))}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
+          
+          {filteredQuestions.length === 0 && (
+            <div className="py-12 text-center">
+              <div className="rounded-full bg-muted w-12 h-12 mx-auto flex items-center justify-center mb-4">
+                <Search className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-medium mb-2">No questions found</h3>
+              <p className="text-muted-foreground">
+                {searchQuery ? 
+                  `No questions match "${searchQuery}"` : 
+                  `No ${selectedQuestionType !== 'all' ? selectedQuestionType : ''} questions available`}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
