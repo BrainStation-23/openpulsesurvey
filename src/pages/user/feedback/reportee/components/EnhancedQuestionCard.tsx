@@ -28,6 +28,17 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
     });
   };
 
+  // Chart configuration for styling
+  const chartConfig = {
+    rating: {
+      color: '#8B5CF6'
+    },
+    boolean: {
+      yes: { color: '#10B981' },
+      no: { color: '#EF4444' },
+    }
+  };
+
   const renderChart = () => {
     if (question.question_type === 'rating' && question.distribution && Array.isArray(question.distribution)) {
       // Transform data to match chart format
@@ -38,7 +49,7 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
       
       return (
         <div className="h-64 w-full mt-4">
-          <ChartContainer>
+          <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={data}
@@ -108,7 +119,7 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
       
       return (
         <div className="h-64 w-full mt-4">
-          <ChartContainer>
+          <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
