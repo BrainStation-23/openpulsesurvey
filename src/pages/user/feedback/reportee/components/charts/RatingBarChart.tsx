@@ -3,31 +3,14 @@ import React from 'react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import { ChartConfig, ChartContainer } from '@/components/ui/chart';
 
-interface RatingDistributionItem {
-  value: number;
-  count: number;
-}
-
 interface RatingBarChartProps {
-  distribution: RatingDistributionItem[];
+  distribution: any[];
   chartConfig: ChartConfig;
 }
 
 export function RatingBarChart({ distribution, chartConfig }: RatingBarChartProps) {
-  console.log('RatingBarChart received distribution:', distribution);
-  
-  // Ensure distribution data is valid
-  if (!Array.isArray(distribution) || distribution.length === 0) {
-    console.error('Invalid or empty distribution data for rating chart');
-    return (
-      <div className="h-64 w-full mt-4 flex items-center justify-center">
-        <p className="text-muted-foreground">No rating data available</p>
-      </div>
-    );
-  }
-  
   // Transform data to match chart format
-  const data = distribution.map((item: RatingDistributionItem) => ({
+  const data = distribution.map((item: any) => ({
     name: item.value.toString(),
     value: item.count
   }));

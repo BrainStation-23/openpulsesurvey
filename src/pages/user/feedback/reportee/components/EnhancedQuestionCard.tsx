@@ -34,16 +34,8 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
   };
 
   const renderChart = () => {
-    if (question.question_type === 'rating' && question.distribution) {
-      console.log('Rating distribution data:', question.distribution);
-      
-      // Verify the distribution is an array and has data
-      if (Array.isArray(question.distribution) && question.distribution.length > 0) {
-        return <RatingBarChart distribution={question.distribution} chartConfig={chartConfig} />;
-      } else {
-        console.log('Rating distribution is not a valid array or is empty');
-        return <div className="py-6 text-center text-muted-foreground">No rating data available</div>;
-      }
+    if (question.question_type === 'rating' && question.distribution && Array.isArray(question.distribution)) {
+      return <RatingBarChart distribution={question.distribution} chartConfig={chartConfig} />;
     }
     
     if (question.question_type === 'boolean' && question.distribution) {
@@ -57,7 +49,7 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
       return <TextResponseSummary distribution={question.distribution} />;
     }
     
-    return <div className="py-6 text-center text-muted-foreground">No chart data available</div>;
+    return null;
   };
 
   const handleViewTextResponses = () => {
@@ -88,7 +80,6 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
         {/* Add button to view text responses for text questions */}
         {question.question_type === 'text' && 
           question.distribution && 
-          Array.isArray(question.distribution) &&
           question.distribution.length > 0 && (
             <ViewTextResponsesButton 
               questionTitle={question.question_title}
