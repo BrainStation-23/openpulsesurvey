@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell } from 'recharts';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell, PieChart, Pie, Legend } from 'recharts';
 import { TeamFeedbackQuestion } from '@/hooks/useReporteeFeedback';
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { Lightbulb, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
@@ -30,7 +30,7 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
 
   const renderChart = () => {
     if (question.question_type === 'rating' && question.distribution && Array.isArray(question.distribution)) {
-      // Transform data to match boolean chart format for consistency
+      // Transform data to match chart format
       const data = question.distribution.map((item: any) => ({
         name: item.value.toString(),
         value: item.count
@@ -38,11 +38,7 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
       
       return (
         <div className="h-64 w-full mt-4">
-          <ChartContainer 
-            config={{
-              rating: { theme: { light: '#8B5CF6', dark: '#A78BFA' } }
-            }}
-          >
+          <ChartContainer>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={data}
@@ -100,63 +96,39 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
     if (question.question_type === 'boolean' && question.distribution) {
       const trueCount = question.distribution.true_count || 0;
       const falseCount = question.distribution.false_count || 0;
+      const total = trueCount + falseCount;
+      
+      // For boolean questions, use a pie chart for consistency
       const data = [
-        { name: 'Yes', value: trueCount },
-        { name: 'No', value: falseCount }
+        { name: 'Yes', value: trueCount, percentage: total > 0 ? (trueCount / total) * 100 : 0 },
+        { name: 'No', value: falseCount, percentage: total > 0 ? (falseCount / total) * 100 : 0 }
       ];
+      
+      const COLORS = ['#10B981', '#EF4444'];
       
       return (
         <div className="h-64 w-full mt-4">
-          <ChartContainer 
-            config={{
-              yes: { theme: { light: '#10B981', dark: '#34D399' } },
-              no: { theme: { light: '#EF4444', dark: '#F87171' } }
-            }}
-          >
+          <ChartContainer>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={data}
-                margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
-              >
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm">
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="flex flex-col">
-                              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                Response
-                              </span>
-                              <span className="font-bold text-muted-foreground">
-                                {payload[0].payload.name}
-                              </span>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                Count
-                              </span>
-                              <span className="font-bold">
-                                {payload[0].payload.value}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Bar
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
                   dataKey="value"
-                  radius={[4, 4, 0, 0]}
+                  label={({ name, percentage }) => `${name}: ${percentage.toFixed(0)}%`}
                 >
-                  <Cell fill="#10B981" />
-                  <Cell fill="#EF4444" />
-                </Bar>
-              </BarChart>
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value, name) => [`${value} (${(data.find(item => item.name === name)?.percentage || 0).toFixed(0)}%)`, name]}
+                />
+              </PieChart>
             </ResponsiveContainer>
           </ChartContainer>
         </div>
