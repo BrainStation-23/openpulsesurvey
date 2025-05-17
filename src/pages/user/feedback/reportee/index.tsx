@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -84,19 +83,6 @@ export default function ReporteeFeedbackPage() {
     analytics.logFilterChange('question_type', type);
   };
   
-  const handleViewDetails = (question: TeamFeedbackQuestion) => {
-    if (question.question_type === 'text') {
-      setSelectedTextQuestion(question);
-      analytics.logQuestionView(question.question_name, question.question_title);
-    } else {
-      // For other question types, we could show a modal with detailed analytics
-      // or navigate to a detail page
-      toast({
-        title: "Coming soon",
-        description: "Detailed view for this question type is coming soon.",
-      });
-    }
-  };
   
   const handleExportAll = () => {
     analytics.logEvent('export_all', { format: 'csv' });
@@ -206,30 +192,7 @@ export default function ReporteeFeedbackPage() {
     );
   }
 
-  // Show text responses viewer if a text question is selected
-  if (selectedTextQuestion) {
-    return (
-      <div className="container mx-auto py-6 space-y-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Reportee Feedback</h1>
-          <Button 
-            variant="outline" 
-            onClick={() => setSelectedTextQuestion(null)}
-          >
-            Back to Questions
-          </Button>
-        </div>
-        
-        <TextResponsesViewer 
-          questionTitle={selectedTextQuestion.question_title}
-          responses={Array.isArray(selectedTextQuestion.distribution) 
-            ? selectedTextQuestion.distribution 
-            : []}
-          onClose={() => setSelectedTextQuestion(null)}
-        />
-      </div>
-    );
-  }
+  
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -330,7 +293,6 @@ export default function ReporteeFeedbackPage() {
                     <EnhancedQuestionCard 
                       key={question.question_name}
                       question={question}
-                      onViewDetails={handleViewDetails}
                     />
                   ))}
                 </div>
@@ -350,7 +312,6 @@ export default function ReporteeFeedbackPage() {
                       <EnhancedQuestionCard 
                         key={question.question_name}
                         question={question}
-                        onViewDetails={handleViewDetails}
                       />
                     ))}
                 </div>
@@ -370,7 +331,6 @@ export default function ReporteeFeedbackPage() {
                       <EnhancedQuestionCard 
                         key={question.question_name}
                         question={question}
-                        onViewDetails={handleViewDetails}
                       />
                     ))}
                 </div>
@@ -390,7 +350,6 @@ export default function ReporteeFeedbackPage() {
                       <EnhancedQuestionCard 
                         key={question.question_name}
                         question={question}
-                        onViewDetails={handleViewDetails}
                       />
                     ))}
                 </div>

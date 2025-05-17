@@ -5,49 +5,37 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import { TeamFeedbackQuestion } from '@/hooks/useReporteeFeedback';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Lightbulb, Download, ExternalLink, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
+import { Lightbulb, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
 
 interface EnhancedQuestionCardProps {
   question: TeamFeedbackQuestion;
-  onViewDetails?: (question: TeamFeedbackQuestion) => void;
 }
 
-export function EnhancedQuestionCard({ question, onViewDetails }: EnhancedQuestionCardProps) {
+export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const { toast } = useToast();
+  const analytics = useFeedbackAnalytics();
   
   const toggleExpanded = () => {
     setExpanded(!expanded);
     
     // Log user interaction
-    console.log(`Question card ${expanded ? 'collapsed' : 'expanded'}:`, question.question_name);
-  };
-  
-  const handleExport = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    // Log export action
-    console.log('Exporting question data:', question.question_name);
-    
-    toast({
-      title: "Export initiated",
-      description: "The question data is being prepared for export.",
+    analytics.logEvent('toggle_question_card', { 
+      question_id: question.question_name,
+      question_type: question.question_type,
+      expanded: !expanded
     });
-  };
-  
-  const handleViewDetails = () => {
-    // Log view details action
-    console.log('Viewing question details:', question.question_name);
-    
-    if (onViewDetails) {
-      onViewDetails(question);
-    }
   };
 
   const renderChart = () => {
     if (question.question_type === 'rating' && question.distribution && Array.isArray(question.distribution)) {
+      // Transform data to match boolean chart format for consistency
+      const data = question.distribution.map((item: any) => ({
+        name: item.value.toString(),
+        value: item.count
+      }));
+      
       return (
         <div className="h-64 w-full mt-4">
           <ChartContainer 
@@ -57,13 +45,10 @@ export function EnhancedQuestionCard({ question, onViewDetails }: EnhancedQuesti
           >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={question.distribution.map((item: any) => ({
-                  value: item.value,
-                  count: item.count
-                }))}
+                data={data}
                 margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
               >
-                <XAxis dataKey="value" />
+                <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip
                   content={({ active, payload }) => {
@@ -76,7 +61,7 @@ export function EnhancedQuestionCard({ question, onViewDetails }: EnhancedQuesti
                                 Rating
                               </span>
                               <span className="font-bold text-muted-foreground">
-                                {payload[0].payload.value}
+                                {payload[0].payload.name}
                               </span>
                             </div>
                             <div className="flex flex-col">
@@ -84,7 +69,7 @@ export function EnhancedQuestionCard({ question, onViewDetails }: EnhancedQuesti
                                 Count
                               </span>
                               <span className="font-bold">
-                                {payload[0].payload.count}
+                                {payload[0].payload.value}
                               </span>
                             </div>
                           </div>
@@ -95,13 +80,13 @@ export function EnhancedQuestionCard({ question, onViewDetails }: EnhancedQuesti
                   }}
                 />
                 <Bar
-                  dataKey="count"
+                  dataKey="value"
                   radius={[4, 4, 0, 0]}
                 >
-                  {question.distribution.map((entry: any, index: number) => (
+                  {data.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={`rgba(139, 92, 246, ${0.4 + (entry.value / 10)})`} 
+                      fill={`rgba(139, 92, 246, ${0.4 + (parseInt(entry.name) / 10)})`} 
                     />
                   ))}
                 </Bar>
@@ -187,7 +172,7 @@ export function EnhancedQuestionCard({ question, onViewDetails }: EnhancedQuesti
           </div>
           {Array.isArray(question.distribution) && question.distribution.length > 0 ? (
             <p className="text-sm text-muted-foreground">
-              {question.distribution.length} responses received. Click "View Details" to read all responses.
+              {question.distribution.length} responses received.
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">No text responses available.</p>
@@ -237,7 +222,10 @@ export function EnhancedQuestionCard({ question, onViewDetails }: EnhancedQuesti
             variant="ghost" 
             size="sm" 
             className="h-8 w-8 p-0" 
-            onClick={toggleExpanded}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleExpanded();
+            }}
           >
             {expanded ? (
               <ChevronUp className="h-4 w-4" />
@@ -267,17 +255,6 @@ export function EnhancedQuestionCard({ question, onViewDetails }: EnhancedQuesti
               </div>
             )}
           </CardContent>
-          
-          <CardFooter className="flex justify-between pt-0">
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            <Button variant="default" size="sm" onClick={handleViewDetails}>
-              <ExternalLink className="h-4 w-4 mr-2" />
-              View Details
-            </Button>
-          </CardFooter>
         </>
       )}
     </Card>
