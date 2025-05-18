@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { TeamFeedbackQuestion } from '@/hooks/useReporteeFeedback';
 import { ChartConfig } from '@/components/ui/chart';
 import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
+import { RatingBarChart } from './charts/RatingBarChart';
 import { BooleanPieChart } from './charts/BooleanPieChart';
 import { TextResponseSummary } from './charts/TextResponseSummary';
 import { QuestionInsight } from './QuestionInsight';
@@ -19,6 +20,9 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
   
   // Chart configuration for styling
   const chartConfig: ChartConfig = {
+    'rating': {
+      color: '#8B5CF6'
+    },
     'boolean-yes': {
       color: '#10B981',
       label: 'Yes'
@@ -31,6 +35,12 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
 
   const renderContent = () => {
     if (question.question_type === 'rating') {
+      // Check if we have distribution data to render the chart
+      if (question.distribution && Array.isArray(question.distribution)) {
+        return <RatingBarChart distribution={question.distribution} chartConfig={chartConfig} />;
+      }
+      
+      // Fallback to simple stats display if no distribution data
       return (
         <div className="mt-4 p-4 bg-slate-50 rounded-md">
           <div className="flex justify-between items-center mb-2">
