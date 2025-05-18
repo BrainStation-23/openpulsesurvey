@@ -36,9 +36,9 @@ export function QuestionInsight({ avgValue, questionType = 'rating' }: QuestionI
   }
   
   return (
-    <div className="mt-4 flex items-center">
-      <Lightbulb className="h-5 w-5 mr-2 text-amber-500" />
-      <p className="text-sm text-muted-foreground">
+    <div className="flex items-start p-2 bg-amber-50/50 rounded-md">
+      <Lightbulb className="h-5 w-5 mr-3 text-amber-500 mt-0.5 flex-shrink-0" />
+      <p className="text-sm text-slate-700">
         {insightText}
       </p>
     </div>

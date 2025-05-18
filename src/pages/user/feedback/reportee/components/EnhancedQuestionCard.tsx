@@ -37,12 +37,16 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
     if (question.question_type === 'rating') {
       // Check if we have distribution data to render the chart
       if (question.distribution && Array.isArray(question.distribution)) {
-        return <RatingBarChart distribution={question.distribution} chartConfig={chartConfig} />;
+        return (
+          <div className="chart-container bg-slate-50/50 rounded-lg p-4 mb-6">
+            <RatingBarChart distribution={question.distribution} chartConfig={chartConfig} />
+          </div>
+        );
       }
       
       // Fallback to simple stats display if no distribution data
       return (
-        <div className="mt-4 p-4 bg-slate-50 rounded-md">
+        <div className="mt-4 p-4 bg-slate-50 rounded-md mb-6">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium text-slate-700">Average Rating</span>
             <span className="text-xl font-bold text-primary">
@@ -61,15 +65,23 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
       const trueCount = question.distribution.true_count || 0;
       const falseCount = question.distribution.false_count || 0;
       
-      return <BooleanPieChart trueCount={trueCount} falseCount={falseCount} chartConfig={chartConfig} />;
+      return (
+        <div className="chart-container bg-slate-50/50 rounded-lg p-4 mb-6">
+          <BooleanPieChart trueCount={trueCount} falseCount={falseCount} chartConfig={chartConfig} />
+        </div>
+      );
     }
     
     if (question.question_type === 'text' && question.distribution) {
-      return <TextResponseSummary distribution={question.distribution} />;
+      return (
+        <div className="chart-container bg-slate-50/50 rounded-lg p-4 mb-6">
+          <TextResponseSummary distribution={question.distribution} />
+        </div>
+      );
     }
     
     return (
-      <div className="p-4 text-center text-slate-500">
+      <div className="p-4 text-center text-slate-500 mb-6">
         No response data available
       </div>
     );
@@ -84,31 +96,35 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
 
   return (
     <Card className="w-full transition-all duration-200 hover:shadow-md">
-      <CardHeader>
+      <CardHeader className="border-b border-slate-100">
         <QuestionHeader question={question} />
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="pt-6">
         {renderContent()}
         
         {/* Show insights for both rating and boolean types */}
         {(question.question_type === 'rating' || question.question_type === 'boolean') && 
           question.avg_value !== null && (
-            <QuestionInsight 
-              avgValue={question.avg_value} 
-              questionType={question.question_type} 
-            />
+            <div className="insight-container border-t border-slate-100 pt-4 mt-2">
+              <QuestionInsight 
+                avgValue={question.avg_value} 
+                questionType={question.question_type} 
+              />
+            </div>
         )}
 
         {/* Add button to view text responses for text questions */}
         {question.question_type === 'text' && 
           question.distribution && 
           question.distribution.length > 0 && (
-            <ViewTextResponsesButton 
-              questionTitle={question.question_title}
-              responsesCount={question.distribution.length}
-              onClick={handleViewTextResponses}
-            />
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <ViewTextResponsesButton 
+                questionTitle={question.question_title}
+                responsesCount={question.distribution.length}
+                onClick={handleViewTextResponses}
+              />
+            </div>
         )}
       </CardContent>
     </Card>
