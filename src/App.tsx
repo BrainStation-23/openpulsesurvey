@@ -33,6 +33,7 @@ import UserIssueBoards from "./pages/user/issue-boards";
 import UserIssueBoardView from "./pages/user/issue-boards/[id]";
 import FeedbackDashboardPage from "./pages/user/feedback";
 import ReporteeFeedbackPage from "./pages/user/feedback/reportee";
+import FeedbackTrendPage from "./pages/user/feedback/trend";
 
 
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -110,6 +111,7 @@ const App = () => (
               <Route path="my-team" element={<MyTeamPage />} />
               <Route path="feedback" element={<FeedbackDashboardPage />} />
               <Route path="feedback/reportee" element={<ReporteeFeedbackPage />} />
+              <Route path="feedback/trend" element={<FeedbackTrendPage />} />
               <Route path="achievements" element={<UserAchievementsPage />} />
               <Route path="issue-boards" element={<UserIssueBoards />} />
               <Route path="issue-boards/:id" element={<UserIssueBoardView />} />
