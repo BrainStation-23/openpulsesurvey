@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { MessageSquare, BarChart, Users } from 'lucide-react';
+import { MessageSquare, BarChart, LineChart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -38,17 +38,20 @@ export default function FeedbackDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Coming Soon</CardTitle>
+            <CardTitle>Feedback Trends</CardTitle>
             <CardDescription>
-              More feedback features will be available soon
+              Visualize feedback trends over time
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              We're working on additional feedback tools to help you manage and improve team performance.
+              Track how feedback from your team changes across multiple survey periods to identify long-term patterns.
             </p>
-            <Button className="w-full" variant="outline" disabled>
-              Stay Tuned
+            <Button asChild className="w-full" variant="outline">
+              <Link to="/user/feedback/trend">
+                <LineChart className="mr-2 h-4 w-4" />
+                View Feedback Trends
+              </Link>
             </Button>
           </CardContent>
         </Card>

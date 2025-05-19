@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { useReporteeFeedback } from '@/hooks/useReporteeFeedback';
 import { useTeamFeedbackTrend } from '@/hooks/useTeamFeedbackTrend';
 import { CampaignSelector } from './components/CampaignSelector';
 import { TrendLineChart } from './components/TrendLineChart';
@@ -12,26 +11,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function FeedbackTrendPage() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | undefined>(undefined);
   
-  // Use the reportee feedback hook to get the list of campaigns
-  const { feedbackData: campaignListData, isLoading: isLoadingCampaigns } = useReporteeFeedback();
-  
-  // Use the team feedback trend hook to get the trend data
+  // Use the team feedback trend hook to get the trend data and available campaigns
   const { 
     trendData, 
-    isLoading: isLoadingTrend 
+    isLoading: isLoadingTrend,
+    isLoadingCampaigns,
+    availableCampaigns
   } = useTeamFeedbackTrend(selectedCampaignId);
 
-  // List of campaigns for the selector
-  const campaigns = React.useMemo(() => {
-    if (!campaignListData?.data?.campaign_info) return [];
-    
-    // Map the campaign info to match the Campaign interface
-    const campaignInfo = campaignListData.data.campaign_info;
-    return [{
-      id: campaignInfo.campaign_id,
-      name: campaignInfo.campaign_name
-    }];
-  }, [campaignListData?.data?.campaign_info]);
+  // Set first campaign as default when list loads
+  useEffect(() => {
+    if (availableCampaigns?.length && !selectedCampaignId) {
+      setSelectedCampaignId(availableCampaigns[0].id);
+    }
+  }, [availableCampaigns, selectedCampaignId]);
 
   // Process data for trend visualization
   const ratingQuestions = trendData?.data?.questions?.filter(q => q.question_type === 'rating') || [];
@@ -67,7 +60,7 @@ export default function FeedbackTrendPage() {
         <div className="flex items-center space-x-4">
           <div className="font-medium">Campaign:</div>
           <CampaignSelector
-            campaigns={campaigns}
+            campaigns={availableCampaigns?.map(c => ({ id: c.id, name: c.name })) || []}
             selectedCampaignId={selectedCampaignId}
             onSelectCampaign={setSelectedCampaignId}
             isLoading={isLoadingCampaigns}

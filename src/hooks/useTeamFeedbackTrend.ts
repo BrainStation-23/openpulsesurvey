@@ -35,7 +35,27 @@ export const useTeamFeedbackTrend = (campaignId?: string) => {
   const { user } = useCurrentUser();
   const [selectedQuestionName, setSelectedQuestionName] = useState<string | null>(null);
   
-  const { data, isLoading, error, refetch } = useQuery({
+  // First fetch available campaigns
+  const { data: availableCampaigns, isLoading: isLoadingCampaigns } = useQuery({
+    queryKey: ['available-campaigns'],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('User not authenticated');
+      
+      // Get all active campaigns
+      const { data, error } = await supabase
+        .from('survey_campaigns')
+        .select('id, name')
+        .neq('status', 'draft')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id
+  });
+  
+  // Fetch trend data for the selected campaign
+  const { data, isLoading: isLoadingTrend, error, refetch } = useQuery({
     queryKey: ['team-feedback-trend', user?.id, campaignId, selectedQuestionName],
     queryFn: async (): Promise<TeamFeedbackTrendResponse> => {
       if (!user?.id) throw new Error('User not authenticated');
@@ -57,8 +77,7 @@ export const useTeamFeedbackTrend = (campaignId?: string) => {
         return { status: 'error', message: 'No data returned from the server' };
       }
       
-      // Parse the response as our TeamFeedbackTrendResponse type
-      // First cast to unknown then to TeamFeedbackTrendResponse to satisfy TypeScript
+      // Parse the response
       return responseData as unknown as TeamFeedbackTrendResponse;
     },
     enabled: !!user?.id && !!campaignId,
@@ -66,7 +85,9 @@ export const useTeamFeedbackTrend = (campaignId?: string) => {
   
   return {
     trendData: data,
-    isLoading,
+    isLoading: isLoadingTrend,
+    isLoadingCampaigns,
+    availableCampaigns,
     error,
     refetch,
     selectedQuestionName,
