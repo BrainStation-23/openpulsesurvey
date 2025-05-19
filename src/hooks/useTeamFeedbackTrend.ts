@@ -59,13 +59,14 @@ export const useTeamFeedbackTrend = (campaignId?: string) => {
     queryKey: ['team-feedback-trend', user?.id, campaignId, selectedQuestionName],
     queryFn: async (): Promise<TeamFeedbackTrendResponse> => {
       if (!user?.id) throw new Error('User not authenticated');
+      if (!campaignId) throw new Error('Campaign ID is required');
       
       try {
-        // Use our new RPC function designed for trend visualization
+        // Use our RPC function for trend visualization
         const { data: responseData, error } = await supabase.rpc(
           'get_supervisor_team_trend',
           {
-            p_campaign_id: campaignId || null,
+            p_campaign_id: campaignId,
             p_supervisor_id: user.id,
             p_question_name: selectedQuestionName || null
           }
@@ -92,10 +93,12 @@ export const useTeamFeedbackTrend = (campaignId?: string) => {
           if (!result.data.questions) {
             result.data.questions = [];
           } else {
-            // Ensure each question has trend_data initialized
+            // Ensure each question has trend_data initialized and sorted correctly
             result.data.questions = result.data.questions.map(question => ({
               ...question,
-              trend_data: question.trend_data || []
+              trend_data: Array.isArray(question.trend_data) 
+                ? question.trend_data.sort((a, b) => a.period_number - b.period_number)
+                : []
             }));
           }
         } else {
@@ -106,6 +109,7 @@ export const useTeamFeedbackTrend = (campaignId?: string) => {
           };
         }
         
+        console.log('Trend data received:', result);
         return result;
       } catch (err) {
         console.error('Error fetching trend data:', err);
