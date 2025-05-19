@@ -20,7 +20,7 @@ export function InstanceSelector({
   campaignId,
   selectedInstanceId,
   onInstanceSelect,
-}: InstanceSelectorProps) {
+}: Readonly<InstanceSelectorProps>) {
   const { data: instances, isLoading } = useQuery({
     queryKey: ["campaign-instances", campaignId],
     queryFn: async () => {

@@ -7,6 +7,8 @@ import {
   Kanban, 
   UserCircle, 
   Users,
+  MessageSquare,
+  LineChart
 } from "lucide-react";
 
 // Navigation item with optional children for nested navigation
@@ -50,6 +52,24 @@ export const userNavigationItems: UserNavigationItem[] = [
     ]
   },
   {
+    title: "Feedback",
+    icon: MessageSquare,
+    path: "/user/feedback",
+    section: "feedback",
+    children: [
+      {
+        title: "Reportee Feedback",
+        icon: MessageSquare,
+        path: "/user/feedback/reportee",
+      },
+      {
+        title: "My Feedback Trend",
+        icon: LineChart,
+        path: "/user/feedback/trend",
+      }
+    ]
+  },
+  {
     title: "Surveys",
     icon: ClipboardList,
     path: "/user/my-surveys",
@@ -79,6 +99,7 @@ export const userNavigationItems: UserNavigationItem[] = [
 export const userNavigationSections = [
   { id: "core", label: "Main" },
   { id: "user", label: "User Center" },
+  { id: "feedback", label: "Feedback" },
   { id: "surveys", label: "Survey Management" },
   { id: "achievements", label: "Recognition" },
 ];

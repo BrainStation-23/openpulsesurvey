@@ -109,7 +109,7 @@ export default function EmploymentTypeConfig() {
   return (
     <ConfigPage
       title="Employment Types"
-      items={employmentTypes || []}
+      items={employmentTypes ?? []}
       isLoading={isLoading}
       sortOrder={sortOrder}
       onSort={handleSort}
