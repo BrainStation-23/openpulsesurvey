@@ -22,7 +22,7 @@ import {
 import { BarChart3, PieChart, LineChart, ArrowLeftRight } from "lucide-react";
 
 interface SBUPerformanceChartViewProps {
-  data: SBUPerformanceData[];
+  readonly data: SBUPerformanceData[];
 }
 
 export function SBUPerformanceChartView({ data }: SBUPerformanceChartViewProps) {

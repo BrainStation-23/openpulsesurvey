@@ -51,7 +51,7 @@ export const useLevelManagement = () => {
           .order('rank', { ascending: false })
           .limit(1);
         
-        const maxRank = maxRankResult && maxRankResult.length > 0 ? maxRankResult[0]?.rank || 0 : 0;
+        const maxRank = maxRankResult && maxRankResult.length > 0 ? maxRankResult[0]?.rank ?? 0 : 0;
         const newRank = maxRank + 1;
         
         const { data, error } = await supabase
@@ -160,7 +160,7 @@ export const useLevelManagement = () => {
   const reorderMutation = useMutation({
     mutationFn: async (reorderedItems: any[]) => {
       try {
-        const { data: columnCheck, error: columnError } = await supabase
+        const { error: columnError } = await supabase
           .from('levels')
           .select('rank')
           .limit(1);
