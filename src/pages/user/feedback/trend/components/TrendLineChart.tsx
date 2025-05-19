@@ -27,7 +27,7 @@ interface TrendLineChartProps {
 }
 
 export function TrendLineChart({ 
-  data, 
+  data = [], 
   title, 
   questionType,
   color = "#3b82f6" 
@@ -44,18 +44,6 @@ export function TrendLineChart({
   // Sort data by period number
   const sortedData = [...data].sort((a, b) => a.period_number - b.period_number);
   
-  // Format tooltip content
-  const formatTooltip = (value: number, name: string, props: any) => {
-    if (name === 'value') {
-      if (questionType === 'boolean') {
-        return [`${value.toFixed(1)}%`, 'Yes Percentage'];
-      } else {
-        return [`${value.toFixed(1)}`, 'Average Rating'];
-      }
-    }
-    return [value, name];
-  };
-
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-medium">{title}</h3>

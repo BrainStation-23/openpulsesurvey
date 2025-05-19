@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 export default function FeedbackTrendPage() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | undefined>(undefined);
@@ -16,8 +17,17 @@ export default function FeedbackTrendPage() {
     trendData, 
     isLoading: isLoadingTrend,
     isLoadingCampaigns,
-    availableCampaigns
+    availableCampaigns,
+    error
   } = useTeamFeedbackTrend(selectedCampaignId);
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      console.error('Error loading trend data:', error);
+      toast.error('Failed to load trend data. Please try again later.');
+    }
+  }, [error]);
 
   // Set first campaign as default when list loads
   useEffect(() => {
@@ -32,15 +42,17 @@ export default function FeedbackTrendPage() {
 
   // Format data for the trend charts
   const formatTrendData = (question: any) => {
-    if (!question.trend_data) return [];
+    if (!question || !question.trend_data || !Array.isArray(question.trend_data)) {
+      return [];
+    }
     
     return question.trend_data.map((item: any) => ({
-      period_number: item.period_number,
+      period_number: item.period_number || 0,
       value: question.question_type === 'boolean' ? 
         (item.yes_percentage || 0) : 
         (item.avg_value || 0),
-      responseCount: item.response_count,
-      instanceId: item.instance_id
+      responseCount: item.response_count || 0,
+      instanceId: item.instance_id || ''
     }));
   };
 
@@ -105,7 +117,7 @@ export default function FeedbackTrendPage() {
 
         {/* Trend data display */}
         {selectedCampaignId && !isLoadingTrend && trendData?.data && (
-          <Tabs defaultValue="rating" className="w-full">
+          <Tabs defaultValue={ratingQuestions.length > 0 ? "rating" : "boolean"} className="w-full">
             <TabsList className="mb-4">
               {ratingQuestions.length > 0 && (
                 <TabsTrigger value="rating">Rating Questions</TabsTrigger>
