@@ -40,12 +40,11 @@ export const useTeamFeedbackTrend = (campaignId?: string) => {
     queryFn: async (): Promise<TeamFeedbackTrendResponse> => {
       if (!user?.id) throw new Error('User not authenticated');
       
-      // Use the existing RPC function but format the result for trend visualization
+      // Use our new RPC function designed for trend visualization
       const { data: responseData, error } = await supabase.rpc(
-        'get_supervisor_team_feedback',
+        'get_supervisor_team_trend',
         {
           p_campaign_id: campaignId || null,
-          p_instance_id: null, // We pass null to get data for all instances
           p_supervisor_id: user.id,
           p_question_name: selectedQuestionName || null
         }
@@ -58,55 +57,11 @@ export const useTeamFeedbackTrend = (campaignId?: string) => {
         return { status: 'error', message: 'No data returned from the server' };
       }
       
-      // Process the data for trend visualization if it's successful
-      if (responseData.status === 'success' && responseData.data) {
-        // Transform the data for trends
-        const transformedData = transformDataForTrend(responseData.data);
-        return {
-          status: 'success',
-          data: transformedData
-        };
-      }
-      
-      // Return original response if not successful
+      // Parse the response as our TeamFeedbackTrendResponse type
       return responseData as TeamFeedbackTrendResponse;
     },
     enabled: !!user?.id && !!campaignId,
   });
-  
-  const transformDataForTrend = (originalData: any): TeamFeedbackTrendData => {
-    // Group the data by instances
-    const instances = originalData.instances || [];
-    const questions = [];
-    
-    // Filter non-text questions and prepare trend data
-    if (originalData.questions && Array.isArray(originalData.questions)) {
-      for (const question of originalData.questions) {
-        if (question.question_type !== 'text' && question.question_type !== 'comment') {
-          const trendData = instances.map(instance => ({
-            instance_id: instance.id,
-            period_number: instance.period_number,
-            avg_value: question.avg_value,
-            yes_percentage: question.question_type === 'boolean' ? 
-              (question.yes_count / (question.yes_count + question.no_count) * 100) : undefined,
-            response_count: question.response_count || 0
-          }));
-          
-          questions.push({
-            question_name: question.question_name,
-            question_title: question.question_title,
-            question_type: question.question_type,
-            trend_data: trendData
-          });
-        }
-      }
-    }
-    
-    return {
-      instances,
-      questions
-    };
-  };
   
   return {
     trendData: data,

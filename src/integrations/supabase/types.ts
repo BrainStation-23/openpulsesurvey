@@ -2155,6 +2155,14 @@ export type Database = {
         }
         Returns: Json
       }
+      get_supervisor_team_trend: {
+        Args: {
+          p_campaign_id: string
+          p_supervisor_id: string
+          p_question_name?: string
+        }
+        Returns: Json
+      }
       get_survey_responses: {
         Args: { p_campaign_id: string; p_instance_id?: string }
         Returns: Json
