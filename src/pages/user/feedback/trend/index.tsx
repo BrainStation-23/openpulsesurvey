@@ -68,9 +68,9 @@ export default function FeedbackTrendPage() {
       <Separator className="my-4" />
 
       <div className="flex flex-col space-y-6">
-        {/* Campaign selector */}
-        <div className="flex items-center space-x-4">
-          <div className="font-medium">Campaign:</div>
+        {/* Campaign selector section */}
+        <div className="w-full">
+          <h2 className="text-lg font-medium mb-4">Select Campaign</h2>
           <CampaignSelector
             campaigns={availableCampaigns?.map(c => ({ id: c.id, name: c.name })) || []}
             selectedCampaignId={selectedCampaignId}

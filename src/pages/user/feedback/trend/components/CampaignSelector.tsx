@@ -1,21 +1,10 @@
 
-import React from 'react';
-import { Check, ChevronsUpDown } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 
 interface Campaign {
   id: string;
@@ -35,53 +24,72 @@ export function CampaignSelector({
   onSelectCampaign,
   isLoading = false,
 }: CampaignSelectorProps) {
-  const [open, setOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredCampaigns, setFilteredCampaigns] = useState<Campaign[]>([]);
+
+  // Filter campaigns based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredCampaigns(campaigns);
+    } else {
+      const query = searchQuery.toLowerCase();
+      setFilteredCampaigns(
+        campaigns.filter(campaign => 
+          campaign.name.toLowerCase().includes(query)
+        )
+      );
+    }
+  }, [searchQuery, campaigns]);
 
   if (isLoading) {
-    return <Skeleton className="h-10 w-[250px]" />;
+    return (
+      <div className="space-y-3 w-full">
+        <Skeleton className="h-10 w-full max-w-md" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      </div>
+    );
   }
 
-  const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId);
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-[250px] justify-between"
-        >
-          {selectedCampaign ? selectedCampaign.name : "Select campaign..."}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[250px] p-0">
-        <Command>
-          <CommandInput placeholder="Search campaign..." className="h-9" />
-          <CommandEmpty>No campaign found.</CommandEmpty>
-          <CommandGroup>
-            {campaigns.map((campaign) => (
-              <CommandItem
-                key={campaign.id}
-                value={campaign.id}
-                onSelect={(currentValue) => {
-                  onSelectCampaign(currentValue);
-                  setOpen(false);
-                }}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    selectedCampaignId === campaign.id ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                {campaign.name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <div className="space-y-4 w-full">
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Search campaigns..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 pr-4"
+        />
+      </div>
+      
+      {filteredCampaigns.length === 0 ? (
+        <p className="text-muted-foreground text-sm">No campaigns found</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filteredCampaigns.map((campaign) => (
+            <Card
+              key={campaign.id}
+              className={cn(
+                "p-4 cursor-pointer transition-all hover:shadow-md",
+                selectedCampaignId === campaign.id 
+                  ? "border-2 border-primary bg-primary/5" 
+                  : "hover:bg-accent"
+              )}
+              onClick={() => onSelectCampaign(campaign.id)}
+            >
+              <p className="font-medium">{campaign.name}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {selectedCampaignId === campaign.id ? 'Currently selected' : 'Click to select'}
+              </p>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
