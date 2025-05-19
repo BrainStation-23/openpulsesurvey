@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import {
   FormControl,
@@ -17,9 +18,9 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { UseFormReturn, useWatch } from "react-hook-form";
-import { CalendarDateTime } from "@/components/ui/calendar-datetime";
-import { CampaignFormData } from "./CampaignForm";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { TimePicker } from "@/components/ui/time-picker";
+import { CampaignFormData } from "./CampaignForm";
 
 interface ScheduleConfigProps {
   form: UseFormReturn<CampaignFormData>;
@@ -91,9 +92,9 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
               <FormItem>
                 <FormLabel>Start Date & Time</FormLabel>
                 <FormControl>
-                  <CalendarDateTime 
-                    value={field.value} 
-                    onChange={field.onChange}
+                  <DateTimePicker 
+                    date={field.value} 
+                    setDate={(date) => date && field.onChange(date)}
                   />
                 </FormControl>
                 <FormMessage />
@@ -108,9 +109,9 @@ export function ScheduleConfig({ form }: ScheduleConfigProps) {
               <FormItem>
                 <FormLabel>Campaign End Date & Time</FormLabel>
                 <FormControl>
-                  <CalendarDateTime 
-                    value={field.value} 
-                    onChange={field.onChange}
+                  <DateTimePicker
+                    date={field.value}
+                    setDate={(date) => date && field.onChange(date)}
                   />
                 </FormControl>
                 <FormMessage />

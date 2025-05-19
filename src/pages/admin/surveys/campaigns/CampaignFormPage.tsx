@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { CampaignSteps } from "./components/CampaignSteps";
 import type { Database } from "@/integrations/supabase/types";
+import { createDefaultStartDate, createDefaultEndDate } from "@/lib/date-utils";
 
 type Campaign = Database['public']['Tables']['survey_campaigns']['Row'];
 type CampaignInsert = Database['public']['Tables']['survey_campaigns']['Insert'];
@@ -43,14 +44,10 @@ export default function CampaignFormPage() {
         } catch (error) {
           console.error("Error converting campaign dates:", error);
           // Return data with fallback dates if conversion fails
-          const now = new Date();
-          const oneWeekLater = new Date();
-          oneWeekLater.setDate(now.getDate() + 7);
-          
           return {
             ...data,
-            starts_at: now,
-            ends_at: oneWeekLater,
+            starts_at: createDefaultStartDate(),
+            ends_at: createDefaultEndDate(),
           };
         }
       }

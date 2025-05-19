@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -22,6 +23,29 @@ export function DatePickerWithRange({
   onChange,
   className,
 }: DatePickerWithRangeProps) {
+  const formatDateRange = () => {
+    try {
+      if (!value) return <span>Pick a date range</span>;
+      
+      if (value.from) {
+        if (value.to) {
+          return (
+            <>
+              {format(value.from, "LLL dd, y")} -{" "}
+              {format(value.to, "LLL dd, y")}
+            </>
+          );
+        }
+        return format(value.from, "LLL dd, y");
+      }
+      
+      return <span>Pick a date range</span>;
+    } catch (error) {
+      console.error("Error formatting date range:", error);
+      return <span>Pick a date range</span>;
+    }
+  };
+
   return (
     <div className={cn("grid gap-2", className)}>
       <Popover>
@@ -35,18 +59,7 @@ export function DatePickerWithRange({
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {value?.from ? (
-              value.to ? (
-                <>
-                  {format(value.from, "LLL dd, y")} -{" "}
-                  {format(value.to, "LLL dd, y")}
-                </>
-              ) : (
-                format(value.from, "LLL dd, y")
-              )
-            ) : (
-              <span>Pick a date range</span>
-            )}
+            {formatDateRange()}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="end">
@@ -57,6 +70,7 @@ export function DatePickerWithRange({
             selected={value}
             onSelect={onChange}
             numberOfMonths={2}
+            className="pointer-events-auto"
           />
         </PopoverContent>
       </Popover>
