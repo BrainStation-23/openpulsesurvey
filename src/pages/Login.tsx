@@ -92,7 +92,7 @@ export default function Login() {
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: error.message || "Please check your credentials and try again",
+        description: error.message ?? "Please check your credentials and try again",
       });
     } finally {
       setIsLoading(false);
@@ -122,7 +122,7 @@ export default function Login() {
       toast({
         variant: "destructive",
         title: "Failed to send magic link",
-        description: error.message || "Please try again later",
+        description: error.message ?? "Please try again later",
       });
     } finally {
       setIsLoading(false);
@@ -150,7 +150,7 @@ export default function Login() {
       toast({
         variant: "destructive",
         title: "Failed to send reset link",
-        description: error.message || "Please try again later",
+        description: error.message ?? "Please try again later",
       });
     } finally {
       setIsLoading(false);

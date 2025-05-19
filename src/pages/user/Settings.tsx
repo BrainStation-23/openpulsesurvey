@@ -51,7 +51,7 @@ export default function Settings() {
       
       // First verify the current password
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: (await supabase.auth.getUser()).data.user?.email || "",
+        email: (await supabase.auth.getUser()).data.user?.email ?? "",
         password: values.currentPassword,
       });
 
@@ -81,7 +81,7 @@ export default function Settings() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to update password",
+        description: error.message ?? "Failed to update password",
       });
     } finally {
       setIsLoading(false);

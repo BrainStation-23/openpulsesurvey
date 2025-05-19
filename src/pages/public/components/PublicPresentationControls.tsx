@@ -28,7 +28,7 @@ export function PublicPresentationControls({
   currentSlide,
   totalSlides,
   campaign,
-}: PublicPresentationControlsProps) {
+}: Readonly<PublicPresentationControlsProps>) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-4">
