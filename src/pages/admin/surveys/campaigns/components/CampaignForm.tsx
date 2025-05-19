@@ -9,7 +9,6 @@ import { ScheduleConfig } from "./ScheduleConfig";
 import { ReviewStep } from "./ReviewStep";
 import { ArrowLeft, ArrowRight, Send } from "lucide-react";
 import { useState } from "react";
-import { createDefaultStartDate, createDefaultEndDate } from "@/lib/date-utils";
 
 const campaignSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -49,6 +48,30 @@ export function CampaignForm({
   onStepBack,
 }: CampaignFormProps) {
   const [isReadyToProceed, setIsReadyToProceed] = useState(false);
+  
+  // Create safe default dates
+  const createDefaultStartDate = () => {
+    try {
+      const date = new Date();
+      date.setHours(12, 0, 0, 0); // Noon of today
+      return date;
+    } catch (error) {
+      console.error("Error creating default start date:", error);
+      return new Date(); // Fallback to current date/time
+    }
+  };
+
+  const createDefaultEndDate = () => {
+    try {
+      const date = new Date();
+      date.setDate(date.getDate() + 7); // One week from now
+      date.setHours(12, 0, 0, 0); // Noon
+      return date;
+    } catch (error) {
+      console.error("Error creating default end date:", error);
+      return new Date(); // Fallback to current date/time
+    }
+  };
 
   const form = useForm<CampaignFormData>({
     resolver: zodResolver(campaignSchema),

@@ -8,18 +8,10 @@ jobs:
     steps:
       - name: Use HTTPS instead of SSH for Git cloning
         run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
-        
       - name: Checkout project
         uses: actions/checkout@v3
-
-      - name: Install Node.js
-        uses: actions/setup-node@v3
-
-      - name: Install project dependencies
-        run: npm install
-
       - name: Run GitHub Action for ORT
-        uses: oss-review-toolkit/ort-ci-github-action@v1.1.0
+        uses: oss-review-toolkit/ort-ci-github-action@v1
         with:
           allow-dynamic-versions: 'true'
           fail-on: 'violations'
