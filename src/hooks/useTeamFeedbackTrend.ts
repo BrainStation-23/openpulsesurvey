@@ -58,7 +58,8 @@ export const useTeamFeedbackTrend = (campaignId?: string) => {
       }
       
       // Parse the response as our TeamFeedbackTrendResponse type
-      return responseData as TeamFeedbackTrendResponse;
+      // First cast to unknown then to TeamFeedbackTrendResponse to satisfy TypeScript
+      return responseData as unknown as TeamFeedbackTrendResponse;
     },
     enabled: !!user?.id && !!campaignId,
   });

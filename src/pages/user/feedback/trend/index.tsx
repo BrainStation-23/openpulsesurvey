@@ -22,9 +22,16 @@ export default function FeedbackTrendPage() {
   } = useTeamFeedbackTrend(selectedCampaignId);
 
   // List of campaigns for the selector
-  const campaigns = campaignListData?.data?.campaign_info 
-    ? [campaignListData.data.campaign_info]
-    : [];
+  const campaigns = React.useMemo(() => {
+    if (!campaignListData?.data?.campaign_info) return [];
+    
+    // Map the campaign info to match the Campaign interface
+    const campaignInfo = campaignListData.data.campaign_info;
+    return [{
+      id: campaignInfo.campaign_id,
+      name: campaignInfo.campaign_name
+    }];
+  }, [campaignListData?.data?.campaign_info]);
 
   // Process data for trend visualization
   const ratingQuestions = trendData?.data?.questions?.filter(q => q.question_type === 'rating') || [];
