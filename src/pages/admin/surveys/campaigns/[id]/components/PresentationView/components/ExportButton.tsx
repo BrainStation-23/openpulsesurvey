@@ -14,7 +14,7 @@ interface ExportButtonProps {
   variant?: 'button' | 'dropdown';
 }
 
-export function ExportButton({ campaignId, instanceId, variant = 'button' }: ExportButtonProps) {
+export function ExportButton({ campaignId, instanceId, variant = 'button' }: Readonly<ExportButtonProps>) {
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
@@ -79,7 +79,7 @@ export function ExportButton({ campaignId, instanceId, variant = 'button' }: Exp
     );
   }
   
-  const isDisabled = exporting || isLoadingData;
+  const isDisabled = exporting ?? isLoadingData;
   const showProgress = exporting;
   
   const getButtonText = () => {

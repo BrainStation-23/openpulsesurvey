@@ -23,7 +23,7 @@ interface TagFilterProps {
   onTagToggle: (tag: string) => void;
 }
 
-export function TagFilter({ tags: allTags, selectedTags, onTagToggle }: TagFilterProps) {
+export function TagFilter({ tags: allTags, selectedTags, onTagToggle }: Readonly<TagFilterProps>) {
   const [open, setOpen] = useState(false);
   
   // Remove duplicates and sort tags
