@@ -4,7 +4,6 @@ import {
   Select,
   SelectContent,
   SelectGroup,
-  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -12,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
 
 interface Option {
   id: string;
@@ -33,7 +31,7 @@ export function MultiSelectDropdown({
   onChange,
   placeholder,
   label,
-}: MultiSelectDropdownProps) {
+}: Readonly<MultiSelectDropdownProps>) {
   const [open, setOpen] = React.useState(false);
 
   const handleSelectAll = () => {
@@ -92,7 +90,7 @@ export function MultiSelectDropdown({
                 <div
                   key={option.id}
                   className="flex items-center space-x-2 p-2 hover:bg-accent cursor-pointer"
-                  onClick={() => handleToggleOption(option.id)}
+                  onClick={() => handleToggleOption(option.id)} role=""
                 >
                   <Checkbox
                     checked={value.includes(option.id)}
