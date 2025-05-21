@@ -1,9 +1,8 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, LucideIcon } from "lucide-react";
 import * as icons from "lucide-react";
-import { LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ACHIEVEMENT_TYPE_CONFIG, Achievement } from "../types";
 import { Switch } from "@/components/ui/switch";
@@ -28,12 +27,12 @@ export const columns: ColumnDef<Achievement>[] = [
     accessorKey: "name",
     header: "Name",
     cell: ({ row }) => {
-      const IconComponent = icons[row.original.icon as keyof typeof icons] as LucideIcon || icons.Trophy;
+      const IconComponent = icons[row.original.icon as keyof typeof icons] as LucideIcon ?? icons.Trophy;
       return (
         <div className="flex items-center gap-2">
-          <IconComponent 
-            className="w-4 h-4" 
-            style={{ color: row.original.icon_color || '#8B5CF6' }} 
+          <IconComponent
+            className="w-4 h-4"
+            style={{ color: row.original.icon_color ?? '#8B5CF6' }}
           />
           <span>{row.original.name}</span>
         </div>
@@ -78,7 +77,7 @@ export const columns: ColumnDef<Achievement>[] = [
         try {
           setIsLoading(true);
           const newStatus = row.original.status === 'active' ? 'inactive' : 'active';
-          
+
           const { error } = await supabase
             .from('achievements')
             .update({ status: newStatus })
@@ -88,8 +87,8 @@ export const columns: ColumnDef<Achievement>[] = [
 
           queryClient.setQueryData(['achievements'], (oldData: Achievement[] | undefined) => {
             if (!oldData) return oldData;
-            return oldData.map(achievement => 
-              achievement.id === row.original.id 
+            return oldData.map(achievement =>
+              achievement.id === row.original.id
                 ? { ...achievement, status: newStatus }
                 : achievement
             );
@@ -163,8 +162,8 @@ export const columns: ColumnDef<Achievement>[] = [
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 className="text-destructive hover:text-destructive"
                 disabled={isDeleting}

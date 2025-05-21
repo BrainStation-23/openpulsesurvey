@@ -8,7 +8,6 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 
 interface CampaignGroupProps {
-  campaignId: string;
   name: string;
   description?: string | null;
   instances: UserSurvey[];
@@ -22,7 +21,7 @@ export default function CampaignGroup({
   instances,
   onSelectSurvey,
   isAnonymous
-}: CampaignGroupProps) {
+}: Readonly<CampaignGroupProps>) {
   const [isExpanded, setIsExpanded] = useState(false);
   
   const completedCount = instances.filter(i => i.status === 'submitted').length;
@@ -46,9 +45,17 @@ export default function CampaignGroup({
   return (
     <div className="border rounded-lg shadow-sm hover:shadow-md transition-shadow">
       <div 
-        className="p-4 cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
+  className="p-4 cursor-pointer"
+  onClick={() => setIsExpanded(!isExpanded)}
+  onKeyDown={(e) => {
+    // Allow activation with both Enter and Space (standard for buttons)
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setIsExpanded(!isExpanded);
+    }
+  }}
+  role="button"
+>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="p-0 h-auto">
