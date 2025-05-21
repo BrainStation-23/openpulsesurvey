@@ -15,6 +15,7 @@
 [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=BrainStation-23_openofficesurvey&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=BrainStation-23_openofficesurvey)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=BrainStation-23_openofficesurvey&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=BrainStation-23_openofficesurvey)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=BrainStation-23_openofficesurvey&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=BrainStation-23_openofficesurvey)
+
 [![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=BrainStation-23_openofficesurvey)](https://sonarcloud.io/summary/new_code?id=BrainStation-23_openofficesurvey)
 </div>
 
