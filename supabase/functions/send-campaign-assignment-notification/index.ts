@@ -65,8 +65,8 @@ async function processBatch(assignments: any[], emailConfig: any, instance: any,
         try {
           const recipientName = `${assignment.user.first_name || ''} ${assignment.user.last_name || ''}`.trim() || 'Participant';
           
-          // Login URL for the user to access their surveys
-          const loginUrl = `${frontendUrl}/login`;
+          // Public access URL using the assignment token
+          const publicAccessUrl = `${frontendUrl}/public/survey/${assignment.public_access_token}`;
 
           // Format instance dates for human readability
           const startDate = formatDate(instance.starts_at);
@@ -108,9 +108,10 @@ async function processBatch(assignments: any[], emailConfig: any, instance: any,
                     <p style="margin: 0.5rem 0;">Starts: ${startDate}</p>
                     <p style="margin: 0.5rem 0;">Ends: ${endDate}</p>
                   </div>
-                  <p>Please log in to your account to complete the survey:</p>
-                  <p><a href="${loginUrl}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Log In</a></p>
-                  <p style="color: #666; font-size: 14px;">If the button doesn't work, you can copy and paste this link into your browser: ${loginUrl}</p>
+                  <p>Please complete the survey by clicking the link below:</p>
+                  <p><a href="${publicAccessUrl}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Start Survey</a></p>
+                  <p style="color: #666; font-size: 14px;">If the button doesn't work, you can copy and paste this link into your browser:</p>
+                  <p style="color: #666; font-size: 14px;">${publicAccessUrl}</p>
                   <p>Thank you for your participation!</p>
                 </div>
               `,
