@@ -1,396 +1,164 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import React, { useState } from 'react';
+import { useReporteeFeedback } from '@/hooks/useReporteeFeedback';
+import { CampaignSelector } from '@/components/shared/feedback/CampaignSelector';
+import { InstanceSelector } from '@/components/shared/feedback/InstanceSelector';
+import { FeedbackOverview } from '@/components/shared/feedback/FeedbackOverview';
+import { EnhancedQuestionCard } from '@/components/shared/feedback/EnhancedQuestionCard';
+import { QuestionComparisonTable } from '@/components/shared/feedback/QuestionComparisonTable';
+import { AIAnalysisCard } from '@/components/shared/feedback/AIAnalysisCard';
+import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useReporteeFeedback, TeamFeedbackQuestion } from '@/hooks/useReporteeFeedback';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { CampaignSelector } from './components/CampaignSelector';
-import { InstanceSelector } from './components/InstanceSelector';
-import { FeedbackOverview } from './components/FeedbackOverview';
-import { EnhancedQuestionCard } from './components/EnhancedQuestionCard';
-import { QuestionComparisonTable } from './components/QuestionComparisonTable';
-import { TextResponsesViewer } from './components/TextResponsesViewer';
-import { AIAnalysisCard } from './components/AIAnalysisCard';
-import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
-import { AlertCircle, Search, Filter, Download, TableIcon, Grid, Brain } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ReporteeFeedbackPage() {
-  const { user } = useCurrentUser();
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string | undefined>();
-  const [selectedInstanceId, setSelectedInstanceId] = useState<string | undefined>();
-  const [viewType, setViewType] = useState<'cards' | 'table'>('cards');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedQuestionType, setSelectedQuestionType] = useState<string>('all');
-  const [selectedTextQuestion, setSelectedTextQuestion] = useState<TeamFeedbackQuestion | null>(null);
-  const [activeTab, setActiveTab] = useState('feedback');
-  const { toast } = useToast();
-  const analytics = useFeedbackAnalytics();
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | undefined>(undefined);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | undefined>(undefined);
   
-  const { 
-    feedbackData, 
-    isLoading, 
-    error,
-    refetch
-  } = useReporteeFeedback(selectedCampaignId, selectedInstanceId);
+  // Use the reportee feedback hook to get the team feedback data
+  const { feedbackData, isLoading, error } = useReporteeFeedback(selectedCampaignId, selectedInstanceId);
 
-  // Log page load
-  useEffect(() => {
-    analytics.logEvent('page_view', { page: 'reportee_feedback' });
-    
-    // Measure initial loading performance
-    const startTime = performance.now();
-    
-    return () => {
-      const loadTime = performance.now() - startTime;
-      analytics.logPerformanceMetric('page_load', loadTime);
-    };
-  }, []);
-  
-  // Log campaign/instance selection
-  useEffect(() => {
-    if (selectedCampaignId) {
-      analytics.logFilterChange('campaign', selectedCampaignId);
-    }
-    if (selectedInstanceId) {
-      analytics.logFilterChange('instance', selectedInstanceId);
-    }
-  }, [selectedCampaignId, selectedInstanceId]);
-
-  const handleCampaignSelect = (campaignId: string) => {
-    setSelectedCampaignId(campaignId);
-    setSelectedInstanceId(undefined);
-    analytics.logEvent('campaign_selected', { campaignId });
-  };
-
-  const handleInstanceSelect = (instanceId: string) => {
-    setSelectedInstanceId(instanceId);
-    analytics.logEvent('instance_selected', { instanceId });
-  };
-  
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    
-    if (e.target.value.length > 2 || e.target.value === '') {
-      analytics.logSearch(e.target.value, 0);
-    }
-  };
-  
-  const handleQuestionTypeChange = (type: string) => {
-    setSelectedQuestionType(type);
-    analytics.logFilterChange('question_type', type);
-  };
-  
-  const handleExportAll = () => {
-    analytics.logEvent('export_all', { format: 'csv' });
-    
-    toast({
-      title: "Exporting all data",
-      description: "Your data export is being prepared and will download shortly.",
-    });
-  };
-
-  // Filter questions based on search and type filter
-  const filteredQuestions = feedbackData?.data?.questions?.filter(q => {
-    const matchesSearch = searchQuery === '' || 
-      q.question_title.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesType = selectedQuestionType === 'all' || 
-      q.question_type === selectedQuestionType;
-    
-    return matchesSearch && matchesType;
-  }) || [];
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-6 space-y-6">
-        <div className="flex flex-col space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">Reportee Feedback</h1>
-          <p className="text-muted-foreground">
-            View and analyze feedback from your team members
-          </p>
-        </div>
-        
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="w-[280px] h-10 bg-gray-200 animate-pulse rounded-md"></div>
-          <div className="w-[280px] h-10 bg-gray-200 animate-pulse rounded-md"></div>
-        </div>
-        
-        <Card>
-          <CardContent className="p-6 flex justify-center items-center min-h-[300px]">
-            <LoadingSpinner size="lg" />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto py-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold tracking-tight">Reportee Feedback</h1>
-        </div>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            Failed to load feedback data: {error.message}
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (!feedbackData || feedbackData.status !== 'success' || !feedbackData.data) {
-    return (
-      <div className="container mx-auto py-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold tracking-tight">Reportee Feedback</h1>
-        </div>
-
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Reportee Feedback</CardTitle>
-            <div className="flex flex-col md:flex-row gap-4 mt-4">
-              <CampaignSelector 
-                selectedCampaignId={selectedCampaignId}
-                onCampaignSelect={handleCampaignSelect}
-              />
-              {selectedCampaignId && (
-                <InstanceSelector 
-                  campaignId={selectedCampaignId}
-                  selectedInstanceId={selectedInstanceId}
-                  onInstanceSelect={handleInstanceSelect}
-                />
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <p className="text-muted-foreground mb-4">
-              This page allows you to view and manage feedback for your direct reportees.
-              You can analyze responses, track progress, and identify areas for improvement.
-            </p>
-            
-            <div className="p-8 flex flex-col items-center justify-center text-center">
-              <div className="rounded-full bg-primary/10 p-6 mb-4">
-                <AlertCircle className="h-10 w-10 text-primary" />
-              </div>
-              <h3 className="text-xl font-medium mb-2">No feedback data available</h3>
-              <p className="text-muted-foreground max-w-md">
-                Feedback data will appear here once your reportees have received and responded to feedback requests.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Extract questions data
+  const questions = feedbackData?.data?.questions || [];
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container py-6 space-y-6">
       <div className="flex flex-col space-y-2">
         <h1 className="text-2xl font-bold tracking-tight">Reportee Feedback</h1>
         <p className="text-muted-foreground">
-          View and analyze feedback from your team members
+          View and analyze feedback from your team members across different survey periods.
         </p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <CampaignSelector 
-          selectedCampaignId={selectedCampaignId}
-          onCampaignSelect={handleCampaignSelect}
-        />
-        {selectedCampaignId && (
-          <InstanceSelector 
-            campaignId={selectedCampaignId}
-            selectedInstanceId={selectedInstanceId}
-            onInstanceSelect={handleInstanceSelect}
-          />
-        )}
-      </div>
+      <Separator className="my-4" />
 
-      {feedbackData.data && (
-        <FeedbackOverview 
-          data={feedbackData.data} 
-          isLoading={isLoading} 
-        />
-      )}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Selector section */}
+        <div className="lg:w-1/3 space-y-4">
+          <div>
+            <h2 className="text-lg font-medium mb-4">Select Campaign & Instance</h2>
+            <div className="space-y-4">
+              <CampaignSelector
+                selectedCampaignId={selectedCampaignId}
+                onCampaignSelect={setSelectedCampaignId}
+              />
+              <InstanceSelector
+                campaignId={selectedCampaignId}
+                selectedInstanceId={selectedInstanceId}
+                onInstanceSelect={setSelectedInstanceId}
+              />
+            </div>
+          </div>
+        </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="feedback" className="flex items-center gap-2">
-            <Grid className="h-4 w-4" />
-            Feedback Analysis
-          </TabsTrigger>
-          <TabsTrigger value="ai-insights" className="flex items-center gap-2">
-            <Brain className="h-4 w-4" />
-            AI Insights
-          </TabsTrigger>
-        </TabsList>
+        {/* Main content */}
+        <div className="lg:w-2/3 space-y-6">
+          {/* Loading state */}
+          {isLoading && (
+            <div className="space-y-4">
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+          )}
 
-        <TabsContent value="feedback" className="space-y-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <CardTitle>Feedback Questions</CardTitle>
-                  <CardDescription>
-                    Analysis of all feedback questions from your team members
-                  </CardDescription>
-                </div>
-                
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative flex-1 md:w-auto">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search questions..."
-                      className="pl-8 w-full md:w-[200px]"
-                      value={searchQuery}
-                      onChange={handleSearch}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center rounded-md border">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`rounded-l-md ${viewType === 'cards' ? 'bg-muted' : ''}`}
-                      onClick={() => setViewType('cards')}
-                    >
-                      <Grid className="h-4 w-4 mr-2" />
-                      Cards
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`rounded-r-md ${viewType === 'table' ? 'bg-muted' : ''}`}
-                      onClick={() => setViewType('table')}
-                    >
-                      <TableIcon className="h-4 w-4 mr-2" />
-                      Table
-                    </Button>
-                  </div>
-                  
-                  <Button variant="outline" size="sm" onClick={handleExportAll}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Export All
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="all" onValueChange={handleQuestionTypeChange}>
-                <div className="mb-6">
-                  <TabsList>
-                    <TabsTrigger value="all">All Questions</TabsTrigger>
-                    <TabsTrigger value="rating">Rating</TabsTrigger>
-                    <TabsTrigger value="boolean">Yes/No</TabsTrigger>
-                    <TabsTrigger value="text">Text</TabsTrigger>
-                  </TabsList>
-                </div>
-                
-                <TabsContent value="all" className="space-y-0">
-                  {viewType === 'table' ? (
-                    <QuestionComparisonTable questions={filteredQuestions} />
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {filteredQuestions.map((question) => (
-                        <EnhancedQuestionCard 
-                          key={question.question_name}
-                          question={question}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="rating" className="space-y-0">
-                  {viewType === 'table' ? (
-                    <QuestionComparisonTable 
-                      questions={filteredQuestions.filter(q => q.question_type === 'rating')} 
-                    />
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {filteredQuestions
-                        .filter(q => q.question_type === 'rating')
-                        .map((question) => (
-                          <EnhancedQuestionCard 
-                            key={question.question_name}
-                            question={question}
-                          />
-                        ))}
-                    </div>
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="boolean" className="space-y-0">
-                  {viewType === 'table' ? (
-                    <QuestionComparisonTable 
-                      questions={filteredQuestions.filter(q => q.question_type === 'boolean')} 
-                    />
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {filteredQuestions
-                        .filter(q => q.question_type === 'boolean')
-                        .map((question) => (
-                          <EnhancedQuestionCard 
-                            key={question.question_name}
-                            question={question}
-                          />
-                        ))}
-                    </div>
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="text" className="space-y-0">
-                  {viewType === 'table' ? (
-                    <QuestionComparisonTable 
-                      questions={filteredQuestions.filter(q => q.question_type === 'text')} 
-                    />
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {filteredQuestions
-                        .filter(q => q.question_type === 'text')
-                        .map((question) => (
-                          <EnhancedQuestionCard 
-                            key={question.question_name}
-                            question={question}
-                          />
-                        ))}
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-              
-              {filteredQuestions.length === 0 && (
-                <div className="py-12 text-center">
-                  <div className="rounded-full bg-muted w-12 h-12 mx-auto flex items-center justify-center mb-4">
-                    <Search className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">No questions found</h3>
-                  <p className="text-muted-foreground">
-                    {searchQuery ? 
-                      `No questions match "${searchQuery}"` : 
-                      `No ${selectedQuestionType !== 'all' ? selectedQuestionType : ''} questions available`}
+          {/* Error state */}
+          {error && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center p-6">
+                  <p className="text-destructive">
+                    Error loading feedback data: {error.message}
                   </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
+          )}
 
-        <TabsContent value="ai-insights" className="space-y-6">
-          <AIAnalysisCard 
-            campaignId={selectedCampaignId}
-            instanceId={selectedInstanceId}
-          />
-        </TabsContent>
-      </Tabs>
+          {/* No campaign/instance selected */}
+          {!selectedCampaignId && !isLoading && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center p-6">
+                  <p className="text-muted-foreground">
+                    Please select a campaign and instance to view feedback data
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* No data available */}
+          {selectedCampaignId && selectedInstanceId && !isLoading && feedbackData?.status === 'error' && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center p-6">
+                  <p className="text-muted-foreground">
+                    {feedbackData?.message || 'No feedback data available for this campaign and instance'}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Main feedback display */}
+          {selectedCampaignId && selectedInstanceId && !isLoading && feedbackData?.status === 'success' && feedbackData?.data && (
+            <>
+              {/* Overview metrics */}
+              <FeedbackOverview data={feedbackData.data} isLoading={isLoading} />
+
+              {/* Tabs for different views */}
+              <Tabs defaultValue="individual" className="w-full">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="individual">Individual Questions</TabsTrigger>
+                  <TabsTrigger value="comparison">Comparison Table</TabsTrigger>
+                  <TabsTrigger value="ai-analysis">AI Analysis</TabsTrigger>
+                </TabsList>
+
+                {/* Individual questions view */}
+                <TabsContent value="individual" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Question-by-Question Analysis</CardTitle>
+                      <CardDescription>
+                        Detailed breakdown of each question with visualizations and insights
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {questions.map(question => (
+                        <EnhancedQuestionCard key={question.question_name} question={question} />
+                      ))}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Comparison table view */}
+                <TabsContent value="comparison" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Question Comparison</CardTitle>
+                      <CardDescription>
+                        Side-by-side comparison of all questions and their scores
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <QuestionComparisonTable questions={questions} />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* AI Analysis tab */}
+                <TabsContent value="ai-analysis" className="space-y-6">
+                  <AIAnalysisCard 
+                    campaignId={selectedCampaignId} 
+                    instanceId={selectedInstanceId}
+                  />
+                </TabsContent>
+              </Tabs>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
