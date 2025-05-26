@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentUser } from './useCurrentUser';
@@ -19,14 +18,20 @@ interface StoredAIAnalysis {
 }
 
 export const useAIFeedbackAnalysis = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingExisting, setIsFetchingExisting] = useState(false);
+  const [isGeneratingNew, setIsGeneratingNew] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<AIAnalysisMetadata | null>(null);
   const { user } = useCurrentUser();
   const { toast } = useToast();
 
+  // Computed loading state
+  const isLoading = isFetchingExisting || isGeneratingNew;
+
   const fetchExistingAnalysis = async (campaignId?: string, instanceId?: string) => {
     if (!user?.id || !campaignId || !instanceId) return null;
+
+    console.log('Fetching existing analysis for:', { campaignId, instanceId, supervisorId: user.id });
 
     try {
       const { data, error } = await supabase
@@ -37,14 +42,21 @@ export const useAIFeedbackAnalysis = () => {
         .eq('supervisor_id', user.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Not found - this is expected when no analysis exists yet
+          console.log('No existing analysis found - will generate new one');
+          return null;
+        }
+        // Other errors should be logged but not prevent generation
         console.error('Error fetching existing analysis:', error);
         return null;
       }
 
+      console.log('Found existing analysis:', data);
       return data;
     } catch (error) {
-      console.error('Error fetching existing analysis:', error);
+      console.error('Unexpected error fetching existing analysis:', error);
       return null;
     }
   };
@@ -57,6 +69,8 @@ export const useAIFeedbackAnalysis = () => {
     responseRate: number
   ) => {
     if (!user?.id) return;
+
+    console.log('Saving analysis to database...');
 
     try {
       const { error } = await supabase
@@ -77,9 +91,66 @@ export const useAIFeedbackAnalysis = () => {
           description: "Failed to save AI analysis. Please try again.",
           variant: "destructive",
         });
+      } else {
+        console.log('Analysis saved successfully');
       }
     } catch (error) {
-      console.error('Error saving analysis:', error);
+      console.error('Unexpected error saving analysis:', error);
+    }
+  };
+
+  const generateNewAnalysis = async (campaignId: string, instanceId: string) => {
+    console.log('Generating new analysis...');
+    setIsGeneratingNew(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'analyze-reportee-feedback',
+        {
+          body: {
+            campaignId,
+            instanceId,
+            supervisorId: user.id
+          }
+        }
+      );
+
+      if (error) {
+        console.error('Error generating AI analysis:', error);
+        toast({
+          title: "Analysis failed",
+          description: "Failed to generate AI feedback analysis. Please try again.",
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      console.log('New analysis generated:', data);
+
+      // Save the new analysis to database
+      await saveAnalysis(
+        campaignId, 
+        instanceId, 
+        data.analysis, 
+        data.metadata.team_size, 
+        data.metadata.response_rate
+      );
+
+      return {
+        analysis: data.analysis,
+        metadata: data.metadata
+      };
+
+    } catch (error) {
+      console.error('Unexpected error generating analysis:', error);
+      toast({
+        title: "Analysis failed",
+        description: "An unexpected error occurred while processing analysis",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsGeneratingNew(false);
     }
   };
 
@@ -102,80 +173,65 @@ export const useAIFeedbackAnalysis = () => {
       return;
     }
 
-    setIsLoading(true);
+    console.log('Starting loadOrGenerateAnalysis for:', { campaignId, instanceId });
+
+    // First, try to fetch existing analysis
+    setIsFetchingExisting(true);
+    const existingAnalysis = await fetchExistingAnalysis(campaignId, instanceId);
+    setIsFetchingExisting(false);
+    
+    if (existingAnalysis) {
+      // Use existing analysis
+      console.log('Using existing analysis');
+      setAnalysis(existingAnalysis.analysis_content);
+      setMetadata({
+        team_size: existingAnalysis.team_size,
+        response_rate: existingAnalysis.response_rate,
+        generated_at: existingAnalysis.generated_at
+      });
+      return;
+    }
+
+    // If no existing analysis, generate new one
+    console.log('No existing analysis found, generating new one...');
+    const newAnalysisResult = await generateNewAnalysis(campaignId, instanceId);
+    
+    if (newAnalysisResult) {
+      setAnalysis(newAnalysisResult.analysis);
+      setMetadata(newAnalysisResult.metadata);
+    }
+  };
+
+  const regenerateAnalysis = async (campaignId?: string, instanceId?: string) => {
+    if (!campaignId || !instanceId) return;
+    
+    console.log('Regenerating analysis...');
+    
+    // Clear current analysis and generate new one
     setAnalysis(null);
     setMetadata(null);
-
-    try {
-      // First, try to fetch existing analysis
-      const existingAnalysis = await fetchExistingAnalysis(campaignId, instanceId);
-      
-      if (existingAnalysis) {
-        // Use existing analysis
-        setAnalysis(existingAnalysis.analysis_content);
-        setMetadata({
-          team_size: existingAnalysis.team_size,
-          response_rate: existingAnalysis.response_rate,
-          generated_at: existingAnalysis.generated_at
-        });
-        return;
-      }
-
-      // If no existing analysis, generate new one
-      const { data, error } = await supabase.functions.invoke(
-        'analyze-reportee-feedback',
-        {
-          body: {
-            campaignId,
-            instanceId,
-            supervisorId: user.id
-          }
-        }
-      );
-
-      if (error) {
-        console.error('Error generating AI analysis:', error);
-        toast({
-          title: "Analysis failed",
-          description: "Failed to generate AI feedback analysis. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Save the new analysis to database
-      await saveAnalysis(
-        campaignId, 
-        instanceId, 
-        data.analysis, 
-        data.metadata.team_size, 
-        data.metadata.response_rate
-      );
-
-      setAnalysis(data.analysis);
-      setMetadata(data.metadata);
-
-    } catch (error) {
-      console.error('Error with AI analysis:', error);
-      toast({
-        title: "Analysis failed",
-        description: "An unexpected error occurred while processing analysis",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+    
+    const newAnalysisResult = await generateNewAnalysis(campaignId, instanceId);
+    
+    if (newAnalysisResult) {
+      setAnalysis(newAnalysisResult.analysis);
+      setMetadata(newAnalysisResult.metadata);
     }
   };
 
   const clearAnalysis = () => {
+    console.log('Clearing analysis state');
     setAnalysis(null);
     setMetadata(null);
   };
 
   return {
     loadOrGenerateAnalysis,
+    regenerateAnalysis,
     clearAnalysis,
     isLoading,
+    isFetchingExisting,
+    isGeneratingNew,
     analysis,
     metadata
   };

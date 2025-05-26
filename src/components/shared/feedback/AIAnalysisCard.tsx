@@ -14,20 +14,31 @@ interface AIAnalysisCardProps {
 }
 
 export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) {
-  const { loadOrGenerateAnalysis, clearAnalysis, isLoading, analysis, metadata } = useAIFeedbackAnalysis();
+  const { 
+    loadOrGenerateAnalysis, 
+    regenerateAnalysis, 
+    clearAnalysis, 
+    isLoading, 
+    isFetchingExisting,
+    isGeneratingNew,
+    analysis, 
+    metadata 
+  } = useAIFeedbackAnalysis();
 
   // Automatically load analysis when campaign and instance are available
   useEffect(() => {
     if (campaignId && instanceId) {
+      console.log('AIAnalysisCard: Loading analysis for', { campaignId, instanceId });
       loadOrGenerateAnalysis(campaignId, instanceId);
     } else {
+      console.log('AIAnalysisCard: Clearing analysis - missing campaignId or instanceId');
       clearAnalysis();
     }
   }, [campaignId, instanceId]);
 
   const handleRegenerate = () => {
-    clearAnalysis();
-    loadOrGenerateAnalysis(campaignId, instanceId);
+    console.log('AIAnalysisCard: Regenerating analysis');
+    regenerateAnalysis(campaignId, instanceId);
   };
 
   const shouldShowContent = campaignId && instanceId;
@@ -81,7 +92,9 @@ export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) 
           <div className="text-center py-8">
             <LoadingSpinner size="lg" />
             <p className="text-muted-foreground mt-4">
-              {analysis ? 'Regenerating analysis...' : 'Analyzing your team feedback data...'}
+              {isFetchingExisting && 'Loading existing analysis...'}
+              {isGeneratingNew && 'Generating new AI analysis...'}
+              {!isFetchingExisting && !isGeneratingNew && 'Processing...'}
             </p>
           </div>
         )}
