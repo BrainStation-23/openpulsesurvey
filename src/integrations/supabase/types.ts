@@ -2012,6 +2012,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      generate_ai_feedback_for_completed_instance: {
+        Args: { p_instance_id: string }
+        Returns: Json
+      }
       get_assignment_instance_status: {
         Args: { p_assignment_id: string; p_instance_id: string }
         Returns: Database["public"]["Enums"]["assignment_status"]

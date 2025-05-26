@@ -4,15 +4,15 @@ CREATE OR REPLACE FUNCTION trigger_ai_feedback_generation()
 RETURNS TRIGGER AS $$
 DECLARE
   v_supabase_url text;
-  v_anon_key text;
+  v_service_role_key text;
   v_response text;
 BEGIN
   -- Only trigger when status changes to 'completed'
   IF NEW.status = 'completed' AND (OLD.status IS NULL OR OLD.status != 'completed') THEN
     
-    -- Get Supabase configuration (you'll need to adjust these values)
-    v_supabase_url := current_setting('app.supabase_url', true);
-    v_anon_key := current_setting('app.supabase_anon_key', true);
+    -- Get Supabase configuration from environment
+    v_supabase_url := 'https://bdnbcaiqgumzsujkbsmp.supabase.co';
+    v_service_role_key := current_setting('app.settings.service_role_key', true);
     
     -- Log the trigger activation
     RAISE NOTICE 'AI feedback generation triggered for campaign % instance %', NEW.campaign_id, NEW.id;
@@ -24,7 +24,7 @@ BEGIN
         url := v_supabase_url || '/functions/v1/generate-supervisor-feedback',
         headers := jsonb_build_object(
           'Content-Type', 'application/json',
-          'Authorization', 'Bearer ' || v_anon_key
+          'Authorization', 'Bearer ' || v_service_role_key
         ),
         body := jsonb_build_object(
           'campaignId', NEW.campaign_id,
