@@ -13,16 +13,37 @@ export const useAIFeedbackAnalysis = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<AIAnalysisMetadata | null>(null);
-  const { user } = useCurrentUser();
+  const { user, isLoading: userLoading } = useCurrentUser();
 
   const fetchExistingAnalysis = async (campaignId?: string, instanceId?: string) => {
-    if (!user?.id || !campaignId || !instanceId) {
+    console.log('fetchExistingAnalysis called with:', { 
+      campaignId, 
+      instanceId, 
+      userId: user?.id, 
+      userLoading 
+    });
+
+    // Wait for user to load first
+    if (userLoading) {
+      console.log('User still loading, skipping fetch');
+      return;
+    }
+
+    if (!user?.id) {
+      console.log('No user found, clearing analysis');
       setAnalysis(null);
       setMetadata(null);
       return;
     }
 
-    console.log('Fetching existing analysis for:', { campaignId, instanceId, supervisorId: user.id });
+    if (!campaignId || !instanceId) {
+      console.log('Missing campaignId or instanceId, clearing analysis');
+      setAnalysis(null);
+      setMetadata(null);
+      return;
+    }
+
+    console.log('Starting analysis fetch for:', { campaignId, instanceId, supervisorId: user.id });
     setIsLoading(true);
 
     try {
@@ -36,19 +57,22 @@ export const useAIFeedbackAnalysis = () => {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          // Not found - no analysis exists
-          console.log('No existing analysis found');
+          console.log('No existing analysis found - this is normal');
           setAnalysis(null);
           setMetadata(null);
         } else {
-          console.error('Error fetching existing analysis:', error);
+          console.error('Database error fetching analysis:', error);
           setAnalysis(null);
           setMetadata(null);
         }
         return;
       }
 
-      console.log('Found existing analysis:', data);
+      console.log('Successfully found existing analysis:', { 
+        id: data.id, 
+        teamSize: data.team_size, 
+        responseRate: data.response_rate 
+      });
       setAnalysis(data.analysis_content);
       setMetadata({
         team_size: data.team_size,
@@ -75,6 +99,7 @@ export const useAIFeedbackAnalysis = () => {
     clearAnalysis,
     isLoading,
     analysis,
-    metadata
+    metadata,
+    userLoading
   };
 };

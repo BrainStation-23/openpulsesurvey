@@ -18,23 +18,35 @@ export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) 
     clearAnalysis, 
     isLoading, 
     analysis, 
-    metadata 
+    metadata,
+    userLoading
   } = useAIFeedbackAnalysis();
 
-  // Automatically load analysis when campaign and instance are available
+  // Effect to handle fetching when campaignId, instanceId, or user changes
   useEffect(() => {
+    console.log('AIAnalysisCard effect triggered:', { 
+      campaignId, 
+      instanceId, 
+      userLoading 
+    });
+
     if (campaignId && instanceId) {
-      console.log('AIAnalysisCard: Loading analysis for', { campaignId, instanceId });
-      fetchExistingAnalysis(campaignId, instanceId);
+      if (!userLoading) {
+        console.log('Conditions met, fetching analysis');
+        fetchExistingAnalysis(campaignId, instanceId);
+      } else {
+        console.log('User still loading, waiting...');
+      }
     } else {
-      console.log('AIAnalysisCard: Clearing analysis - missing campaignId or instanceId');
+      console.log('Missing campaignId or instanceId, clearing analysis');
       clearAnalysis();
     }
-  }, [campaignId, instanceId]);
+  }, [campaignId, instanceId, userLoading, fetchExistingAnalysis, clearAnalysis]);
 
   const shouldShowContent = campaignId && instanceId;
 
   if (!shouldShowContent) {
+    console.log('Not showing content - missing campaign or instance');
     return (
       <Card className="w-full">
         <CardHeader>
@@ -67,16 +79,16 @@ export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) 
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading && (
+        {(isLoading || userLoading) && (
           <div className="text-center py-8">
             <LoadingSpinner size="lg" />
             <p className="text-muted-foreground mt-4">
-              Loading analysis...
+              {userLoading ? 'Loading user data...' : 'Loading analysis...'}
             </p>
           </div>
         )}
 
-        {!isLoading && analysis && metadata && (
+        {!isLoading && !userLoading && analysis && metadata && (
           <div className="space-y-6">
             {/* Metadata */}
             <div className="flex flex-wrap gap-3">
@@ -114,7 +126,7 @@ export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) 
           </div>
         )}
 
-        {!isLoading && !analysis && (
+        {!isLoading && !userLoading && !analysis && (
           <div className="text-center py-8">
             <div className="rounded-full bg-muted p-6 mx-auto mb-4 w-fit">
               <Brain className="h-8 w-8 text-muted-foreground" />
