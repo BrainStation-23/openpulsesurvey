@@ -16,15 +16,23 @@ export function RatingBarChart({ distribution, chartConfig }: RatingBarChartProp
   }));
   
   return (
-    <div className="h-64 w-full mt-4">
-      <ChartContainer config={chartConfig}>
+    <div className="w-full h-full">
+      <ChartContainer config={chartConfig} className="h-[240px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
-            margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+            margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
           >
-            <XAxis dataKey="name" />
-            <YAxis />
+            <XAxis 
+              dataKey="name" 
+              tick={{ fontSize: 12 }}
+              tickLine={{ stroke: '#e2e8f0' }}
+            />
+            <YAxis 
+              tick={{ fontSize: 12 }}
+              tickLine={{ stroke: '#e2e8f0' }}
+              axisLine={{ stroke: '#e2e8f0' }}
+            />
             <Tooltip
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {

@@ -33,16 +33,25 @@ export default function ReporteeFeedbackPage() {
 
       <Separator className="my-4" />
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Selector section */}
-        <div className="lg:w-1/3 space-y-4">
-          <div>
-            <h2 className="text-lg font-medium mb-4">Select Campaign & Instance</h2>
-            <div className="space-y-4">
+      {/* Selector section - now at the top */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Select Campaign & Instance</CardTitle>
+          <CardDescription>
+            Choose a campaign and specific instance to view feedback data
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">Campaign</label>
               <CampaignSelector
                 selectedCampaignId={selectedCampaignId}
                 onCampaignSelect={setSelectedCampaignId}
               />
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">Instance</label>
               <InstanceSelector
                 campaignId={selectedCampaignId}
                 selectedInstanceId={selectedInstanceId}
@@ -50,114 +59,116 @@ export default function ReporteeFeedbackPage() {
               />
             </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Main content */}
-        <div className="lg:w-2/3 space-y-6">
-          {/* Loading state */}
-          {isLoading && (
-            <div className="space-y-4">
-              <Skeleton className="h-32 w-full" />
-              <Skeleton className="h-64 w-full" />
-            </div>
-          )}
+      {/* Main content */}
+      <div className="w-full space-y-6">
+        {/* Loading state */}
+        {isLoading && (
+          <div className="space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        )}
 
-          {/* Error state */}
-          {error && (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center p-6">
-                  <p className="text-destructive">
-                    Error loading feedback data: {error.message}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+        {/* Error state */}
+        {error && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center p-6">
+                <p className="text-destructive">
+                  Error loading feedback data: {error.message}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-          {/* No campaign/instance selected */}
-          {!selectedCampaignId && !isLoading && (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center p-6">
-                  <p className="text-muted-foreground">
-                    Please select a campaign and instance to view feedback data
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+        {/* No campaign/instance selected */}
+        {!selectedCampaignId && !isLoading && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center p-6">
+                <p className="text-muted-foreground">
+                  Please select a campaign and instance to view feedback data
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-          {/* No data available */}
-          {selectedCampaignId && selectedInstanceId && !isLoading && feedbackData?.status === 'error' && (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center p-6">
-                  <p className="text-muted-foreground">
-                    {feedbackData?.message || 'No feedback data available for this campaign and instance'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+        {/* No data available */}
+        {selectedCampaignId && selectedInstanceId && !isLoading && feedbackData?.status === 'error' && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center p-6">
+                <p className="text-muted-foreground">
+                  {feedbackData?.message || 'No feedback data available for this campaign and instance'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Main feedback display */}
-          {selectedCampaignId && selectedInstanceId && !isLoading && feedbackData?.status === 'success' && feedbackData?.data && (
-            <>
-              {/* Overview metrics */}
-              <FeedbackOverview data={feedbackData.data} isLoading={isLoading} />
+        {/* Main feedback display */}
+        {selectedCampaignId && selectedInstanceId && !isLoading && feedbackData?.status === 'success' && feedbackData?.data && (
+          <>
+            {/* Overview metrics */}
+            <FeedbackOverview data={feedbackData.data} isLoading={isLoading} />
 
-              {/* Tabs for different views */}
-              <Tabs defaultValue="individual" className="w-full">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="individual">Individual Questions</TabsTrigger>
-                  <TabsTrigger value="comparison">Comparison Table</TabsTrigger>
-                  <TabsTrigger value="ai-analysis">AI Analysis</TabsTrigger>
-                </TabsList>
+            {/* Tabs for different views */}
+            <Tabs defaultValue="individual" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="individual">Individual Questions</TabsTrigger>
+                <TabsTrigger value="comparison">Comparison Table</TabsTrigger>
+                <TabsTrigger value="ai-analysis">AI Analysis</TabsTrigger>
+              </TabsList>
 
-                {/* Individual questions view */}
-                <TabsContent value="individual" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Question-by-Question Analysis</CardTitle>
-                      <CardDescription>
-                        Detailed breakdown of each question with visualizations and insights
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {questions.map(question => (
-                        <EnhancedQuestionCard key={question.question_name} question={question} />
-                      ))}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+              {/* Individual questions view */}
+              <TabsContent value="individual" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Question-by-Question Analysis</CardTitle>
+                    <CardDescription>
+                      Detailed breakdown of each question with visualizations and insights
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-8">
+                    {questions.map(question => (
+                      <div key={question.question_name} className="w-full">
+                        <EnhancedQuestionCard question={question} />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-                {/* Comparison table view */}
-                <TabsContent value="comparison" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Question Comparison</CardTitle>
-                      <CardDescription>
-                        Side-by-side comparison of all questions and their scores
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <QuestionComparisonTable questions={questions} />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+              {/* Comparison table view */}
+              <TabsContent value="comparison" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Question Comparison</CardTitle>
+                    <CardDescription>
+                      Side-by-side comparison of all questions and their scores
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <QuestionComparisonTable questions={questions} />
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-                {/* AI Analysis tab */}
-                <TabsContent value="ai-analysis" className="space-y-6">
-                  <AIAnalysisCard 
-                    campaignId={selectedCampaignId} 
-                    instanceId={selectedInstanceId}
-                  />
-                </TabsContent>
-              </Tabs>
-            </>
-          )}
-        </div>
+              {/* AI Analysis tab */}
+              <TabsContent value="ai-analysis" className="space-y-6">
+                <AIAnalysisCard 
+                  campaignId={selectedCampaignId} 
+                  instanceId={selectedInstanceId}
+                />
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
       </div>
     </div>
   );
