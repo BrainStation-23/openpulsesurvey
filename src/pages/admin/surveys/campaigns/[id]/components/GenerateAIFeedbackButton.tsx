@@ -100,6 +100,11 @@ export function GenerateAIFeedbackButton({ campaignId, instanceId }: GenerateAIF
     }
   };
 
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    stopHold();
+  };
+
   return (
     <div className="relative">
       <Button
@@ -108,14 +113,10 @@ export function GenerateAIFeedbackButton({ campaignId, instanceId }: GenerateAIF
         disabled={!instanceId || isGenerating}
         onMouseDown={startHold}
         onMouseUp={stopHold}
-        onMouseLeave={stopHold}
+        onMouseLeave={handleMouseLeave}
         onTouchStart={startHold}
         onTouchEnd={stopHold}
         onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => {
-          setIsHovered(false);
-          stopHold();
-        }}
         className={`gap-2 transition-all duration-200 ${
           isHolding ? 'scale-105 shadow-md' : ''
         }`}
