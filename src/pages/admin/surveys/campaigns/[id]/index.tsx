@@ -52,6 +52,40 @@ export default function CampaignDetailsPage() {
     }
   });
 
+  const handleGenerateFeedback = async () => {
+    if (!selectedInstanceId) {
+      toast({
+        title: "Error",
+        description: "Please select an instance first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.functions.invoke('generate-supervisor-feedback', {
+        body: {
+          campaignId: id,
+          instanceId: selectedInstanceId
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "AI feedback generation started for supervisors",
+      });
+    } catch (error) {
+      console.error('Error generating AI feedback:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate AI feedback",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (isLoadingCampaign) {
     return <div>Loading...</div>;
   }
@@ -66,6 +100,13 @@ export default function CampaignDetailsPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Campaign Details</h2>
         <div className="flex items-center gap-4">
+          <Button 
+            onClick={handleGenerateFeedback}
+            disabled={!selectedInstanceId}
+            variant="outline"
+          >
+            Generate AI Feedback
+          </Button>
           <PresentButton 
             campaignId={campaign.id}
             instanceId={selectedInstanceId}
