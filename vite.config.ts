@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -11,7 +12,9 @@ export default defineConfig(({ mode }) => ({
   },
 
   plugins: [
-    react(),
+    react({
+      jsxRuntime: 'automatic',
+    }),
     mode === "development" && componentTagger(),
   ].filter(Boolean),
 
@@ -33,6 +36,7 @@ export default defineConfig(({ mode }) => ({
           flow: ["@xyflow/react"],
         },
       },
+      external: [],
     },
     chunkSizeWarningLimit: 2000,
     minify: "esbuild",
@@ -47,6 +51,11 @@ export default defineConfig(({ mode }) => ({
         global: "globalThis",
       },
     },
+    include: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+    ],
     exclude: [
       "@tanstack/react-query",
       "framer-motion",
