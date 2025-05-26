@@ -15,6 +15,8 @@ interface AIAnalyzeTabProps {
 
 export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
   const [selectedPromptId, setSelectedPromptId] = useState<string>();
+  const [analysisContent, setAnalysisContent] = useState<string>("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Get instance status for the AI Queue Monitor
   const { data: instance } = useQuery({
@@ -32,11 +34,34 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
     enabled: !!instanceId,
   });
 
-  const { data: analysis, isLoading, error } = useAnalysisData(
-    campaignId, 
-    instanceId, 
-    selectedPromptId
-  );
+  const { data: analysisData } = useAnalysisData(campaignId, instanceId);
+
+  const handleAnalyze = async (promptData: { id: string, text: string }) => {
+    if (!instanceId || !analysisData) return;
+    
+    setIsAnalyzing(true);
+    setSelectedPromptId(promptData.id);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-campaign', {
+        body: {
+          campaignId,
+          instanceId,
+          prompt: promptData.text,
+          analysisData
+        }
+      });
+
+      if (error) throw error;
+      
+      setAnalysisContent(data.analysis || "Analysis completed successfully.");
+    } catch (error) {
+      console.error('Error generating analysis:', error);
+      setAnalysisContent("Error generating analysis. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   if (!instanceId) {
     return (
@@ -64,16 +89,16 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
           selectedInstanceId={instanceId}
         />
         <PromptSelector
+          onAnalyze={handleAnalyze}
+          isAnalyzing={isAnalyzing}
           selectedPromptId={selectedPromptId}
-          onPromptChange={setSelectedPromptId}
         />
       </div>
 
-      {selectedPromptId && (
+      {analysisContent && (
         <AnalysisViewer
-          analysis={analysis}
-          isLoading={isLoading}
-          error={error}
+          content={analysisContent}
+          isLoading={isAnalyzing}
         />
       )}
     </div>
