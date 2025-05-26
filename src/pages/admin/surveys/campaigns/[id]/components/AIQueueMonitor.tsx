@@ -15,7 +15,7 @@ export function AIQueueMonitor({ instanceStatus, selectedInstanceId }: AIQueueMo
       return {
         icon: AlertCircle,
         status: 'No Instance Selected',
-        description: 'Please select a campaign instance to see AI feedback status.',
+        description: 'Please select a campaign instance to see manager feedback status.',
         variant: 'secondary' as const,
         color: 'text-muted-foreground'
       };
@@ -25,8 +25,8 @@ export function AIQueueMonitor({ instanceStatus, selectedInstanceId }: AIQueueMo
       case 'completed':
         return {
           icon: CheckCircle,
-          status: 'Ready for AI Analysis',
-          description: 'This completed instance is ready for AI feedback generation. Use the "Generate AI Feedback" button above.',
+          status: 'Ready for Manager Feedback',
+          description: 'This completed instance is ready for manager feedback generation. Use the "Generate Manager Feedback" button above.',
           variant: 'default' as const,
           color: 'text-green-600'
         };
@@ -34,7 +34,7 @@ export function AIQueueMonitor({ instanceStatus, selectedInstanceId }: AIQueueMo
         return {
           icon: Clock,
           status: 'Instance Active',
-          description: 'AI feedback can only be generated after the instance is completed.',
+          description: 'Manager feedback can only be generated after the instance is completed.',
           variant: 'secondary' as const,
           color: 'text-blue-600'
         };
@@ -42,7 +42,7 @@ export function AIQueueMonitor({ instanceStatus, selectedInstanceId }: AIQueueMo
         return {
           icon: Clock,
           status: 'Instance Upcoming',
-          description: 'AI feedback will be available once the instance is completed.',
+          description: 'Manager feedback will be available once the instance is completed.',
           variant: 'outline' as const,
           color: 'text-amber-600'
         };
@@ -65,7 +65,7 @@ export function AIQueueMonitor({ instanceStatus, selectedInstanceId }: AIQueueMo
       <CardHeader>
         <div className="flex items-center gap-2">
           <Brain className="h-5 w-5 text-primary" />
-          <CardTitle>AI Analysis Status</CardTitle>
+          <CardTitle>Manager Feedback Status</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
@@ -83,7 +83,7 @@ export function AIQueueMonitor({ instanceStatus, selectedInstanceId }: AIQueueMo
           </p>
           
           <div className="bg-muted/50 border rounded-lg p-4 text-left">
-            <h4 className="font-medium mb-2">How AI Feedback Works:</h4>
+            <h4 className="font-medium mb-2">How Manager Feedback Works:</h4>
             <ul className="text-sm text-muted-foreground space-y-1">
               <li>• Only available for completed campaign instances</li>
               <li>• Generates feedback for supervisors with 4+ reportees</li>

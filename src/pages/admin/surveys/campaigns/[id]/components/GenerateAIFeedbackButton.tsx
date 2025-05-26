@@ -16,6 +16,7 @@ export function GenerateAIFeedbackButton({ campaignId, instanceId }: GenerateAIF
   const [isGenerating, setIsGenerating] = useState(false);
   const [isHolding, setIsHolding] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   const holdTimeoutRef = useRef<NodeJS.Timeout>();
   const progressIntervalRef = useRef<NodeJS.Timeout>();
 
@@ -43,13 +44,13 @@ export function GenerateAIFeedbackButton({ campaignId, instanceId }: GenerateAIF
 
       toast({
         title: "Success",
-        description: "AI feedback generation started for supervisors",
+        description: "Manager feedback generation started",
       });
     } catch (error) {
-      console.error('Error generating AI feedback:', error);
+      console.error('Error generating manager feedback:', error);
       toast({
         title: "Error",
-        description: "Failed to generate AI feedback",
+        description: "Failed to generate manager feedback",
         variant: "destructive"
       });
     } finally {
@@ -110,6 +111,11 @@ export function GenerateAIFeedbackButton({ campaignId, instanceId }: GenerateAIF
         onMouseLeave={stopHold}
         onTouchStart={startHold}
         onTouchEnd={stopHold}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => {
+          setIsHovered(false);
+          stopHold();
+        }}
         className={`gap-2 transition-all duration-200 ${
           isHolding ? 'scale-105 shadow-md' : ''
         }`}
@@ -119,7 +125,7 @@ export function GenerateAIFeedbackButton({ campaignId, instanceId }: GenerateAIF
         ) : (
           <Brain className="h-4 w-4" />
         )}
-        {isGenerating ? "Generating..." : "Generate AI Feedback"}
+        {isGenerating ? "Generating..." : "Generate Manager Feedback"}
       </Button>
       
       {isHolding && (
@@ -132,7 +138,7 @@ export function GenerateAIFeedbackButton({ campaignId, instanceId }: GenerateAIF
         </div>
       )}
       
-      {!isGenerating && !isHolding && (
+      {!isGenerating && !isHolding && isHovered && (
         <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-muted-foreground whitespace-nowrap">
           Hold for 1 second
         </div>
