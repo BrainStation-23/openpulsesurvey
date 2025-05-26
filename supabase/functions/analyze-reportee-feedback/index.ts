@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
@@ -17,21 +16,15 @@ serve(async (req) => {
   }
 
   try {
+    // Create service role client for database operations
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '', 
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '', 
-      {
-        global: {
-          headers: {
-            Authorization: req.headers.get('Authorization')
-          }
-        }
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     const { campaignId, instanceId, supervisorId } = await req.json();
 
-    // Get feedback data using the same RPC function
+    // Get feedback data using the service role client
     const { data: feedbackData, error: feedbackError } = await supabaseClient.rpc('get_supervisor_team_feedback', {
       p_campaign_id: campaignId,
       p_instance_id: instanceId,
@@ -185,7 +178,7 @@ serve(async (req) => {
       });
     }
 
-    // Insert the analysis into the database
+    // Insert the analysis into the database using service role client
     const { error: insertError } = await supabaseClient
       .from('ai_feedback_analysis')
       .upsert({
