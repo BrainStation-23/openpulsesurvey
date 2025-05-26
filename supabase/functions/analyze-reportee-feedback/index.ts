@@ -55,7 +55,7 @@ serve(async (req)=>{
     const prompt = `
 You are an expert management consultant analyzing team feedback data for a supervisor. Based on the following team feedback summary, provide actionable insights and improvement recommendations.
 
-${feedbackData.data}
+${JSON.stringify(feedbackData.data, null, 2)}
 
 Please provide:
 1. **Key Strengths**: What's working well based on the data
