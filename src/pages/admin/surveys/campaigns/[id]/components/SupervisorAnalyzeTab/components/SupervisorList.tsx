@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Users, TrendingUp } from "lucide-react";
+import { Search, Users, TrendingUp, CheckCircle, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SupervisorAnalysisData } from "../hooks/useSupervisorAnalysis";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -62,7 +62,7 @@ export function SupervisorList({
       <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
         {filteredSupervisors.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            {searchTerm ? "No supervisors match your search" : "No supervisor analysis data available"}
+            {searchTerm ? "No supervisors match your search" : "No eligible supervisors found"}
           </div>
         ) : (
           filteredSupervisors.map((supervisor) => (
@@ -76,8 +76,17 @@ export function SupervisorList({
               onClick={() => onSelectSupervisor(supervisor.supervisor_id)}
             >
               <div className="space-y-2">
-                <div className="font-medium text-sm">
-                  {supervisor.supervisor_name}
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-sm">
+                    {supervisor.supervisor_name}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {supervisor.status === 'generated' ? (
+                      <CheckCircle className="h-3 w-3 text-green-500" />
+                    ) : (
+                      <Clock className="h-3 w-3 text-orange-500" />
+                    )}
+                  </div>
                 </div>
                 
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -86,22 +95,27 @@ export function SupervisorList({
                     <span>{supervisor.team_size} team members</span>
                   </div>
                   
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    <span>{Math.round(supervisor.response_rate * 100)}% response rate</span>
-                  </div>
+                  {supervisor.has_analysis && (
+                    <div className="flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" />
+                      <span>{Math.round(supervisor.response_rate)}% response rate</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex justify-between items-center">
                   <Badge variant="outline" className="text-xs">
-                    {new Date(supervisor.generated_at).toLocaleDateString()}
+                    {supervisor.has_analysis 
+                      ? new Date(supervisor.generated_at).toLocaleDateString()
+                      : 'No analysis'
+                    }
                   </Badge>
                   
                   <Badge 
-                    variant={supervisor.response_rate >= 0.8 ? "default" : supervisor.response_rate >= 0.6 ? "secondary" : "destructive"}
+                    variant={supervisor.status === 'generated' ? "default" : "secondary"}
                     className="text-xs"
                   >
-                    {supervisor.response_rate >= 0.8 ? "High" : supervisor.response_rate >= 0.6 ? "Medium" : "Low"} Response
+                    {supervisor.status === 'generated' ? 'Generated' : 'Pending'}
                   </Badge>
                 </div>
               </div>

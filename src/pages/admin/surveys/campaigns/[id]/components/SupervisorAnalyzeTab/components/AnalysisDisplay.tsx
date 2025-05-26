@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, TrendingUp, Calendar, FileText } from "lucide-react";
+import { Users, TrendingUp, Calendar, FileText, Clock, CheckCircle } from "lucide-react";
 import { SupervisorAnalysisData } from "../hooks/useSupervisorAnalysis";
 import ReactMarkdown from 'react-markdown';
 
@@ -59,10 +59,12 @@ export function AnalysisDisplay({ supervisor, isLoading }: AnalysisDisplayProps)
             <span>{supervisor.team_size} team members</span>
           </div>
           
-          <div className="flex items-center gap-1">
-            <TrendingUp className="h-4 w-4" />
-            <span>{Math.round(supervisor.response_rate * 100)}% response rate</span>
-          </div>
+          {supervisor.has_analysis && (
+            <div className="flex items-center gap-1">
+              <TrendingUp className="h-4 w-4" />
+              <span>{Math.round(supervisor.response_rate)}% response rate</span>
+            </div>
+          )}
           
           <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
@@ -70,12 +72,26 @@ export function AnalysisDisplay({ supervisor, isLoading }: AnalysisDisplayProps)
           </div>
         </div>
         
-        <div>
+        <div className="flex items-center gap-2">
           <Badge 
-            variant={supervisor.response_rate >= 0.8 ? "default" : supervisor.response_rate >= 0.6 ? "secondary" : "destructive"}
+            variant={supervisor.status === 'generated' ? "default" : "secondary"}
+            className="flex items-center gap-1"
           >
-            {supervisor.response_rate >= 0.8 ? "High" : supervisor.response_rate >= 0.6 ? "Medium" : "Low"} Response Rate
+            {supervisor.status === 'generated' ? (
+              <CheckCircle className="h-3 w-3" />
+            ) : (
+              <Clock className="h-3 w-3" />
+            )}
+            {supervisor.status === 'generated' ? 'Analysis Generated' : 'Analysis Pending'}
           </Badge>
+          
+          {supervisor.has_analysis && (
+            <Badge 
+              variant={supervisor.response_rate >= 80 ? "default" : supervisor.response_rate >= 60 ? "secondary" : "destructive"}
+            >
+              {supervisor.response_rate >= 80 ? "High" : supervisor.response_rate >= 60 ? "Medium" : "Low"} Response Rate
+            </Badge>
+          )}
         </div>
       </CardHeader>
       
@@ -85,6 +101,18 @@ export function AnalysisDisplay({ supervisor, isLoading }: AnalysisDisplayProps)
             {supervisor.analysis_content}
           </ReactMarkdown>
         </div>
+        
+        {!supervisor.has_analysis && (
+          <div className="mt-4 p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+            <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300">
+              <Clock className="h-4 w-4" />
+              <span className="font-medium">Analysis Not Generated</span>
+            </div>
+            <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
+              This supervisor is eligible for analysis but hasn't been generated yet. Use the "Generate AI Feedback" button to create the analysis.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
