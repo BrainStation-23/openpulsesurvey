@@ -52,20 +52,56 @@ serve(async (req)=>{
       });
     }
 
-    const prompt = `
-You are an expert management consultant analyzing team feedback data for a supervisor. Based on the following team feedback summary, provide actionable insights and improvement recommendations.
+const prompt = 
+  `You are an experienced team performance analyst. You’ve received structured feedback data from a team about their supervisor, containing both quantitative and qualitative responses.
 
-${JSON.stringify(feedbackData.data, null, 2)}
-
-Please provide:
-1. **Key Strengths**: What's working well based on the data
-2. **Areas for Improvement**: Specific areas that need attention
-3. **Actionable Recommendations**: 3-5 concrete steps the supervisor can take
-4. **Priority Focus**: What should be addressed first
-5. **Success Metrics**: How to measure improvement
-
-Keep the analysis professional, constructive, and focused on actionable insights. Do not mention specific text responses, but consider the overall sentiment and themes when text feedback is available.
+    **Important Instructions:**
+    
+    - There are two types of rating questions in the data:
+      - **Satisfaction Ratings (Max: 5):**
+        - These indicate overall satisfaction, where:
+          - 4 or 5 = Positive
+          - 3 = Neutral
+          - 1 or 2 = Negative
+      - **NPS-style Ratings (Max: 10):**
+        - These measure likelihood to recommend or strong agreement, where:
+          - 9 or 10 = Positive (Promoter)
+          - 7 or 8 = Neutral (Passive)
+          - 6 or below = Negative (Detractor)
+    
+    Please interpret the scores using these rules and apply them consistently throughout the analysis.
+    
+    ---
+    
+    Based on the following JSON feedback data:
+    
+    ${JSON.stringify(feedbackData.data, null, 2)}
+    
+    Generate a professional and constructive report for the supervisor that includes:
+    
+    ### 1. Executive Summary:
+    Briefly summarize the overall sentiment and tone of the feedback.
+    
+    ### 2. Key Strengths:
+    List what the team appreciates most about the supervisor, based on positive trends.
+    
+    ### 3. Areas for Improvement:
+    Identify 2–3 clear themes where improvement is needed, based on patterns in the data.
+    
+    ### 4. Actionable Recommendations:
+    Give 3–5 specific, practical steps the supervisor can take to improve team engagement and satisfaction.
+    
+    ### 5. Priority Focus:
+    Highlight the single most important issue to address immediately.
+    
+    ### 6. Success Metrics:
+    Suggest measurable KPIs or team signals that can be used to track progress after these improvements.
+    
+    ---
+    
+    Do **not quote** individual responses. Generalize themes based on overall trends and sentiment. Keep your tone supportive, professional, and focused on improvement.
 `;
+
     // Call Gemini AI
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     const geminiModel = Deno.env.get('GEMINI_MODEL_NAME') || 'gemini-1.5-flash';
