@@ -21,7 +21,7 @@ export function RatingBarChart({ distribution, chartConfig }: RatingBarChartProp
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
-            margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+            margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
           >
             <XAxis 
               dataKey="name" 
