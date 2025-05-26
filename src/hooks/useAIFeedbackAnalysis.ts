@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCurrentUser } from './useCurrentUser';
 
@@ -15,7 +15,7 @@ export const useAIFeedbackAnalysis = () => {
   const [metadata, setMetadata] = useState<AIAnalysisMetadata | null>(null);
   const { user, isLoading: userLoading } = useCurrentUser();
 
-  const fetchExistingAnalysis = async (campaignId?: string, instanceId?: string) => {
+  const fetchExistingAnalysis = useCallback(async (campaignId?: string, instanceId?: string) => {
     console.log('fetchExistingAnalysis called with:', { 
       campaignId, 
       instanceId, 
@@ -86,13 +86,13 @@ export const useAIFeedbackAnalysis = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id, userLoading]);
 
-  const clearAnalysis = () => {
+  const clearAnalysis = useCallback(() => {
     console.log('Clearing analysis state');
     setAnalysis(null);
     setMetadata(null);
-  };
+  }, []);
 
   return {
     fetchExistingAnalysis,

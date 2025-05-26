@@ -22,7 +22,7 @@ export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) 
     userLoading
   } = useAIFeedbackAnalysis();
 
-  // Effect to handle fetching when campaignId, instanceId, or user changes
+  // Effect to handle fetching when campaignId, instanceId, or user loading state changes
   useEffect(() => {
     console.log('AIAnalysisCard effect triggered:', { 
       campaignId, 
@@ -41,7 +41,7 @@ export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) 
       console.log('Missing campaignId or instanceId, clearing analysis');
       clearAnalysis();
     }
-  }, [campaignId, instanceId, userLoading, fetchExistingAnalysis, clearAnalysis]);
+  }, [campaignId, instanceId, userLoading]); // Remove function dependencies
 
   const shouldShowContent = campaignId && instanceId;
 
