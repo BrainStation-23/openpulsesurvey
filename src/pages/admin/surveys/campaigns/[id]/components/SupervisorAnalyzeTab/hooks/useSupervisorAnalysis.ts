@@ -30,8 +30,8 @@ export function useSupervisorAnalysis(campaignId?: string, instanceId?: string) 
         return { supervisors: [], stats: { total_eligible: 0, with_analysis: 0, pending_analysis: 0 } };
       }
 
-      // STEP 1: Fetch existing analysis data for this campaign and instance (PRIMARY SOURCE)
-      console.log("useSupervisorAnalysis: Fetching existing analysis data");
+      // Fetch analysis data for this campaign and instance
+      console.log("useSupervisorAnalysis: Fetching analysis data");
       const { data: analysisData, error: analysisError } = await supabase
         .from("ai_feedback_analysis")
         .select(`
@@ -52,38 +52,21 @@ export function useSupervisorAnalysis(campaignId?: string, instanceId?: string) 
 
       console.log("useSupervisorAnalysis: Analysis data found:", analysisData?.length || 0, analysisData);
 
-      // STEP 2: Fetch all eligible supervisors from RPC (SECONDARY SOURCE)
-      console.log("useSupervisorAnalysis: Fetching eligible supervisors from RPC");
-      const { data: eligibleSupervisors, error: supervisorError } = await supabase
-        .rpc('get_supervisors_with_min_reportees', { min_reportees: 4 });
-
-      if (supervisorError) {
-        console.error("useSupervisorAnalysis: Error fetching eligible supervisors:", supervisorError);
-        throw supervisorError;
-      }
-
-      console.log("useSupervisorAnalysis: Eligible supervisors from RPC:", eligibleSupervisors?.length || 0, eligibleSupervisors);
-
-      // STEP 3: Create union of all supervisor IDs (from both analysis and RPC)
-      const analysisSupIds = new Set(analysisData?.map(a => a.supervisor_id) || []);
-      const rpcSupIds = new Set(eligibleSupervisors?.map(s => s.supervisor_id) || []);
-      const allSupervisorIds = Array.from(new Set([...analysisSupIds, ...rpcSupIds]));
-      
-      console.log("useSupervisorAnalysis: All unique supervisor IDs:", allSupervisorIds.length, allSupervisorIds);
-      console.log("useSupervisorAnalysis: Analysis supervisor IDs:", analysisSupIds.size);
-      console.log("useSupervisorAnalysis: RPC supervisor IDs:", rpcSupIds.size);
-
-      if (allSupervisorIds.length === 0) {
-        console.log("useSupervisorAnalysis: No supervisors found");
+      if (!analysisData || analysisData.length === 0) {
+        console.log("useSupervisorAnalysis: No analysis data found");
         return { supervisors: [], stats: { total_eligible: 0, with_analysis: 0, pending_analysis: 0 } };
       }
 
-      // STEP 4: Fetch profiles for all supervisor IDs
-      console.log("useSupervisorAnalysis: Fetching supervisor profiles for all IDs:", allSupervisorIds);
+      // Get all unique supervisor IDs from analysis data
+      const supervisorIds = analysisData.map(item => item.supervisor_id);
+      console.log("useSupervisorAnalysis: Supervisor IDs from analysis:", supervisorIds);
+
+      // Fetch supervisor profiles
+      console.log("useSupervisorAnalysis: Fetching supervisor profiles");
       const { data: supervisorProfiles, error: profileError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
-        .in("id", allSupervisorIds);
+        .in("id", supervisorIds);
 
       if (profileError) {
         console.error("useSupervisorAnalysis: Error fetching supervisor profiles:", profileError);
@@ -92,21 +75,7 @@ export function useSupervisorAnalysis(campaignId?: string, instanceId?: string) 
 
       console.log("useSupervisorAnalysis: Supervisor profiles found:", supervisorProfiles?.length || 0, supervisorProfiles);
 
-      // STEP 5: Create lookup maps
-      const analysisMap = new Map();
-      if (analysisData) {
-        analysisData.forEach((item: any) => {
-          analysisMap.set(item.supervisor_id, item);
-        });
-      }
-
-      const rpcMap = new Map();
-      if (eligibleSupervisors) {
-        eligibleSupervisors.forEach((item: any) => {
-          rpcMap.set(item.supervisor_id, item);
-        });
-      }
-
+      // Create profile lookup map
       const profilesMap = new Map();
       if (supervisorProfiles) {
         supervisorProfiles.forEach((profile: any) => {
@@ -114,73 +83,46 @@ export function useSupervisorAnalysis(campaignId?: string, instanceId?: string) 
         });
       }
 
-      console.log("useSupervisorAnalysis: Lookup maps created - Analysis:", analysisMap.size, "RPC:", rpcMap.size, "Profiles:", profilesMap.size);
-
-      // STEP 6: Combine all supervisors with their data
-      const combinedSupervisors: SupervisorAnalysisData[] = allSupervisorIds.map(supervisorId => {
-        const profile = profilesMap.get(supervisorId);
-        const analysis = analysisMap.get(supervisorId);
-        const rpcData = rpcMap.get(supervisorId);
-        
-        console.log("useSupervisorAnalysis: Processing supervisor:", supervisorId, {
-          hasProfile: !!profile,
-          hasAnalysis: !!analysis,
-          hasRpcData: !!rpcData,
-          profileData: profile,
-          analysisData: analysis,
-          rpcData: rpcData
-        });
-
+      // Map analysis data to supervisor analysis format
+      const supervisors: SupervisorAnalysisData[] = analysisData.map(item => {
+        const profile = profilesMap.get(item.supervisor_id);
         const supervisorName = profile 
           ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown Supervisor'
           : 'Unknown Supervisor';
 
-        if (analysis) {
-          // Supervisor has analysis data - use it
-          console.log("useSupervisorAnalysis: Supervisor has analysis:", supervisorId);
-          return {
-            supervisor_id: supervisorId,
-            supervisor_name: supervisorName,
-            team_size: analysis.team_size,
-            response_rate: analysis.response_rate,
-            analysis_content: analysis.analysis_content,
-            generated_at: analysis.generated_at,
-            has_analysis: true,
-            status: 'generated' as const
-          };
-        } else {
-          // Supervisor doesn't have analysis yet - use RPC data or defaults
-          console.log("useSupervisorAnalysis: Supervisor missing analysis:", supervisorId);
-          const teamSize = rpcData ? rpcData.reportee_count : 0;
-          return {
-            supervisor_id: supervisorId,
-            supervisor_name: supervisorName,
-            team_size: teamSize,
-            response_rate: 0,
-            analysis_content: 'Analysis pending. Click "Generate AI Feedback" to create supervisor analysis for this team.',
-            generated_at: new Date().toISOString(),
-            has_analysis: false,
-            status: 'pending' as const
-          };
-        }
+        console.log("useSupervisorAnalysis: Processing supervisor:", item.supervisor_id, {
+          hasProfile: !!profile,
+          profileData: profile,
+          analysisData: item
+        });
+
+        return {
+          supervisor_id: item.supervisor_id,
+          supervisor_name: supervisorName,
+          team_size: item.team_size,
+          response_rate: item.response_rate,
+          analysis_content: item.analysis_content,
+          generated_at: item.generated_at,
+          has_analysis: true,
+          status: 'generated' as const
+        };
       });
 
-      // STEP 7: Calculate accurate statistics
+      // Calculate statistics
       const stats: SupervisorAnalysisStats = {
-        total_eligible: allSupervisorIds.length,
-        with_analysis: analysisData?.length || 0,
-        pending_analysis: allSupervisorIds.length - (analysisData?.length || 0)
+        total_eligible: supervisors.length,
+        with_analysis: supervisors.length, // All have analysis since we're only fetching from analysis table
+        pending_analysis: 0 // None pending since we're only showing those with analysis
       };
 
       console.log("useSupervisorAnalysis: Final result:", {
-        totalSupervisors: combinedSupervisors.length,
-        supervisorsWithAnalysis: combinedSupervisors.filter(s => s.has_analysis).length,
-        supervisorsPending: combinedSupervisors.filter(s => !s.has_analysis).length,
+        totalSupervisors: supervisors.length,
+        supervisorsWithAnalysis: supervisors.filter(s => s.has_analysis).length,
         stats,
-        sampleSupervisors: combinedSupervisors.slice(0, 3)
+        sampleSupervisors: supervisors.slice(0, 3)
       });
 
-      return { supervisors: combinedSupervisors, stats };
+      return { supervisors, stats };
     },
     enabled: !!campaignId && !!instanceId,
   });
