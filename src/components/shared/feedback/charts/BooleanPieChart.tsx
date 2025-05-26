@@ -22,13 +22,13 @@ export function BooleanPieChart({ trueCount, falseCount, chartConfig }: BooleanP
   
   return (
     <div className="w-full h-full">
-      <ChartContainer config={chartConfig} className="h-full w-full">
+      <ChartContainer config={chartConfig} className="h-[240px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
-              cx="50%"
-              cy="50%"
+              cx="100%"
+              cy="100%"
               labelLine={false}
               outerRadius={80}
               fill="#8884d8"
