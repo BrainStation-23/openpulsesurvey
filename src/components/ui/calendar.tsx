@@ -22,11 +22,10 @@ function Calendar({
 }: CalendarProps) {
   // Get initial year safely from props
   const getInitialYear = () => {
-    if (props.selected) {
-      if (props.selected instanceof Date) return props.selected.getFullYear();
-      if (Array.isArray(props.selected) && props.selected[0] instanceof Date) 
-        return props.selected[0].getFullYear();
-    }
+    if (!props.defaultSelected) return new Date().getFullYear();
+    if (props.defaultSelected instanceof Date) return props.defaultSelected.getFullYear();
+    if (Array.isArray(props.defaultSelected) && props.defaultSelected[0] instanceof Date) 
+      return props.defaultSelected[0].getFullYear();
     return new Date().getFullYear();
   };
 
@@ -61,7 +60,7 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-3 pointer-events-auto", className)}
+      className={cn("p-3", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
