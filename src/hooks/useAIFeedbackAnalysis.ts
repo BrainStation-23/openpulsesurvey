@@ -122,24 +122,42 @@ export const useAIFeedbackAnalysis = () => {
           description: "Failed to generate AI feedback analysis. Please try again.",
           variant: "destructive",
         });
-        return null;
+        return false;
       }
 
-      console.log('New analysis generated:', data);
+      console.log('AI analysis generation response:', data);
 
-      // Save the new analysis to database
-      await saveAnalysis(
-        campaignId, 
-        instanceId, 
-        data.analysis, 
-        data.metadata.team_size, 
-        data.metadata.response_rate
-      );
+      if (!data.success) {
+        console.error('AI analysis generation failed:', data.error);
+        toast({
+          title: "Analysis failed",
+          description: data.error || "Failed to generate AI feedback analysis",
+          variant: "destructive",
+        });
+        return false;
+      }
 
-      return {
-        analysis: data.analysis,
-        metadata: data.metadata
-      };
+      console.log('Analysis generated successfully, now fetching from database...');
+      
+      // Fetch the newly generated analysis from the database
+      const freshAnalysis = await fetchExistingAnalysis(campaignId, instanceId);
+      
+      if (freshAnalysis) {
+        setAnalysis(freshAnalysis.analysis_content);
+        setMetadata({
+          team_size: freshAnalysis.team_size,
+          response_rate: freshAnalysis.response_rate,
+          generated_at: freshAnalysis.generated_at
+        });
+        return true;
+      } else {
+        toast({
+          title: "Analysis failed",
+          description: "Analysis was generated but could not be retrieved",
+          variant: "destructive",
+        });
+        return false;
+      }
 
     } catch (error) {
       console.error('Unexpected error generating analysis:', error);
@@ -148,7 +166,7 @@ export const useAIFeedbackAnalysis = () => {
         description: "An unexpected error occurred while processing analysis",
         variant: "destructive",
       });
-      return null;
+      return false;
     } finally {
       setIsGeneratingNew(false);
     }
@@ -194,12 +212,7 @@ export const useAIFeedbackAnalysis = () => {
 
     // If no existing analysis, generate new one
     console.log('No existing analysis found, generating new one...');
-    const newAnalysisResult = await generateNewAnalysis(campaignId, instanceId);
-    
-    if (newAnalysisResult) {
-      setAnalysis(newAnalysisResult.analysis);
-      setMetadata(newAnalysisResult.metadata);
-    }
+    await generateNewAnalysis(campaignId, instanceId);
   };
 
   const regenerateAnalysis = async (campaignId?: string, instanceId?: string) => {
@@ -211,12 +224,7 @@ export const useAIFeedbackAnalysis = () => {
     setAnalysis(null);
     setMetadata(null);
     
-    const newAnalysisResult = await generateNewAnalysis(campaignId, instanceId);
-    
-    if (newAnalysisResult) {
-      setAnalysis(newAnalysisResult.analysis);
-      setMetadata(newAnalysisResult.metadata);
-    }
+    await generateNewAnalysis(campaignId, instanceId);
   };
 
   const clearAnalysis = () => {

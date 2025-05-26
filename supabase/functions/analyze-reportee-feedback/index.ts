@@ -1,26 +1,36 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
-serve(async (req)=>{
+
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       headers: corsHeaders
     });
   }
+
   try {
-    const supabaseClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
-      global: {
-        headers: {
-          Authorization: req.headers.get('Authorization')
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '', 
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '', 
+      {
+        global: {
+          headers: {
+            Authorization: req.headers.get('Authorization')
+          }
         }
       }
-    });
+    );
+
     const { campaignId, instanceId, supervisorId } = await req.json();
+
     // Get feedback data using the same RPC function
     const { data: feedbackData, error: feedbackError } = await supabaseClient.rpc('get_supervisor_team_feedback', {
       p_campaign_id: campaignId,
@@ -28,9 +38,11 @@ serve(async (req)=>{
       p_supervisor_id: supervisorId,
       p_question_name: null
     });
+
     if (feedbackError) {
       console.error('Error fetching feedback data:', feedbackError);
       return new Response(JSON.stringify({
+        success: false,
         error: 'Failed to fetch feedback data'
       }), {
         status: 500,
@@ -40,8 +52,10 @@ serve(async (req)=>{
         }
       });
     }
+
     if (!feedbackData || feedbackData.status !== 'success' || !feedbackData.data) {
       return new Response(JSON.stringify({
+        success: false,
         error: 'No feedback data available'
       }), {
         status: 400,
@@ -52,8 +66,7 @@ serve(async (req)=>{
       });
     }
 
-const prompt = 
-  `You are an experienced team performance analyst. You’ve received structured feedback data from a team about their supervisor, containing both quantitative and qualitative responses.
+    const prompt = `You are an experienced team performance analyst. You've received structured feedback data from a team about their supervisor, containing both quantitative and qualitative responses.
 
     **Important Instructions:**
     
@@ -99,14 +112,15 @@ const prompt =
     
     ---
     
-    Do **not quote** individual responses. Generalize themes based on overall trends and sentiment. Keep your tone supportive, professional, and focused on improvement.
-`;
+    Do **not quote** individual responses. Generalize themes based on overall trends and sentiment. Keep your tone supportive, professional, and focused on improvement.`;
 
     // Call Gemini AI
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     const geminiModel = Deno.env.get('GEMINI_MODEL_NAME') || 'gemini-1.5-flash';
+    
     if (!geminiApiKey) {
       return new Response(JSON.stringify({
+        success: false,
         error: 'Gemini API key not configured'
       }), {
         status: 500,
@@ -116,6 +130,7 @@ const prompt =
         }
       });
     }
+
     const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
@@ -139,9 +154,11 @@ const prompt =
         }
       })
     });
+
     if (!geminiResponse.ok) {
       console.error('Gemini API error:', await geminiResponse.text());
       return new Response(JSON.stringify({
+        success: false,
         error: 'Failed to generate AI analysis'
       }), {
         status: 500,
@@ -151,10 +168,13 @@ const prompt =
         }
       });
     }
+
     const geminiData = await geminiResponse.json();
     const analysis = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
     if (!analysis) {
       return new Response(JSON.stringify({
+        success: false,
         error: 'No analysis generated'
       }), {
         status: 500,
@@ -164,22 +184,48 @@ const prompt =
         }
       });
     }
-    return new Response(JSON.stringify({
-      analysis,
-      metadata: {
+
+    // Insert the analysis into the database
+    const { error: insertError } = await supabaseClient
+      .from('ai_feedback_analysis')
+      .upsert({
+        campaign_id: campaignId,
+        instance_id: instanceId,
+        supervisor_id: supervisorId,
+        analysis_content: analysis,
         team_size: feedbackData.data.team_size,
-        response_rate: feedbackData.data.response_rate,
-        generated_at: new Date().toISOString()
-      }
+        response_rate: feedbackData.data.response_rate
+      });
+
+    if (insertError) {
+      console.error('Error inserting analysis:', insertError);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Failed to save analysis to database'
+      }), {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
+    console.log('Analysis successfully generated and saved to database');
+
+    return new Response(JSON.stringify({
+      success: true
     }), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json'
       }
     });
+
   } catch (error) {
     console.error('Error in analyze-reportee-feedback function:', error);
     return new Response(JSON.stringify({
+      success: false,
       error: error.message
     }), {
       status: 500,
