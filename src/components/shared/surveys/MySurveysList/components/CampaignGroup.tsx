@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 
 interface CampaignGroupProps {
+  campaignId: string;
   name: string;
   description?: string | null;
   instances: UserSurvey[];
@@ -16,6 +17,7 @@ interface CampaignGroupProps {
 }
 
 export default function CampaignGroup({
+  campaignId,
   name,
   description,
   instances,
