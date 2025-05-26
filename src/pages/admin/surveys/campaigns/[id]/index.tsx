@@ -13,15 +13,12 @@ import { InstanceCompareTab } from "./components/InstanceCompareTab";
 import { EnhancedInstanceSelector } from "./components/EnhancedInstanceSelector";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { LineChart } from "lucide-react";
 import { PresentButton } from "./components/PresentButton";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { GenerateAIFeedbackButton } from "./components/GenerateAIFeedbackButton";
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>();
 
@@ -52,39 +49,10 @@ export default function CampaignDetailsPage() {
     }
   });
 
-  const handleGenerateFeedback = async () => {
-    if (!selectedInstanceId) {
-      toast({
-        title: "Error",
-        description: "Please select an instance first",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const { error } = await supabase.functions.invoke('generate-supervisor-feedback', {
-        body: {
-          campaignId: id,
-          instanceId: selectedInstanceId
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "AI feedback generation started for supervisors",
-      });
-    } catch (error) {
-      console.error('Error generating AI feedback:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate AI feedback",
-        variant: "destructive"
-      });
-    }
-  };
+  // Get the selected instance details
+  const selectedInstance = campaign?.instances?.find(
+    instance => instance.id === selectedInstanceId
+  );
 
   if (isLoadingCampaign) {
     return <div>Loading...</div>;
@@ -100,13 +68,12 @@ export default function CampaignDetailsPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Campaign Details</h2>
         <div className="flex items-center gap-4">
-          <Button 
-            onClick={handleGenerateFeedback}
-            disabled={!selectedInstanceId}
-            variant="outline"
-          >
-            Generate AI Feedback
-          </Button>
+          {selectedInstance?.status === 'completed' && (
+            <GenerateAIFeedbackButton 
+              campaignId={campaign.id}
+              instanceId={selectedInstanceId}
+            />
+          )}
           <PresentButton 
             campaignId={campaign.id}
             instanceId={selectedInstanceId}

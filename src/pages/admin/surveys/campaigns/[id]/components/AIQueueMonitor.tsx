@@ -1,9 +1,65 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain } from 'lucide-react';
+import { Brain, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
-export function AIQueueMonitor() {
+interface AIQueueMonitorProps {
+  instanceStatus?: 'active' | 'completed' | 'upcoming';
+  selectedInstanceId?: string;
+}
+
+export function AIQueueMonitor({ instanceStatus, selectedInstanceId }: AIQueueMonitorProps) {
+  const getStatusInfo = () => {
+    if (!selectedInstanceId) {
+      return {
+        icon: AlertCircle,
+        status: 'No Instance Selected',
+        description: 'Please select a campaign instance to see AI feedback status.',
+        variant: 'secondary' as const,
+        color: 'text-muted-foreground'
+      };
+    }
+
+    switch (instanceStatus) {
+      case 'completed':
+        return {
+          icon: CheckCircle,
+          status: 'Ready for AI Analysis',
+          description: 'This completed instance is ready for AI feedback generation. Use the "Generate AI Feedback" button above.',
+          variant: 'default' as const,
+          color: 'text-green-600'
+        };
+      case 'active':
+        return {
+          icon: Clock,
+          status: 'Instance Active',
+          description: 'AI feedback can only be generated after the instance is completed.',
+          variant: 'secondary' as const,
+          color: 'text-blue-600'
+        };
+      case 'upcoming':
+        return {
+          icon: Clock,
+          status: 'Instance Upcoming',
+          description: 'AI feedback will be available once the instance is completed.',
+          variant: 'outline' as const,
+          color: 'text-amber-600'
+        };
+      default:
+        return {
+          icon: AlertCircle,
+          status: 'Unknown Status',
+          description: 'Unable to determine instance status.',
+          variant: 'destructive' as const,
+          color: 'text-red-600'
+        };
+    }
+  };
+
+  const statusInfo = getStatusInfo();
+  const StatusIcon = statusInfo.icon;
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -15,13 +71,26 @@ export function AIQueueMonitor() {
       <CardContent>
         <div className="text-center py-8">
           <div className="rounded-full bg-muted p-6 mx-auto mb-4 w-fit">
-            <Brain className="h-8 w-8 text-muted-foreground" />
+            <StatusIcon className={`h-8 w-8 ${statusInfo.color}`} />
           </div>
-          <h3 className="text-lg font-medium mb-2">AI Feedback System</h3>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            AI feedback is automatically generated for supervisors when campaign instances are completed.
-            Use the "Generate AI Feedback" button to manually trigger analysis for the selected instance.
+          <div className="mb-4">
+            <Badge variant={statusInfo.variant} className="mb-2">
+              {statusInfo.status}
+            </Badge>
+          </div>
+          <p className="text-muted-foreground max-w-md mx-auto mb-6">
+            {statusInfo.description}
           </p>
+          
+          <div className="bg-muted/50 border rounded-lg p-4 text-left">
+            <h4 className="font-medium mb-2">How AI Feedback Works:</h4>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>• Only available for completed campaign instances</li>
+              <li>• Generates feedback for supervisors with 4+ reportees</li>
+              <li>• Hold the button for 1 second to prevent accidental triggers</li>
+              <li>• Processing may take several minutes depending on data volume</li>
+            </ul>
+          </div>
         </div>
       </CardContent>
     </Card>
