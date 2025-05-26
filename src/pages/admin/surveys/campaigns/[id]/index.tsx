@@ -10,6 +10,7 @@ import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
 import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
 import { InstanceCompareTab } from "./components/InstanceCompareTab";
+import { SupervisorAnalyzeTab } from "./components/SupervisorAnalyzeTab";
 import { EnhancedInstanceSelector } from "./components/EnhancedInstanceSelector";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,10 @@ export default function CampaignDetailsPage() {
 
         <TabPanel value="analyze">
           <AIAnalyzeTab campaignId={campaign.id} instanceId={selectedInstanceId} />
+        </TabPanel>
+
+        <TabPanel value="supervisor-analyze">
+          <SupervisorAnalyzeTab campaignId={campaign.id} instanceId={selectedInstanceId} />
         </TabPanel>
       </CampaignTabs>
     </div>;

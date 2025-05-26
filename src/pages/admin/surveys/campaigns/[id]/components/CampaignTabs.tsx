@@ -1,6 +1,6 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, PieChart, Users, ClipboardList, FileBarChart, Lock, GitCompare } from "lucide-react";
+import { Brain, PieChart, Users, ClipboardList, FileBarChart, Lock, GitCompare, UserCheck } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useState } from "react";
@@ -27,7 +27,7 @@ export function CampaignTabs({ children, isAnonymous, status }: CampaignTabsProp
     setCurrentTab(isDraft ? "assignments" : "overview");
   }, [isDraft]);
 
-  const disabledTabs = isDraft ? ["overview", "responses", "reports", "compare", "analyze"] : [];
+  const disabledTabs = isDraft ? ["overview", "responses", "reports", "compare", "analyze", "supervisor-analyze"] : [];
 
   const renderTabTrigger = (value: string, label: string, icon: React.ReactNode) => {
     const isDisabled = disabledTabs.includes(value);
@@ -76,6 +76,7 @@ export function CampaignTabs({ children, isAnonymous, status }: CampaignTabsProp
           {renderTabTrigger("reports", "Reports", <FileBarChart className="h-4 w-4" />)}
           {renderTabTrigger("compare", "Compare", <GitCompare className="h-4 w-4" />)}
           {renderTabTrigger("analyze", "AI-nalyze", <Brain className="h-4 w-4" />)}
+          {renderTabTrigger("supervisor-analyze", "Supervisor Analyze", <UserCheck className="h-4 w-4" />)}
         </TabsList>
         {children}
       </Tabs>
