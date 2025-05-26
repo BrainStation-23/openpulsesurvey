@@ -27,8 +27,8 @@ export function BooleanPieChart({ trueCount, falseCount, chartConfig }: BooleanP
           <PieChart>
             <Pie
               data={data}
-              cx="100%"
-              cy="100%"
+              cx="50%"
+              cy="50%"
               labelLine={false}
               outerRadius={80}
               fill="#8884d8"
