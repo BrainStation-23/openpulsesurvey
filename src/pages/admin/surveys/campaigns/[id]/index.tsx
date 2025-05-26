@@ -16,7 +16,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PresentButton } from "./components/PresentButton";
 import { useToast } from "@/hooks/use-toast";
-import { GenerateAIFeedbackButton } from "./components/GenerateAIFeedbackButton";
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
@@ -69,12 +68,6 @@ export default function CampaignDetailsPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Campaign Details</h2>
         <div className="flex items-center gap-4">
-          {selectedInstance?.status === 'completed' && (
-            <GenerateAIFeedbackButton 
-              campaignId={campaign.id}
-              instanceId={selectedInstanceId}
-            />
-          )}
           <PresentButton 
             campaignId={campaign.id}
             instanceId={selectedInstanceId}

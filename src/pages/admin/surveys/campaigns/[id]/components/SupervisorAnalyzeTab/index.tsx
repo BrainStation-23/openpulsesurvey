@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { SupervisorList } from "./components/SupervisorList";
 import { AnalysisDisplay } from "./components/AnalysisDisplay";
 import { useSupervisorAnalysis } from "./hooks/useSupervisorAnalysis";
+import { GenerateAIFeedbackButton } from "../GenerateAIFeedbackButton";
 import { CheckCircle, Clock, Users } from "lucide-react";
 
 interface SupervisorAnalyzeTabProps {
@@ -41,10 +42,16 @@ export function SupervisorAnalyzeTab({ campaignId, instanceId }: SupervisorAnaly
       {/* Statistics Header */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Supervisor Analysis Overview
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Supervisor Analysis Overview
+            </CardTitle>
+            <GenerateAIFeedbackButton 
+              campaignId={campaignId}
+              instanceId={instanceId}
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
