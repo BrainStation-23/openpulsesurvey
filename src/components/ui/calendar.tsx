@@ -22,10 +22,14 @@ function Calendar({
 }: CalendarProps) {
   // Get initial year safely from props
   const getInitialYear = () => {
-    if (!props.defaultSelected) return new Date().getFullYear();
-    if (props.defaultSelected instanceof Date) return props.defaultSelected.getFullYear();
-    if (Array.isArray(props.defaultSelected) && props.defaultSelected[0] instanceof Date) 
-      return props.defaultSelected[0].getFullYear();
+    // Check for selected date first
+    if (props.selected) {
+      if (props.selected instanceof Date) return props.selected.getFullYear();
+      if (Array.isArray(props.selected) && props.selected[0] instanceof Date) 
+        return props.selected[0].getFullYear();
+    }
+    
+    // Fallback to current year
     return new Date().getFullYear();
   };
 
