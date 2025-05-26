@@ -2252,13 +2252,6 @@ export type Database = {
         }
         Returns: Json
       }
-      get_supervisors_with_min_reportees: {
-        Args: { min_reportees?: number }
-        Returns: {
-          supervisor_id: string
-          reportee_count: number
-        }[]
-      }
       get_survey_responses: {
         Args: { p_campaign_id: string; p_instance_id?: string }
         Returns: Json
@@ -2305,10 +2298,6 @@ export type Database = {
           p_is_active: boolean
         }
         Returns: string
-      }
-      process_ai_analysis_queue: {
-        Args: Record<PropertyKey, never>
-        Returns: number
       }
       reorder_questions: {
         Args: {

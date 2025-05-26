@@ -1,157 +1,108 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { CampaignTabs, TabPanel } from "./components/CampaignTabs";
+import { CampaignHeader } from "./components/CampaignHeader";
+import { AssignmentsTab } from "./components/AssignmentsTab";
+import { ResponsesTab } from "./components/ResponsesTab";
+import { OverviewTab } from "./components/OverviewTab";
+import { ReportsTab } from "./components/ReportsTab";
+import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
+import { InstanceCompareTab } from "./components/InstanceCompareTab";
+import { EnhancedInstanceSelector } from "./components/EnhancedInstanceSelector";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { LineChart } from "lucide-react";
+import { PresentButton } from "./components/PresentButton";
 import { useToast } from "@/hooks/use-toast";
-import { useCampaign } from "./hooks/useCampaign";
-import { CampaignForm } from "./components/CampaignForm";
-import { CampaignAssignments } from "./components/AssignmentsTab/CampaignAssignments";
-import { CampaignResponses } from "./components/ResponsesTab/CampaignResponses";
-import { CampaignReports } from "./components/ReportsTab/CampaignReports";
-import { CampaignComparison } from "./components/ComparisonTab/CampaignComparison";
-import { CampaignPerformance } from "./components/CampaignPerformance/CampaignPerformance";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AIQueueMonitor } from "./components/AIQueueMonitor";
+import { useNavigate } from "react-router-dom";
 
-export default function CampaignDetailPage() {
-  const { id } = useParams<{ id: string }>();
+export default function CampaignDetailsPage() {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const campaignId = id as string;
-
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string>();
 
-  const {
-    campaign,
-    isLoading,
-    isError,
-    error,
-    updateCampaign,
-    deleteCampaign,
-  } = useCampaign(campaignId);
-
-  useEffect(() => {
-    if (isError) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to load campaign: ${
-          error?.message || "Something went wrong"
-        }`,
-      });
+  const { data: campaign, isLoading: isLoadingCampaign } = useQuery({
+    queryKey: ["campaign", id],
+    queryFn: async () => {
+      const {
+        data,
+        error
+      } = await supabase.from("survey_campaigns").select(`
+          *,
+          survey:surveys(
+            id,
+            name,
+            description,
+            json_data
+          ),
+          instances:campaign_instances!campaign_instances_campaign_id_fkey(
+            id,
+            starts_at,
+            ends_at,
+            period_number,
+            status
+          )
+        `).eq("id", id).single();
+      if (error) throw error;
+      return data;
     }
-  }, [isError, error, toast]);
+  });
 
-  const handleSave = async (data: any) => {
-    try {
-      await updateCampaign(data);
-      toast({
-        title: "Success",
-        description: "Campaign updated successfully.",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "An error occurred. Please try again.",
-      });
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      if (!campaignId) {
-        throw new Error("Campaign ID is missing.");
-      }
-      await deleteCampaign(campaignId);
-      toast({
-        title: "Success",
-        description: "Campaign deleted successfully.",
-      });
-      navigate("/admin/surveys/campaigns");
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "An error occurred. Please try again.",
-      });
-    }
-  };
-
-  if (isLoading) {
-    return <div>Loading campaign details...</div>;
+  if (isLoadingCampaign) {
+    return <div>Loading...</div>;
   }
 
   if (!campaign) {
-    return <div>Campaign not found.</div>;
+    return <div>Campaign not found</div>;
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate("/admin/surveys/campaigns")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold">{campaign.name}</h1>
+  return <div className="container max-w-7xl mx-auto py-6 space-y-6">
+      <CampaignHeader campaign={campaign} isLoading={isLoadingCampaign} selectedInstanceId={selectedInstanceId} />
+      
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Campaign Details</h2>
+        <div className="flex items-center gap-4">
+          <PresentButton 
+            campaignId={campaign.id}
+            instanceId={selectedInstanceId}
+            disabled={!selectedInstanceId}
+          />
+          <EnhancedInstanceSelector 
+            campaignId={campaign.id} 
+            selectedInstanceId={selectedInstanceId} 
+            onInstanceSelect={setSelectedInstanceId} 
+          />
+        </div>
       </div>
 
-      <p className="text-muted-foreground">
-        Here you can manage the campaign, configure assignments, and analyze
-        results.
-      </p>
+      <CampaignTabs isAnonymous={campaign.anonymous} status={campaign.status}>
+        <TabPanel value="overview">
+          <OverviewTab campaignId={campaign.id} selectedInstanceId={selectedInstanceId} />
+        </TabPanel>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="assignments">Assignments</TabsTrigger>
-          <TabsTrigger value="responses">Responses</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-          <TabsTrigger value="compare">Compare</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="ai-analyze">AI Analyze</TabsTrigger>
-          <TabsTrigger value="ai-queue">AI Queue</TabsTrigger>
-        </TabsList>
+        <TabPanel value="assignments">
+          <AssignmentsTab campaignId={campaign.id} surveyId={campaign.survey_id} selectedInstanceId={selectedInstanceId} />
+        </TabPanel>
 
-        <TabsContent value="overview">
-          <CampaignForm
-            campaign={campaign}
-            onSave={handleSave}
-            onDelete={handleDelete}
-          />
-        </TabsContent>
+        <TabPanel value="responses">
+          <ResponsesTab campaignId={campaign.id} instanceId={selectedInstanceId} />
+        </TabPanel>
 
-        <TabsContent value="assignments">
-          <CampaignAssignments campaignId={campaignId} />
-        </TabsContent>
+        <TabPanel value="reports">
+          <ReportsTab campaignId={campaign.id} instanceId={selectedInstanceId} />
+        </TabPanel>
 
-        <TabsContent value="responses">
-          <CampaignResponses campaignId={campaignId} />
-        </TabsContent>
+        <TabPanel value="compare">
+          <InstanceCompareTab campaignId={campaign.id} instanceId={selectedInstanceId} />
+        </TabPanel>
 
-        <TabsContent value="reports">
-          <CampaignReports campaignId={campaignId} />
-        </TabsContent>
-
-        <TabsContent value="compare">
-          <CampaignComparison campaignId={campaignId} />
-        </TabsContent>
-
-        <TabsContent value="performance">
-          <CampaignPerformance campaignId={campaignId} />
-        </TabsContent>
-
-        <TabsContent value="ai-analyze">
-          <div>AI Analyze</div>
-        </TabsContent>
-
-        <TabsContent value="ai-queue">
-          <AIQueueMonitor campaignId={campaignId} />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+        <TabPanel value="analyze">
+          <AIAnalyzeTab campaignId={campaign.id} instanceId={selectedInstanceId} />
+        </TabPanel>
+      </CampaignTabs>
+    </div>;
 }
