@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,16 +14,47 @@ interface AIAnalysisCardProps {
 }
 
 export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) {
-  const { generateAnalysis, clearAnalysis, isLoading, analysis, metadata } = useAIFeedbackAnalysis();
+  const { loadOrGenerateAnalysis, clearAnalysis, isLoading, analysis, metadata } = useAIFeedbackAnalysis();
 
-  const handleGenerate = () => {
-    generateAnalysis(campaignId, instanceId);
-  };
+  // Automatically load analysis when campaign and instance are available
+  useEffect(() => {
+    if (campaignId && instanceId) {
+      loadOrGenerateAnalysis(campaignId, instanceId);
+    } else {
+      clearAnalysis();
+    }
+  }, [campaignId, instanceId]);
 
   const handleRegenerate = () => {
     clearAnalysis();
-    generateAnalysis(campaignId, instanceId);
+    loadOrGenerateAnalysis(campaignId, instanceId);
   };
+
+  const shouldShowContent = campaignId && instanceId;
+
+  if (!shouldShowContent) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-primary" />
+            <CardTitle>AI Feedback Analysis</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <div className="rounded-full bg-muted p-6 mx-auto mb-4 w-fit">
+              <Brain className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium mb-2">Select Campaign & Instance</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              Please select a campaign and instance above to view AI-powered feedback analysis.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full">
@@ -33,47 +64,29 @@ export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) 
             <Brain className="h-5 w-5 text-primary" />
             <CardTitle>AI Feedback Analysis</CardTitle>
           </div>
-          {analysis && (
+          {analysis && !isLoading && (
             <Button
               variant="outline"
               size="sm"
               onClick={handleRegenerate}
-              disabled={isLoading}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className="h-4 w-4 mr-2" />
               Regenerate
             </Button>
           )}
         </div>
       </CardHeader>
       <CardContent>
-        {!analysis && !isLoading && (
-          <div className="text-center py-8">
-            <div className="rounded-full bg-primary/10 p-6 mx-auto mb-4 w-fit">
-              <Brain className="h-8 w-8 text-primary" />
-            </div>
-            <h3 className="text-lg font-medium mb-2">Get AI-Powered Insights</h3>
-            <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-              Generate personalized feedback analysis and actionable recommendations 
-              based on your team's responses.
-            </p>
-            <Button onClick={handleGenerate} disabled={!campaignId}>
-              <Brain className="h-4 w-4 mr-2" />
-              Generate Analysis
-            </Button>
-          </div>
-        )}
-
         {isLoading && (
           <div className="text-center py-8">
             <LoadingSpinner size="lg" />
             <p className="text-muted-foreground mt-4">
-              Analyzing your team feedback data...
+              {analysis ? 'Regenerating analysis...' : 'Analyzing your team feedback data...'}
             </p>
           </div>
         )}
 
-        {analysis && metadata && (
+        {!isLoading && analysis && metadata && (
           <div className="space-y-6">
             {/* Metadata */}
             <div className="flex flex-wrap gap-3">
@@ -108,6 +121,22 @@ export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) 
                 {analysis}
               </ReactMarkdown>
             </div>
+          </div>
+        )}
+
+        {!isLoading && !analysis && (
+          <div className="text-center py-8">
+            <div className="rounded-full bg-destructive/10 p-6 mx-auto mb-4 w-fit">
+              <Brain className="h-8 w-8 text-destructive" />
+            </div>
+            <h3 className="text-lg font-medium mb-2">Analysis Unavailable</h3>
+            <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+              Unable to generate analysis for this campaign and instance. Please ensure there is feedback data available.
+            </p>
+            <Button onClick={() => loadOrGenerateAnalysis(campaignId, instanceId)} variant="outline">
+              <Brain className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
           </div>
         )}
       </CardContent>

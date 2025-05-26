@@ -100,6 +100,95 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_feedback_analysis: {
+        Row: {
+          analysis_content: string
+          campaign_id: string
+          created_at: string
+          generated_at: string
+          id: string
+          instance_id: string
+          response_rate: number
+          supervisor_id: string
+          team_size: number
+          updated_at: string
+        }
+        Insert: {
+          analysis_content: string
+          campaign_id: string
+          created_at?: string
+          generated_at?: string
+          id?: string
+          instance_id: string
+          response_rate: number
+          supervisor_id: string
+          team_size: number
+          updated_at?: string
+        }
+        Update: {
+          analysis_content?: string
+          campaign_id?: string
+          created_at?: string
+          generated_at?: string
+          id?: string
+          instance_id?: string
+          response_rate?: number
+          supervisor_id?: string
+          team_size?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_feedback_analysis_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "survey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_analysis_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["campaign_id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_analysis_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_analysis_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "top_performing_surveys"
+            referencedColumns: ["instance_id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_analysis_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_survey_deadlines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_analysis_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_feedback_analysis_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analysis_prompts: {
         Row: {
           category: Database["public"]["Enums"]["prompt_category"]
