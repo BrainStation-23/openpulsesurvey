@@ -1,11 +1,10 @@
 
 import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAIFeedbackAnalysis } from '@/hooks/useAIFeedbackAnalysis';
-import { Brain, RefreshCw, Users, TrendingUp } from 'lucide-react';
+import { Brain, Users, TrendingUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface AIAnalysisCardProps {
@@ -15,12 +14,9 @@ interface AIAnalysisCardProps {
 
 export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) {
   const { 
-    loadOrGenerateAnalysis, 
-    regenerateAnalysis, 
+    fetchExistingAnalysis, 
     clearAnalysis, 
     isLoading, 
-    isFetchingExisting,
-    isGeneratingNew,
     analysis, 
     metadata 
   } = useAIFeedbackAnalysis();
@@ -29,17 +25,12 @@ export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) 
   useEffect(() => {
     if (campaignId && instanceId) {
       console.log('AIAnalysisCard: Loading analysis for', { campaignId, instanceId });
-      loadOrGenerateAnalysis(campaignId, instanceId);
+      fetchExistingAnalysis(campaignId, instanceId);
     } else {
       console.log('AIAnalysisCard: Clearing analysis - missing campaignId or instanceId');
       clearAnalysis();
     }
   }, [campaignId, instanceId]);
-
-  const handleRegenerate = () => {
-    console.log('AIAnalysisCard: Regenerating analysis');
-    regenerateAnalysis(campaignId, instanceId);
-  };
 
   const shouldShowContent = campaignId && instanceId;
 
@@ -70,21 +61,9 @@ export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) 
   return (
     <Card className="w-full">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary" />
-            <CardTitle>AI Feedback Analysis</CardTitle>
-          </div>
-          {analysis && !isLoading && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRegenerate}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Regenerate
-            </Button>
-          )}
+        <div className="flex items-center gap-2">
+          <Brain className="h-5 w-5 text-primary" />
+          <CardTitle>AI Feedback Analysis</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
@@ -92,9 +71,7 @@ export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) 
           <div className="text-center py-8">
             <LoadingSpinner size="lg" />
             <p className="text-muted-foreground mt-4">
-              {isFetchingExisting && 'Loading existing analysis...'}
-              {isGeneratingNew && 'Generating new AI analysis...'}
-              {!isFetchingExisting && !isGeneratingNew && 'Processing...'}
+              Loading analysis...
             </p>
           </div>
         )}
@@ -139,17 +116,13 @@ export function AIAnalysisCard({ campaignId, instanceId }: AIAnalysisCardProps) 
 
         {!isLoading && !analysis && (
           <div className="text-center py-8">
-            <div className="rounded-full bg-destructive/10 p-6 mx-auto mb-4 w-fit">
-              <Brain className="h-8 w-8 text-destructive" />
+            <div className="rounded-full bg-muted p-6 mx-auto mb-4 w-fit">
+              <Brain className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium mb-2">Analysis Unavailable</h3>
-            <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-              Unable to generate analysis for this campaign and instance. Please ensure there is feedback data available.
+            <h3 className="text-lg font-medium mb-2">No Analysis Available</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              There is not enough data for an AI analysis at this time. Feedback analysis will be generated automatically when sufficient data is available.
             </p>
-            <Button onClick={() => loadOrGenerateAnalysis(campaignId, instanceId)} variant="outline">
-              <Brain className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
           </div>
         )}
       </CardContent>
