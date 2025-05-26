@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -13,8 +14,9 @@ import { FeedbackOverview } from './components/FeedbackOverview';
 import { EnhancedQuestionCard } from './components/EnhancedQuestionCard';
 import { QuestionComparisonTable } from './components/QuestionComparisonTable';
 import { TextResponsesViewer } from './components/TextResponsesViewer';
+import { AIAnalysisCard } from './components/AIAnalysisCard';
 import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
-import { AlertCircle, Search, Filter, Download, TableIcon, Grid } from 'lucide-react';
+import { AlertCircle, Search, Filter, Download, TableIcon, Grid, Brain } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ReporteeFeedbackPage() {
@@ -25,6 +27,7 @@ export default function ReporteeFeedbackPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedQuestionType, setSelectedQuestionType] = useState<string>('all');
   const [selectedTextQuestion, setSelectedTextQuestion] = useState<TeamFeedbackQuestion | null>(null);
+  const [activeTab, setActiveTab] = useState('feedback');
   const { toast } = useToast();
   const analytics = useFeedbackAnalytics();
   
@@ -72,9 +75,8 @@ export default function ReporteeFeedbackPage() {
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     
-    // Don't log every keystroke, maybe add debounce in real implementation
     if (e.target.value.length > 2 || e.target.value === '') {
-      analytics.logSearch(e.target.value, 0); // Count would be calculated after filtering
+      analytics.logSearch(e.target.value, 0);
     }
   };
   
@@ -83,7 +85,6 @@ export default function ReporteeFeedbackPage() {
     analytics.logFilterChange('question_type', type);
   };
   
-  
   const handleExportAll = () => {
     analytics.logEvent('export_all', { format: 'csv' });
     
@@ -91,8 +92,6 @@ export default function ReporteeFeedbackPage() {
       title: "Exporting all data",
       description: "Your data export is being prepared and will download shortly.",
     });
-    
-    // In a real implementation, this would trigger the actual export
   };
 
   // Filter questions based on search and type filter
@@ -192,8 +191,6 @@ export default function ReporteeFeedbackPage() {
     );
   }
 
-  
-
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex flex-col space-y-2">
@@ -224,154 +221,176 @@ export default function ReporteeFeedbackPage() {
         />
       )}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle>Feedback Questions</CardTitle>
-              <CardDescription>
-                Analysis of all feedback questions from your team members
-              </CardDescription>
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 md:w-auto">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search questions..."
-                  className="pl-8 w-full md:w-[200px]"
-                  value={searchQuery}
-                  onChange={handleSearch}
-                />
-              </div>
-              
-              <div className="flex items-center rounded-md border">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`rounded-l-md ${viewType === 'cards' ? 'bg-muted' : ''}`}
-                  onClick={() => setViewType('cards')}
-                >
-                  <Grid className="h-4 w-4 mr-2" />
-                  Cards
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`rounded-r-md ${viewType === 'table' ? 'bg-muted' : ''}`}
-                  onClick={() => setViewType('table')}
-                >
-                  <TableIcon className="h-4 w-4 mr-2" />
-                  Table
-                </Button>
-              </div>
-              
-              <Button variant="outline" size="sm" onClick={handleExportAll}>
-                <Download className="h-4 w-4 mr-2" />
-                Export All
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="all" onValueChange={handleQuestionTypeChange}>
-            <div className="mb-6">
-              <TabsList>
-                <TabsTrigger value="all">All Questions</TabsTrigger>
-                <TabsTrigger value="rating">Rating</TabsTrigger>
-                <TabsTrigger value="boolean">Yes/No</TabsTrigger>
-                <TabsTrigger value="text">Text</TabsTrigger>
-              </TabsList>
-            </div>
-            
-            <TabsContent value="all" className="space-y-0">
-              {viewType === 'table' ? (
-                <QuestionComparisonTable questions={filteredQuestions} />
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {filteredQuestions.map((question) => (
-                    <EnhancedQuestionCard 
-                      key={question.question_name}
-                      question={question}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="feedback" className="flex items-center gap-2">
+            <Grid className="h-4 w-4" />
+            Feedback Analysis
+          </TabsTrigger>
+          <TabsTrigger value="ai-insights" className="flex items-center gap-2">
+            <Brain className="h-4 w-4" />
+            AI Insights
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="feedback" className="space-y-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle>Feedback Questions</CardTitle>
+                  <CardDescription>
+                    Analysis of all feedback questions from your team members
+                  </CardDescription>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative flex-1 md:w-auto">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search questions..."
+                      className="pl-8 w-full md:w-[200px]"
+                      value={searchQuery}
+                      onChange={handleSearch}
                     />
-                  ))}
+                  </div>
+                  
+                  <div className="flex items-center rounded-md border">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`rounded-l-md ${viewType === 'cards' ? 'bg-muted' : ''}`}
+                      onClick={() => setViewType('cards')}
+                    >
+                      <Grid className="h-4 w-4 mr-2" />
+                      Cards
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`rounded-r-md ${viewType === 'table' ? 'bg-muted' : ''}`}
+                      onClick={() => setViewType('table')}
+                    >
+                      <TableIcon className="h-4 w-4 mr-2" />
+                      Table
+                    </Button>
+                  </div>
+                  
+                  <Button variant="outline" size="sm" onClick={handleExportAll}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export All
+                  </Button>
                 </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="rating" className="space-y-0">
-              {viewType === 'table' ? (
-                <QuestionComparisonTable 
-                  questions={filteredQuestions.filter(q => q.question_type === 'rating')} 
-                />
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {filteredQuestions
-                    .filter(q => q.question_type === 'rating')
-                    .map((question) => (
-                      <EnhancedQuestionCard 
-                        key={question.question_name}
-                        question={question}
-                      />
-                    ))}
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="boolean" className="space-y-0">
-              {viewType === 'table' ? (
-                <QuestionComparisonTable 
-                  questions={filteredQuestions.filter(q => q.question_type === 'boolean')} 
-                />
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {filteredQuestions
-                    .filter(q => q.question_type === 'boolean')
-                    .map((question) => (
-                      <EnhancedQuestionCard 
-                        key={question.question_name}
-                        question={question}
-                      />
-                    ))}
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="text" className="space-y-0">
-              {viewType === 'table' ? (
-                <QuestionComparisonTable 
-                  questions={filteredQuestions.filter(q => q.question_type === 'text')} 
-                />
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {filteredQuestions
-                    .filter(q => q.question_type === 'text')
-                    .map((question) => (
-                      <EnhancedQuestionCard 
-                        key={question.question_name}
-                        question={question}
-                      />
-                    ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-          
-          {filteredQuestions.length === 0 && (
-            <div className="py-12 text-center">
-              <div className="rounded-full bg-muted w-12 h-12 mx-auto flex items-center justify-center mb-4">
-                <Search className="h-6 w-6 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-medium mb-2">No questions found</h3>
-              <p className="text-muted-foreground">
-                {searchQuery ? 
-                  `No questions match "${searchQuery}"` : 
-                  `No ${selectedQuestionType !== 'all' ? selectedQuestionType : ''} questions available`}
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="all" onValueChange={handleQuestionTypeChange}>
+                <div className="mb-6">
+                  <TabsList>
+                    <TabsTrigger value="all">All Questions</TabsTrigger>
+                    <TabsTrigger value="rating">Rating</TabsTrigger>
+                    <TabsTrigger value="boolean">Yes/No</TabsTrigger>
+                    <TabsTrigger value="text">Text</TabsTrigger>
+                  </TabsList>
+                </div>
+                
+                <TabsContent value="all" className="space-y-0">
+                  {viewType === 'table' ? (
+                    <QuestionComparisonTable questions={filteredQuestions} />
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {filteredQuestions.map((question) => (
+                        <EnhancedQuestionCard 
+                          key={question.question_name}
+                          question={question}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="rating" className="space-y-0">
+                  {viewType === 'table' ? (
+                    <QuestionComparisonTable 
+                      questions={filteredQuestions.filter(q => q.question_type === 'rating')} 
+                    />
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {filteredQuestions
+                        .filter(q => q.question_type === 'rating')
+                        .map((question) => (
+                          <EnhancedQuestionCard 
+                            key={question.question_name}
+                            question={question}
+                          />
+                        ))}
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="boolean" className="space-y-0">
+                  {viewType === 'table' ? (
+                    <QuestionComparisonTable 
+                      questions={filteredQuestions.filter(q => q.question_type === 'boolean')} 
+                    />
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {filteredQuestions
+                        .filter(q => q.question_type === 'boolean')
+                        .map((question) => (
+                          <EnhancedQuestionCard 
+                            key={question.question_name}
+                            question={question}
+                          />
+                        ))}
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="text" className="space-y-0">
+                  {viewType === 'table' ? (
+                    <QuestionComparisonTable 
+                      questions={filteredQuestions.filter(q => q.question_type === 'text')} 
+                    />
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {filteredQuestions
+                        .filter(q => q.question_type === 'text')
+                        .map((question) => (
+                          <EnhancedQuestionCard 
+                            key={question.question_name}
+                            question={question}
+                          />
+                        ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+              
+              {filteredQuestions.length === 0 && (
+                <div className="py-12 text-center">
+                  <div className="rounded-full bg-muted w-12 h-12 mx-auto flex items-center justify-center mb-4">
+                    <Search className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">No questions found</h3>
+                  <p className="text-muted-foreground">
+                    {searchQuery ? 
+                      `No questions match "${searchQuery}"` : 
+                      `No ${selectedQuestionType !== 'all' ? selectedQuestionType : ''} questions available`}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ai-insights" className="space-y-6">
+          <AIAnalysisCard 
+            campaignId={selectedCampaignId}
+            instanceId={selectedInstanceId}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
