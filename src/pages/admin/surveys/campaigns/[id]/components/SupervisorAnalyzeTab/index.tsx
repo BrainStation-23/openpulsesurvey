@@ -7,6 +7,9 @@ import { AnalysisDisplay } from "./components/AnalysisDisplay";
 import { useSupervisorAnalysis } from "./hooks/useSupervisorAnalysis";
 import { GenerateAIFeedbackButton } from "../GenerateAIFeedbackButton";
 import { CheckCircle, Clock, Users } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SupervisorAnalyzeTabProps {
   campaignId: string;
@@ -15,10 +18,38 @@ interface SupervisorAnalyzeTabProps {
 
 export function SupervisorAnalyzeTab({ campaignId, instanceId }: SupervisorAnalyzeTabProps) {
   const [selectedSupervisorId, setSelectedSupervisorId] = useState<string>();
+  const [selectedForEmail, setSelectedForEmail] = useState<string[]>([]);
   
   const { data, isLoading } = useSupervisorAnalysis(campaignId, instanceId);
   const supervisors = data?.supervisors || [];
   const stats = data?.stats || { total_eligible: 0, with_analysis: 0, pending_analysis: 0 };
+
+  // Email sending mutation
+  const sendEmailsMutation = useMutation({
+    mutationFn: async (supervisorIds: string[]) => {
+      const { error } = await supabase.functions.invoke('send-supervisor-analysis-email', {
+        body: {
+          campaignId,
+          instanceId,
+          supervisorIds
+        }
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Analysis emails sent successfully");
+      setSelectedForEmail([]);
+    },
+    onError: (error) => {
+      console.error('Error sending analysis emails:', error);
+      toast.error("Failed to send analysis emails");
+    },
+  });
+
+  const handleSendEmails = (supervisorIds: string[]) => {
+    sendEmailsMutation.mutate(supervisorIds);
+  };
 
   if (!instanceId) {
     return (
@@ -103,6 +134,10 @@ export function SupervisorAnalyzeTab({ campaignId, instanceId }: SupervisorAnaly
             selectedSupervisorId={selectedSupervisorId}
             onSelectSupervisor={setSelectedSupervisorId}
             isLoading={isLoading}
+            selectedForEmail={selectedForEmail}
+            onEmailSelectionChange={setSelectedForEmail}
+            onSendEmails={handleSendEmails}
+            isSendingEmails={sendEmailsMutation.isPending}
           />
         </div>
         

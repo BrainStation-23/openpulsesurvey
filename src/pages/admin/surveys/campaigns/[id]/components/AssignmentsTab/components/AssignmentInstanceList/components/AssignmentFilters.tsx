@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/select";
 
 interface AssignmentFiltersProps {
-  statusFilter: string;
-  setStatusFilter: (status: string) => void;
+  statusFilter: string | null;
+  setStatusFilter: (status: string | null) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
 }
@@ -22,9 +22,17 @@ export function AssignmentFilters({
   searchTerm,
   setSearchTerm,
 }: AssignmentFiltersProps) {
+  const handleStatusChange = (value: string) => {
+    // Convert "all" to null for the backend
+    setStatusFilter(value === "all" ? null : value);
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-2">
-      <Select value={statusFilter} onValueChange={setStatusFilter}>
+      <Select 
+        value={statusFilter || "all"} 
+        onValueChange={handleStatusChange}
+      >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Filter by status" />
         </SelectTrigger>

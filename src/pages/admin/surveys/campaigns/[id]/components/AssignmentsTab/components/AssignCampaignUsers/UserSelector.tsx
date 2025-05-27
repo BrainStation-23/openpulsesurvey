@@ -71,7 +71,7 @@ export function UserSelector({ selectedUsers, onChange, campaignId }: UserSelect
               name
             )
           )
-        `)
+        `).eq("status", "active")
         .order("first_name");
 
       if (selectedSBU !== "all") {
