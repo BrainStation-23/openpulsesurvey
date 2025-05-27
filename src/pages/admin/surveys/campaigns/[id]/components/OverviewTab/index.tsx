@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,10 +24,13 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
 
       if (instanceError) throw instanceError;
 
-      // Count assignments for active profiles only
+      // Count assignments for active profiles only - fix the join syntax
       const { data: assignments, error: assignmentsError } = await supabase
         .from("survey_assignments")
-        .select("id")
+        .select(`
+          id,
+          profiles!inner(status)
+        `)
         .eq("campaign_id", campaignId)
         .eq("profiles.status", "active");
 
