@@ -11,6 +11,10 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
+const MIN_RESPONSES_REQUIRED = 4;
 
 export default function ReporteeFeedbackPage() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | undefined>(undefined);
@@ -21,6 +25,8 @@ export default function ReporteeFeedbackPage() {
 
   // Extract questions data
   const questions = feedbackData?.data?.questions || [];
+  const responseCount = feedbackData?.data?.response_count || 0;
+  const hasEnoughResponses = responseCount >= MIN_RESPONSES_REQUIRED;
 
   return (
     <div className="container py-6 space-y-6">
@@ -111,8 +117,19 @@ export default function ReporteeFeedbackPage() {
           </Card>
         )}
 
-        {/* Main feedback display */}
-        {selectedCampaignId && selectedInstanceId && !isLoading && feedbackData?.status === 'success' && feedbackData?.data && (
+        {/* Insufficient responses warning */}
+        {selectedCampaignId && selectedInstanceId && !isLoading && feedbackData?.status === 'success' && feedbackData?.data && !hasEnoughResponses && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              You don't have enough responses. Once you have enough responses data will become available to you. 
+              (Currently {responseCount} responses, minimum {MIN_RESPONSES_REQUIRED} required)
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Main feedback display - only show when there are enough responses */}
+        {selectedCampaignId && selectedInstanceId && !isLoading && feedbackData?.status === 'success' && feedbackData?.data && hasEnoughResponses && (
           <>
             {/* Overview metrics */}
             <FeedbackOverview data={feedbackData.data} isLoading={isLoading} />
