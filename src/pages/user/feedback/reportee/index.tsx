@@ -123,7 +123,7 @@ export default function ReporteeFeedbackPage() {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               You don't have enough responses. Once you have enough responses data will become available to you. 
-              Minimum {MIN_RESPONSES_REQUIRED} required)
+              Minimum {MIN_RESPONSES_REQUIRED} required.
             </AlertDescription>
           </Alert>
         )}
