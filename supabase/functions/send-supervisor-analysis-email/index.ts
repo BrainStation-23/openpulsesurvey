@@ -40,6 +40,17 @@ const handler = async (req: Request): Promise<Response> => {
       supervisorCount: supervisorIds.length 
     });
 
+    // Fetch email configuration
+    const { data: emailConfig, error: emailConfigError } = await supabase
+      .from("email_config")
+      .select("from_email, from_name")
+      .eq("provider", "resend")
+      .single();
+
+    if (emailConfigError || !emailConfig) {
+      throw new Error("Email configuration not found. Please configure email settings first.");
+    }
+
     // Fetch campaign information
     const { data: campaign, error: campaignError } = await supabase
       .from("survey_campaigns")
@@ -109,7 +120,7 @@ const handler = async (req: Request): Promise<Response> => {
           <body>
             <div class="header">
               <h1>Team Analysis Report</h1>
-              <h2>Campaign: ${campaign.title}</h2>
+              <h2>Campaign: ${campaign.name}</h2>
             </div>
             
             <div class="content">
@@ -146,9 +157,9 @@ const handler = async (req: Request): Promise<Response> => {
       `;
 
       return resend.emails.send({
-        from: "Survey Analysis <onboarding@resend.dev>",
+        from: `${emailConfig.from_name} <${emailConfig.from_email}>`,
         to: [supervisor.email],
-        subject: `Team Analysis Report - ${campaign.title}`,
+        subject: `Team Analysis Report - ${campaign.name}`,
         html: emailHtml,
       });
     }) || [];
