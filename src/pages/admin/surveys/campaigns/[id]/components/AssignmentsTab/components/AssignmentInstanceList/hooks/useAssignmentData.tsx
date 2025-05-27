@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +27,7 @@ export function useAssignmentData({ campaignId, selectedInstanceId }: UseAssignm
     setSelectedAssignments([]);
   }, [campaignId, selectedInstanceId]);
 
-  // Fetch assignments with pagination and filters
+  // Fetch assignments with pagination and filters - now filtering for active profiles only
   const {
     data: assignmentsData,
     isLoading,
@@ -42,6 +43,7 @@ export function useAssignmentData({ campaignId, selectedInstanceId }: UseAssignm
       searchTerm,
     ],
     queryFn: async () => {
+      // The RPC function already filters for active profiles in the updated version
       const { data, error } = await supabase.rpc("get_paginated_campaign_assignments", {
         p_campaign_id: campaignId,
         p_instance_id: selectedInstanceId,
