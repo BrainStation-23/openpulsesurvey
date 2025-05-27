@@ -1,7 +1,7 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { Resend } from "npm:resend@2.0.0";
+import { marked } from "npm:marked@9.1.6";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,6 +105,9 @@ const handler = async (req: Request): Promise<Response> => {
 
       const supervisorName = `${supervisor.first_name || ''} ${supervisor.last_name || ''}`.trim() || 'Supervisor';
       
+      // Convert markdown analysis content to HTML
+      const analysisHtml = await marked(analysis.analysis_content);
+      
       const emailHtml = `
         <html>
           <head>
@@ -115,6 +118,17 @@ const handler = async (req: Request): Promise<Response> => {
               .analysis { background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; margin: 20px 0; }
               .stats { background-color: #e3f2fd; padding: 15px; border-radius: 6px; margin: 15px 0; }
               .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef; color: #6c757d; font-size: 14px; }
+              /* Markdown styling */
+              .analysis h1, .analysis h2, .analysis h3 { color: #333; margin-top: 1.5em; margin-bottom: 0.5em; }
+              .analysis h1 { font-size: 1.8em; }
+              .analysis h2 { font-size: 1.5em; }
+              .analysis h3 { font-size: 1.2em; }
+              .analysis ul, .analysis ol { margin: 1em 0; padding-left: 2em; }
+              .analysis li { margin: 0.5em 0; }
+              .analysis p { margin: 1em 0; }
+              .analysis strong { font-weight: bold; }
+              .analysis em { font-style: italic; }
+              .analysis blockquote { border-left: 4px solid #ddd; padding-left: 1em; margin: 1em 0; color: #666; }
             </style>
           </head>
           <body>
@@ -139,7 +153,7 @@ const handler = async (req: Request): Promise<Response> => {
               
               <div class="analysis">
                 <h3>Analysis Report</h3>
-                <div>${analysis.analysis_content.replace(/\n/g, '<br>')}</div>
+                <div>${analysisHtml}</div>
               </div>
               
               <p>This analysis is based on your team's survey responses and is designed to help you understand patterns, strengths, and areas for improvement within your team.</p>
