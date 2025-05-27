@@ -60,6 +60,15 @@ export function SupervisorList({
     onSendEmails(selectedForEmail);
   };
 
+  const handleCardClick = (supervisorId: string) => {
+    onSelectSupervisor(supervisorId);
+  };
+
+  const handleCheckboxClick = (e: React.MouseEvent, supervisorId: string, checked: boolean) => {
+    e.stopPropagation(); // Prevent card selection when clicking checkbox
+    handleSingleSelect(supervisorId, checked);
+  };
+
   if (isLoading) {
     return (
       <Card className="h-full">
@@ -144,11 +153,12 @@ export function SupervisorList({
           filteredSupervisors.map((supervisor) => (
             <div
               key={supervisor.supervisor_id}
-              className={`p-3 rounded-lg border transition-colors ${
+              className={`p-3 rounded-lg border transition-colors cursor-pointer ${
                 selectedSupervisorId === supervisor.supervisor_id
                   ? "bg-primary/10 border-primary"
                   : "hover:bg-muted/50"
               }`}
+              onClick={() => handleCardClick(supervisor.supervisor_id)}
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -157,15 +167,16 @@ export function SupervisorList({
                       <Checkbox
                         checked={selectedForEmail.includes(supervisor.supervisor_id)}
                         onCheckedChange={(checked) => 
-                          handleSingleSelect(supervisor.supervisor_id, checked as boolean)
+                          handleCheckboxClick(
+                            { stopPropagation: () => {} } as React.MouseEvent, 
+                            supervisor.supervisor_id, 
+                            checked as boolean
+                          )
                         }
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => handleCheckboxClick(e, supervisor.supervisor_id, !selectedForEmail.includes(supervisor.supervisor_id))}
                       />
                     )}
-                    <div 
-                      className="font-medium text-sm cursor-pointer"
-                      onClick={() => onSelectSupervisor(supervisor.supervisor_id)}
-                    >
+                    <div className="font-medium text-sm">
                       {supervisor.supervisor_name}
                     </div>
                   </div>
