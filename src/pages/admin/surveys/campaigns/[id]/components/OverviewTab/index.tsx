@@ -52,10 +52,15 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
 
       if (responsesError) throw responsesError;
 
+      // Calculate completion rate if not available from database
+      const totalAssignments = assignments?.length || 0;
+      const completedResponses = responses?.length || 0;
+      const calculatedRate = totalAssignments > 0 ? (completedResponses / totalAssignments) * 100 : 0;
+
       return {
-        completionRate: instanceData.completion_rate,
-        totalAssignments: assignments?.length || 0,
-        completedResponses: responses?.length || 0
+        completionRate: instanceData.completion_rate || calculatedRate,
+        totalAssignments,
+        completedResponses
       };
     },
     enabled: !!selectedInstanceId,
