@@ -52,17 +52,21 @@ export function useSupervisorAnalysis(campaignId?: string, instanceId?: string) 
 
       console.log("useSupervisorAnalysis: Analysis data found:", analysisData?.length || 0, analysisData);
 
-      // STEP 2: Fetch all eligible supervisors from RPC (SECONDARY SOURCE)
-      console.log("useSupervisorAnalysis: Fetching eligible supervisors from RPC");
+      // STEP 2: Fetch eligible supervisors with actual responses for this campaign/instance
+      console.log("useSupervisorAnalysis: Fetching eligible supervisors with responses for campaign/instance");
       const { data: eligibleSupervisors, error: supervisorError } = await supabase
-        .rpc('get_supervisors_with_min_reportees', { min_reportees: 4 });
+        .rpc('get_supervisors_with_min_reportees', { 
+          min_reportees: 4,
+          p_campaign_id: campaignId,
+          p_instance_id: instanceId
+        });
 
       if (supervisorError) {
         console.error("useSupervisorAnalysis: Error fetching eligible supervisors:", supervisorError);
         throw supervisorError;
       }
 
-      console.log("useSupervisorAnalysis: Eligible supervisors from RPC:", eligibleSupervisors?.length || 0, eligibleSupervisors);
+      console.log("useSupervisorAnalysis: Eligible supervisors with responses:", eligibleSupervisors?.length || 0, eligibleSupervisors);
 
       // STEP 3: Create union of all supervisor IDs (from both analysis and RPC)
       const analysisSupIds = new Set(analysisData?.map(a => a.supervisor_id) || []);

@@ -22,6 +22,7 @@ export function InstanceSelector({
       campaignId={campaignId}
       selectedInstanceId={selectedInstanceId}
       onInstanceSelect={onInstanceSelect}
+      allowedStatuses={['completed']} // Only show completed instances for user feedback
     />
   );
 }

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,6 +45,7 @@ interface EnhancedInstanceSelectorProps {
   selectedInstanceId?: string;
   onInstanceSelect: (instanceId: string) => void;
   disabledInstanceId?: string;
+  allowedStatuses?: ('active' | 'completed' | 'upcoming')[];
 }
 
 export function EnhancedInstanceSelector({
@@ -51,6 +53,7 @@ export function EnhancedInstanceSelector({
   selectedInstanceId,
   onInstanceSelect,
   disabledInstanceId,
+  allowedStatuses = ['active', 'completed', 'upcoming'], // Default to all statuses
 }: EnhancedInstanceSelectorProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,35 +77,47 @@ export function EnhancedInstanceSelector({
     enabled: !!campaignId,
   });
 
+  // Filter instances based on allowed statuses
+  const filteredByStatus = instances?.filter(instance => 
+    allowedStatuses.includes(instance.status)
+  );
+
   // Default instance selection logic (active, else most recent completed, else first)
   useEffect(() => {
-    if (instances?.length && !selectedInstanceId) {
+    if (filteredByStatus?.length && !selectedInstanceId) {
       let defaultInstance = undefined;
-      // Find active instance
-      const active = instances.find(instance => instance.status === "active");
-      if (active) {
-        defaultInstance = active;
-      } else {
-        // Most recent completed (period_number descending order)
-        const completed = instances.find(instance => instance.status === "completed");
-        if (completed) {
-          defaultInstance = completed;
-        } else {
-          // Fallback: first instance in the list
-          defaultInstance = instances[0];
+      // Find active instance within allowed statuses
+      if (allowedStatuses.includes('active')) {
+        const active = filteredByStatus.find(instance => instance.status === "active");
+        if (active) {
+          defaultInstance = active;
         }
       }
+      
+      if (!defaultInstance && allowedStatuses.includes('completed')) {
+        // Most recent completed (period_number descending order)
+        const completed = filteredByStatus.find(instance => instance.status === "completed");
+        if (completed) {
+          defaultInstance = completed;
+        }
+      }
+      
+      if (!defaultInstance) {
+        // Fallback: first instance in the list
+        defaultInstance = filteredByStatus[0];
+      }
+      
       if (defaultInstance) {
         onInstanceSelect(defaultInstance.id);
       }
     }
-  }, [instances, selectedInstanceId, onInstanceSelect]);
+  }, [filteredByStatus, selectedInstanceId, onInstanceSelect, allowedStatuses]);
 
-  const currentInstance = instances?.find(
+  const currentInstance = filteredByStatus?.find(
     (instance) => instance.id === selectedInstanceId
   );
 
-  const filteredInstances = instances?.filter((instance) => {
+  const filteredInstances = filteredByStatus?.filter((instance) => {
     const periodMatch = instance.period_number.toString().includes(searchTerm);
     const dateMatch = 
       format(new Date(instance.starts_at), "MMM d, yyyy").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -114,7 +129,8 @@ export function EnhancedInstanceSelector({
   });
 
   const selectLatestActive = () => {
-    const activeInstance = instances?.find(instance => instance.status === 'active');
+    if (!allowedStatuses.includes('active')) return;
+    const activeInstance = filteredByStatus?.find(instance => instance.status === 'active');
     if (activeInstance) {
       onInstanceSelect(activeInstance.id);
       setOpen(false);
@@ -122,7 +138,8 @@ export function EnhancedInstanceSelector({
   };
 
   const selectMostRecentCompleted = () => {
-    const completedInstances = instances?.filter(instance => instance.status === 'completed') || [];
+    if (!allowedStatuses.includes('completed')) return;
+    const completedInstances = filteredByStatus?.filter(instance => instance.status === 'completed') || [];
     if (completedInstances.length > 0) {
       completedInstances.sort((a, b) => 
         isAfter(new Date(a.ends_at), new Date(b.ends_at)) ? -1 : 1
@@ -133,20 +150,20 @@ export function EnhancedInstanceSelector({
   };
 
   const selectPrevious = () => {
-    if (!currentInstance || !instances?.length) return;
+    if (!currentInstance || !filteredByStatus?.length) return;
     
-    const currentIndex = instances.findIndex(i => i.id === currentInstance.id);
-    if (currentIndex < instances.length - 1) {
-      onInstanceSelect(instances[currentIndex + 1].id);
+    const currentIndex = filteredByStatus.findIndex(i => i.id === currentInstance.id);
+    if (currentIndex < filteredByStatus.length - 1) {
+      onInstanceSelect(filteredByStatus[currentIndex + 1].id);
     }
   };
 
   const selectNext = () => {
-    if (!currentInstance || !instances?.length) return;
+    if (!currentInstance || !filteredByStatus?.length) return;
     
-    const currentIndex = instances.findIndex(i => i.id === currentInstance.id);
+    const currentIndex = filteredByStatus.findIndex(i => i.id === currentInstance.id);
     if (currentIndex > 0) {
-      onInstanceSelect(instances[currentIndex - 1].id);
+      onInstanceSelect(filteredByStatus[currentIndex - 1].id);
     }
   };
 
@@ -169,7 +186,7 @@ export function EnhancedInstanceSelector({
 
   if (isLoading) return <div>Loading instances...</div>;
 
-  if (!instances?.length) {
+  if (!filteredByStatus?.length) {
     return <div className="text-sm text-muted-foreground">No instances available</div>;
   }
 
@@ -223,47 +240,57 @@ export function EnhancedInstanceSelector({
                   >
                     All
                   </Badge>
-                  <Badge 
-                    variant={statusFilter === "active" ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => setStatusFilter("active")}
-                  >
-                    Active
-                  </Badge>
-                  <Badge 
-                    variant={statusFilter === "completed" ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => setStatusFilter("completed")}
-                  >
-                    Completed
-                  </Badge>
-                  <Badge 
-                    variant={statusFilter === "upcoming" ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => setStatusFilter("upcoming")}
-                  >
-                    Upcoming
-                  </Badge>
+                  {allowedStatuses.includes('active') && (
+                    <Badge 
+                      variant={statusFilter === "active" ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => setStatusFilter("active")}
+                    >
+                      Active
+                    </Badge>
+                  )}
+                  {allowedStatuses.includes('completed') && (
+                    <Badge 
+                      variant={statusFilter === "completed" ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => setStatusFilter("completed")}
+                    >
+                      Completed
+                    </Badge>
+                  )}
+                  {allowedStatuses.includes('upcoming') && (
+                    <Badge 
+                      variant={statusFilter === "upcoming" ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => setStatusFilter("upcoming")}
+                    >
+                      Upcoming
+                    </Badge>
+                  )}
                 </div>
               </div>
               <div className="border-b px-3 py-2">
                 <div className="grid grid-cols-2 gap-1">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={selectLatestActive}
-                    className="text-xs"
-                  >
-                    Latest Active
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={selectMostRecentCompleted}
-                    className="text-xs"
-                  >
-                    Recent Completed
-                  </Button>
+                  {allowedStatuses.includes('active') && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={selectLatestActive}
+                      className="text-xs"
+                    >
+                      Latest Active
+                    </Button>
+                  )}
+                  {allowedStatuses.includes('completed') && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={selectMostRecentCompleted}
+                      className="text-xs"
+                    >
+                      Recent Completed
+                    </Button>
+                  )}
                 </div>
               </div>
               <CommandList>
@@ -305,7 +332,7 @@ export function EnhancedInstanceSelector({
             variant="outline" 
             size="icon" 
             onClick={selectPrevious}
-            disabled={!currentInstance || instances.findIndex(i => i.id === currentInstance.id) === instances.length - 1}
+            disabled={!currentInstance || filteredByStatus.findIndex(i => i.id === currentInstance.id) === filteredByStatus.length - 1}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -313,7 +340,7 @@ export function EnhancedInstanceSelector({
             variant="outline" 
             size="icon" 
             onClick={selectNext}
-            disabled={!currentInstance || instances.findIndex(i => i.id === currentInstance.id) === 0}
+            disabled={!currentInstance || filteredByStatus.findIndex(i => i.id === currentInstance.id) === 0}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>

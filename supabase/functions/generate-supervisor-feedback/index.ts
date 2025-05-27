@@ -27,9 +27,13 @@ serve(async (req) => {
 
     console.log(`Processing AI feedback generation for campaign ${campaignId}, instance ${instanceId}`);
 
-    // Get supervisors with minimum 4 reportees
+    // Get supervisors with minimum 4 reportees for this specific campaign and instance
     const { data: supervisorsData, error: supervisorsError } = await supabaseClient
-      .rpc('get_supervisors_with_min_reportees', { min_reportees: 4 });
+      .rpc('get_supervisors_with_min_reportees', { 
+        min_reportees: 4,
+        p_campaign_id: campaignId,
+        p_instance_id: instanceId
+      });
 
     if (supervisorsError) {
       console.error('Error fetching supervisors:', supervisorsError);
@@ -43,17 +47,17 @@ serve(async (req) => {
     }
 
     if (!supervisorsData || supervisorsData.length === 0) {
-      console.log('No supervisors with minimum reportees found');
+      console.log('No supervisors with minimum responses found for this campaign instance');
       return new Response(JSON.stringify({
         success: true,
-        message: 'No supervisors with minimum reportees found',
+        message: 'No supervisors with minimum responses found for this campaign instance',
         processed: 0
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log(`Found ${supervisorsData.length} supervisors to process`);
+    console.log(`Found ${supervisorsData.length} supervisors with sufficient responses to process`);
 
     let successCount = 0;
     let errorCount = 0;

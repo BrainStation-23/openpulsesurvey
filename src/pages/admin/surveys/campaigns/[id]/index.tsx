@@ -81,7 +81,11 @@ export default function CampaignDetailsPage() {
         </div>
       </div>
 
-      <CampaignTabs isAnonymous={campaign.anonymous} status={campaign.status}>
+      <CampaignTabs 
+        isAnonymous={campaign.anonymous} 
+        status={campaign.status}
+        selectedInstanceStatus={selectedInstance?.status}
+      >
         <TabPanel value="overview">
           <OverviewTab campaignId={campaign.id} selectedInstanceId={selectedInstanceId} />
         </TabPanel>
