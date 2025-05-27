@@ -17,10 +17,12 @@ interface CampaignTabsProps {
   children: React.ReactNode;
   isAnonymous?: boolean;
   status?: string;
+  selectedInstanceStatus?: string;
 }
 
-export function CampaignTabs({ children, isAnonymous, status }: CampaignTabsProps) {
+export function CampaignTabs({ children, isAnonymous, status, selectedInstanceStatus }: CampaignTabsProps) {
   const isDraft = status === 'draft';
+  const isInstanceCompleted = selectedInstanceStatus === 'completed';
   const [currentTab, setCurrentTab] = useState<string>(isDraft ? "assignments" : "overview");
 
   useEffect(() => {
@@ -28,9 +30,19 @@ export function CampaignTabs({ children, isAnonymous, status }: CampaignTabsProp
   }, [isDraft]);
 
   const disabledTabs = isDraft ? ["overview", "responses", "reports", "compare", "analyze", "supervisor-analyze"] : [];
+  
+  // Add supervisor-analyze to disabled tabs if instance is not completed
+  if (!isDraft && !isInstanceCompleted) {
+    disabledTabs.push("supervisor-analyze");
+  }
 
   const renderTabTrigger = (value: string, label: string, icon: React.ReactNode) => {
     const isDisabled = disabledTabs.includes(value);
+    let tooltipMessage = "This feature is only available after publishing the campaign";
+    
+    if (value === "supervisor-analyze" && !isDraft && !isInstanceCompleted) {
+      tooltipMessage = "Supervisor analysis is only available for completed instances";
+    }
 
     return (
       <TooltipProvider>
@@ -50,7 +62,7 @@ export function CampaignTabs({ children, isAnonymous, status }: CampaignTabsProp
           </TooltipTrigger>
           {isDisabled && (
             <TooltipContent>
-              <p>This feature is only available after publishing the campaign</p>
+              <p>{tooltipMessage}</p>
             </TooltipContent>
           )}
         </Tooltip>
