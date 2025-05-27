@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -170,7 +169,6 @@ export default function MySurveysList() {
           {groupedAndFilteredSurveys.map((group) => (
             <div key={group.campaign_id} className="campaign-group">
               <CampaignGroup
-                campaignId={group.campaign_id}
                 name={group.name}
                 description={group.description}
                 instances={group.instances}

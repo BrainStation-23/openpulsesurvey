@@ -38,15 +38,17 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
       // Check if we have distribution data to render the chart
       if (question.distribution && Array.isArray(question.distribution)) {
         return (
-          <div className="chart-container bg-slate-50/50 rounded-lg p-4 mb-6">
-            <RatingBarChart distribution={question.distribution} chartConfig={chartConfig} />
+          <div className="w-full bg-slate-50/50 rounded-lg p-6 mb-6">
+            <div className="min-h-[280px] w-full">
+              <RatingBarChart distribution={question.distribution} chartConfig={chartConfig} />
+            </div>
           </div>
         );
       }
       
       // Fallback to simple stats display if no distribution data
       return (
-        <div className="mt-4 p-4 bg-slate-50 rounded-md mb-6">
+        <div className="mt-4 p-6 bg-slate-50 rounded-md mb-6">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium text-slate-700">Average Rating</span>
             <span className="text-xl font-bold text-primary">
@@ -66,22 +68,24 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
       const falseCount = question.distribution.false_count || 0;
       
       return (
-        <div className="chart-container bg-slate-50/50 rounded-lg p-4 mb-6">
-          <BooleanPieChart trueCount={trueCount} falseCount={falseCount} chartConfig={chartConfig} />
+        <div className="w-full bg-slate-50/50 rounded-lg p-6 mb-6">
+          <div className="min-h-[280px] w-full">
+            <BooleanPieChart trueCount={trueCount} falseCount={falseCount} chartConfig={chartConfig} />
+          </div>
         </div>
       );
     }
     
     if (question.question_type === 'text' && question.distribution) {
       return (
-        <div className="chart-container bg-slate-50/50 rounded-lg p-4 mb-6">
+        <div className="w-full bg-slate-50/50 rounded-lg p-6 mb-6">
           <TextResponseSummary distribution={question.distribution} />
         </div>
       );
     }
     
     return (
-      <div className="p-4 text-center text-slate-500 mb-6">
+      <div className="p-6 text-center text-slate-500 mb-6">
         No response data available
       </div>
     );
@@ -96,21 +100,25 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
 
   return (
     <Card className="w-full transition-all duration-200 hover:shadow-md">
-      <CardHeader className="border-b border-slate-100">
+      <CardHeader className="border-b border-slate-100 pb-4">
         <QuestionHeader question={question} />
       </CardHeader>
       
-      <CardContent className="pt-6">
-        {renderContent()}
+      <CardContent className="p-0">
+        <div className="p-6">
+          {renderContent()}
+        </div>
         
         {/* Show insights for both rating and boolean types */}
         {(question.question_type === 'rating' || question.question_type === 'boolean') && 
           question.avg_value !== null && (
-            <div className="insight-container border-t border-slate-100 pt-4 mt-2">
-              <QuestionInsight 
-                avgValue={question.avg_value} 
-                questionType={question.question_type} 
-              />
+            <div className="px-6 pb-4 border-t border-slate-100">
+              <div className="pt-4">
+                <QuestionInsight 
+                  avgValue={question.avg_value} 
+                  questionType={question.question_type} 
+                />
+              </div>
             </div>
         )}
 
@@ -118,12 +126,14 @@ export function EnhancedQuestionCard({ question }: EnhancedQuestionCardProps) {
         {question.question_type === 'text' && 
           question.distribution && 
           question.distribution.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <ViewTextResponsesButton 
-                questionTitle={question.question_title}
-                responsesCount={question.distribution.length}
-                onClick={handleViewTextResponses}
-              />
+            <div className="px-6 pb-6 border-t border-slate-100">
+              <div className="pt-4">
+                <ViewTextResponsesButton 
+                  questionTitle={question.question_title}
+                  responsesCount={question.distribution.length}
+                  onClick={handleViewTextResponses}
+                />
+              </div>
             </div>
         )}
       </CardContent>

@@ -21,8 +21,8 @@ export function BooleanPieChart({ trueCount, falseCount, chartConfig }: BooleanP
   const COLORS = ['#10B981', '#EF4444'];
   
   return (
-    <div className="h-64 w-full mt-4">
-      <ChartContainer config={chartConfig}>
+    <div className="w-full h-full">
+      <ChartContainer config={chartConfig} className="h-[240px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie

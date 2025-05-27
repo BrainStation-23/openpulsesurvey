@@ -1,6 +1,7 @@
+
 import * as React from "react";
 import { ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react";
-import { DayPicker } from "react-day-picker";
+import { DayPicker, DayPickerProps } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -11,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+export type CalendarProps = DayPickerProps;
 
 function Calendar({
   className,
@@ -19,14 +20,16 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
-  // Get initial year safely from props.selected
+  // Get initial year safely from props
   const getInitialYear = () => {
-    if (!props.selected) return new Date().getFullYear();
-    if (props.selected instanceof Date) return props.selected.getFullYear();
-    if (Array.isArray(props.selected) && props.selected[0] instanceof Date) 
-      return props.selected[0].getFullYear();
-    if (typeof props.selected === 'object' && 'from' in props.selected && props.selected.from instanceof Date)
-      return props.selected.from.getFullYear();
+    // Check for selected date first
+    if (props.selected) {
+      if (props.selected instanceof Date) return props.selected.getFullYear();
+      if (Array.isArray(props.selected) && props.selected[0] instanceof Date) 
+        return props.selected[0].getFullYear();
+    }
+    
+    // Fallback to current year
     return new Date().getFullYear();
   };
 
@@ -102,10 +105,10 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
-        IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
+        IconLeft: ({ ...iconProps }) => <ChevronLeft className="h-4 w-4" />,
+        IconRight: ({ ...iconProps }) => <ChevronRight className="h-4 w-4" />,
         Dropdown: ({ value, onChange, children, ...dropdownProps }) => {
-          const isYearDropdown = dropdownProps.name === "year";
+          const isYearDropdown = dropdownProps.name === "years";
 
           if (!isYearDropdown) {
             return (

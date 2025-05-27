@@ -10,18 +10,15 @@ import { OverviewTab } from "./components/OverviewTab";
 import { ReportsTab } from "./components/ReportsTab";
 import { AIAnalyzeTab } from "./components/AIAnalyzeTab";
 import { InstanceCompareTab } from "./components/InstanceCompareTab";
+import { SupervisorAnalyzeTab } from "./components/SupervisorAnalyzeTab";
 import { EnhancedInstanceSelector } from "./components/EnhancedInstanceSelector";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { LineChart } from "lucide-react";
 import { PresentButton } from "./components/PresentButton";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 
 export default function CampaignDetailsPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>();
 
@@ -51,6 +48,11 @@ export default function CampaignDetailsPage() {
       return data;
     }
   });
+
+  // Get the selected instance details
+  const selectedInstance = campaign?.instances?.find(
+    instance => instance.id === selectedInstanceId
+  );
 
   if (isLoadingCampaign) {
     return <div>Loading...</div>;
@@ -102,6 +104,10 @@ export default function CampaignDetailsPage() {
 
         <TabPanel value="analyze">
           <AIAnalyzeTab campaignId={campaign.id} instanceId={selectedInstanceId} />
+        </TabPanel>
+
+        <TabPanel value="supervisor-analyze">
+          <SupervisorAnalyzeTab campaignId={campaign.id} instanceId={selectedInstanceId} />
         </TabPanel>
       </CampaignTabs>
     </div>;

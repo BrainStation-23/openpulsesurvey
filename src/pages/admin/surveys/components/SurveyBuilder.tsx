@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useMemo } from "react";
 import { Model } from "survey-core";
 import { Survey } from "survey-react-ui";
@@ -17,9 +16,10 @@ interface SurveyBuilderProps {
     isDark: boolean;
     isPanelless: boolean;
   };
+  submitButtonText?: string;
 }
 
-export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBuilderProps) {
+export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme, submitButtonText = "Save Survey" }: SurveyBuilderProps) {
   const [jsonContent, setJsonContent] = useState(defaultValue || "{}");
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -175,7 +175,7 @@ export function SurveyBuilder({ onSubmit, defaultValue, defaultTheme }: SurveyBu
           Cancel
         </Button>
         <Button onClick={handleSave} disabled={!!error}>
-          Save Survey
+          {submitButtonText}
         </Button>
       </div>
     </div>

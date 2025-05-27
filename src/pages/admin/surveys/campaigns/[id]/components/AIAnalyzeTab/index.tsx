@@ -1,10 +1,10 @@
 
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PromptSelector } from "./components/PromptSelector";
 import { AnalysisViewer } from "./components/AnalysisViewer";
-import { useToast } from "@/hooks/use-toast";
 import { useAnalysisData } from "./hooks/useAnalysisData";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AIAnalyzeTabProps {
   campaignId: string;
@@ -13,38 +13,32 @@ interface AIAnalyzeTabProps {
 
 export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
   const [selectedPromptId, setSelectedPromptId] = useState<string>();
+  const [analysisContent, setAnalysisContent] = useState<string>("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const { toast } = useToast();
-  const [analysis, setAnalysis] = useState<{ content: string } | null>(null);
-  
-  // Use our new consolidated data hook
-  const { data: analysisData, isLoading: isLoadingData } = useAnalysisData(campaignId, instanceId);
-  
-  const handleAnalyze = async (prompt: { id: string, text: string }) => {
-    if (!analysisData) return;
+
+  const { data: analysisData } = useAnalysisData(campaignId, instanceId);
+
+  const handleAnalyze = async (promptData: { id: string, text: string }) => {
+    if (!instanceId || !analysisData) return;
+    
+    setIsAnalyzing(true);
+    setSelectedPromptId(promptData.id);
     
     try {
-      setIsAnalyzing(true);
-      setSelectedPromptId(prompt.id);
-      
-      const { data: analysisResult, error } = await supabase.functions.invoke('analyze-campaign', {
+      const { data, error } = await supabase.functions.invoke('analyze-campaign', {
         body: {
-          promptId: prompt.id,
-          promptText: prompt.text,
-          analysisData 
-        },
+          promptId: promptData.id,
+          promptText: promptData.text,
+          analysisData
+        }
       });
 
       if (error) throw error;
-      setAnalysis(analysisResult);
       
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to generate analysis",
-      });
-      return null;
+      setAnalysisContent(data.content || "Analysis completed successfully.");
+    } catch (error) {
+      console.error('Error generating analysis:', error);
+      setAnalysisContent("Error generating analysis. Please try again.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -52,9 +46,16 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
 
   if (!instanceId) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        Please select a period to analyze responses.
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Analysis</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            Please select a campaign instance to view AI analysis.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -62,14 +63,16 @@ export function AIAnalyzeTab({ campaignId, instanceId }: AIAnalyzeTabProps) {
     <div className="space-y-6">
       <PromptSelector
         onAnalyze={handleAnalyze}
-        selectedPromptId={selectedPromptId}
         isAnalyzing={isAnalyzing}
+        selectedPromptId={selectedPromptId}
       />
 
-      <AnalysisViewer
-        content={analysis?.content || "Select a prompt and click Analyze to generate insights."}
-        isLoading={isAnalyzing}
-      />
+      {analysisContent && (
+        <AnalysisViewer
+          content={analysisContent}
+          isLoading={isAnalyzing}
+        />
+      )}
     </div>
   );
 }
