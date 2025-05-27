@@ -43,7 +43,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch campaign information
     const { data: campaign, error: campaignError } = await supabase
       .from("survey_campaigns")
-      .select("title")
+      .select("name")
       .eq("id", campaignId)
       .single();
 
