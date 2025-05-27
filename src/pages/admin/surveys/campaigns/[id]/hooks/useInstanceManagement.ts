@@ -211,13 +211,33 @@ export function useInstanceManagement(campaignId: string) {
 
   const calculateCompletionRate = async (instanceId: string) => {
     try {
-      // Use the updated database function that only counts active profiles
-      const { data: completionRate, error } = await supabase
-        .rpc('calculate_instance_completion_rate', {
-          instance_id: instanceId
-        });
+      const { data: assignments, error: assignmentError } = await supabase
+        .from('survey_assignments')
+        .select('id')
+        .eq('campaign_id', campaignId);
         
-      if (error) throw error;
+      if (assignmentError) throw assignmentError;
+      
+      const { data: responses, error: responseError } = await supabase
+        .from('survey_responses')
+        .select('id')
+        .eq('campaign_instance_id', instanceId)
+        .eq('status', 'submitted');
+        
+      if (responseError) throw responseError;
+      
+      const totalAssignments = assignments?.length || 0;
+      const completedResponses = responses?.length || 0;
+      const completionRate = totalAssignments > 0 
+        ? (completedResponses / totalAssignments) * 100 
+        : 0;
+      
+      const { error: updateError } = await supabase
+        .from('campaign_instances')
+        .update({ completion_rate: completionRate })
+        .eq('id', instanceId);
+        
+      if (updateError) throw updateError;
       
       refreshInstances();
       

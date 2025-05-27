@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,43 +25,25 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
 
       if (instanceError) throw instanceError;
 
-      // Count assignments for active profiles only - fix the join syntax
       const { data: assignments, error: assignmentsError } = await supabase
         .from("survey_assignments")
-        .select(`
-          id,
-          profiles!inner(status)
-        `)
-        .eq("campaign_id", campaignId)
-        .eq("profiles.status", "active");
+        .select("id")
+        .eq("campaign_id", campaignId);
 
       if (assignmentsError) throw assignmentsError;
 
-      // Count completed responses for active profiles only
       const { data: responses, error: responsesError } = await supabase
         .from("survey_responses")
-        .select(`
-          assignment_id,
-          survey_assignments!inner(
-            user_id,
-            profiles!inner(status)
-          )
-        `)
+        .select("assignment_id")
         .eq("campaign_instance_id", selectedInstanceId)
-        .eq("status", "submitted")
-        .eq("survey_assignments.profiles.status", "active");
+        .eq("status", "submitted");
 
       if (responsesError) throw responsesError;
 
-      // Calculate completion rate if not available from database
-      const totalAssignments = assignments?.length || 0;
-      const completedResponses = responses?.length || 0;
-      const calculatedRate = totalAssignments > 0 ? (completedResponses / totalAssignments) * 100 : 0;
-
       return {
-        completionRate: instanceData.completion_rate || calculatedRate,
-        totalAssignments,
-        completedResponses
+        completionRate: instanceData.completion_rate,
+        totalAssignments: assignments?.length || 0,
+        completedResponses: responses?.length || 0
       };
     },
     enabled: !!selectedInstanceId,
@@ -74,12 +57,10 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
         .select(`
           created_at,
           assignment:survey_assignments!inner(
-            campaign_id,
-            profiles!inner(status)
+            campaign_id
           )
         `)
-        .eq("assignment.campaign_id", campaignId)
-        .eq("assignment.profiles.status", "active");
+        .eq("assignment.campaign_id", campaignId);
 
       if (selectedInstanceId) {
         query.eq("campaign_instance_id", selectedInstanceId);
@@ -108,7 +89,6 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
     queryFn: async () => {
       if (!selectedInstanceId) return [];
 
-      // Use the updated database function that only counts active profiles
       const { data, error } = await supabase
         .rpc('get_campaign_instance_status_distribution', {
           p_campaign_id: campaignId,

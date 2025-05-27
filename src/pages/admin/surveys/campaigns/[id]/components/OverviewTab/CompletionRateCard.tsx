@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type CompletionRateCardProps = {
@@ -15,16 +14,8 @@ export function CompletionRateCard({ completionRate }: CompletionRateCardProps) 
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">
-          {completionRate !== null && completionRate !== undefined 
-            ? `${completionRate.toFixed(1)}%` 
-            : "0.0%"
-          }
+          {completionRate?.toFixed(1)}%
         </div>
-        {completionRate !== null && completionRate !== undefined && (
-          <p className="text-xs text-muted-foreground">
-            of active users
-          </p>
-        )}
       </CardContent>
     </Card>
   );
