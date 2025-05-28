@@ -1,5 +1,4 @@
 
-
 import pptxgen from "pptxgenjs";
 import { CampaignData } from "../../types";
 import { ProcessedData } from "../../types/responses";
@@ -33,13 +32,13 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
 
   const startDate = campaign.instance?.starts_at || campaign.starts_at;
   const endDate = campaign.instance?.ends_at || campaign.ends_at;
-  const completionRate = campaign.instance?.completion_rate ?? campaign.completion_rate;
+  const completionRate = 0; // Placeholder since we removed completion_rate
 
   slide.addText([
     { text: "Period: ", options: { bold: true } },
     { text: `${formatDate(startDate)} - ${formatDate(endDate)}` },
     { text: "\nCompletion Rate: ", options: { bold: true } },
-    { text: `${completionRate?.toFixed(1)}%` },
+    { text: `${completionRate.toFixed(1)}%` },
   ], {
     x: 0.5,
     y: 4,
@@ -63,7 +62,7 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
   });
 
   // Calculate instance status distribution
-  const instanceCompletionRate = campaign.instance?.completion_rate || 0;
+  const instanceCompletionRate = 0; // Placeholder since we removed completion_rate
   const expiredRate = 0; // Fallback since the property doesn't exist in the type
   const pendingRate = 100 - (instanceCompletionRate + expiredRate);
 

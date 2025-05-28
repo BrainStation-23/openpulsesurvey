@@ -6,10 +6,10 @@ import { SlideWrapper } from "../components/SlideWrapper";
 import { Card } from "@/components/ui/card";
 
 export function TitleSlide({ campaign, isActive }: SlideProps) {
-  // Use instance dates and completion rate if available, otherwise use campaign data
+  // Use instance dates if available, otherwise use campaign data
   const startDate = campaign.instance?.starts_at || campaign.starts_at;
   const endDate = campaign.instance?.ends_at || campaign.ends_at;
-  const completionRate = campaign.instance?.completion_rate ?? campaign.completion_rate;
+  const completionRate = 0; // Placeholder since we removed completion_rate
 
   return (
     <SlideWrapper isActive={isActive} campaign={campaign}>
@@ -35,7 +35,7 @@ export function TitleSlide({ campaign, isActive }: SlideProps) {
             <div className="space-y-2">
               <h3 className="text-sm font-medium text-gray-500 uppercase text-center md:text-left">Completion Rate</h3>
               <p className="text-3xl font-bold text-primary text-center md:text-left">
-                {completionRate?.toFixed(1)}%
+                {completionRate.toFixed(1)}%
               </p>
             </div>
           </div>
