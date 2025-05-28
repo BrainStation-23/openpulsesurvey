@@ -25,56 +25,18 @@ export function MetricsOverview() {
 
       if (completedCampaignsError) throw completedCampaignsError;
 
-      // Calculate average completion rate across all completed instances
-      const { data: completedInstancesData, error: completedInstancesError } = await supabase
-        .from("campaign_instances")
-        .select("id")
-        .eq("status", "completed");
+      // Get total surveys count
+      const { data: totalSurveys, error: totalSurveysError } = await supabase
+        .from("surveys")
+        .select("id", { count: 'exact' })
+        .eq("status", "published");
 
-      if (completedInstancesError) throw completedInstancesError;
-
-      let avgCompletionRate = 0;
-      if (completedInstancesData && completedInstancesData.length > 0) {
-        let totalCompletionRate = 0;
-        let validInstances = 0;
-
-        for (const instance of completedInstancesData) {
-          // Get total assignments for this instance
-          const { data: assignments, error: assignmentsError } = await supabase
-            .from("survey_assignments")
-            .select("id", { count: 'exact' })
-            .eq("campaign_id", instance.id);
-
-          if (assignmentsError) continue;
-
-          // Get completed responses for this instance
-          const { data: responses, error: responsesError } = await supabase
-            .from("survey_responses")
-            .select("id", { count: 'exact' })
-            .eq("campaign_instance_id", instance.id)
-            .eq("status", "submitted");
-
-          if (responsesError) continue;
-
-          const totalAssignments = assignments?.length || 0;
-          const completedResponses = responses?.length || 0;
-
-          if (totalAssignments > 0) {
-            const completionRate = (completedResponses / totalAssignments) * 100;
-            totalCompletionRate += completionRate;
-            validInstances++;
-          }
-        }
-
-        if (validInstances > 0) {
-          avgCompletionRate = Math.round(totalCompletionRate / validInstances);
-        }
-      }
+      if (totalSurveysError) throw totalSurveysError;
 
       return {
         active_campaigns: activeCampaigns?.length || 0,
         completed_campaigns: completedCampaigns?.length || 0,
-        avg_completion_rate: avgCompletionRate,
+        total_surveys: totalSurveys?.length || 0,
       };
     },
   });
@@ -95,18 +57,21 @@ export function MetricsOverview() {
         value={metrics?.active_campaigns ?? 0}
         icon={Activity}
         loading={isLoading}
+        description="Currently running campaigns"
       />
       <MetricCard
         title="Completed Campaigns"
         value={metrics?.completed_campaigns ?? 0}
         icon={ChartBar}
         loading={isLoading}
+        description="Finished campaign instances"
       />
       <MetricCard
-        title="Average Completion Rate"
-        value={`${metrics?.avg_completion_rate ?? 0}%`}
+        title="Published Surveys"
+        value={metrics?.total_surveys ?? 0}
         icon={ChartPie}
         loading={isLoading}
+        description="Available survey templates"
       />
     </div>
   );
