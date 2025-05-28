@@ -24,7 +24,6 @@ export function ChartsSection({
   return (
     <>
       <div className="grid gap-6 md:grid-cols-2">
-        <StatusDistributionChart data={statusData} />
         <ResponseRateChart data={responseData} />
       </div>
       
