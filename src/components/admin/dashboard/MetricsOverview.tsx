@@ -9,13 +9,35 @@ export function MetricsOverview() {
   const { data: metrics, isLoading } = useQuery({
     queryKey: ["dashboard-metrics"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("survey_overview_metrics")
-        .select("*")
-        .maybeSingle();
+      // Get active campaigns count
+      const { data: activeCampaigns, error: activeCampaignsError } = await supabase
+        .from("campaign_instances")
+        .select("id", { count: 'exact' })
+        .eq("status", "active");
 
-      if (error) throw error;
-      return data;
+      if (activeCampaignsError) throw activeCampaignsError;
+
+      // Get completed campaigns count
+      const { data: completedCampaigns, error: completedCampaignsError } = await supabase
+        .from("campaign_instances")
+        .select("id", { count: 'exact' })
+        .eq("status", "completed");
+
+      if (completedCampaignsError) throw completedCampaignsError;
+
+      // Get total surveys count
+      const { data: totalSurveys, error: totalSurveysError } = await supabase
+        .from("surveys")
+        .select("id", { count: 'exact' })
+        .eq("status", "published");
+
+      if (totalSurveysError) throw totalSurveysError;
+
+      return {
+        active_campaigns: activeCampaigns?.length || 0,
+        completed_campaigns: completedCampaigns?.length || 0,
+        total_surveys: totalSurveys?.length || 0,
+      };
     },
   });
 
@@ -35,18 +57,21 @@ export function MetricsOverview() {
         value={metrics?.active_campaigns ?? 0}
         icon={Activity}
         loading={isLoading}
+        description="Currently running campaigns"
       />
       <MetricCard
         title="Completed Campaigns"
         value={metrics?.completed_campaigns ?? 0}
         icon={ChartBar}
         loading={isLoading}
+        description="Finished campaign instances"
       />
       <MetricCard
-        title="Average Completion Rate"
-        value={`${metrics?.avg_completion_rate ?? 0}%`}
+        title="Published Surveys"
+        value={metrics?.total_surveys ?? 0}
         icon={ChartPie}
         loading={isLoading}
+        description="Available survey templates"
       />
     </div>
   );

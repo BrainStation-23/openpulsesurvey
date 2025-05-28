@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, subDays } from "date-fns";
@@ -73,11 +72,6 @@ export function useCampaignTrends(campaignId: string, instances: CampaignInstanc
       
       // For each instance, get the completion rate
       for (const instance of instances) {
-        const { data, error } = await supabase
-          .rpc("calculate_instance_completion_rate", { instance_id: instance.id });
-          
-        if (error) throw error;
-        
         // Get total assignments and completed responses for this instance
         const { data: assignmentData, error: assignmentError } = await supabase
           .from("survey_assignments")
@@ -93,13 +87,17 @@ export function useCampaignTrends(campaignId: string, instances: CampaignInstanc
           .eq("status", "submitted");
           
         if (responseError) throw responseError;
+        
+        const totalAssignments = assignmentData?.length || 0;
+        const completedResponses = responseData?.length || 0;
+        const completionRate = totalAssignments > 0 ? (completedResponses / totalAssignments) * 100 : 0;
           
         completionData.push({
           instance: instance.id,
           periodNumber: instance.period_number,
-          completionRate: data || 0,
-          totalAssignments: assignmentData?.length || 0,
-          completedResponses: responseData?.length || 0,
+          completionRate,
+          totalAssignments,
+          completedResponses,
         });
       }
       
@@ -214,8 +212,8 @@ export function useCampaignTrends(campaignId: string, instances: CampaignInstanc
   return {
     trendData,
     completionRates,
-    responseVolume,
-    metrics: metrics(),
-    isLoading: isLoadingTrends || isLoadingCompletion || isLoadingVolume
+    responseVolume: [],
+    metrics: [],
+    isLoading: isLoadingTrends || isLoadingCompletion
   };
 }

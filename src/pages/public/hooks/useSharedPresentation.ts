@@ -41,7 +41,6 @@ export function useSharedPresentation(token: string) {
           description,
           starts_at,
           ends_at,
-          completion_rate,
           survey:survey_id (
             id,
             name,
@@ -61,29 +60,36 @@ export function useSharedPresentation(token: string) {
         ...campaignData,
         survey: {
           ...campaignData.survey,
-          // Ensure json_data is properly parsed and typed
-          json_data: typeof campaignData.survey.json_data === 'string'
-            ? JSON.parse(campaignData.survey.json_data) as SurveyJsonData
-            : campaignData.survey.json_data as SurveyJsonData
+          // Ensure json_data is properly parsed and typed with proper type checking
+          json_data: (() => {
+            try {
+              const rawData = campaignData.survey.json_data;
+              if (typeof rawData === 'string') {
+                return JSON.parse(rawData) as SurveyJsonData;
+              } else if (rawData && typeof rawData === 'object') {
+                // Check if it has the required pages property
+                if ('pages' in rawData && Array.isArray((rawData as any).pages)) {
+                  return rawData as unknown as SurveyJsonData;
+                } else {
+                  return { pages: [] } as SurveyJsonData;
+                }
+              } else {
+                return { pages: [] } as SurveyJsonData;
+              }
+            } catch (e) {
+              console.error('Error parsing survey JSON data:', e);
+              return { pages: [] } as SurveyJsonData;
+            }
+          })()
         },
         instance: null // Will be populated if there's an instance_id
       };
-
-      // Handle parsing errors
-      try {
-        if (typeof campaignData.survey.json_data === 'string') {
-          campaign.survey.json_data = JSON.parse(campaignData.survey.json_data) as SurveyJsonData;
-        }
-      } catch (e) {
-        console.error('Error parsing survey JSON data:', e);
-        campaign.survey.json_data = { pages: [] };
-      }
 
       // If there's an instance_id, fetch the instance data separately
       if (presentation.instance_id) {
         const { data: instance, error: instanceError } = await supabase
           .from('campaign_instances')
-          .select('id, period_number, starts_at, ends_at, status, completion_rate')
+          .select('id, period_number, starts_at, ends_at, status')
           .eq('id', presentation.instance_id)
           .single();
 

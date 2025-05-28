@@ -23,8 +23,7 @@ export function ChartsSection({
 }: ChartsSectionProps) {
   return (
     <>
-      <div className="grid gap-6 md:grid-cols-2">
-        <StatusDistributionChart data={statusData} />
+      <div className="grid gap-6 md:grid-cols-1">
         <ResponseRateChart data={responseData} />
       </div>
       

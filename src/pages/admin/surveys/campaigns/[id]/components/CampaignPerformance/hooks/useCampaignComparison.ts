@@ -43,13 +43,21 @@ export function useCampaignComparison(campaignId: string, instances: CampaignIns
         
         const avgRating = ratingCount > 0 ? totalRating / ratingCount : 0;
         
-        // Get completion rate for this instance
-        const { data: completionData, error: completionError } = await supabase
-          .rpc("calculate_instance_completion_rate", { instance_id: instance.id });
+        // Calculate completion rate manually
+        const { data: assignments } = await supabase
+          .from("survey_assignments")
+          .select("id")
+          .eq("campaign_id", campaignId);
           
-        if (completionError) throw completionError;
-        
-        const completionRate = completionData || 0;
+        const { data: responses } = await supabase
+          .from("survey_responses")
+          .select("id")
+          .eq("campaign_instance_id", instance.id)
+          .eq("status", "submitted");
+          
+        const totalAssignments = assignments?.length || 0;
+        const completedResponses = responses?.length || 0;
+        const completionRate = totalAssignments > 0 ? (completedResponses / totalAssignments) * 100 : 0;
         
         periodData.push({
           periodNumber: instance.period_number,

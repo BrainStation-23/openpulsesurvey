@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,14 +16,6 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
     queryFn: async () => {
       if (!selectedInstanceId) return null;
 
-      const { data: instanceData, error: instanceError } = await supabase
-        .from("campaign_instances")
-        .select("completion_rate, id")
-        .eq("id", selectedInstanceId)
-        .single();
-
-      if (instanceError) throw instanceError;
-
       const { data: assignments, error: assignmentsError } = await supabase
         .from("survey_assignments")
         .select("id")
@@ -41,7 +32,6 @@ export function OverviewTab({ campaignId, selectedInstanceId }: OverviewTabProps
       if (responsesError) throw responsesError;
 
       return {
-        completionRate: instanceData.completion_rate,
         totalAssignments: assignments?.length || 0,
         completedResponses: responses?.length || 0
       };

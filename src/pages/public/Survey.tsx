@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Model } from "survey-core";
@@ -39,43 +38,23 @@ export default function PublicSurveyPage() {
           const userId = assignmentData.assignment.user_id;
           const now = new Date().toISOString();
 
-          // First check for existing response
-          const { data: existingResponse } = await supabase
+          // Use upsert to avoid race conditions
+          const { error } = await supabase
             .from("survey_responses")
-            .select("id")
-            .eq("assignment_id", assignmentData.assignment.id)
-            .eq("user_id", userId)
-            .eq("campaign_instance_id", assignmentData.activeInstance?.id)
-            .maybeSingle();
+            .upsert({
+              assignment_id: assignmentData.assignment.id,
+              user_id: userId,
+              response_data: sender.data,
+              status: 'submitted',
+              submitted_at: now,
+              updated_at: now,
+              campaign_instance_id: assignmentData.activeInstance?.id || null,
+            }, {
+              onConflict: 'assignment_id,user_id,campaign_instance_id',
+              ignoreDuplicates: false
+            });
 
-          if (existingResponse) {
-            // Update existing response
-            const { error: updateError } = await supabase
-              .from("survey_responses")
-              .update({
-                response_data: sender.data,
-                status: 'submitted',
-                submitted_at: now,
-                updated_at: now
-              })
-              .eq("id", existingResponse.id);
-
-            if (updateError) throw updateError;
-          } else {
-            // Insert new response
-            const { error: insertError } = await supabase
-              .from("survey_responses")
-              .insert({
-                assignment_id: assignmentData.assignment.id,
-                user_id: userId,
-                response_data: sender.data,
-                status: 'submitted',
-                campaign_instance_id: assignmentData.activeInstance?.id || null,
-                submitted_at: now
-              });
-
-            if (insertError) throw insertError;
-          }
+          if (error) throw error;
 
           toast({
             title: "Survey completed",

@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,6 @@ export default function CampaignInstancesPage() {
     updatePagination,
     updateInstance,
     refreshInstances,
-    calculateCompletionRate,
     createInstance,
     deleteInstance,
     hasActiveInstance,
@@ -38,11 +38,6 @@ export default function CampaignInstancesPage() {
   const handleSave = async (data: any) => {
     try {
       await updateInstance(data);
-      
-      // Manually recalculate completion rate after status change
-      if (data.status === 'completed') {
-        await calculateCompletionRate(data.id);
-      }
       
       toast({
         title: "Instance updated",
@@ -157,7 +152,6 @@ export default function CampaignInstancesPage() {
                 onUpdated={refreshInstances}
               />
             </div>
-            {/* StatusLogs removed as per user request */}
           </div>
           
           <div className="mt-6 bg-muted/50 border rounded-lg p-4">
