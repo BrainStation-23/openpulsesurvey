@@ -20,7 +20,7 @@ export function useAutoSave(
     status: ResponseStatus = 'in_progress'
   ) => {
     try {
-      // First, try to update an existing response
+      // First, try to find an existing response
       const { data: existingResponse, error: selectError } = await supabase
         .from("survey_responses")
         .select("id")
