@@ -37,7 +37,6 @@ export type Campaign = {
   updated_at: string;
   anonymous?: boolean;
   campaign_type?: string;
-  completion_rate?: number | null;
   survey?: {
     name: string;
   };

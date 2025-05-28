@@ -14,7 +14,6 @@ export interface Instance {
   period_number: number;
   created_at: string;
   updated_at: string;
-  completion_rate?: number;
 }
 
 export interface CreateInstanceData {
@@ -26,7 +25,7 @@ export interface CreateInstanceData {
 }
 
 export interface InstanceSortOptions {
-  sortBy: 'period_number' | 'starts_at' | 'ends_at' | 'status' | 'completion_rate';
+  sortBy: 'period_number' | 'starts_at' | 'ends_at' | 'status';
   sortDirection: 'asc' | 'desc';
 }
 
@@ -209,45 +208,6 @@ export function useInstanceManagement(campaignId: string) {
     return deleteInstanceMutation.mutateAsync(instanceId);
   };
 
-  const calculateCompletionRate = async (instanceId: string) => {
-    try {
-      const { data: assignments, error: assignmentError } = await supabase
-        .from('survey_assignments')
-        .select('id')
-        .eq('campaign_id', campaignId);
-        
-      if (assignmentError) throw assignmentError;
-      
-      const { data: responses, error: responseError } = await supabase
-        .from('survey_responses')
-        .select('id')
-        .eq('campaign_instance_id', instanceId)
-        .eq('status', 'submitted');
-        
-      if (responseError) throw responseError;
-      
-      const totalAssignments = assignments?.length || 0;
-      const completedResponses = responses?.length || 0;
-      const completionRate = totalAssignments > 0 
-        ? (completedResponses / totalAssignments) * 100 
-        : 0;
-      
-      const { error: updateError } = await supabase
-        .from('campaign_instances')
-        .update({ completion_rate: completionRate })
-        .eq('id', instanceId);
-        
-      if (updateError) throw updateError;
-      
-      refreshInstances();
-      
-      return completionRate;
-    } catch (error) {
-      console.error("Error calculating completion rate:", error);
-      throw error;
-    }
-  };
-
   const updateSort = (newSort: Partial<InstanceSortOptions>) => {
     setSort(prev => ({ ...prev, ...newSort }));
   };
@@ -263,7 +223,6 @@ export function useInstanceManagement(campaignId: string) {
     isLoading: isCampaignLoading || isInstancesLoading,
     updateInstance,
     refreshInstances,
-    calculateCompletionRate,
     createInstance,
     deleteInstance,
     hasActiveInstance,

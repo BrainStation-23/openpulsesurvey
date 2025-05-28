@@ -6,7 +6,6 @@ import { TopPerformingSBUsChart } from "./TopPerformingSBUsChart";
 
 type StatisticsSectionProps = {
   instanceStats?: {
-    completionRate: number;
     totalAssignments: number;
     completedResponses: number;
   } | null;
@@ -22,7 +21,10 @@ export function StatisticsSection({
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2">
-        <CompletionRateCard completionRate={instanceStats?.completionRate} />
+        <CompletionRateCard 
+          campaignId={campaignId}
+          selectedInstanceId={selectedInstanceId}
+        />
          <CompletionTrends 
           campaignId={campaignId} 
           instanceId={selectedInstanceId} 

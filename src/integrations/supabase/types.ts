@@ -146,25 +146,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ai_feedback_analysis_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["campaign_id"]
-          },
-          {
             foreignKeyName: "ai_feedback_analysis_instance_id_fkey"
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "campaign_instances"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_feedback_analysis_instance_id_fkey"
-            columns: ["instance_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["instance_id"]
           },
           {
             foreignKeyName: "ai_feedback_analysis_instance_id_fkey"
@@ -261,13 +247,6 @@ export type Database = {
             referencedRelation: "survey_campaigns"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "campaign_cron_jobs_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["campaign_id"]
-          },
         ]
       }
       campaign_instance_status_logs: {
@@ -300,7 +279,6 @@ export type Database = {
       campaign_instances: {
         Row: {
           campaign_id: string
-          completion_rate: number | null
           created_at: string
           ends_at: string
           id: string
@@ -311,7 +289,6 @@ export type Database = {
         }
         Insert: {
           campaign_id: string
-          completion_rate?: number | null
           created_at?: string
           ends_at: string
           id?: string
@@ -322,7 +299,6 @@ export type Database = {
         }
         Update: {
           campaign_id?: string
-          completion_rate?: number | null
           created_at?: string
           ends_at?: string
           id?: string
@@ -340,25 +316,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "campaign_instances_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["campaign_id"]
-          },
-          {
             foreignKeyName: "fk_campaign_instances_campaign"
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "survey_campaigns"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_campaign_instances_campaign"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["campaign_id"]
           },
         ]
       }
@@ -1150,25 +1112,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "shared_presentations_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["campaign_id"]
-          },
-          {
             foreignKeyName: "shared_presentations_instance_id_fkey"
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "campaign_instances"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "shared_presentations_instance_id_fkey"
-            columns: ["instance_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["instance_id"]
           },
           {
             foreignKeyName: "shared_presentations_instance_id_fkey"
@@ -1222,25 +1170,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_survey_assignments_campaign"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["campaign_id"]
-          },
-          {
             foreignKeyName: "survey_assignments_campaign_id_fkey"
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "survey_campaigns"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "survey_assignments_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["campaign_id"]
           },
           {
             foreignKeyName: "survey_assignments_created_by_fkey"
@@ -1283,7 +1217,6 @@ export type Database = {
         Row: {
           anonymous: boolean
           campaign_type: string
-          completion_rate: number | null
           created_at: string
           created_by: string
           description: string | null
@@ -1302,7 +1235,6 @@ export type Database = {
         Insert: {
           anonymous?: boolean
           campaign_type?: string
-          completion_rate?: number | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -1321,7 +1253,6 @@ export type Database = {
         Update: {
           anonymous?: boolean
           campaign_type?: string
-          completion_rate?: number | null
           created_at?: string
           created_by?: string
           description?: string | null
@@ -1412,13 +1343,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "campaign_instances"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "survey_responses_campaign_instance_id_fkey"
-            columns: ["campaign_instance_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["instance_id"]
           },
           {
             foreignKeyName: "survey_responses_campaign_instance_id_fkey"
@@ -1850,16 +1774,6 @@ export type Database = {
         }
         Relationships: []
       }
-      survey_overview_metrics: {
-        Row: {
-          active_campaigns: number | null
-          avg_completion_rate: number | null
-          completed_campaigns: number | null
-          total_responses: number | null
-          total_surveys: number | null
-        }
-        Relationships: []
-      }
       survey_response_trends: {
         Row: {
           date: string | null
@@ -1913,20 +1827,6 @@ export type Database = {
           },
         ]
       }
-      top_performing_surveys: {
-        Row: {
-          campaign_id: string | null
-          campaign_name: string | null
-          completion_rate: number | null
-          ends_at: string | null
-          instance_id: string | null
-          period_number: number | null
-          starts_at: string | null
-          survey_name: string | null
-          total_responses: number | null
-        }
-        Relationships: []
-      }
       upcoming_survey_deadlines: {
         Row: {
           campaign_id: string | null
@@ -1946,34 +1846,16 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "campaign_instances_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["campaign_id"]
-          },
-          {
             foreignKeyName: "fk_campaign_instances_campaign"
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "survey_campaigns"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_campaign_instances_campaign"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "top_performing_surveys"
-            referencedColumns: ["campaign_id"]
-          },
         ]
       }
     }
     Functions: {
-      calculate_instance_completion_rate: {
-        Args: { instance_id: string }
-        Returns: number
-      }
       calculate_progress: {
         Args: {
           p_measurement_type: string
