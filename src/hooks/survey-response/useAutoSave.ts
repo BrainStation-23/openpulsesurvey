@@ -20,26 +20,49 @@ export function useAutoSave(
     status: ResponseStatus = 'in_progress'
   ) => {
     try {
-      // Use INSERT ... ON CONFLICT to avoid race conditions
-      const { error } = await supabase
+      // First, try to update an existing response
+      const { data: existingResponse, error: selectError } = await supabase
         .from("survey_responses")
-        .upsert({
-          assignment_id: id,
-          user_id: userId,
-          response_data: responseData,
-          state_data: stateData || {},
-          status,
-          campaign_instance_id: campaignInstanceId,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'assignment_id,user_id,campaign_instance_id',
-          ignoreDuplicates: false
-        });
+        .select("id")
+        .eq("assignment_id", id)
+        .eq("user_id", userId)
+        .eq("campaign_instance_id", campaignInstanceId)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (selectError) throw selectError;
+
+      if (existingResponse) {
+        // Update existing response
+        const { error: updateError } = await supabase
+          .from("survey_responses")
+          .update({
+            response_data: responseData,
+            state_data: stateData || {},
+            status,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingResponse.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Insert new response
+        const { error: insertError } = await supabase
+          .from("survey_responses")
+          .insert({
+            assignment_id: id,
+            user_id: userId,
+            response_data: responseData,
+            state_data: stateData || {},
+            status,
+            campaign_instance_id: campaignInstanceId,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (insertError) throw insertError;
+      }
 
       setLastSaved(new Date());
-      console.log("Successfully saved response using upsert");
+      console.log("Successfully saved response");
     } catch (error) {
       console.error("Error saving response:", error);
       throw error;
