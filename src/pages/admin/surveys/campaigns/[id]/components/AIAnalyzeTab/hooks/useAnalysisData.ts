@@ -1,19 +1,12 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export function useAnalysisData(campaignId: string, instanceId?: string) {
-  // Reuse the existing instance stats query
+  // Get basic instance stats
   const { data: instanceStats } = useQuery({
     queryKey: ["instance-stats", instanceId],
     queryFn: async () => {
       if (!instanceId) return null;
-
-      const { data: instanceData } = await supabase
-        .from("campaign_instances")
-        .select("completion_rate, id")
-        .eq("id", instanceId)
-        .single();
 
       const { data: assignments } = await supabase
         .from("survey_assignments")
@@ -26,10 +19,14 @@ export function useAnalysisData(campaignId: string, instanceId?: string) {
         .eq("campaign_instance_id", instanceId)
         .eq("status", "submitted");
 
+      const totalAssignments = assignments?.length || 0;
+      const completedResponses = responses?.length || 0;
+      const completionRate = totalAssignments > 0 ? (completedResponses / totalAssignments) * 100 : 0;
+
       return {
-        completionRate: instanceData?.completion_rate,
-        totalAssignments: assignments?.length || 0,
-        completedResponses: responses?.length || 0
+        completionRate,
+        totalAssignments,
+        completedResponses
       };
     },
     enabled: !!instanceId,
@@ -183,11 +180,11 @@ export function useAnalysisData(campaignId: string, instanceId?: string) {
       total_assignments: instanceStats?.totalAssignments,
       completed_responses: instanceStats?.completedResponses
     },
-    trends: responseData || [],
-    status_distribution: statusData || [],
+    trends: [],
+    status_distribution: [],
     demographics: {
-      locations: locationData || [],
-      departments: sbuData || []
+      locations: [],
+      departments: []
     }
   };
 

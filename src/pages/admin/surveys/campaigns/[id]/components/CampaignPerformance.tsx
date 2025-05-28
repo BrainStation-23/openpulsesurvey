@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -30,8 +31,7 @@ export default function CampaignPerformance() {
             period_number,
             starts_at,
             ends_at,
-            status,
-            completion_rate
+            status
           )
         `)
         .eq('id', id)

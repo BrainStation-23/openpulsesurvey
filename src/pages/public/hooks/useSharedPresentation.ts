@@ -41,7 +41,6 @@ export function useSharedPresentation(token: string) {
           description,
           starts_at,
           ends_at,
-          completion_rate,
           survey:survey_id (
             id,
             name,
@@ -83,7 +82,7 @@ export function useSharedPresentation(token: string) {
       if (presentation.instance_id) {
         const { data: instance, error: instanceError } = await supabase
           .from('campaign_instances')
-          .select('id, period_number, starts_at, ends_at, status, completion_rate')
+          .select('id, period_number, starts_at, ends_at, status')
           .eq('id', presentation.instance_id)
           .single();
 

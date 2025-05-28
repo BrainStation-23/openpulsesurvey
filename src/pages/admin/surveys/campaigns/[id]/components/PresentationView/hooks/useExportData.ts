@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ProcessedData } from "../types/responses";
@@ -21,7 +20,6 @@ export function useExportData(campaignId: string, instanceId?: string) {
           description,
           starts_at,
           ends_at,
-          completion_rate,
           survey:surveys (
             id,
             name,

@@ -1696,22 +1696,6 @@ export type Database = {
         }
         Relationships: []
       }
-      demographic_location_analysis: {
-        Row: {
-          location: string | null
-          response_count: number | null
-        }
-        Relationships: []
-      }
-      department_performance: {
-        Row: {
-          completed_responses: number | null
-          completion_rate: number | null
-          sbu_name: string | null
-          total_assignments: number | null
-        }
-        Relationships: []
-      }
       managers_needing_improvement: {
         Row: {
           average_score: number | null

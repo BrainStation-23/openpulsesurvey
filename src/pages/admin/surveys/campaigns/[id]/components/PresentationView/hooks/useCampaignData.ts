@@ -15,7 +15,6 @@ export function useCampaignData(id: string | undefined, instanceId: string | nul
           description,
           starts_at,
           ends_at,
-          completion_rate,
           survey:surveys (
             id,
             name,
@@ -28,13 +27,18 @@ export function useCampaignData(id: string | undefined, instanceId: string | nul
 
       if (error) throw error;
 
-      const { data: instance, error: instanceError } = await supabase
-        .from("campaign_instances")
-        .select("*")
-        .eq("id", instanceId)
-        .single();
+      let instance = null;
+      if (instanceId) {
+        const { data: instanceData, error: instanceError } = await supabase
+          .from("campaign_instances")
+          .select("*")
+          .eq("id", instanceId)
+          .single();
 
-      if (instanceError) throw instanceError;
+        if (!instanceError && instanceData) {
+          instance = instanceData;
+        }
+      }
       
       const parsedJsonData = typeof data.survey.json_data === 'string' 
         ? JSON.parse(data.survey.json_data) 
@@ -49,6 +53,6 @@ export function useCampaignData(id: string | undefined, instanceId: string | nul
         }
       } as CampaignData;
     },
-    enabled: !!id && !!instanceId,
+    enabled: !!id,
   });
 }
