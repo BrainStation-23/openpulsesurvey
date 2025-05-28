@@ -1661,37 +1661,9 @@ export type Database = {
       }
     }
     Views: {
-      demographic_employee_role_analysis: {
-        Row: {
-          employee_role: string | null
-          response_count: number | null
-        }
-        Relationships: []
-      }
-      demographic_employee_type_analysis: {
-        Row: {
-          employee_type: string | null
-          response_count: number | null
-        }
-        Relationships: []
-      }
-      demographic_employment_analysis: {
-        Row: {
-          employment_type: string | null
-          response_count: number | null
-        }
-        Relationships: []
-      }
       demographic_gender_analysis: {
         Row: {
           gender: string | null
-          response_count: number | null
-        }
-        Relationships: []
-      }
-      demographic_level_analysis: {
-        Row: {
-          level: string | null
           response_count: number | null
         }
         Relationships: []

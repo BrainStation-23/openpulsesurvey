@@ -1,8 +1,6 @@
 
-import { CompletionRateCard } from "../CompletionRateCard";
 import { SBUResponseRates } from "../SBUResponseRates";
-import { CompletionTrends } from "../CompletionTrends";
-import { TopPerformingSBUsChart } from "./TopPerformingSBUsChart";
+import { StatusDistributionCard } from "../StatusDistributionCard";
 
 type StatisticsSectionProps = {
   instanceStats?: {
@@ -20,15 +18,11 @@ export function StatisticsSection({
 }: StatisticsSectionProps) {
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2">
-        <CompletionRateCard 
+      <div className="grid gap-4 md:grid-cols-1">
+        <StatusDistributionCard 
           campaignId={campaignId}
           selectedInstanceId={selectedInstanceId}
         />
-         <CompletionTrends 
-          campaignId={campaignId} 
-          instanceId={selectedInstanceId} 
-          />
       </div>
       
       <div className="grid gap-6 md:grid-cols-1">
