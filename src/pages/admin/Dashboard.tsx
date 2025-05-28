@@ -7,9 +7,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { MetricsOverview } from "@/components/admin/dashboard/MetricsOverview";
 import { ResponseTrendChart } from "@/components/admin/dashboard/analytics/ResponseTrendChart";
 import { DepartmentCompletionChart } from "@/components/admin/dashboard/analytics/DepartmentCompletionChart";
-import { TopSurveysTable } from "@/components/admin/dashboard/analytics/TopSurveysTable";
-import { TopManagersTable } from "@/components/admin/dashboard/analytics/TopManagersTable";
-import { TopSBUsTable } from "@/components/admin/dashboard/analytics/TopSBUsTable";
 import { ManagersNeedingImprovement } from "@/components/admin/dashboard/analytics/ManagersNeedingImprovement";
 import { DemographicBreakdown } from "@/components/admin/dashboard/analytics/DemographicBreakdown";
 import { UpcomingSurveyDeadlines } from "@/components/admin/dashboard/analytics/UpcomingSurveyDeadlines";
@@ -48,7 +45,6 @@ export default function AdminDashboard() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="demographics">Demographics</TabsTrigger>
           <TabsTrigger value="attention">Needs Attention</TabsTrigger>
         </TabsList>
@@ -64,21 +60,6 @@ export default function AdminDashboard() {
             </div>
             <div className={`${componentLayouts.fullWidth} department-completion`}>
               <DepartmentCompletionChart />
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Performance Tab */}
-        <TabsContent value="performance" className="space-y-6">
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
-            <div className={`${componentLayouts.narrowList} top-surveys`}>
-              <TopSurveysTable />
-            </div>
-            <div className={`${componentLayouts.mediumWidth} top-sbus`}>
-              <TopSBUsTable />
-            </div>
-            <div className={`${componentLayouts.fullWidth} top-managers`}>
-              <TopManagersTable />
             </div>
           </div>
         </TabsContent>
