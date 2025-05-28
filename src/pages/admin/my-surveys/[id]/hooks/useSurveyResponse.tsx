@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SurveyStateData, isSurveyStateData } from "@/types/survey";
 import { useNavigate } from "react-router-dom";
 import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
+import { useAutoSave } from "@/hooks/survey-response/useAutoSave";
 
 interface UseSurveyResponseProps {
   id: string;
@@ -26,6 +27,8 @@ export function useSurveyResponse({
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const { setupAutoSave } = useAutoSave(id, campaignInstanceId, setLastSaved);
 
   useEffect(() => {
     if (surveyData) {
@@ -50,109 +53,8 @@ export function useSurveyResponse({
       if (existingResponse?.status === 'submitted') {
         surveyModel.mode = 'display';
       } else {
-        // Add autosave for non-submitted surveys
-        surveyModel.onCurrentPageChanged.add(async (sender) => {
-          try {
-            const userId = (await supabase.auth.getUser()).data.user?.id;
-            if (!userId) throw new Error("User not authenticated");
-
-            const stateData = {
-              lastPageNo: sender.currentPageNo,
-              lastUpdated: new Date().toISOString()
-            } as SurveyStateData;
-
-            // Use SELECT + UPDATE/INSERT pattern instead of upsert
-            const { data: existingResponse } = await supabase
-              .from("survey_responses")
-              .select("id")
-              .eq("assignment_id", id)
-              .eq("user_id", userId)
-              .eq("campaign_instance_id", campaignInstanceId)
-              .maybeSingle();
-
-            if (existingResponse) {
-              const { error } = await supabase
-                .from("survey_responses")
-                .update({
-                  response_data: sender.data,
-                  state_data: stateData,
-                  status: 'in_progress' as ResponseStatus,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("id", existingResponse.id);
-
-              if (error) throw error;
-            } else {
-              const { error } = await supabase
-                .from("survey_responses")
-                .insert({
-                  assignment_id: id,
-                  user_id: userId,
-                  response_data: sender.data,
-                  state_data: stateData,
-                  status: 'in_progress' as ResponseStatus,
-                  campaign_instance_id: campaignInstanceId,
-                });
-
-              if (error) throw error;
-            }
-
-            console.log("Saved page state:", stateData);
-          } catch (error) {
-            console.error("Error saving page state:", error);
-          }
-        });
-
-        surveyModel.onValueChanged.add(async (sender) => {
-          try {
-            const userId = (await supabase.auth.getUser()).data.user?.id;
-            if (!userId) throw new Error("User not authenticated");
-
-            // Use SELECT + UPDATE/INSERT pattern instead of upsert
-            const { data: existingResponse } = await supabase
-              .from("survey_responses")
-              .select("id")
-              .eq("assignment_id", id)
-              .eq("user_id", userId)
-              .eq("campaign_instance_id", campaignInstanceId)
-              .maybeSingle();
-
-            if (existingResponse) {
-              const { error } = await supabase
-                .from("survey_responses")
-                .update({
-                  response_data: sender.data,
-                  status: 'in_progress' as ResponseStatus,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("id", existingResponse.id);
-
-              if (error) throw error;
-            } else {
-              const { error } = await supabase
-                .from("survey_responses")
-                .insert({
-                  assignment_id: id,
-                  user_id: userId,
-                  response_data: sender.data,
-                  status: 'in_progress' as ResponseStatus,
-                  campaign_instance_id: campaignInstanceId,
-                });
-
-              if (error) throw error;
-            }
-
-            setLastSaved(new Date());
-            console.log("Saved response data");
-          } catch (error) {
-            console.error("Error saving response:", error);
-            toast({
-              title: "Error saving response",
-              description: "Your progress could not be saved. Please try again.",
-              variant: "destructive",
-            });
-          }
-        });
+        // Use the shared autosave hook instead of manual saving
+        setupAutoSave(surveyModel);
 
         surveyModel.onComplete.add(() => {
           setShowSubmitDialog(true);
@@ -161,7 +63,7 @@ export function useSurveyResponse({
 
       setSurvey(surveyModel);
     }
-  }, [id, surveyData, existingResponse, campaignInstanceId, toast]);
+  }, [id, surveyData, existingResponse, campaignInstanceId, toast, setupAutoSave]);
 
   const handleSubmitSurvey = async () => {
     if (!survey) return;
