@@ -5,7 +5,6 @@ import { SurveyStateData } from "@/types/survey";
 import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 import { useToast } from "@/hooks/use-toast";
 import { Dispatch, SetStateAction } from "react";
-import { useDebounce } from "@/hooks/useDebounce";
 
 export function useAutoSave(
   id: string,
@@ -140,5 +139,5 @@ export function useAutoSave(
     });
   };
 
-  return { setupAutoSave };
+  return { setupAutoSave, saveResponse, debouncedSave };
 }

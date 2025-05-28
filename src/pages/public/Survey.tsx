@@ -39,7 +39,7 @@ export default function PublicSurveyPage() {
           const userId = assignmentData.assignment.user_id;
           const now = new Date().toISOString();
 
-          // Use the same consistent save pattern as other hooks
+          // Use the same consistent save pattern as the centralized saving logic
           // First check for existing response
           const { data: existingResponse } = await supabase
             .from("survey_responses")

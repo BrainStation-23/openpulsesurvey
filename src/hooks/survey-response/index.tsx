@@ -3,10 +3,11 @@ import { useEffect, useState, useRef } from "react";
 import { Model } from "survey-core";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { isSurveyStateData, SurveyStateData } from "@/types/survey";
+import { isSurveyStateData } from "@/types/survey";
 import { useNavigate } from "react-router-dom";
 import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 import { useTheme } from "./useTheme";
+import { useAutoSave } from "./useAutoSave";
 import type { 
   UseSurveyResponseProps, 
   UseSurveyResponseResult,
@@ -29,86 +30,9 @@ export function useSurveyResponse({
   const navigate = useNavigate();
 
   const { currentTheme, setCurrentTheme, getThemeInstance } = useTheme(initialTheme);
-
-  // Debounced save function
-  let saveTimeout: NodeJS.Timeout | null = null;
-
-  const saveResponse = async (
-    userId: string,
-    responseData: any,
-    stateData?: SurveyStateData,
-    status: ResponseStatus = 'in_progress'
-  ) => {
-    try {
-      // First try to get any existing response with the correct composite key
-      const { data: existingResponse } = await supabase
-        .from("survey_responses")
-        .select("id")
-        .eq("assignment_id", id)
-        .eq("user_id", userId)
-        .eq("campaign_instance_id", campaignInstanceId)
-        .maybeSingle();
-
-      if (existingResponse) {
-        // Update existing response
-        const { error: updateError } = await supabase
-          .from("survey_responses")
-          .update({
-            response_data: responseData,
-            state_data: stateData || {},
-            status,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existingResponse.id);
-
-        if (updateError) throw updateError;
-      } else {
-        // Insert new response
-        const { error: insertError } = await supabase
-          .from("survey_responses")
-          .insert({
-            assignment_id: id,
-            user_id: userId,
-            response_data: responseData,
-            state_data: stateData || {},
-            status,
-            campaign_instance_id: campaignInstanceId,
-          });
-
-        if (insertError) throw insertError;
-      }
-
-      setLastSaved(new Date());
-      console.log("Successfully saved response");
-    } catch (error) {
-      console.error("Error saving response:", error);
-      throw error;
-    }
-  };
-
-  const debouncedSave = (
-    userId: string,
-    responseData: any,
-    stateData?: SurveyStateData,
-    status: ResponseStatus = 'in_progress'
-  ) => {
-    if (saveTimeout) {
-      clearTimeout(saveTimeout);
-    }
-    
-    saveTimeout = setTimeout(async () => {
-      try {
-        await saveResponse(userId, responseData, stateData, status);
-      } catch (error) {
-        console.error("Error in debounced save:", error);
-        toast({
-          title: "Error saving progress",
-          description: "There was an error saving your progress. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }, 500); // 500ms debounce
-  };
+  
+  // Use the centralized auto-save hook
+  const { setupAutoSave, saveResponse } = useAutoSave(id, campaignInstanceId, setLastSaved);
 
   useEffect(() => {
     if (!surveyData || !campaignInstanceId) return;
@@ -148,36 +72,10 @@ export function useSurveyResponse({
       }
 
       if (surveyModel.mode !== 'display') {
-        console.log("Setting up autosave with debouncing");
+        console.log("Setting up centralized autosave");
         
-        // Handle page changes with debouncing
-        surveyModel.onCurrentPageChanged.add(async (sender) => {
-          try {
-            const userId = (await supabase.auth.getUser()).data.user?.id;
-            if (!userId) throw new Error("User not authenticated");
-
-            const stateData = {
-              lastPageNo: sender.currentPageNo,
-              lastUpdated: new Date().toISOString()
-            } as SurveyStateData;
-
-            debouncedSave(userId, sender.data, stateData);
-          } catch (error) {
-            console.error("Error saving page state:", error);
-          }
-        });
-
-        // Handle value changes with debouncing
-        surveyModel.onValueChanged.add(async (sender) => {
-          try {
-            const userId = (await supabase.auth.getUser()).data.user?.id;
-            if (!userId) throw new Error("User not authenticated");
-
-            debouncedSave(userId, sender.data);
-          } catch (error) {
-            console.error("Error saving response:", error);
-          }
-        });
+        // Use the centralized auto-save setup
+        setupAutoSave(surveyModel);
 
         surveyModel.onComplete.add(() => {
           setShowSubmitDialog(true);
@@ -194,7 +92,7 @@ export function useSurveyResponse({
         variant: "destructive",
       });
     }
-  }, [id, surveyData, existingResponse, campaignInstanceId, toast, initialTheme]);
+  }, [id, surveyData, existingResponse, campaignInstanceId, toast, initialTheme, setupAutoSave, getThemeInstance]);
 
   useEffect(() => {
     const currentSurvey = surveyRef.current;
@@ -220,7 +118,7 @@ export function useSurveyResponse({
 
       const now = new Date().toISOString();
 
-      // Use the same consistent save pattern for submission
+      // Use the centralized save function for submission
       await saveResponse(
         userId,
         survey.data,
