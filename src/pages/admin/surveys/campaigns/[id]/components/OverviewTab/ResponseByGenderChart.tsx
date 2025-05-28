@@ -1,7 +1,8 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -16,6 +17,8 @@ type Props = {
   campaignId: string;
   instanceId?: string;
 };
+
+const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#8dd1e1'];
 
 export function ResponseByGenderChart({ campaignId, instanceId }: Props) {
   const { data: stats, isLoading } = useQuery({
@@ -104,15 +107,26 @@ export function ResponseByGenderChart({ campaignId, instanceId }: Props) {
 
           <TabsContent value="chart" className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" unit="%" />
-                <YAxis dataKey="gender" type="category" width={100} />
+              <PieChart>
+                <Pie
+                  data={stats}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ gender, response_rate }) => `${gender}: ${response_rate}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="response_rate"
+                >
+                  {stats.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
                 <Tooltip
-                  formatter={(value: number) => [`${value}%`, "Response Rate"]}
+                  formatter={(value: number, name) => [`${value}%`, "Response Rate"]}
                 />
-                <Bar dataKey="response_rate" fill="#8884d8" />
-              </BarChart>
+                <Legend />
+              </PieChart>
             </ResponsiveContainer>
           </TabsContent>
 
