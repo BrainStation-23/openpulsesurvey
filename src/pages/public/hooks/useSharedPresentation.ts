@@ -66,8 +66,13 @@ export function useSharedPresentation(token: string) {
               const rawData = campaignData.survey.json_data;
               if (typeof rawData === 'string') {
                 return JSON.parse(rawData) as SurveyJsonData;
-              } else if (rawData && typeof rawData === 'object' && 'pages' in rawData) {
-                return rawData as SurveyJsonData;
+              } else if (rawData && typeof rawData === 'object') {
+                // Check if it has the required pages property
+                if ('pages' in rawData && Array.isArray((rawData as any).pages)) {
+                  return rawData as unknown as SurveyJsonData;
+                } else {
+                  return { pages: [] } as SurveyJsonData;
+                }
               } else {
                 return { pages: [] } as SurveyJsonData;
               }
