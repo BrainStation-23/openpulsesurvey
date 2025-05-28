@@ -61,24 +61,42 @@ export function useSurveyResponse({
               lastUpdated: new Date().toISOString()
             } as SurveyStateData;
 
-            const responseData = {
-              assignment_id: id,
-              user_id: userId,
-              response_data: sender.data,
-              state_data: stateData,
-              status: 'in_progress' as ResponseStatus,
-              campaign_instance_id: campaignInstanceId,
-            };
-
-            console.log("Saving response with data:", responseData);
-
-            const { error } = await supabase
+            // Use SELECT + UPDATE/INSERT pattern instead of upsert
+            const { data: existingResponse } = await supabase
               .from("survey_responses")
-              .upsert(responseData, {
-                onConflict: 'assignment_id,user_id'
-              });
+              .select("id")
+              .eq("assignment_id", id)
+              .eq("user_id", userId)
+              .eq("campaign_instance_id", campaignInstanceId)
+              .maybeSingle();
 
-            if (error) throw error;
+            if (existingResponse) {
+              const { error } = await supabase
+                .from("survey_responses")
+                .update({
+                  response_data: sender.data,
+                  state_data: stateData,
+                  status: 'in_progress' as ResponseStatus,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", existingResponse.id);
+
+              if (error) throw error;
+            } else {
+              const { error } = await supabase
+                .from("survey_responses")
+                .insert({
+                  assignment_id: id,
+                  user_id: userId,
+                  response_data: sender.data,
+                  state_data: stateData,
+                  status: 'in_progress' as ResponseStatus,
+                  campaign_instance_id: campaignInstanceId,
+                });
+
+              if (error) throw error;
+            }
+
             console.log("Saved page state:", stateData);
           } catch (error) {
             console.error("Error saving page state:", error);
@@ -90,23 +108,40 @@ export function useSurveyResponse({
             const userId = (await supabase.auth.getUser()).data.user?.id;
             if (!userId) throw new Error("User not authenticated");
 
-            const responseData = {
-              assignment_id: id,
-              user_id: userId,
-              response_data: sender.data,
-              status: 'in_progress' as ResponseStatus,
-              campaign_instance_id: campaignInstanceId,
-            };
-
-            console.log("Saving response with data:", responseData);
-
-            const { error } = await supabase
+            // Use SELECT + UPDATE/INSERT pattern instead of upsert
+            const { data: existingResponse } = await supabase
               .from("survey_responses")
-              .upsert(responseData, {
-                onConflict: 'assignment_id,user_id'
-              });
+              .select("id")
+              .eq("assignment_id", id)
+              .eq("user_id", userId)
+              .eq("campaign_instance_id", campaignInstanceId)
+              .maybeSingle();
 
-            if (error) throw error;
+            if (existingResponse) {
+              const { error } = await supabase
+                .from("survey_responses")
+                .update({
+                  response_data: sender.data,
+                  status: 'in_progress' as ResponseStatus,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", existingResponse.id);
+
+              if (error) throw error;
+            } else {
+              const { error } = await supabase
+                .from("survey_responses")
+                .insert({
+                  assignment_id: id,
+                  user_id: userId,
+                  response_data: sender.data,
+                  status: 'in_progress' as ResponseStatus,
+                  campaign_instance_id: campaignInstanceId,
+                });
+
+              if (error) throw error;
+            }
+
             setLastSaved(new Date());
             console.log("Saved response data");
           } catch (error) {
@@ -136,25 +171,42 @@ export function useSurveyResponse({
       if (!userId) throw new Error("User not authenticated");
 
       const now = new Date().toISOString();
-      const responseData = {
-        assignment_id: id,
-        user_id: userId,
-        response_data: survey.data,
-        status: 'submitted' as ResponseStatus,
-        submitted_at: now,
-        updated_at: now,
-        campaign_instance_id: campaignInstanceId,
-      };
 
-      console.log("Submitting response with data:", responseData);
-
-      const { error: responseError } = await supabase
+      // Use SELECT + UPDATE/INSERT pattern for submission
+      const { data: existingResponse } = await supabase
         .from("survey_responses")
-        .upsert(responseData, {
-          onConflict: 'assignment_id,user_id'
-        });
+        .select("id")
+        .eq("assignment_id", id)
+        .eq("user_id", userId)
+        .eq("campaign_instance_id", campaignInstanceId)
+        .maybeSingle();
 
-      if (responseError) throw responseError;
+      if (existingResponse) {
+        const { error } = await supabase
+          .from("survey_responses")
+          .update({
+            response_data: survey.data,
+            status: 'submitted' as ResponseStatus,
+            submitted_at: now,
+            updated_at: now,
+          })
+          .eq("id", existingResponse.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("survey_responses")
+          .insert({
+            assignment_id: id,
+            user_id: userId,
+            response_data: survey.data,
+            status: 'submitted' as ResponseStatus,
+            submitted_at: now,
+            campaign_instance_id: campaignInstanceId,
+          });
+
+        if (error) throw error;
+      }
 
       toast({
         title: "Survey completed",

@@ -39,7 +39,7 @@ export default function PublicSurveyPage() {
           const userId = assignmentData.assignment.user_id;
           const now = new Date().toISOString();
 
-          // First check for existing response
+          // Use SELECT + UPDATE/INSERT pattern for submission
           const { data: existingResponse } = await supabase
             .from("survey_responses")
             .select("id")
