@@ -29,10 +29,13 @@ export function useAutoSave(
         .eq("campaign_instance_id", campaignInstanceId)
         .maybeSingle();
 
-      if (selectError) throw selectError;
+      if (selectError) {
+        console.error("Error checking for existing response:", selectError);
+        throw selectError;
+      }
 
       if (existingResponse) {
-        // Update existing response
+        // Update existing response using the ID we found
         const { error: updateError } = await supabase
           .from("survey_responses")
           .update({
@@ -43,7 +46,10 @@ export function useAutoSave(
           })
           .eq("id", existingResponse.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error("Error updating response:", updateError);
+          throw updateError;
+        }
       } else {
         // Insert new response
         const { error: insertError } = await supabase
@@ -58,7 +64,10 @@ export function useAutoSave(
             updated_at: new Date().toISOString(),
           });
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("Error inserting response:", insertError);
+          throw insertError;
+        }
       }
 
       setLastSaved(new Date());
