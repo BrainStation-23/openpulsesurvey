@@ -5,6 +5,7 @@ import { SurveyStateData } from "@/types/survey";
 import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
 import { useToast } from "@/hooks/use-toast";
 import { Dispatch, SetStateAction } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export function useAutoSave(
   id: string,
@@ -20,7 +21,7 @@ export function useAutoSave(
     status: ResponseStatus = 'in_progress'
   ) => {
     try {
-      // First try to get any existing response
+      // First try to get any existing response with the correct composite key
       const { data: existingResponse } = await supabase
         .from("survey_responses")
         .select("id")
@@ -66,13 +67,40 @@ export function useAutoSave(
     }
   };
 
+  // Debounced save functions to prevent rapid database calls
+  let saveTimeout: NodeJS.Timeout | null = null;
+
+  const debouncedSave = (
+    userId: string,
+    responseData: any,
+    stateData?: SurveyStateData,
+    status: ResponseStatus = 'in_progress'
+  ) => {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+    
+    saveTimeout = setTimeout(async () => {
+      try {
+        await saveResponse(userId, responseData, stateData, status);
+      } catch (error) {
+        console.error("Error in debounced save:", error);
+        toast({
+          title: "Error saving progress",
+          description: "There was an error saving your progress. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }, 500); // 500ms debounce
+  };
+
   const setupAutoSave = (surveyModel: Model) => {
     if (!campaignInstanceId) {
       console.error("Cannot setup autosave without campaign instance ID");
       return;
     }
 
-    // Handle page changes
+    // Handle page changes with debouncing
     surveyModel.onCurrentPageChanged.add(async (sender) => {
       try {
         const userId = (await supabase.auth.getUser()).data.user?.id;
@@ -83,7 +111,7 @@ export function useAutoSave(
           lastUpdated: new Date().toISOString()
         } as SurveyStateData;
 
-        await saveResponse(userId, sender.data, stateData);
+        debouncedSave(userId, sender.data, stateData);
       } catch (error) {
         console.error("Error saving page state:", error);
         toast({
@@ -94,13 +122,13 @@ export function useAutoSave(
       }
     });
 
-    // Handle value changes
+    // Handle value changes with debouncing
     surveyModel.onValueChanged.add(async (sender) => {
       try {
         const userId = (await supabase.auth.getUser()).data.user?.id;
         if (!userId) throw new Error("User not authenticated");
 
-        await saveResponse(userId, sender.data);
+        debouncedSave(userId, sender.data);
       } catch (error) {
         console.error("Error saving response:", error);
         toast({
