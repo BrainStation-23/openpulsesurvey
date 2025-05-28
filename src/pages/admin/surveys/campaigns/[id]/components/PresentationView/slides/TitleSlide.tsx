@@ -1,7 +1,6 @@
 
 import { SlideProps } from "../types";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { SlideWrapper } from "../components/SlideWrapper";
 import { Card } from "@/components/ui/card";
 
@@ -24,18 +23,11 @@ export function TitleSlide({ campaign, isActive }: SlideProps) {
               <p className="text-xl text-gray-600">{campaign.description}</p>
             )}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+          <div className="grid  w-full">
             <div className="space-y-2">
-              <h3 className="text-sm font-medium text-gray-500 uppercase text-center md:text-left">Period</h3>
-              <p className="text-lg text-gray-900 text-center md:text-left">
+              <p className="text-lg text-gray-900 text-center md:text-center">
                 {format(new Date(startDate), "PPP")} -{" "}
                 {format(new Date(endDate), "PPP")}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-gray-500 uppercase text-center md:text-left">Completion Rate</h3>
-              <p className="text-3xl font-bold text-primary text-center md:text-left">
-                {completionRate.toFixed(1)}%
               </p>
             </div>
           </div>

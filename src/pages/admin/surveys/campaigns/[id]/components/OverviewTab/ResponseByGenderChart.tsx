@@ -125,7 +125,6 @@ export function ResponseByGenderChart({ campaignId, instanceId }: Props) {
                 <Tooltip
                   formatter={(value: number, name) => [`${value}%`, "Response Rate"]}
                 />
-                <Legend />
               </PieChart>
             </ResponsiveContainer>
           </TabsContent>
