@@ -2008,6 +2008,10 @@ export type Database = {
         Args: { p_assignment_id: string }
         Returns: Json
       }
+      fix_all_instance_completion_rates: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_assignment_instance_status: {
         Args: { p_assignment_id: string; p_instance_id: string }
         Returns: Database["public"]["Enums"]["assignment_status"]
@@ -2388,10 +2392,6 @@ export type Database = {
           updated_at: string
           error_message: string
         }[]
-      }
-      update_completion_rate: {
-        Args: { instance_id: string }
-        Returns: number
       }
       update_system_version: {
         Args: {

@@ -4,10 +4,9 @@ import { Model } from "survey-core";
 import { LayeredDarkPanelless } from "survey-core/themes";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { isSurveyStateData } from "@/types/survey";
+import { SurveyStateData, isSurveyStateData } from "@/types/survey";
 import { useNavigate } from "react-router-dom";
 import { ResponseStatus } from "@/pages/admin/surveys/types/assignments";
-import { useAutoSave } from "@/hooks/survey-response/useAutoSave";
 
 interface UseSurveyResponseProps {
   id: string;
@@ -27,9 +26,6 @@ export function useSurveyResponse({
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  // Use the centralized auto-save hook
-  const { setupAutoSave, saveResponse } = useAutoSave(id, campaignInstanceId, setLastSaved);
 
   useEffect(() => {
     if (surveyData) {
@@ -54,8 +50,74 @@ export function useSurveyResponse({
       if (existingResponse?.status === 'submitted') {
         surveyModel.mode = 'display';
       } else {
-        // Use the centralized auto-save setup
-        setupAutoSave(surveyModel);
+        // Add autosave for non-submitted surveys
+        surveyModel.onCurrentPageChanged.add(async (sender) => {
+          try {
+            const userId = (await supabase.auth.getUser()).data.user?.id;
+            if (!userId) throw new Error("User not authenticated");
+
+            const stateData = {
+              lastPageNo: sender.currentPageNo,
+              lastUpdated: new Date().toISOString()
+            } as SurveyStateData;
+
+            const responseData = {
+              assignment_id: id,
+              user_id: userId,
+              response_data: sender.data,
+              state_data: stateData,
+              status: 'in_progress' as ResponseStatus,
+              campaign_instance_id: campaignInstanceId,
+            };
+
+            console.log("Saving response with data:", responseData);
+
+            const { error } = await supabase
+              .from("survey_responses")
+              .upsert(responseData, {
+                onConflict: 'assignment_id,user_id'
+              });
+
+            if (error) throw error;
+            console.log("Saved page state:", stateData);
+          } catch (error) {
+            console.error("Error saving page state:", error);
+          }
+        });
+
+        surveyModel.onValueChanged.add(async (sender) => {
+          try {
+            const userId = (await supabase.auth.getUser()).data.user?.id;
+            if (!userId) throw new Error("User not authenticated");
+
+            const responseData = {
+              assignment_id: id,
+              user_id: userId,
+              response_data: sender.data,
+              status: 'in_progress' as ResponseStatus,
+              campaign_instance_id: campaignInstanceId,
+            };
+
+            console.log("Saving response with data:", responseData);
+
+            const { error } = await supabase
+              .from("survey_responses")
+              .upsert(responseData, {
+                onConflict: 'assignment_id,user_id'
+              });
+
+            if (error) throw error;
+            setLastSaved(new Date());
+            console.log("Saved response data");
+          } catch (error) {
+            console.error("Error saving response:", error);
+            toast({
+              title: "Error saving response",
+              description: "Your progress could not be saved. Please try again.",
+              variant: "destructive",
+            });
+          }
+        });
 
         surveyModel.onComplete.add(() => {
           setShowSubmitDialog(true);
@@ -64,7 +126,7 @@ export function useSurveyResponse({
 
       setSurvey(surveyModel);
     }
-  }, [id, surveyData, existingResponse, campaignInstanceId, setupAutoSave]);
+  }, [id, surveyData, existingResponse, campaignInstanceId, toast]);
 
   const handleSubmitSurvey = async () => {
     if (!survey) return;
@@ -74,33 +136,25 @@ export function useSurveyResponse({
       if (!userId) throw new Error("User not authenticated");
 
       const now = new Date().toISOString();
-      
-      // Use the centralized save function for submission
-      await saveResponse(
-        userId,
-        survey.data,
-        undefined,
-        'submitted' as ResponseStatus
-      );
+      const responseData = {
+        assignment_id: id,
+        user_id: userId,
+        response_data: survey.data,
+        status: 'submitted' as ResponseStatus,
+        submitted_at: now,
+        updated_at: now,
+        campaign_instance_id: campaignInstanceId,
+      };
 
-      // Also update the submitted_at timestamp
-      const { data: existingResponse } = await supabase
+      console.log("Submitting response with data:", responseData);
+
+      const { error: responseError } = await supabase
         .from("survey_responses")
-        .select("id")
-        .eq("assignment_id", id)
-        .eq("user_id", userId)
-        .eq("campaign_instance_id", campaignInstanceId)
-        .maybeSingle();
+        .upsert(responseData, {
+          onConflict: 'assignment_id,user_id'
+        });
 
-      if (existingResponse) {
-        await supabase
-          .from("survey_responses")
-          .update({
-            submitted_at: now,
-            updated_at: now
-          })
-          .eq("id", existingResponse.id);
-      }
+      if (responseError) throw responseError;
 
       toast({
         title: "Survey completed",

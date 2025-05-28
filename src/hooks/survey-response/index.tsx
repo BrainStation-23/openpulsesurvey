@@ -30,9 +30,7 @@ export function useSurveyResponse({
   const navigate = useNavigate();
 
   const { currentTheme, setCurrentTheme, getThemeInstance } = useTheme(initialTheme);
-  
-  // Use the centralized auto-save hook
-  const { setupAutoSave, saveResponse } = useAutoSave(id, campaignInstanceId, setLastSaved);
+  const { setupAutoSave } = useAutoSave(id, campaignInstanceId, setLastSaved);
 
   useEffect(() => {
     if (!surveyData || !campaignInstanceId) return;
@@ -72,11 +70,8 @@ export function useSurveyResponse({
       }
 
       if (surveyModel.mode !== 'display') {
-        console.log("Setting up centralized autosave");
-        
-        // Use the centralized auto-save setup
+        console.log("Setting up autosave");
         setupAutoSave(surveyModel);
-
         surveyModel.onComplete.add(() => {
           setShowSubmitDialog(true);
         });
@@ -92,7 +87,7 @@ export function useSurveyResponse({
         variant: "destructive",
       });
     }
-  }, [id, surveyData, existingResponse, campaignInstanceId, toast, initialTheme, setupAutoSave, getThemeInstance]);
+  }, [id, surveyData, existingResponse, campaignInstanceId, toast, initialTheme]);
 
   useEffect(() => {
     const currentSurvey = surveyRef.current;
@@ -118,15 +113,7 @@ export function useSurveyResponse({
 
       const now = new Date().toISOString();
 
-      // Use the centralized save function for submission
-      await saveResponse(
-        userId,
-        survey.data,
-        undefined,
-        'submitted' as ResponseStatus
-      );
-
-      // Also update the submitted_at timestamp
+      // First check for existing response
       const { data: existingResponse } = await supabase
         .from("survey_responses")
         .select("id")
@@ -136,13 +123,32 @@ export function useSurveyResponse({
         .maybeSingle();
 
       if (existingResponse) {
-        await supabase
+        // Update existing response
+        const { error: updateError } = await supabase
           .from("survey_responses")
           .update({
+            response_data: survey.data,
+            status: 'submitted' as ResponseStatus,
             submitted_at: now,
             updated_at: now
           })
           .eq("id", existingResponse.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Insert new response
+        const { error: insertError } = await supabase
+          .from("survey_responses")
+          .insert({
+            assignment_id: id,
+            user_id: userId,
+            response_data: survey.data,
+            status: 'submitted' as ResponseStatus,
+            submitted_at: now,
+            campaign_instance_id: campaignInstanceId,
+          });
+
+        if (insertError) throw insertError;
       }
 
       toast({
