@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { Model } from "survey-core";
 import { useToast } from "@/hooks/use-toast";
@@ -113,43 +112,23 @@ export function useSurveyResponse({
 
       const now = new Date().toISOString();
 
-      // Use SELECT + UPDATE/INSERT pattern for submission
-      const { data: existingResponse } = await supabase
+      // Use upsert to avoid race conditions on final submission
+      const { error } = await supabase
         .from("survey_responses")
-        .select("id")
-        .eq("assignment_id", id)
-        .eq("user_id", userId)
-        .eq("campaign_instance_id", campaignInstanceId)
-        .maybeSingle();
+        .upsert({
+          assignment_id: id,
+          user_id: userId,
+          response_data: survey.data,
+          status: 'submitted' as ResponseStatus,
+          submitted_at: now,
+          updated_at: now,
+          campaign_instance_id: campaignInstanceId,
+        }, {
+          onConflict: 'assignment_id,user_id,campaign_instance_id',
+          ignoreDuplicates: false
+        });
 
-      if (existingResponse) {
-        // Update existing response
-        const { error: updateError } = await supabase
-          .from("survey_responses")
-          .update({
-            response_data: survey.data,
-            status: 'submitted' as ResponseStatus,
-            submitted_at: now,
-            updated_at: now
-          })
-          .eq("id", existingResponse.id);
-
-        if (updateError) throw updateError;
-      } else {
-        // Insert new response
-        const { error: insertError } = await supabase
-          .from("survey_responses")
-          .insert({
-            assignment_id: id,
-            user_id: userId,
-            response_data: survey.data,
-            status: 'submitted' as ResponseStatus,
-            submitted_at: now,
-            campaign_instance_id: campaignInstanceId,
-          });
-
-        if (insertError) throw insertError;
-      }
+      if (error) throw error;
 
       toast({
         title: "Survey completed",
