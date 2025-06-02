@@ -48,6 +48,13 @@ export interface TeamData {
   error?: string;
 }
 
+interface TeamDataResponse {
+  supervisor: Supervisor | null;
+  teamMembers: TeamMember[];
+  directReports: DirectReport[];
+  error?: string;
+}
+
 export const useTeamData = () => {
   const { user } = useCurrentUser();
   
@@ -66,6 +73,7 @@ export const useTeamData = () => {
       console.log('Fetching team data for user:', user.id);
       
       try {
+        // Call the RPC function directly using supabase client
         const { data, error } = await supabase.rpc('get_team_data', {
           p_user_id: user.id
         });
@@ -82,17 +90,25 @@ export const useTeamData = () => {
         
         console.log('Team data received from RPC:', data);
         
+        // Parse the JSON response
+        const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+        
         // Check if there's an error in the returned data
-        if (data.error) {
-          console.error('Database error in get_team_data:', data.error);
-          throw new Error(`Database error: ${data.error}`);
+        if (parsedData.error) {
+          console.error('Database error in get_team_data:', parsedData.error);
+          throw new Error(`Database error: ${parsedData.error}`);
         }
         
-        return {
-          supervisor: data.supervisor,
-          teamMembers: data.teamMembers || [],
-          directReports: data.directReports || []
+        // Transform the data to match our interface
+        const result: TeamData = {
+          supervisor: parsedData.supervisor,
+          teamMembers: parsedData.teamMembers || [],
+          directReports: parsedData.directReports || []
         };
+        
+        console.log('Processed team data:', result);
+        
+        return result;
         
       } catch (err) {
         console.error('Error in useTeamData queryFn:', err);

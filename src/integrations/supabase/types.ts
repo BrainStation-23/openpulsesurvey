@@ -2191,6 +2191,10 @@ export type Database = {
           submitted_at: string
         }[]
       }
+      get_team_data: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       get_text_analysis: {
         Args: {
           p_campaign_id: string
