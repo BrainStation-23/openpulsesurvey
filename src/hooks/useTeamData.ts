@@ -48,13 +48,6 @@ export interface TeamData {
   error?: string;
 }
 
-interface TeamDataResponse {
-  supervisor: Supervisor | null;
-  teamMembers: TeamMember[];
-  directReports: DirectReport[];
-  error?: string;
-}
-
 export const useTeamData = () => {
   const { user } = useCurrentUser();
   
@@ -106,7 +99,7 @@ export const useTeamData = () => {
           directReports: parsedData.directReports || []
         };
         
-        console.log('Processed team data:', result);
+        console.log('Processed team data successfully');
         
         return result;
         
@@ -116,6 +109,8 @@ export const useTeamData = () => {
       }
     },
     enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
   });
   
   return {

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useTeamData } from '@/hooks/useTeamData';
 import { TeamGraphView } from '@/components/team/TeamGraphView';
@@ -8,14 +9,26 @@ export default function MyTeamPage() {
   const { user } = useCurrentUser();
   const { teamData, isLoading, error } = useTeamData();
 
-  console.log('MyTeamPage - User:', user?.id);
-  console.log('MyTeamPage - Team data:', teamData);
-  console.log('MyTeamPage - Loading:', isLoading);
-  console.log('MyTeamPage - Error:', error);
+  // Only log once when data changes, not on every render
+  React.useEffect(() => {
+    if (teamData) {
+      console.log('MyTeamPage - Team data loaded successfully:', {
+        supervisor: !!teamData.supervisor,
+        teamMembersCount: teamData.teamMembers.length,
+        directReportsCount: teamData.directReports.length,
+        loggedInUser: teamData.teamMembers.find(m => m.isLoggedInUser)?.firstName
+      });
+    }
+  }, [teamData]);
+
+  React.useEffect(() => {
+    if (error) {
+      console.error('MyTeamPage - Error loading team data:', error);
+    }
+  }, [error]);
 
   // Show error state if there's an error
   if (error) {
-    console.error('MyTeamPage - Rendering error state:', error);
     return (
       <div className="container mx-auto py-6 space-y-6">
         <div className="flex justify-between items-center">
