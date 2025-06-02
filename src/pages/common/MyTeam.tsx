@@ -21,7 +21,7 @@ export default function MyTeamPage() {
             Welcome to Your Team View
           </h2>
           <p className="text-muted-foreground">
-            This page shows your supervisor and colleagues who share the same supervisor.
+            This page shows your supervisor, colleagues who share the same supervisor, and people you supervise.
             The organizational structure is represented as a graph where connections show
             reporting relationships.
           </p>
@@ -31,6 +31,7 @@ export default function MyTeamPage() {
       <TeamGraphView
         supervisor={teamData?.supervisor || null}
         teamMembers={teamData?.teamMembers || []}
+        directReports={teamData?.directReports || []}
         isLoading={isLoading}
         error={error as Error}
       />
@@ -63,6 +64,41 @@ export default function MyTeamPage() {
                           )}
                         </div>
                         <div className="text-sm text-gray-500">{member.designation || member.email}</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {teamData?.directReports && teamData.directReports.length > 0 && (
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="text-lg font-semibold mb-4">Your Direct Reports</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {teamData.directReports.map((report) => (
+                <Card key={report.id} className="overflow-hidden border-green-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      {report.profileImageUrl ? (
+                        <img
+                          src={report.profileImageUrl}
+                          alt={`${report.firstName} ${report.lastName}`}
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-lg">
+                          {report.firstName.charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium">
+                          {report.firstName} {report.lastName}
+                        </div>
+                        <div className="text-sm text-gray-500">{report.designation || report.email}</div>
                       </div>
                     </div>
                   </CardContent>

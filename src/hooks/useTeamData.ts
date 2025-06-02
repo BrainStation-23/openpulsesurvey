@@ -31,9 +31,20 @@ export interface Supervisor {
   level?: Level;
 }
 
+export interface DirectReport {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  designation?: string;
+  profileImageUrl?: string;
+  level?: Level;
+}
+
 export interface TeamData {
   supervisor: Supervisor | null;
   teamMembers: TeamMember[];
+  directReports: DirectReport[];
 }
 
 export const useTeamData = () => {
@@ -96,7 +107,7 @@ export const useTeamData = () => {
         };
       }
       
-      // If we have a supervisor, fetch all users who also have this supervisor
+      // If we have a supervisor, fetch all users who also have this supervisor (peers)
       let teamMembers: TeamMember[] = [];
       
       if (supervisor) {
@@ -187,10 +198,58 @@ export const useTeamData = () => {
           });
         }
       }
+
+      // Fetch users who report to the current user (direct reports)
+      let directReports: DirectReport[] = [];
+      
+      const { data: directReportsData, error: directReportsError } = await supabase
+        .from('user_supervisors')
+        .select(`
+          user:profiles!user_supervisors_user_id_fkey (
+            id,
+            first_name,
+            last_name,
+            email,
+            designation,
+            profile_image_url,
+            level:levels (
+              id,
+              name,
+              color_code,
+              rank
+            )
+          )
+        `)
+        .eq('supervisor_id', user.id)
+        .eq('is_primary', true);
+      
+      if (directReportsError) {
+        throw directReportsError;
+      }
+      
+      if (directReportsData) {
+        directReports = directReportsData
+          .filter(item => item.user)
+          .map(item => ({
+            id: item.user.id,
+            firstName: item.user.first_name,
+            lastName: item.user.last_name,
+            email: item.user.email,
+            designation: item.user.designation,
+            profileImageUrl: item.user.profile_image_url,
+            level: item.user.level ? {
+              id: item.user.level.id,
+              name: item.user.level.name,
+              color_code: item.user.level.color_code,
+              rank: item.user.level.rank || 999
+            } : undefined
+          }));
+      }
       
       return {
         supervisor,
-        teamMembers
+        teamMembers,
+        directReports
       };
     },
     enabled: !!user?.id,
