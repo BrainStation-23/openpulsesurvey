@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useTeamData } from '@/hooks/useTeamData';
 import { TeamGraphView } from '@/components/team/TeamGraphView';
@@ -9,9 +8,32 @@ export default function MyTeamPage() {
   const { user } = useCurrentUser();
   const { teamData, isLoading, error } = useTeamData();
 
-  console.log('Team data:', teamData);
-  console.log('Loading:', isLoading);
-  console.log('Error:', error);
+  console.log('MyTeamPage - User:', user?.id);
+  console.log('MyTeamPage - Team data:', teamData);
+  console.log('MyTeamPage - Loading:', isLoading);
+  console.log('MyTeamPage - Error:', error);
+
+  // Show error state if there's an error
+  if (error) {
+    console.error('MyTeamPage - Rendering error state:', error);
+    return (
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold tracking-tight">My Team</h1>
+        </div>
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <h2 className="text-lg font-semibold mb-2 text-red-600">
+              Error Loading Team Data
+            </h2>
+            <p className="text-muted-foreground">
+              {error instanceof Error ? error.message : 'An unexpected error occurred while loading your team data.'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-6 space-y-6">
