@@ -7,6 +7,7 @@ import { BasicInfoTab } from "../components/EditUserDialog/BasicInfoTab";
 import { SBUAssignmentTab } from "../components/EditUserDialog/SBUAssignmentTab";
 import { ManagementTab } from "../components/EditUserDialog/ManagementTab";
 import { EmploymentDetailsTab } from "../components/EditUserDialog/EmploymentDetailsTab";
+import { TeamTab } from "../components/EditUserDialog/TeamTab";
 import { useProfileManagement } from "../hooks/useProfileManagement";
 import { useSupervisorManagement } from "../hooks/useSupervisorManagement";
 import { supabase } from "@/integrations/supabase/client";
@@ -169,6 +170,7 @@ export default function EditUserPage() {
           <TabsTrigger value="employment">Employment Details</TabsTrigger>
           <TabsTrigger value="sbus">SBU Assignment</TabsTrigger>
           <TabsTrigger value="management">Management</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
         </TabsList>
 
         <TabsContent value="basic">
@@ -218,6 +220,10 @@ export default function EditUserPage() {
               onPrimarySupervisorChange={handlePrimarySupervisorChange}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="team">
+          {user && <TeamTab userId={user.id} />}
         </TabsContent>
       </Tabs>
     </div>

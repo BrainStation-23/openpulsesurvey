@@ -1,46 +1,89 @@
 
 import React from 'react';
-import { useTeamData } from '@/hooks/useTeamData';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { TeamGraphView } from '@/components/team/TeamGraphView';
 import { Card, CardContent } from '@/components/ui/card';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { TeamData } from '@/hooks/useTeamData';
 
-export default function MyTeamPage() {
-  const { user } = useCurrentUser();
-  const { teamData, isLoading, error } = useTeamData();
+interface TeamTabProps {
+  userId: string;
+}
 
-  // Only log once when data changes, not on every render
-  React.useEffect(() => {
-    if (teamData) {
-      console.log('MyTeamPage - Team data loaded successfully:', {
-        supervisor: !!teamData.supervisor,
-        teamMembersCount: teamData.teamMembers.length,
-        directReportsCount: teamData.directReports.length,
-        loggedInUser: teamData.teamMembers.find(m => m.isLoggedInUser)?.firstName
-      });
-    }
-  }, [teamData]);
-
-  React.useEffect(() => {
-    if (error) {
-      console.error('MyTeamPage - Error loading team data:', error);
-    }
-  }, [error]);
+export const TeamTab: React.FC<TeamTabProps> = ({ userId }) => {
+  const {
+    data: teamData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['team-data', userId],
+    queryFn: async (): Promise<TeamData> => {
+      if (!userId) {
+        console.error('TeamTab: No userId provided');
+        throw new Error('No userId provided');
+      }
+      
+      console.log('Fetching team data for user:', userId);
+      
+      try {
+        // Call the RPC function directly using supabase client
+        const { data, error } = await supabase.rpc('get_team_data', {
+          p_user_id: userId
+        });
+        
+        if (error) {
+          console.error('RPC get_team_data error:', error);
+          throw error;
+        }
+        
+        if (!data) {
+          console.error('No data returned from get_team_data RPC');
+          throw new Error('No data returned from RPC function');
+        }
+        
+        console.log('Team data received from RPC:', data);
+        
+        // Parse the JSON response
+        const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+        
+        // Check if there's an error in the returned data
+        if (parsedData.error) {
+          console.error('Database error in get_team_data:', parsedData.error);
+          throw new Error(`Database error: ${parsedData.error}`);
+        }
+        
+        // Transform the data to match our interface
+        const result: TeamData = {
+          supervisor: parsedData.supervisor,
+          teamMembers: parsedData.teamMembers || [],
+          directReports: parsedData.directReports || []
+        };
+        
+        console.log('Processed team data successfully');
+        
+        return result;
+        
+      } catch (err) {
+        console.error('Error in TeamTab queryFn:', err);
+        throw err;
+      }
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+  });
 
   // Show error state if there's an error
   if (error) {
     return (
-      <div className="container mx-auto py-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold tracking-tight">My Team</h1>
-        </div>
+      <div className="space-y-6">
         <Card className="mb-6">
           <CardContent className="p-6">
             <h2 className="text-lg font-semibold mb-2 text-red-600">
               Error Loading Team Data
             </h2>
             <p className="text-muted-foreground">
-              {error instanceof Error ? error.message : 'An unexpected error occurred while loading your team data.'}
+              {error instanceof Error ? error.message : 'An unexpected error occurred while loading team data.'}
             </p>
           </CardContent>
         </Card>
@@ -49,18 +92,14 @@ export default function MyTeamPage() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold tracking-tight">My Team</h1>
-      </div>
-
+    <div className="space-y-6">
       <Card className="mb-6">
         <CardContent className="p-6">
           <h2 className="text-lg font-semibold mb-2">
-            Welcome to Your Team View
+            Team View
           </h2>
           <p className="text-muted-foreground">
-            This page shows your supervisor, colleagues who share the same supervisor, and people you supervise.
+            This shows the user's supervisor, colleagues who share the same supervisor, and people they supervise.
             The organizational structure is represented as a graph where connections show
             reporting relationships.
           </p>
@@ -99,7 +138,7 @@ export default function MyTeamPage() {
                         <div className="font-medium">
                           {member.firstName} {member.lastName}
                           {member.isLoggedInUser && (
-                            <span className="ml-2 text-xs text-blue-500 font-medium">(You)</span>
+                            <span className="ml-2 text-xs text-blue-500 font-medium">(This User)</span>
                           )}
                         </div>
                         <div className="text-sm text-gray-500">{member.designation || member.email}</div>
@@ -116,7 +155,7 @@ export default function MyTeamPage() {
       {teamData?.directReports && teamData.directReports.length > 0 && (
         <Card>
           <CardContent className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Your Direct Reports</h2>
+            <h2 className="text-lg font-semibold mb-4">Direct Reports</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {teamData.directReports.map((report) => (
                 <Card key={report.id} className="overflow-hidden border-green-200">
@@ -151,7 +190,7 @@ export default function MyTeamPage() {
       {teamData?.supervisor && (
         <Card>
           <CardContent className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Your Supervisor</h2>
+            <h2 className="text-lg font-semibold mb-4">Supervisor</h2>
             <div className="flex items-center gap-4">
               {teamData.supervisor.profileImageUrl ? (
                 <img
@@ -178,4 +217,4 @@ export default function MyTeamPage() {
       )}
     </div>
   );
-}
+};

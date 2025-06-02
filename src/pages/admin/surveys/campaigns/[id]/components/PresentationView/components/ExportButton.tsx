@@ -5,7 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Download, Loader } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { exportToPptx } from "../utils/pptxExport";
-import { useExportData } from "../hooks/useExportData";
+import { usePresentationResponses } from "../hooks/usePresentationResponses";
+import { useCampaignData } from "../hooks/useCampaignData";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ExportButtonProps {
@@ -20,28 +21,38 @@ export function ExportButton({ campaignId, instanceId, variant = 'button' }: Rea
   const { toast } = useToast();
   
   const {
-    data: exportData,
-    refetch,
-    isLoading: isLoadingData,
-    isError
-  } = useExportData(campaignId, instanceId || undefined);
+    data: processedData,
+    refetch: refetchResponses,
+    isLoading: isLoadingResponses,
+    isError: isResponsesError
+  } = usePresentationResponses(campaignId, instanceId || undefined);
+
+  const {
+    data: campaignData,
+    refetch: refetchCampaign,
+    isLoading: isLoadingCampaign,
+    isError: isCampaignError
+  } = useCampaignData(campaignId, instanceId);
+
+  const isLoadingData = isLoadingResponses || isLoadingCampaign;
+  const isError = isResponsesError || isCampaignError;
 
   const handleExport = async () => {
     try {
       setExporting(true);
       setProgress(0);
       
-      if (!exportData) {
-        await refetch();
-        const result = await refetch();
+      if (!processedData || !campaignData) {
+        await Promise.all([refetchResponses(), refetchCampaign()]);
+        const [responsesResult, campaignResult] = await Promise.all([refetchResponses(), refetchCampaign()]);
         
-        if (!result.data) {
+        if (!responsesResult.data || !campaignResult.data) {
           throw new Error("Failed to load export data");
         }
         
-        await generatePptx(result.data);
+        await generatePptx(campaignResult.data, responsesResult.data);
       } else {
-        await generatePptx(exportData);
+        await generatePptx(campaignData, processedData);
       }
       
       toast({
@@ -61,8 +72,8 @@ export function ExportButton({ campaignId, instanceId, variant = 'button' }: Rea
     }
   };
   
-  const generatePptx = async (data: any) => {
-    await exportToPptx(data.campaign, data.processedData, (progress) => {
+  const generatePptx = async (campaign: any, processedResponses: any) => {
+    await exportToPptx(campaign, processedResponses, (progress) => {
       setProgress(progress);
     });
   };

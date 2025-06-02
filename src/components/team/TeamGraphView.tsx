@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Supervisor, TeamMember } from "@/hooks/useTeamData";
+import { Supervisor, TeamMember, DirectReport } from "@/hooks/useTeamData";
 import {
   ReactFlow,
   MiniMap,
@@ -25,6 +25,7 @@ import { processTeamData, getReactFlowOptions } from './utils/teamGraphUtils';
 interface TeamGraphViewProps {
   supervisor: Supervisor | null;
   teamMembers: TeamMember[];
+  directReports?: DirectReport[];
   isLoading?: boolean;
   error?: Error | null;
 }
@@ -32,6 +33,7 @@ interface TeamGraphViewProps {
 export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
   supervisor,
   teamMembers,
+  directReports = [],
   isLoading = false,
   error = null
 }) => {
@@ -45,15 +47,15 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
   }), []);
 
   useEffect(() => {
-    if (isLoading || error || (!supervisor && teamMembers.length === 0)) {
+    if (isLoading || error || (!supervisor && teamMembers.length === 0 && directReports.length === 0)) {
       return;
     }
     
-    const { nodes: newNodes, edges: newEdges } = processTeamData(supervisor, teamMembers);
+    const { nodes: newNodes, edges: newEdges } = processTeamData(supervisor, teamMembers, directReports);
     
     setNodes(newNodes);
     setEdges(newEdges);
-  }, [supervisor, teamMembers, isLoading, error, setNodes, setEdges]);
+  }, [supervisor, teamMembers, directReports, isLoading, error, setNodes, setEdges]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -90,7 +92,7 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
     return <ErrorState error={error} />;
   }
 
-  if (!supervisor && teamMembers.length === 0) {
+  if (!supervisor && teamMembers.length === 0 && directReports.length === 0) {
     return <EmptyState />;
   }
 
@@ -116,6 +118,7 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
             deleteKeyCode={null}
             snapToGrid={true}
             snapGrid={[10, 10]}
+            connectionMode={ConnectionMode.Loose}
           >
             <Controls />
             <MiniMap 
@@ -123,6 +126,7 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
               nodeStrokeColor={(n) => {
                 const nodeId = String(n.id);
                 if (nodeId.startsWith('supervisor-')) return '#9333ea';
+                if (nodeId.startsWith('report-')) return '#059669';
                 if (nodes.find(node => node.id === nodeId)?.data?.isLoggedInUser) return '#3b82f6';
                 return '#64748b';
               }}

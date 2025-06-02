@@ -1297,7 +1297,15 @@ export type Database = {
           assignment_id: string
           campaign_instance_id: string | null
           created_at: string | null
+          employee_role_id: string | null
+          employee_type_id: string | null
+          employment_type_id: string | null
+          gender: Database["public"]["Enums"]["gender_type"] | null
           id: string
+          level_id: string | null
+          location_id: string | null
+          primary_sbu_id: string | null
+          primary_supervisor_id: string | null
           response_data: Json
           state_data: Json | null
           status: Database["public"]["Enums"]["response_status"]
@@ -1309,7 +1317,15 @@ export type Database = {
           assignment_id: string
           campaign_instance_id?: string | null
           created_at?: string | null
+          employee_role_id?: string | null
+          employee_type_id?: string | null
+          employment_type_id?: string | null
+          gender?: Database["public"]["Enums"]["gender_type"] | null
           id?: string
+          level_id?: string | null
+          location_id?: string | null
+          primary_sbu_id?: string | null
+          primary_supervisor_id?: string | null
           response_data: Json
           state_data?: Json | null
           status?: Database["public"]["Enums"]["response_status"]
@@ -1321,7 +1337,15 @@ export type Database = {
           assignment_id?: string
           campaign_instance_id?: string | null
           created_at?: string | null
+          employee_role_id?: string | null
+          employee_type_id?: string | null
+          employment_type_id?: string | null
+          gender?: Database["public"]["Enums"]["gender_type"] | null
           id?: string
+          level_id?: string | null
+          location_id?: string | null
+          primary_sbu_id?: string | null
+          primary_supervisor_id?: string | null
           response_data?: Json
           state_data?: Json | null
           status?: Database["public"]["Enums"]["response_status"]
@@ -1330,6 +1354,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_survey_responses_employee_role"
+            columns: ["employee_role_id"]
+            isOneToOne: false
+            referencedRelation: "employee_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_survey_responses_employee_type"
+            columns: ["employee_type_id"]
+            isOneToOne: false
+            referencedRelation: "employee_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_survey_responses_employment_type"
+            columns: ["employment_type_id"]
+            isOneToOne: false
+            referencedRelation: "employment_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_survey_responses_level"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_survey_responses_location"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_survey_responses_primary_sbu"
+            columns: ["primary_sbu_id"]
+            isOneToOne: false
+            referencedRelation: "sbus"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_survey_responses_primary_supervisor"
+            columns: ["primary_supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_survey_responses_primary_supervisor"
+            columns: ["primary_supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "silent_employees"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "survey_responses_assignment_id_fkey"
             columns: ["assignment_id"]
@@ -2111,6 +2191,10 @@ export type Database = {
           submitted_at: string
         }[]
       }
+      get_team_data: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       get_text_analysis: {
         Args: {
           p_campaign_id: string
@@ -2143,6 +2227,10 @@ export type Database = {
           p_is_active: boolean
         }
         Returns: string
+      }
+      populate_survey_responses_user_data: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       reorder_questions: {
         Args: {
@@ -2226,10 +2314,6 @@ export type Database = {
           updated_at: string
           error_message: string
         }[]
-      }
-      update_completion_rate: {
-        Args: { instance_id: string }
-        Returns: number
       }
       update_system_version: {
         Args: {
