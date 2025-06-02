@@ -1,3 +1,4 @@
+
 import { format } from "date-fns";
 import { Pencil, Trash2, Plus, XCircle, ChevronDown, ChevronUp, Save } from "lucide-react";
 import { useState } from "react";
@@ -248,22 +249,6 @@ export function InstanceTable({
         ) : (
           <Badge variant={getStatusColor()}>{status}</Badge>
         );
-      },
-    },
-    {
-      accessorKey: "completion_rate",
-      header: () => (
-        <Button
-          variant="ghost"
-          onClick={() => handleSort('completion_rate')}
-          className="font-medium flex items-center p-0 h-8"
-        >
-          Completion Rate {renderSortIcon('completion_rate')}
-        </Button>
-      ),
-      cell: ({ row }: any) => {
-        const rate = row.original.completion_rate || 0;
-        return `${rate.toFixed(1)}%`;
       },
     },
     {
