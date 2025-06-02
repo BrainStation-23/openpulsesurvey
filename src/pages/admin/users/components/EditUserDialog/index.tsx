@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,6 +7,7 @@ import { BasicInfoTab } from "./BasicInfoTab";
 import { SBUAssignmentTab } from "./SBUAssignmentTab";
 import { ManagementTab } from "./ManagementTab";
 import { EmploymentDetailsTab } from "./EmploymentDetailsTab";
+import { TeamTab } from "./TeamTab";
 import { useProfileManagement } from "../../hooks/useProfileManagement";
 import { useSupervisorManagement } from "../../hooks/useSupervisorManagement";
 
@@ -61,7 +63,7 @@ export default function EditUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
@@ -72,6 +74,7 @@ export default function EditUserDialog({
             <TabsTrigger value="employment">Employment Details</TabsTrigger>
             <TabsTrigger value="sbus">SBU Assignment</TabsTrigger>
             <TabsTrigger value="management">Management</TabsTrigger>
+            <TabsTrigger value="team">Team</TabsTrigger>
           </TabsList>
 
           <TabsContent value="basic">
@@ -121,6 +124,10 @@ export default function EditUserDialog({
                 onPrimarySupervisorChange={handlePrimarySupervisorChange}
               />
             )}
+          </TabsContent>
+
+          <TabsContent value="team">
+            {user && <TeamTab userId={user.id} />}
           </TabsContent>
         </Tabs>
 
