@@ -30,7 +30,7 @@ export function useCampaignDemographics(campaignId: string, instances: CampaignI
         .from("survey_responses")
         .select(`
           id,
-          respondent:profiles(
+          respondent:profiles!survey_responses_user_id_fkey(
             id,
             first_name,
             last_name,

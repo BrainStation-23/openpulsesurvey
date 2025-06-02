@@ -2,7 +2,7 @@
 import { Node, Edge } from '@xyflow/react';
 import { Supervisor, TeamMember, DirectReport } from '@/hooks/useTeamData';
 
-export interface TeamMemberNodeData {
+export interface TeamMemberNodeData extends Record<string, unknown> {
   label: string;
   subtitle: string;
   email: string;

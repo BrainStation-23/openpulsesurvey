@@ -118,6 +118,7 @@ export const TeamGraphView: React.FC<TeamGraphViewProps> = ({
             deleteKeyCode={null}
             snapToGrid={true}
             snapGrid={[10, 10]}
+            connectionMode={ConnectionMode.Loose}
           >
             <Controls />
             <MiniMap 
