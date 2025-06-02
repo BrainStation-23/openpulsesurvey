@@ -1955,31 +1955,18 @@ export type Database = {
         }[]
       }
       get_campaign_instances: {
-        Args:
-          | {
-              p_campaign_id: string
-              p_start_date_min?: string
-              p_start_date_max?: string
-              p_end_date_min?: string
-              p_end_date_max?: string
-              p_status?: string[]
-              p_sort_by?: string
-              p_sort_direction?: string
-              p_page?: number
-              p_page_size?: number
-            }
-          | {
-              p_campaign_id: string
-              p_start_date_min?: string
-              p_start_date_max?: string
-              p_end_date_min?: string
-              p_end_date_max?: string
-              p_status?: string
-              p_sort_by?: string
-              p_sort_direction?: string
-              p_page?: number
-              p_page_size?: number
-            }
+        Args: {
+          p_campaign_id: string
+          p_start_date_min?: string
+          p_start_date_max?: string
+          p_end_date_min?: string
+          p_end_date_max?: string
+          p_status?: string
+          p_sort_by?: string
+          p_sort_direction?: string
+          p_page?: number
+          p_page_size?: number
+        }
         Returns: {
           id: string
           campaign_id: string
@@ -1987,7 +1974,6 @@ export type Database = {
           starts_at: string
           ends_at: string
           status: string
-          completion_rate: number
           created_at: string
           updated_at: string
           total_count: number
