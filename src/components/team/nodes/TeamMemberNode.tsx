@@ -5,11 +5,19 @@ import { Badge } from '@/components/ui/badge';
 
 export interface TeamNodeData {
   label: string;
-  sublabel: string;
+  subtitle: string;
+  email: string;
+  userId: string;
   imageUrl?: string | null;
   isSupervisor?: boolean;
   isLoggedInUser?: boolean;
-  level?: string;
+  isDirectReport?: boolean;
+  level?: {
+    id: string;
+    name: string;
+    color_code?: string;
+    rank: number;
+  };
 }
 
 export const TeamMemberNode: React.FC<{ 
@@ -24,7 +32,8 @@ export const TeamMemberNode: React.FC<{
   return (
     <div className={`bg-card border shadow-sm p-4 rounded-lg w-[160px] text-center ${
       data.isLoggedInUser ? 'ring-2 ring-blue-500' : 
-      data.isSupervisor ? 'ring-2 ring-purple-500' : ''
+      data.isSupervisor ? 'ring-2 ring-purple-500' : 
+      data.isDirectReport ? 'ring-2 ring-green-500' : ''
     }`}>
       {targetPosition !== null && (
         <Handle
@@ -43,7 +52,9 @@ export const TeamMemberNode: React.FC<{
           />
         ) : (
           <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-medium ${
-            data.isSupervisor ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+            data.isSupervisor ? 'bg-purple-100 text-purple-700' : 
+            data.isDirectReport ? 'bg-green-100 text-green-700' :
+            'bg-blue-100 text-blue-700'
           }`}>
             {data.label.charAt(0)}
           </div>
@@ -57,12 +68,12 @@ export const TeamMemberNode: React.FC<{
             )}
           </p>
           <p className="text-xs text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
-            {data.sublabel}
+            {data.subtitle}
           </p>
           
           {data.level && (
             <Badge variant="outline" className="mt-1 text-xs font-normal">
-              {data.level}
+              {data.level.name}
             </Badge>
           )}
         </div>

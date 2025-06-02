@@ -9,6 +9,10 @@ export default function MyTeamPage() {
   const { user } = useCurrentUser();
   const { teamData, isLoading, error } = useTeamData();
 
+  console.log('Team data:', teamData);
+  console.log('Loading:', isLoading);
+  console.log('Error:', error);
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
