@@ -2308,7 +2308,6 @@ export type Database = {
           starts_at: string
           ends_at: string
           status: string
-          completion_rate: number
           created_at: string
           updated_at: string
           error_message: string
