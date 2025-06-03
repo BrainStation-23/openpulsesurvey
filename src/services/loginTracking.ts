@@ -30,9 +30,9 @@ export const logLoginAttempt = async (attempt: LoginAttempt): Promise<void> => {
       p_error_message: attempt.errorMessage || null,
       p_ip_address: ipAddress,
       p_user_agent: navigator.userAgent,
-      p_device_info: deviceInfo,
-      p_network_info: networkInfo,
-      p_location_info: locationInfo,
+      p_device_info: JSON.parse(JSON.stringify(deviceInfo)),
+      p_network_info: JSON.parse(JSON.stringify(networkInfo)),
+      p_location_info: JSON.parse(JSON.stringify(locationInfo)),
       p_session_id: attempt.sessionId || null,
     });
 

@@ -2,6 +2,7 @@
 import UAParser from 'ua-parser-js';
 
 export interface DeviceInfo {
+  [key: string]: any;
   browser: {
     name?: string;
     version?: string;
@@ -38,6 +39,7 @@ export interface DeviceInfo {
 }
 
 export interface NetworkInfo {
+  [key: string]: any;
   connection?: {
     effectiveType?: string;
     downlink?: number;
@@ -48,6 +50,7 @@ export interface NetworkInfo {
 }
 
 export interface LocationInfo {
+  [key: string]: any;
   timestamp: number;
   userAgent: string;
   referrer: string;
@@ -55,15 +58,15 @@ export interface LocationInfo {
 }
 
 export const getDeviceInfo = (): DeviceInfo => {
-  const parser = new UAParser();
-  const result = parser.getResult();
+  const parser = UAParser();
+  const result = parser;
 
   return {
-    browser: result.browser,
-    os: result.os,
-    device: result.device,
-    engine: result.engine,
-    cpu: result.cpu,
+    browser: result.browser || {},
+    os: result.os || {},
+    device: result.device || {},
+    engine: result.engine || {},
+    cpu: result.cpu || {},
     screen: {
       width: window.screen.width,
       height: window.screen.height,
