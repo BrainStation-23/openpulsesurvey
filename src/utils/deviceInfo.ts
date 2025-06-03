@@ -1,5 +1,5 @@
 
-import UAParser from 'ua-parser-js';
+import { UAParser } from 'ua-parser-js';
 
 export interface DeviceInfo {
   [key: string]: any;
