@@ -58,8 +58,8 @@ export interface LocationInfo {
 }
 
 export const getDeviceInfo = (): DeviceInfo => {
-  const parser = UAParser();
-  const result = parser;
+  const parser = new UAParser();
+  const result = parser.getResult();
 
   return {
     browser: result.browser || {},
