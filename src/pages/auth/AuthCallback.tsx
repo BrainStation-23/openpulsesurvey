@@ -1,8 +1,9 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { logLoginAttempt } from '@/services/loginTracking';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -10,30 +11,52 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Authentication error",
-          description: error.message,
-          duration: 5000
-        });
-        navigate("/login");
-        return;
-      }
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Auth callback error:', error);
+          toast({
+            variant: "destructive",
+            title: "Authentication failed",
+            description: error.message,
+          });
+          navigate('/login');
+          return;
+        }
 
-      if (session) {
-        try {
-          // Check user role
+        if (data.session) {
+          const user = data.session.user;
+          
+          // Determine the login method based on the provider
+          let loginMethod: 'magic_link' | 'oauth_azure' | 'oauth_google' = 'magic_link';
+          if (user.app_metadata?.provider === 'azure') {
+            loginMethod = 'oauth_azure';
+          } else if (user.app_metadata?.provider === 'google') {
+            loginMethod = 'oauth_google';
+          }
+
+          // Log successful login
+          await logLoginAttempt({
+            userId: user.id,
+            email: user.email || 'unknown',
+            loginMethod,
+            success: true,
+            sessionId: data.session.access_token,
+          });
+
+          // Check user role and redirect appropriately
           const { data: roleData, error: roleError } = await supabase
             .from('user_roles')
             .select('role')
-            .eq('user_id', session.user.id)
+            .eq('user_id', user.id)
             .single();
 
           if (roleError) {
-            throw roleError;
+            console.error('Role check error:', roleError);
+            // Default to user dashboard if role check fails
+            navigate('/user/dashboard');
+            return;
           }
 
           // Redirect based on role
@@ -44,19 +67,15 @@ export default function AuthCallback() {
           }
 
           toast({
-            title: "Success",
-            description: "You have been successfully authenticated",
-            duration: 5000
+            title: "Login successful",
+            description: "Welcome back!",
           });
-        } catch (error: any) {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Could not verify user role",
-            duration: 5000
-          });
-          navigate("/login");
+        } else {
+          navigate('/login');
         }
+      } catch (error) {
+        console.error('Auth callback error:', error);
+        navigate('/login');
       }
     };
 
@@ -64,8 +83,11 @@ export default function AuthCallback() {
   }, [navigate, toast]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <LoadingSpinner size={32} />
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+        <p className="mt-4 text-muted-foreground">Completing authentication...</p>
+      </div>
     </div>
   );
 }

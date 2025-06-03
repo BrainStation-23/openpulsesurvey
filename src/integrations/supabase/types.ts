@@ -925,6 +925,54 @@ export type Database = {
         }
         Relationships: []
       }
+      login_history: {
+        Row: {
+          created_at: string
+          device_info: Json | null
+          email: string
+          error_message: string | null
+          id: string
+          ip_address: string | null
+          location_info: Json | null
+          login_method: string
+          network_info: Json | null
+          session_id: string | null
+          success: boolean
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_info?: Json | null
+          email: string
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          location_info?: Json | null
+          login_method: string
+          network_info?: Json | null
+          session_id?: string | null
+          success: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_info?: Json | null
+          email?: string
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          location_info?: Json | null
+          login_method?: string
+          network_info?: Json | null
+          session_id?: string | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -2217,6 +2265,22 @@ export type Database = {
       is_admin: {
         Args: { user_uid: string }
         Returns: boolean
+      }
+      log_login_attempt: {
+        Args: {
+          p_user_id: string
+          p_email: string
+          p_login_method: string
+          p_success: boolean
+          p_error_message?: string
+          p_ip_address?: string
+          p_user_agent?: string
+          p_device_info?: Json
+          p_network_info?: Json
+          p_location_info?: Json
+          p_session_id?: string
+        }
+        Returns: string
       }
       manage_instance_cron_job: {
         Args: {

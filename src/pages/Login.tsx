@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { logLoginAttempt } from "@/services/loginTracking";
 
 const emailLoginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -63,9 +65,27 @@ export default function Login() {
         password: values.password,
       });
 
-      if (signInError) throw signInError;
+      if (signInError) {
+        // Log failed attempt
+        await logLoginAttempt({
+          email: values.email,
+          loginMethod: 'email_password',
+          success: false,
+          errorMessage: signInError.message,
+        });
+        throw signInError;
+      }
 
       if (session) {
+        // Log successful attempt
+        await logLoginAttempt({
+          userId: session.user.id,
+          email: values.email,
+          loginMethod: 'email_password',
+          success: true,
+          sessionId: session.access_token,
+        });
+
         // Check user role
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
@@ -109,7 +129,23 @@ export default function Login() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Log failed attempt
+        await logLoginAttempt({
+          email: values.email,
+          loginMethod: 'magic_link',
+          success: false,
+          errorMessage: error.message,
+        });
+        throw error;
+      }
+
+      // Log successful magic link request (not the actual login)
+      await logLoginAttempt({
+        email: values.email,
+        loginMethod: 'magic_link',
+        success: true,
+      });
 
       toast({
         title: "Magic link sent",
@@ -164,12 +200,18 @@ export default function Login() {
         provider: 'azure',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
-          // Instead of skipCreateUser, we'll handle the "User not found" error
-          // in the error handling section
         },
       });
 
       if (error) {
+        // Log failed attempt
+        await logLoginAttempt({
+          email: 'unknown', // We don't have email for failed OAuth attempts
+          loginMethod: 'oauth_azure',
+          success: false,
+          errorMessage: error.message,
+        });
+
         console.error("Microsoft login error:", error);
         toast({
           variant: "destructive",
@@ -295,7 +337,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Microsoft login button moved outside of any form */}
           <Button
             type="button"
             variant="outline"
@@ -318,7 +359,6 @@ export default function Login() {
         </CardContent>
       </Card>
 
-      {/* Keep the forgot password dialog */}
       <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
         <DialogContent>
           <DialogHeader>
