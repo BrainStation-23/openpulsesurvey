@@ -1,4 +1,3 @@
-
 import UAParser from 'ua-parser-js';
 
 export interface DeviceInfo {
@@ -58,8 +57,7 @@ export interface LocationInfo {
 }
 
 export const getDeviceInfo = (): DeviceInfo => {
-  const parser = new UAParser();
-  const result = parser.getResult();
+  const result = UAParser();
 
   return {
     browser: result.browser || {},
