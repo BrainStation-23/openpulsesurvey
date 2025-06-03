@@ -18,7 +18,7 @@ export function ResponsesFilters({ filters, onFiltersChange }: ResponsesFiltersP
   return (
     <div className="flex gap-4">
       <Input
-        placeholder="Search responses..."
+        placeholder="Search by manager or SBU name..."
         value={filters.search}
         onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
         className="w-[300px]"
