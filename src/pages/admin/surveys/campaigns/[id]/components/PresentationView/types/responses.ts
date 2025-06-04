@@ -40,6 +40,7 @@ export interface ProcessedResponse {
     name: string;
     email: string;
     gender: string | null;
+    generation: string | null;
     location: {
       id: string;
       name: string;

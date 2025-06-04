@@ -31,6 +31,7 @@ export function ComparisonSelector({ value, onChange }: ComparisonSelectorProps)
           <SelectItem value="employee_type">Employee Type</SelectItem>
           <SelectItem value="employee_role">Employee Role</SelectItem>
           <SelectItem value="supervisor">Supervisor</SelectItem>
+          <SelectItem value="generation">Generation</SelectItem>
         </SelectContent>
       </Select>
     </div>

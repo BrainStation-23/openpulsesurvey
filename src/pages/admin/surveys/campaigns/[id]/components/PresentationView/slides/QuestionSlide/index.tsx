@@ -61,6 +61,7 @@ export function QuestionSlide({
       employee_type: "Response Distribution by Employee Type",
       employee_role: "Response Distribution by Employee Role",
       supervisor: "Response Distribution by Supervisor",
+      generation: "Response Distribution by Generation",
       none: "No Comparison"
     };
     return titles[dim] || "";

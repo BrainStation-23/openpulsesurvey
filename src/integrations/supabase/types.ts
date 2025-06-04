@@ -1342,6 +1342,7 @@ export type Database = {
       }
       survey_responses: {
         Row: {
+          age: number | null
           assignment_id: string
           campaign_instance_id: string | null
           created_at: string | null
@@ -1349,6 +1350,7 @@ export type Database = {
           employee_type_id: string | null
           employment_type_id: string | null
           gender: Database["public"]["Enums"]["gender_type"] | null
+          generation: string | null
           id: string
           level_id: string | null
           location_id: string | null
@@ -1362,6 +1364,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          age?: number | null
           assignment_id: string
           campaign_instance_id?: string | null
           created_at?: string | null
@@ -1369,6 +1372,7 @@ export type Database = {
           employee_type_id?: string | null
           employment_type_id?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
+          generation?: string | null
           id?: string
           level_id?: string | null
           location_id?: string | null
@@ -1382,6 +1386,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          age?: number | null
           assignment_id?: string
           campaign_instance_id?: string | null
           created_at?: string | null
@@ -1389,6 +1394,7 @@ export type Database = {
           employee_type_id?: string | null
           employment_type_id?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
+          generation?: string | null
           id?: string
           level_id?: string | null
           location_id?: string | null
