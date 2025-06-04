@@ -113,21 +113,20 @@ export function ResponseByGenerationChart({ campaignId, instanceId }: ResponseBy
                   />
                   <YAxis />
                   <ChartTooltip
-                    content={({ active, payload, label }) => {
-                      if (!active || !payload?.length) return null;
-                      const data = payload[0].payload;
+                    content={(props) => {
+                      if (!props.active || !props.payload?.length) return null;
+                      const data = props.payload[0]?.payload;
+                      if (!data) return null;
+                      
                       return (
-                        <ChartTooltipContent
-                          active={active}
-                          payload={[
-                            {
-                              name: "Responses",
-                              value: `${data.count} (${data.percentage.toFixed(1)}%)`,
-                              color: "#22c55e"
-                            }
-                          ]}
-                          label={label}
-                        />
+                        <div className="rounded-lg border bg-background p-2 shadow-sm">
+                          <div className="grid gap-2">
+                            <div className="font-medium">{props.label}</div>
+                            <div className="text-sm">
+                              Responses: {data.count} ({data.percentage.toFixed(1)}%)
+                            </div>
+                          </div>
+                        </div>
                       );
                     }}
                   />

@@ -116,21 +116,20 @@ export function ResponseByAgeChart({ campaignId, instanceId }: ResponseByAgeChar
                   <XAxis dataKey="name" />
                   <YAxis />
                   <ChartTooltip
-                    content={({ active, payload, label }) => {
-                      if (!active || !payload?.length) return null;
-                      const data = payload[0].payload;
+                    content={(props) => {
+                      if (!props.active || !props.payload?.length) return null;
+                      const data = props.payload[0]?.payload;
+                      if (!data) return null;
+                      
                       return (
-                        <ChartTooltipContent
-                          active={active}
-                          payload={[
-                            {
-                              name: "Responses",
-                              value: `${data.count} (${data.percentage.toFixed(1)}%)`,
-                              color: "#3b82f6"
-                            }
-                          ]}
-                          label={label}
-                        />
+                        <div className="rounded-lg border bg-background p-2 shadow-sm">
+                          <div className="grid gap-2">
+                            <div className="font-medium">{props.label}</div>
+                            <div className="text-sm">
+                              Responses: {data.count} ({data.percentage.toFixed(1)}%)
+                            </div>
+                          </div>
+                        </div>
                       );
                     }}
                   />
