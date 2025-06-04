@@ -1,6 +1,4 @@
 
-import { BackgroundTheme, BACKGROUND_THEMES } from './backgroundThemes';
-
 export interface ExportDimension {
   key: string;
   displayName: string;
@@ -15,7 +13,6 @@ export interface ThemeConfig {
   light: string;
   danger: string;
   fontFamily: string;
-  background: BackgroundTheme;
   text: {
     primary: string;
     secondary: string;
@@ -54,7 +51,6 @@ export const DEFAULT_THEME: ThemeConfig = {
   light: "#F1F0FB",
   danger: "#E11D48",
   fontFamily: "Calibri",
-  background: BACKGROUND_THEMES[1], // Corporate Blue gradient
   text: {
     primary: "#1A1F2C",
     secondary: "#6E59A5",
@@ -83,5 +79,3 @@ export const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   includeCompletionSlide: true,
   theme: DEFAULT_THEME
 };
-
-export { BACKGROUND_THEMES };

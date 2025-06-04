@@ -1,73 +1,87 @@
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { ExportConfig, DEFAULT_EXPORT_CONFIG, BACKGROUND_THEMES } from "../utils/pptx/config/exportConfig";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Download, Loader } from "lucide-react";
+import { ExportConfig, ExportDimension, ThemeConfig, DEFAULT_EXPORT_CONFIG } from "../utils/pptx/config/exportConfig";
 
 interface ExportConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onExport: (config: ExportConfig) => void;
+  onExport: (config: ExportConfig) => Promise<void>;
   isExporting: boolean;
 }
+
+const FONT_OPTIONS = [
+  { value: "Arial", label: "Arial" },
+  { value: "Calibri", label: "Calibri" },
+  { value: "Times New Roman", label: "Times New Roman" },
+  { value: "Helvetica", label: "Helvetica" },
+  { value: "Georgia", label: "Georgia" },
+  { value: "Verdana", label: "Verdana" }
+];
+
+const COLOR_PRESETS = [
+  {
+    name: "Default Purple",
+    primary: "#9b87f5",
+    secondary: "#7E69AB",
+    tertiary: "#6E59A5"
+  },
+  {
+    name: "Corporate Blue",
+    primary: "#0EA5E9",
+    secondary: "#0284C7",
+    tertiary: "#0369A1"
+  },
+  {
+    name: "Professional Green",
+    primary: "#22C55E",
+    secondary: "#16A34A",
+    tertiary: "#15803D"
+  },
+  {
+    name: "Modern Orange",
+    primary: "#F97316",
+    secondary: "#EA580C",
+    tertiary: "#C2410C"
+  }
+];
 
 export function ExportConfigDialog({ open, onOpenChange, onExport, isExporting }: ExportConfigDialogProps) {
   const [config, setConfig] = useState<ExportConfig>(DEFAULT_EXPORT_CONFIG);
 
-  const handleDimensionToggle = (dimensionKey: string, enabled: boolean) => {
+  const handleDimensionToggle = (dimensionKey: string, checked: boolean) => {
     setConfig(prev => ({
       ...prev,
-      dimensions: prev.dimensions.map(dim => 
-        dim.key === dimensionKey ? { ...dim, enabled } : dim
+      dimensions: prev.dimensions.map(dim =>
+        dim.key === dimensionKey ? { ...dim, enabled: checked } : dim
       )
     }));
   };
 
-  const handleThemeChange = (field: string, value: string) => {
+  const handleThemeChange = (updates: Partial<ThemeConfig>) => {
     setConfig(prev => ({
       ...prev,
-      theme: {
-        ...prev.theme,
-        [field]: value
-      }
+      theme: { ...prev.theme, ...updates }
     }));
   };
 
-  const handleBackgroundChange = (backgroundId: string) => {
-    const background = BACKGROUND_THEMES.find(bg => bg.id === backgroundId);
-    if (background) {
-      setConfig(prev => ({
-        ...prev,
-        theme: {
-          ...prev.theme,
-          background
-        }
-      }));
-    }
+  const handleColorPresetSelect = (preset: typeof COLOR_PRESETS[0]) => {
+    handleThemeChange({
+      primary: preset.primary,
+      secondary: preset.secondary,
+      tertiary: preset.tertiary
+    });
   };
 
-  const handleTextColorChange = (field: string, value: string) => {
-    setConfig(prev => ({
-      ...prev,
-      theme: {
-        ...prev.theme,
-        text: {
-          ...prev.theme.text,
-          [field]: value.startsWith('#') ? value : `#${value}`
-        }
-      }
-    }));
-  };
-
-  const handleExport = () => {
-    onExport(config);
+  const handleExport = async () => {
+    await onExport(config);
     onOpenChange(false);
   };
 
@@ -78,59 +92,28 @@ export function ExportConfigDialog({ open, onOpenChange, onExport, isExporting }
           <DialogTitle>Export Configuration</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Slide Options */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Slide Options</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="main-slides">Include Main Question Slides</Label>
-                <Switch
-                  id="main-slides"
-                  checked={config.includeMainSlides}
-                  onCheckedChange={(checked) => 
-                    setConfig(prev => ({ ...prev, includeMainSlides: checked }))
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="comparison-slides">Include Comparison Slides</Label>
-                <Switch
-                  id="comparison-slides"
-                  checked={config.includeComparisonSlides}
-                  onCheckedChange={(checked) => 
-                    setConfig(prev => ({ ...prev, includeComparisonSlides: checked }))
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="completion-slide">Include Response Distribution Slide</Label>
-                <Switch
-                  id="completion-slide"
-                  checked={config.includeCompletionSlide}
-                  onCheckedChange={(checked) => 
-                    setConfig(prev => ({ ...prev, includeCompletionSlide: checked }))
-                  }
-                />
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="dimensions" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="dimensions">Dimensions</TabsTrigger>
+            <TabsTrigger value="theme">Theme</TabsTrigger>
+            <TabsTrigger value="options">Options</TabsTrigger>
+          </TabsList>
 
-          {/* Dimensions Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Comparison Dimensions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <TabsContent value="dimensions" className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Select Dimensions to Include</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Choose which demographic dimensions to include in comparison slides
+              </p>
+              <div className="grid grid-cols-2 gap-3">
                 {config.dimensions.map((dimension) => (
                   <div key={dimension.key} className="flex items-center space-x-2">
-                    <Switch
+                    <Checkbox
                       id={dimension.key}
                       checked={dimension.enabled}
-                      onCheckedChange={(checked) => handleDimensionToggle(dimension.key, checked)}
+                      onCheckedChange={(checked) => 
+                        handleDimensionToggle(dimension.key, checked as boolean)
+                      }
                     />
                     <Label htmlFor={dimension.key} className="text-sm">
                       {dimension.displayName}
@@ -138,98 +121,154 @@ export function ExportConfigDialog({ open, onOpenChange, onExport, isExporting }
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </TabsContent>
 
-          {/* Theme Customization */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Theme Customization</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Background Theme */}
-              <div className="space-y-2">
-                <Label>Background Theme</Label>
-                <Select 
-                  value={config.theme.background.id} 
-                  onValueChange={handleBackgroundChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BACKGROUND_THEMES.map((bg) => (
-                      <SelectItem key={bg.id} value={bg.id}>
-                        {bg.name}
-                      </SelectItem>
+          <TabsContent value="theme" className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Theme Customization</h3>
+              
+              <div className="space-y-6">
+                {/* Color Presets */}
+                <div>
+                  <Label className="text-sm font-medium">Color Presets</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {COLOR_PRESETS.map((preset) => (
+                      <Button
+                        key={preset.name}
+                        variant="outline"
+                        className="justify-start h-auto p-3"
+                        onClick={() => handleColorPresetSelect(preset)}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="flex space-x-1">
+                            <div 
+                              className="w-4 h-4 rounded"
+                              style={{ backgroundColor: preset.primary }}
+                            />
+                            <div 
+                              className="w-4 h-4 rounded"
+                              style={{ backgroundColor: preset.secondary }}
+                            />
+                            <div 
+                              className="w-4 h-4 rounded"
+                              style={{ backgroundColor: preset.tertiary }}
+                            />
+                          </div>
+                          <span className="text-sm">{preset.name}</span>
+                        </div>
+                      </Button>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Font Family */}
-              <div className="space-y-2">
-                <Label>Font Family</Label>
-                <Select 
-                  value={config.theme.fontFamily} 
-                  onValueChange={(value) => handleThemeChange('fontFamily', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Calibri">Calibri</SelectItem>
-                    <SelectItem value="Arial">Arial</SelectItem>
-                    <SelectItem value="Times New Roman">Times New Roman</SelectItem>
-                    <SelectItem value="Helvetica">Helvetica</SelectItem>
-                    <SelectItem value="Georgia">Georgia</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Separator />
-
-              {/* Color Customization */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Primary Color</Label>
-                  <Input
-                    type="color"
-                    value={config.theme.primary}
-                    onChange={(e) => handleThemeChange('primary', e.target.value)}
-                  />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Secondary Color</Label>
-                  <Input
-                    type="color"
-                    value={config.theme.secondary}
-                    onChange={(e) => handleThemeChange('secondary', e.target.value)}
-                  />
+
+                {/* Custom Colors */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="primary-color" className="text-sm">Primary Color</Label>
+                    <Input
+                      id="primary-color"
+                      type="color"
+                      value={config.theme.primary}
+                      onChange={(e) => handleThemeChange({ primary: e.target.value })}
+                      className="h-10 mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="secondary-color" className="text-sm">Secondary Color</Label>
+                    <Input
+                      id="secondary-color"
+                      type="color"
+                      value={config.theme.secondary}
+                      onChange={(e) => handleThemeChange({ secondary: e.target.value })}
+                      className="h-10 mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tertiary-color" className="text-sm">Accent Color</Label>
+                    <Input
+                      id="tertiary-color"
+                      type="color"
+                      value={config.theme.tertiary}
+                      onChange={(e) => handleThemeChange({ tertiary: e.target.value })}
+                      className="h-10 mt-1"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Primary Text</Label>
-                  <Input
-                    type="color"
-                    value={config.theme.text.primary}
-                    onChange={(e) => handleTextColorChange('primary', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Secondary Text</Label>
-                  <Input
-                    type="color"
-                    value={config.theme.text.secondary}
-                    onChange={(e) => handleTextColorChange('secondary', e.target.value)}
-                  />
+
+                {/* Font Selection */}
+                <div>
+                  <Label className="text-sm font-medium">Font Family</Label>
+                  <Select
+                    value={config.theme.fontFamily}
+                    onValueChange={(value) => handleThemeChange({ fontFamily: value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FONT_OPTIONS.map((font) => (
+                        <SelectItem key={font.value} value={font.value}>
+                          {font.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </TabsContent>
 
-        <div className="flex justify-end space-x-2 pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isExporting}>
+          <TabsContent value="options" className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Export Options</h3>
+              
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="include-main"
+                    checked={config.includeMainSlides}
+                    onCheckedChange={(checked) => 
+                      setConfig(prev => ({ ...prev, includeMainSlides: checked as boolean }))
+                    }
+                  />
+                  <Label htmlFor="include-main" className="text-sm">
+                    Include main question slides
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="include-comparison"
+                    checked={config.includeComparisonSlides}
+                    onCheckedChange={(checked) => 
+                      setConfig(prev => ({ ...prev, includeComparisonSlides: checked as boolean }))
+                    }
+                  />
+                  <Label htmlFor="include-comparison" className="text-sm">
+                    Include demographic comparison slides
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="include-completion"
+                    checked={config.includeCompletionSlide}
+                    onCheckedChange={(checked) => 
+                      setConfig(prev => ({ ...prev, includeCompletionSlide: checked as boolean }))
+                    }
+                  />
+                  <Label htmlFor="include-completion" className="text-sm">
+                    Include response completion slide
+                  </Label>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <div className="flex justify-between pt-4 border-t">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handleExport} disabled={isExporting}>
@@ -239,7 +278,10 @@ export function ExportConfigDialog({ open, onOpenChange, onExport, isExporting }
                 Exporting...
               </>
             ) : (
-              "Export Presentation"
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Export PPTX
+              </>
             )}
           </Button>
         </div>

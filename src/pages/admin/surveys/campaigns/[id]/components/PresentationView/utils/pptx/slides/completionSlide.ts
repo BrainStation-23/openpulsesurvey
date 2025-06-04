@@ -1,7 +1,6 @@
-
 import pptxgen from "pptxgenjs";
 import { CampaignData } from "../../../types";
-import { createTheme, createSlideMasters, createDecorativeShape } from "../theme";
+import { createTheme, createSlideMasters } from "../theme";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeConfig, DEFAULT_THEME } from "../config/exportConfig";
 
@@ -15,26 +14,13 @@ export const createCompletionSlide = async (
   const slide = pptx.addSlide();
   Object.assign(slide, slideMasters.CHART);
 
-  // Add decorative header accent
-  createDecorativeShape(slide, theme, 'header-accent');
-
-  // Enhanced title with better positioning
   slide.addText("Response Distribution", {
-    x: 0.8,
-    y: 0.7,
-    w: 8.4,
-    fontSize: 36,
+    x: 0.5,
+    y: 0.5,
+    fontSize: 32,
     bold: true,
-    color: theme.text.primary.replace('#', ''),
-    fontFace: themeConfig.fontFamily,
-    shadow: {
-      type: 'outer',
-      color: '000000',
-      blur: 2,
-      offset: 1,
-      angle: 45,
-      opacity: 0.1
-    }
+    color: theme.text.primary,
+    fontFace: themeConfig.fontFamily
   });
 
   // Get actual status distribution data using the same RPC as overview tab
@@ -48,6 +34,7 @@ export const createCompletionSlide = async (
         });
 
       if (!error && data) {
+        // Ensure all status types have a value
         const defaultStatuses = ['submitted', 'in_progress', 'expired', 'assigned'];
         const statusMap = new Map(data.map(item => [item.status, item.count]));
         
@@ -67,70 +54,43 @@ export const createCompletionSlide = async (
     values: statusData.map(item => item.value)
   }];
 
-  // Enhanced pie chart with better colors and styling
+  // Add pie chart with theme colors
   slide.addChart(pptx.ChartType.pie, data, {
-    x: 0.8,
-    y: 1.8,
-    w: 4.5,
-    h: 4,
-    chartColors: [
-      theme.chart.colors[0].replace('#', ''), 
-      theme.chart.colors[1].replace('#', ''), 
-      theme.danger.replace('#', ''), 
-      theme.chart.colors[3].replace('#', '')
-    ],
+    x: 0.5,
+    y: 1.5,
+    w: 4.2,
+    h: 3,
+    chartColors: [theme.primary, theme.chart.colors[1], theme.danger, theme.chart.colors[3]],
     showLegend: true,
     legendPos: 'r',
-    legendFontSize: 12,
+    legendFontSize: 11,
     dataLabelFormatCode: '0',
-    dataLabelFontSize: 11,
+    dataLabelFontSize: 10,
     showValue: true,
-    border: { pt: 2, color: 'FFFFFF' }
   });
 
-  // Enhanced statistics panel with background
+  // Add response statistics as text
   const total = statusData.reduce((sum, item) => sum + item.value, 0);
   
-  // Add background for stats
-  slide.addShape(pptx.ShapeType.rect, {
-    x: 5.8,
-    y: 1.8,
-    w: 3.5,
-    h: 4,
-    fill: { color: 'FFFFFF', transparency: 20 },
-    line: { color: theme.primary.replace('#', ''), width: 2 }
-  });
-
   const statsText = [
-    { text: "Response Summary\n\n", options: { bold: true, fontSize: 16, fontFace: themeConfig.fontFamily, color: theme.text.primary.replace('#', '') } },
-    { text: `Total Responses: `, options: { bold: true, fontSize: 14, fontFace: themeConfig.fontFamily, color: theme.text.primary.replace('#', '') } },
-    { text: `${total}\n\n`, options: { bold: true, fontSize: 14, fontFace: themeConfig.fontFamily, color: theme.primary.replace('#', '') } }
+    { text: "Response Summary\n\n", options: { bold: true, fontSize: 14, fontFace: themeConfig.fontFamily } },
+    { text: `Total: `, options: { bold: true, fontFace: themeConfig.fontFamily } },
+    { text: `${total}\n\n`, options: { fontFace: themeConfig.fontFamily } }
   ];
 
   statusData.forEach(item => {
     const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0.0';
     statsText.push(
-      { text: `${item.name}: `, options: { bold: true, fontSize: 12, fontFace: themeConfig.fontFamily, color: theme.text.primary.replace('#', '') } },
-      { text: `${item.value} (${percentage}%)\n`, options: { bold: false, fontSize: 12, fontFace: themeConfig.fontFamily, color: theme.text.secondary.replace('#', '') } }
+      { text: `${item.name}: `, options: { bold: true, fontFace: themeConfig.fontFamily } },
+      { text: `${item.value} (${percentage}%)\n`, options: { fontFace: themeConfig.fontFamily } }
     );
   });
 
   slide.addText(statsText, {
-    x: 6,
-    y: 2.2,
-    w: 3.1,
+    x: 5.2,
+    y: 2,
+    w: 4,
     fontSize: 12,
-  });
-
-  // Add decorative footer line
-  createDecorativeShape(slide, theme, 'footer-line');
-
-  // Add subtle background decoration
-  slide.addShape(pptx.ShapeType.ellipse, {
-    x: 8.5,
-    y: 5.5,
-    w: 2,
-    h: 2,
-    fill: { color: theme.light.replace('#', ''), transparency: 85 }
+    color: theme.text.primary,
   });
 };

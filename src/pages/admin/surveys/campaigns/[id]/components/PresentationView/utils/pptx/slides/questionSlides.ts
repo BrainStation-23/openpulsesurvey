@@ -2,7 +2,7 @@
 import pptxgen from "pptxgenjs";
 import { CampaignData } from "../../../types";
 import { ProcessedData } from "../../../types/responses";
-import { createTheme, createSlideMasters, createDecorativeShape } from "../theme";
+import { createTheme, createSlideMasters } from "../theme";
 import { cleanText } from "../helpers";
 import { addQuestionChart, addComparisonChart } from "../charts";
 import { ExportConfig, DEFAULT_EXPORT_CONFIG } from "../config/exportConfig";
@@ -31,55 +31,19 @@ export const createQuestionSlides = async (
       const mainSlide = pptx.addSlide();
       Object.assign(mainSlide, slideMasters.CHART);
 
-      // Add decorative header accent
-      createDecorativeShape(mainSlide, theme, 'header-accent');
-
-      // Enhanced question title with better styling
       mainSlide.addText(cleanText(question.title), {
-        x: 0.8,
-        y: 0.7,
-        w: 8.4,
-        fontSize: 32,
+        x: 0.5,
+        y: 0.5,
+        w: "90%",
+        fontSize: 28,
         bold: true,
-        color: theme.text.primary.replace('#', ''),
+        color: theme.text.primary,
         wrap: true,
-        fontFace: config.theme.fontFamily,
-        shadow: {
-          type: 'outer',
-          color: '000000',
-          blur: 2,
-          offset: 1,
-          angle: 45,
-          opacity: 0.1
-        }
+        fontFace: config.theme.fontFamily
       });
 
-      // Add period information if available
-      if (campaign.instance) {
-        mainSlide.addText(`Period ${campaign.instance.period_number}`, {
-          x: 0.8,
-          y: 1.4,
-          fontSize: 18,
-          color: theme.secondary.replace('#', ''),
-          fontFace: config.theme.fontFamily,
-          italic: true
-        });
-      }
-
-      // Add chart based on question type
+      // Add chart based on question type with theme - fix: remove theme parameter
       await addQuestionChart(mainSlide, question, processedData);
-
-      // Add decorative footer line
-      createDecorativeShape(mainSlide, theme, 'footer-line');
-
-      // Add subtle background decoration
-      mainSlide.addShape(pptx.ShapeType.ellipse, {
-        x: 8.5,
-        y: 5.5,
-        w: 1.5,
-        h: 1.5,
-        fill: { color: theme.light.replace('#', ''), transparency: 85 }
-      });
     }
 
     // Create comparison slides for enabled dimensions
@@ -88,58 +52,27 @@ export const createQuestionSlides = async (
         const comparisonSlide = pptx.addSlide();
         Object.assign(comparisonSlide, slideMasters.CHART);
 
-        // Add decorative header accent
-        createDecorativeShape(comparisonSlide, theme, 'header-accent');
-
-        // Enhanced question title
         comparisonSlide.addText(cleanText(question.title), {
-          x: 0.8,
-          y: 0.7,
-          w: 8.4,
-          fontSize: 28,
+          x: 0.5,
+          y: 0.5,
+          w: "90%",
+          fontSize: 24,
           bold: true,
-          color: theme.text.primary.replace('#', ''),
+          color: theme.text.primary,
           wrap: true,
           fontFace: config.theme.fontFamily
         });
 
-        // Enhanced comparison subtitle with background
-        comparisonSlide.addShape(pptx.ShapeType.rect, {
-          x: 0.8,
-          y: 1.3,
-          w: 8.4,
-          h: 0.4,
-          fill: { color: theme.primary.replace('#', ''), transparency: 90 }
-        });
-
         comparisonSlide.addText(`Response Distribution by ${dimension.displayName}`, {
-          x: 1,
-          y: 1.4,
-          w: 8,
-          fontSize: 22,
-          color: theme.text.primary.replace('#', ''),
-          fontFace: config.theme.fontFamily,
-          bold: true,
-          align: 'center'
+          x: 0.5,
+          y: 1.2,
+          fontSize: 20,
+          color: theme.text.secondary,
+          fontFace: config.theme.fontFamily
         });
 
-        // Add comparison chart
+        // Add comparison chart - fix: remove theme parameter
         await addComparisonChart(comparisonSlide, question, processedData, dimension.key);
-
-        // Add decorative footer line
-        createDecorativeShape(comparisonSlide, theme, 'footer-line');
-
-        // Add period information if available
-        if (campaign.instance) {
-          comparisonSlide.addText(`Period ${campaign.instance.period_number}`, {
-            x: 8,
-            y: 6.8,
-            fontSize: 14,
-            color: theme.text.light.replace('#', ''),
-            fontFace: config.theme.fontFamily,
-            align: 'right'
-          });
-        }
       }
     }
     
