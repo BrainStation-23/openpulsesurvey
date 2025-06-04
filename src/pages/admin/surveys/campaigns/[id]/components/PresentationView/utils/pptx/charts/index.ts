@@ -1,5 +1,4 @@
 
-
 import pptxgen from "pptxgenjs";
 import { ProcessedData } from "../../../types/responses";
 import { addBooleanChart, addBooleanComparison } from "./booleanCharts";
@@ -61,6 +60,9 @@ export const addComparisonChart = async (
         break;
       case "employee_role":
         groupKey = response.respondent.employee_role?.name || "Unknown";
+        break;
+      case "generation":
+        groupKey = response.respondent.generation || "Unknown";
         break;
     }
 
