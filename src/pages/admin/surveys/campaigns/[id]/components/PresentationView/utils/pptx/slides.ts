@@ -11,45 +11,57 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
   const slide = pptx.addSlide();
   Object.assign(slide, slideMasters.TITLE);
 
+  // Main title
   slide.addText(campaign.name, {
     x: 0.5,
-    y: 0.5,
+    y: 2,
     w: "90%",
-    fontSize: 44,
+    fontSize: 36,
     bold: true,
     color: THEME.text.primary,
+    align: "center"
   });
 
-  if (campaign.description) {
-    slide.addText(campaign.description, {
+  // Instance information if available
+  if (campaign.instance) {
+    slide.addText(`Period ${campaign.instance.period_number}`, {
       x: 0.5,
-      y: 2,
+      y: 2.8,
       w: "90%",
-      fontSize: 20,
-      color: THEME.text.secondary,
+      fontSize: 24,
+      color: THEME.primary,
+      align: "center"
     });
   }
 
+  // Description if available
+  if (campaign.description) {
+    slide.addText(campaign.description, {
+      x: 0.5,
+      y: 3.5,
+      w: "90%",
+      fontSize: 18,
+      color: THEME.text.secondary,
+      align: "center"
+    });
+  }
+
+  // Date range
   const startDate = campaign.instance?.starts_at || campaign.starts_at;
   const endDate = campaign.instance?.ends_at || campaign.ends_at;
-  const completionRate = 0; // Placeholder since we removed completion_rate
 
-  slide.addText([
-    { text: "Period: ", options: { bold: true } },
-    { text: `${formatDate(startDate)} - ${formatDate(endDate)}` },
-    { text: "\nCompletion Rate: ", options: { bold: true } },
-    { text: `${completionRate.toFixed(1)}%` },
-  ], {
+  slide.addText(`${formatDate(startDate)} - ${formatDate(endDate)}`, {
     x: 0.5,
-    y: 4,
+    y: 4.5,
     w: "90%",
     fontSize: 16,
     color: THEME.text.light,
+    align: "center"
   });
 };
 
-// Create completion rate slide
-export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => {
+// Create completion rate slide with proper data calculation
+export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData, processedData: ProcessedData) => {
   const slide = pptx.addSlide();
   Object.assign(slide, slideMasters.CHART);
 
@@ -61,24 +73,28 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
     color: THEME.text.primary,
   });
 
-  // Calculate instance status distribution
-  const instanceCompletionRate = 0; // Placeholder since we removed completion_rate
-  const expiredRate = 0; // Fallback since the property doesn't exist in the type
-  const pendingRate = 100 - (instanceCompletionRate + expiredRate);
+  // Calculate response statistics from processed data
+  const totalResponses = processedData.responses.length;
+  const submittedResponses = processedData.responses.filter(r => r.submitted_at).length;
+  
+  // For demo purposes, let's create a simple distribution
+  // In a real scenario, you'd want to get actual assignment status data
+  const completedPercentage = totalResponses > 0 ? (submittedResponses / totalResponses) * 100 : 0;
+  const pendingPercentage = 100 - completedPercentage;
 
   const data = [{
-    name: "Status Distribution",
-    labels: ["Completed", "Expired", "Pending"],
-    values: [instanceCompletionRate, expiredRate, pendingRate]
+    name: "Response Status",
+    labels: ["Completed", "Pending"],
+    values: [completedPercentage, pendingPercentage]
   }];
 
-  // Make pie chart smaller and position it on the left side
+  // Add pie chart
   slide.addChart(pptx.ChartType.pie, data, {
-    x: 0.5,  // Position from left
-    y: 1.5,  // Position from top
-    w: 4.2,  // Reduced width (60% smaller)
-    h: 3,    // Reduced height (60% smaller)
-    chartColors: [THEME.primary, THEME.tertiary, THEME.light],
+    x: 0.5,
+    y: 1.5,
+    w: 4.2,
+    h: 3,
+    chartColors: [THEME.primary, THEME.light],
     showLegend: true,
     legendPos: 'r',
     legendFontSize: 11,
@@ -87,19 +103,19 @@ export const createCompletionSlide = (pptx: pptxgen, campaign: CampaignData) => 
     showValue: true,
   });
 
-  // Add completion stats as text on the right side of the chart
+  // Add response statistics as text
   slide.addText([
-    { text: "Response Status\n\n", options: { bold: true, fontSize: 14 } },
-    { text: `Completed: `, options: { bold: true } },
-    { text: `${instanceCompletionRate.toFixed(1)}%\n` },
-    { text: `Expired: `, options: { bold: true } },
-    { text: `${expiredRate.toFixed(1)}%\n` },
-    { text: `Pending: `, options: { bold: true } },
-    { text: `${pendingRate.toFixed(1)}%` },
+    { text: "Response Summary\n\n", options: { bold: true, fontSize: 14 } },
+    { text: `Total Responses: `, options: { bold: true } },
+    { text: `${totalResponses}\n` },
+    { text: `Submitted: `, options: { bold: true, color: THEME.primary } },
+    { text: `${submittedResponses} (${completedPercentage.toFixed(1)}%)\n` },
+    { text: `Pending: `, options: { bold: true, color: THEME.light } },
+    { text: `${totalResponses - submittedResponses} (${pendingPercentage.toFixed(1)}%)` },
   ], {
-    x: 5.2,  // Position text to the right of the chart
-    y: 2,    // Align vertically with the chart
-    w: 4,    // Fixed width for text block
+    x: 5.2,
+    y: 2,
+    w: 4,
     fontSize: 12,
     color: THEME.text.primary,
   });
@@ -136,7 +152,7 @@ export const createQuestionSlides = async (
     await addQuestionChart(mainSlide, question, processedData);
 
     // Create comparison slides
-    for (const dimension of ["sbu", "gender", "location", "employment_type", "level", "employee_type", "employee_role"]) {
+    for (const dimension of ["sbu", "gender", "location", "employment_type", "level", "employee_type", "employee_role", "generation"]) {
       const comparisonSlide = pptx.addSlide();
       Object.assign(comparisonSlide, slideMasters.CHART);
 
