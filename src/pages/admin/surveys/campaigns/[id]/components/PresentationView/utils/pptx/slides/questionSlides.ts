@@ -1,7 +1,7 @@
 
 import pptxgen from "pptxgenjs";
-import { CampaignData } from "../../types";
-import { ProcessedData } from "../../types/responses";
+import { CampaignData } from "../../../types";
+import { ProcessedData } from "../../../types/responses";
 import { THEME, slideMasters } from "../theme";
 import { cleanText } from "../helpers";
 import { addQuestionChart, addComparisonChart } from "../charts";

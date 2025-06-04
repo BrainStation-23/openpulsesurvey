@@ -1,6 +1,6 @@
 
 import pptxgen from "pptxgenjs";
-import { CampaignData } from "../../types";
+import { CampaignData } from "../../../types";
 import { THEME, slideMasters } from "../theme";
 import { formatDate } from "../helpers";
 

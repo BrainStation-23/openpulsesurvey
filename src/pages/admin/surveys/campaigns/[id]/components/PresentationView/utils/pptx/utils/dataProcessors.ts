@@ -1,5 +1,5 @@
 
-import { ProcessedData } from "../../types/responses";
+import { ProcessedData } from "../../../types/responses";
 
 export const getGroupedResponses = (
   processedData: ProcessedData,
