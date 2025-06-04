@@ -5,13 +5,6 @@ import { ProcessedData } from "../types/responses";
 import { createTitleSlide, createCompletionSlide, createQuestionSlidesWithConfig } from "./pptx/slides";
 import { ExportConfig, DEFAULT_EXPORT_CONFIG } from "./pptx/config/exportConfig";
 
-/**
- * PPTX export generation is now decoupled from the React slide rendering logic.
- * This file should NEVER rely on any React components or hooks.
- * All helpers for PPTX slide creation are pure functions
- * that operate on campaign/question/response data, not on UI elements.
- */
-
 type ProgressCallback = (progress: number) => void;
 
 // Enhanced export function with configuration support
@@ -32,7 +25,7 @@ export const exportToPptxWithConfig = async (
     ).length || 0;
     
     let totalSteps = 1; // Title slide
-    if (config.includeMainSlides) totalSteps += 1; // Completion slide
+    if (config.includeCompletionSlide) totalSteps += 1; // Completion slide
     if (config.includeMainSlides) totalSteps += questionsCount; // Main question slides
     if (config.includeComparisonSlides) totalSteps += questionsCount * enabledDimensions.length; // Comparison slides
 
@@ -43,14 +36,14 @@ export const exportToPptxWithConfig = async (
     pptx.subject = campaign.name;
     pptx.title = campaign.name;
 
-    // Create title slide
-    createTitleSlide(pptx, campaign);
+    // Create title slide with theme
+    createTitleSlide(pptx, campaign, config.theme);
     currentProgress += 1;
     onProgress?.(Math.round((currentProgress / totalSteps) * 100));
 
     // Create completion rate slide if enabled
-    if (config.includeMainSlides) {
-      await createCompletionSlide(pptx, campaign);
+    if (config.includeCompletionSlide) {
+      await createCompletionSlide(pptx, campaign, config.theme);
       currentProgress += 1;
       onProgress?.(Math.round((currentProgress / totalSteps) * 100));
     }

@@ -1,10 +1,17 @@
 
 import pptxgen from "pptxgenjs";
 import { CampaignData } from "../../../types";
-import { THEME, slideMasters } from "../theme";
+import { createTheme, createSlideMasters } from "../theme";
 import { formatDate } from "../helpers";
+import { ThemeConfig, DEFAULT_THEME } from "../config/exportConfig";
 
-export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
+export const createTitleSlide = (
+  pptx: pptxgen, 
+  campaign: CampaignData, 
+  themeConfig: ThemeConfig = DEFAULT_THEME
+) => {
+  const theme = createTheme(themeConfig);
+  const slideMasters = createSlideMasters(theme);
   const slide = pptx.addSlide();
   Object.assign(slide, slideMasters.TITLE);
 
@@ -15,8 +22,9 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
     w: 8,
     fontSize: 44,
     bold: true,
-    color: THEME.text.primary,
-    align: "center"
+    color: theme.text.primary,
+    align: "center",
+    fontFace: themeConfig.fontFamily
   });
 
   // Instance information if available
@@ -26,8 +34,9 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
       y: 3.5,
       w: 8,
       fontSize: 28,
-      color: THEME.primary,
-      align: "center"
+      color: theme.primary,
+      align: "center",
+      fontFace: themeConfig.fontFamily
     });
   }
 
@@ -38,9 +47,10 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
       y: 4.2,
       w: 8,
       fontSize: 20,
-      color: THEME.text.secondary,
+      color: theme.text.secondary,
       align: "center",
-      wrap: true
+      wrap: true,
+      fontFace: themeConfig.fontFamily
     });
   }
 
@@ -53,8 +63,9 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
     y: 5.2,
     w: 8,
     fontSize: 18,
-    color: THEME.text.light,
-    align: "center"
+    color: theme.text.light,
+    align: "center",
+    fontFace: themeConfig.fontFamily
   });
 
   // Add a decorative element
@@ -63,6 +74,6 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
     y: 5.8,
     w: 4,
     h: 0.1,
-    fill: { color: THEME.primary }
+    fill: { color: theme.primary }
   });
 };

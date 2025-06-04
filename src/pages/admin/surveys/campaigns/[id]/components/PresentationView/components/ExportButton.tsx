@@ -2,12 +2,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Download, Loader } from "lucide-react";
+import { Download, Loader, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { exportToPptx } from "../utils/pptxExport";
+import { exportToPptxWithConfig } from "../utils/pptxExport";
 import { usePresentationResponses } from "../hooks/usePresentationResponses";
 import { useCampaignData } from "../hooks/useCampaignData";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ExportConfigDialog } from "./ExportConfigDialog";
+import { ExportConfig } from "../utils/pptx/config/exportConfig";
 
 interface ExportButtonProps {
   campaignId: string;
@@ -18,6 +20,7 @@ interface ExportButtonProps {
 export function ExportButton({ campaignId, instanceId, variant = 'button' }: Readonly<ExportButtonProps>) {
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [showConfigDialog, setShowConfigDialog] = useState(false);
   const { toast } = useToast();
   
   const {
@@ -37,7 +40,7 @@ export function ExportButton({ campaignId, instanceId, variant = 'button' }: Rea
   const isLoadingData = isLoadingResponses || isLoadingCampaign;
   const isError = isResponsesError || isCampaignError;
 
-  const handleExport = async () => {
+  const handleExportWithConfig = async (config: ExportConfig) => {
     try {
       setExporting(true);
       setProgress(0);
@@ -50,9 +53,9 @@ export function ExportButton({ campaignId, instanceId, variant = 'button' }: Rea
           throw new Error("Failed to load export data");
         }
         
-        await generatePptx(campaignResult.data, responsesResult.data);
+        await generatePptxWithConfig(campaignResult.data, responsesResult.data, config);
       } else {
-        await generatePptx(campaignData, processedData);
+        await generatePptxWithConfig(campaignData, processedData, config);
       }
       
       toast({
@@ -72,25 +75,37 @@ export function ExportButton({ campaignId, instanceId, variant = 'button' }: Rea
     }
   };
   
-  const generatePptx = async (campaign: any, processedResponses: any) => {
-    await exportToPptx(campaign, processedResponses, (progress) => {
+  const generatePptxWithConfig = async (campaign: any, processedResponses: any, config: ExportConfig) => {
+    await exportToPptxWithConfig(campaign, processedResponses, config, (progress) => {
       setProgress(progress);
     });
   };
 
+  const handleQuickExport = () => {
+    setShowConfigDialog(true);
+  };
+
   if (variant === 'dropdown') {
     return (
-      <div className="flex items-center w-full px-2 py-1.5 cursor-pointer" onClick={handleExport}>
-        <Download className="h-4 w-4 mr-2" />
-        <span>Download PPTX</span>
-        {(isLoadingData || exporting) && (
-          <Loader className="h-4 w-4 ml-auto animate-spin" />
-        )}
-      </div>
+      <>
+        <div className="flex items-center w-full px-2 py-1.5 cursor-pointer" onClick={handleQuickExport}>
+          <Download className="h-4 w-4 mr-2" />
+          <span>Download PPTX</span>
+          {(isLoadingData || exporting) && (
+            <Loader className="h-4 w-4 ml-auto animate-spin" />
+          )}
+        </div>
+        <ExportConfigDialog
+          open={showConfigDialog}
+          onOpenChange={setShowConfigDialog}
+          onExport={handleExportWithConfig}
+          isExporting={exporting}
+        />
+      </>
     );
   }
   
-  const isDisabled = exporting ?? isLoadingData;
+  const isDisabled = exporting || isLoadingData;
   const showProgress = exporting;
   
   const getButtonText = () => {
@@ -100,36 +115,45 @@ export function ExportButton({ campaignId, instanceId, variant = 'button' }: Rea
   };
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleExport}
-              disabled={isDisabled}
-              className="text-black hover:bg-black/20 hover:text-black relative"
-            >
-              {isLoadingData || exporting ? (
-                <Loader className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
+    <>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleQuickExport}
+                disabled={isDisabled}
+                className="text-black hover:bg-black/20 hover:text-black relative"
+              >
+                {isLoadingData || exporting ? (
+                  <Loader className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Settings className="h-4 w-4" />
+                )}
+              </Button>
+              
+              {showProgress && (
+                <div className="absolute -bottom-4 left-0 w-full">
+                  <Progress value={progress} className="h-1" />
+                </div>
               )}
-            </Button>
-            
-            {showProgress && (
-              <div className="absolute -bottom-4 left-0 w-full">
-                <Progress value={progress} className="h-1" />
-              </div>
-            )}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{getButtonText()}</p>
-          {isError && <p className="text-destructive">Error loading data</p>}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{getButtonText()}</p>
+            {isError && <p className="text-destructive">Error loading data</p>}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      
+      <ExportConfigDialog
+        open={showConfigDialog}
+        onOpenChange={setShowConfigDialog}
+        onExport={handleExportWithConfig}
+        isExporting={exporting}
+      />
+    </>
   );
 }

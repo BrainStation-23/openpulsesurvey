@@ -1,10 +1,16 @@
-
 import pptxgen from "pptxgenjs";
 import { CampaignData } from "../../../types";
-import { THEME, slideMasters } from "../theme";
+import { createTheme, createSlideMasters } from "../theme";
 import { supabase } from "@/integrations/supabase/client";
+import { ThemeConfig, DEFAULT_THEME } from "../config/exportConfig";
 
-export const createCompletionSlide = async (pptx: pptxgen, campaign: CampaignData) => {
+export const createCompletionSlide = async (
+  pptx: pptxgen, 
+  campaign: CampaignData, 
+  themeConfig: ThemeConfig = DEFAULT_THEME
+) => {
+  const theme = createTheme(themeConfig);
+  const slideMasters = createSlideMasters(theme);
   const slide = pptx.addSlide();
   Object.assign(slide, slideMasters.CHART);
 
@@ -13,7 +19,8 @@ export const createCompletionSlide = async (pptx: pptxgen, campaign: CampaignDat
     y: 0.5,
     fontSize: 32,
     bold: true,
-    color: THEME.text.primary,
+    color: theme.text.primary,
+    fontFace: themeConfig.fontFamily
   });
 
   // Get actual status distribution data using the same RPC as overview tab
@@ -47,13 +54,13 @@ export const createCompletionSlide = async (pptx: pptxgen, campaign: CampaignDat
     values: statusData.map(item => item.value)
   }];
 
-  // Add pie chart
+  // Add pie chart with theme colors
   slide.addChart(pptx.ChartType.pie, data, {
     x: 0.5,
     y: 1.5,
     w: 4.2,
     h: 3,
-    chartColors: [THEME.primary, '#3B82F6', '#EF4444', '#F59E0B'],
+    chartColors: [theme.primary, theme.chart.colors[1], theme.danger, theme.chart.colors[3]],
     showLegend: true,
     legendPos: 'r',
     legendFontSize: 11,
@@ -66,16 +73,16 @@ export const createCompletionSlide = async (pptx: pptxgen, campaign: CampaignDat
   const total = statusData.reduce((sum, item) => sum + item.value, 0);
   
   const statsText = [
-    { text: "Response Summary\n\n", options: { bold: true, fontSize: 14 } },
-    { text: `Total: `, options: { bold: true } },
-    { text: `${total}\n\n` }
+    { text: "Response Summary\n\n", options: { bold: true, fontSize: 14, fontFace: themeConfig.fontFamily } },
+    { text: `Total: `, options: { bold: true, fontFace: themeConfig.fontFamily } },
+    { text: `${total}\n\n`, options: { fontFace: themeConfig.fontFamily } }
   ];
 
   statusData.forEach(item => {
     const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0.0';
     statsText.push(
-      { text: `${item.name}: `, options: { bold: true } },
-      { text: `${item.value} (${percentage}%)\n` }
+      { text: `${item.name}: `, options: { bold: true, fontFace: themeConfig.fontFamily } },
+      { text: `${item.value} (${percentage}%)\n`, options: { fontFace: themeConfig.fontFamily } }
     );
   });
 
@@ -84,6 +91,6 @@ export const createCompletionSlide = async (pptx: pptxgen, campaign: CampaignDat
     y: 2,
     w: 4,
     fontSize: 12,
-    color: THEME.text.primary,
+    color: theme.text.primary,
   });
 };
