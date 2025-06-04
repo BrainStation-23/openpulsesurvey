@@ -14,11 +14,10 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
 
   // Main title
   slide.addText(campaign.name, {
-    x: 1,
-    y: 2.5,
-    w: 8,
-    h: 1.5,
-    fontSize: 44,
+    x: 0.5,
+    y: 2,
+    w: "90%",
+    fontSize: 36,
     bold: true,
     color: THEME.text.primary,
     align: "center"
@@ -27,11 +26,10 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
   // Instance information if available
   if (campaign.instance) {
     slide.addText(`Period ${campaign.instance.period_number}`, {
-      x: 1,
-      y: 4,
-      w: 8,
-      h: 1,
-      fontSize: 28,
+      x: 0.5,
+      y: 2.8,
+      w: "90%",
+      fontSize: 24,
       color: THEME.primary,
       align: "center"
     });
@@ -40,11 +38,10 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
   // Description if available
   if (campaign.description) {
     slide.addText(campaign.description, {
-      x: 1,
-      y: 4.8,
-      w: 8,
-      h: 1,
-      fontSize: 20,
+      x: 0.5,
+      y: 3.5,
+      w: "90%",
+      fontSize: 18,
       color: THEME.text.secondary,
       align: "center"
     });
@@ -55,11 +52,10 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
   const endDate = campaign.instance?.ends_at || campaign.ends_at;
 
   slide.addText(`${formatDate(startDate)} - ${formatDate(endDate)}`, {
-    x: 1,
-    y: 5.8,
-    w: 8,
-    h: 0.8,
-    fontSize: 18,
+    x: 0.5,
+    y: 4.5,
+    w: "90%",
+    fontSize: 16,
     color: THEME.text.light,
     align: "center"
   });
