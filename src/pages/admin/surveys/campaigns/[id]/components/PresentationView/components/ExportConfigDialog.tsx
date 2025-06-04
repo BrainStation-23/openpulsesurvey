@@ -9,14 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ExportConfig, DEFAULT_EXPORT_CONFIG, BACKGROUND_THEMES } from "../utils/pptx/config/exportConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader } from "lucide-react";
 
 interface ExportConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onExport: (config: ExportConfig) => void;
+  isExporting: boolean;
 }
 
-export function ExportConfigDialog({ open, onOpenChange, onExport }: ExportConfigDialogProps) {
+export function ExportConfigDialog({ open, onOpenChange, onExport, isExporting }: ExportConfigDialogProps) {
   const [config, setConfig] = useState<ExportConfig>(DEFAULT_EXPORT_CONFIG);
 
   const handleDimensionToggle = (dimensionKey: string, enabled: boolean) => {
@@ -227,11 +229,18 @@ export function ExportConfigDialog({ open, onOpenChange, onExport }: ExportConfi
         </div>
 
         <div className="flex justify-end space-x-2 pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isExporting}>
             Cancel
           </Button>
-          <Button onClick={handleExport}>
-            Export Presentation
+          <Button onClick={handleExport} disabled={isExporting}>
+            {isExporting ? (
+              <>
+                <Loader className="h-4 w-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              "Export Presentation"
+            )}
           </Button>
         </div>
       </DialogContent>

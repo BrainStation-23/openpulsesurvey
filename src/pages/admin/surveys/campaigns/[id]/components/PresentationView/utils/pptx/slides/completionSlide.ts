@@ -104,14 +104,14 @@ export const createCompletionSlide = async (
   const statsText = [
     { text: "Response Summary\n\n", options: { bold: true, fontSize: 16, fontFace: themeConfig.fontFamily, color: theme.text.primary.replace('#', '') } },
     { text: `Total Responses: `, options: { bold: true, fontSize: 14, fontFace: themeConfig.fontFamily, color: theme.text.primary.replace('#', '') } },
-    { text: `${total}\n\n`, options: { fontSize: 14, fontFace: themeConfig.fontFamily, color: theme.primary.replace('#', ''), bold: true } }
+    { text: `${total}\n\n`, options: { bold: true, fontSize: 14, fontFace: themeConfig.fontFamily, color: theme.primary.replace('#', '') } }
   ];
 
   statusData.forEach(item => {
     const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0.0';
     statsText.push(
       { text: `${item.name}: `, options: { bold: true, fontSize: 12, fontFace: themeConfig.fontFamily, color: theme.text.primary.replace('#', '') } },
-      { text: `${item.value} (${percentage}%)\n`, options: { fontSize: 12, fontFace: themeConfig.fontFamily, color: theme.text.secondary.replace('#', '') } }
+      { text: `${item.value} (${percentage}%)\n`, options: { bold: false, fontSize: 12, fontFace: themeConfig.fontFamily, color: theme.text.secondary.replace('#', '') } }
     );
   });
 

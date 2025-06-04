@@ -84,20 +84,13 @@ export const createTitleSlide = (
     fontFace: themeConfig.fontFamily
   });
 
-  // Enhanced decorative footer line
+  // Enhanced decorative footer line using solid color
   slide.addShape(pptx.ShapeType.rect, {
     x: 2.5,
     y: 5.7,
     w: 5,
     h: 0.15,
-    fill: { 
-      type: 'gradient',
-      colors: [
-        { color: theme.primary.replace('#', ''), position: 0 },
-        { color: theme.secondary.replace('#', ''), position: 100 }
-      ],
-      angle: 90
-    }
+    fill: { color: theme.primary.replace('#', '') }
   });
 
   // Add subtle background elements
