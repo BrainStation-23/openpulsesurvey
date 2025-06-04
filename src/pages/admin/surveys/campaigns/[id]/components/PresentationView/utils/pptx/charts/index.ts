@@ -40,6 +40,11 @@ export const addComparisonChart = async (
 
     let groupKey = "Unknown";
     switch (dimension) {
+      case "supervisor":
+        if (response.respondent.supervisor) {
+          groupKey = `${response.respondent.supervisor.first_name} ${response.respondent.supervisor.last_name}`;
+        }
+        break;
       case "sbu":
         groupKey = response.respondent.sbu?.name || "Unknown";
         break;

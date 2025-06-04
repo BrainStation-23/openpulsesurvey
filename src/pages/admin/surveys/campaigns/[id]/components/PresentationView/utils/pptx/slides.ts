@@ -14,10 +14,10 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
 
   // Main title
   slide.addText(campaign.name, {
-    x: 0.5,
-    y: 2,
-    w: "90%",
-    fontSize: 36,
+    x: 1,
+    y: 2.5,
+    w: 8,
+    fontSize: 44,
     bold: true,
     color: THEME.text.primary,
     align: "center"
@@ -26,10 +26,10 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
   // Instance information if available
   if (campaign.instance) {
     slide.addText(`Period ${campaign.instance.period_number}`, {
-      x: 0.5,
-      y: 2.8,
-      w: "90%",
-      fontSize: 24,
+      x: 1,
+      y: 3.5,
+      w: 8,
+      fontSize: 28,
       color: THEME.primary,
       align: "center"
     });
@@ -38,12 +38,13 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
   // Description if available
   if (campaign.description) {
     slide.addText(campaign.description, {
-      x: 0.5,
-      y: 3.5,
-      w: "90%",
-      fontSize: 18,
+      x: 1,
+      y: 4.2,
+      w: 8,
+      fontSize: 20,
       color: THEME.text.secondary,
-      align: "center"
+      align: "center",
+      wrap: true
     });
   }
 
@@ -52,17 +53,26 @@ export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
   const endDate = campaign.instance?.ends_at || campaign.ends_at;
 
   slide.addText(`${formatDate(startDate)} - ${formatDate(endDate)}`, {
-    x: 0.5,
-    y: 4.5,
-    w: "90%",
-    fontSize: 16,
+    x: 1,
+    y: 5.2,
+    w: 8,
+    fontSize: 18,
     color: THEME.text.light,
     align: "center"
+  });
+
+  // Add a decorative element
+  slide.addShape(pptx.ShapeType.rect, {
+    x: 3,
+    y: 5.8,
+    w: 4,
+    h: 0.1,
+    fill: { color: THEME.primary }
   });
 };
 
 // Create completion rate slide with proper status distribution data
-export const createCompletionSlide = async (pptx: pptxgen, campaign: CampaignData, processedData: ProcessedData) => {
+export const createCompletionSlide = async (pptx: pptxgen, campaign: CampaignData) => {
   const slide = pptx.addSlide();
   Object.assign(slide, slideMasters.CHART);
 
@@ -90,7 +100,7 @@ export const createCompletionSlide = async (pptx: pptxgen, campaign: CampaignDat
         const statusMap = new Map(data.map(item => [item.status, item.count]));
         
         statusData = defaultStatuses.map(status => ({
-          name: status.charAt(0).toUpperCase() + status.slice(1),
+          name: status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' '),
           value: statusMap.get(status) || 0
         }));
       }
@@ -98,8 +108,6 @@ export const createCompletionSlide = async (pptx: pptxgen, campaign: CampaignDat
       console.error("Error fetching status distribution:", error);
     }
   }
-
- 
 
   const data = [{
     name: "Response Status",
@@ -160,6 +168,19 @@ export const createQuestionSlides = async (
     question => question.type !== "text" && question.type !== "comment"
   );
 
+  // Include all comparison dimensions including supervisor
+  const comparisonDimensions = [
+    "supervisor", 
+    "sbu", 
+    "gender", 
+    "location", 
+    "employment_type", 
+    "level", 
+    "employee_type", 
+    "employee_role", 
+    "generation"
+  ];
+
   for (const question of filteredQuestions) {
     // Main question slide
     const mainSlide = pptx.addSlide();
@@ -178,8 +199,8 @@ export const createQuestionSlides = async (
     // Add chart based on question type
     await addQuestionChart(mainSlide, question, processedData);
 
-    // Create comparison slides
-    for (const dimension of ["sbu", "gender", "location", "employment_type", "level", "employee_type", "employee_role", "generation"]) {
+    // Create comparison slides for each dimension
+    for (const dimension of comparisonDimensions) {
       const comparisonSlide = pptx.addSlide();
       Object.assign(comparisonSlide, slideMasters.CHART);
 
@@ -193,7 +214,12 @@ export const createQuestionSlides = async (
         wrap: true,
       });
 
-      comparisonSlide.addText(`Response Distribution by ${dimension}`, {
+      // Format dimension name for display
+      const dimensionDisplayName = dimension
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
+
+      comparisonSlide.addText(`Response Distribution by ${dimensionDisplayName}`, {
         x: 0.5,
         y: 1.2,
         fontSize: 20,
