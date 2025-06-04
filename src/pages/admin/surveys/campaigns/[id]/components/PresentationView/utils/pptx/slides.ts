@@ -99,19 +99,7 @@ export const createCompletionSlide = async (pptx: pptxgen, campaign: CampaignDat
     }
   }
 
-  // Fallback to processed data if RPC fails
-  if (statusData.length === 0) {
-    const totalResponses = processedData.responses.length;
-    const submittedResponses = processedData.responses.filter(r => r.submitted_at).length;
-    
-    const completedPercentage = totalResponses > 0 ? (submittedResponses / totalResponses) * 100 : 0;
-    const pendingPercentage = 100 - completedPercentage;
-
-    statusData = [
-      { name: "Submitted", value: submittedResponses },
-      { name: "Pending", value: totalResponses - submittedResponses }
-    ];
-  }
+ 
 
   const data = [{
     name: "Response Status",
@@ -129,7 +117,7 @@ export const createCompletionSlide = async (pptx: pptxgen, campaign: CampaignDat
     showLegend: true,
     legendPos: 'r',
     legendFontSize: 11,
-    dataLabelFormatCode: '0"%"',
+    dataLabelFormatCode: '0',
     dataLabelFontSize: 10,
     showValue: true,
   });
