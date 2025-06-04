@@ -42,6 +42,7 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
           id,
           response_data,
           submitted_at,
+          generation,
           user:profiles!survey_responses_user_id_fkey (
             id,
             first_name,
@@ -166,6 +167,7 @@ export function usePresentationResponses(campaignId: string, instanceId?: string
           }`.trim(),
           email: response.user?.email,
           gender: response.user?.gender,
+          generation: response.generation,
           location: response.user?.location,
           sbu: primarySbu?.sbu || null,
           employment_type: response.user?.employment_type,
