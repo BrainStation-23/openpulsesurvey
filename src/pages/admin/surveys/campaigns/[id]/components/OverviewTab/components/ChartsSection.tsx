@@ -5,6 +5,8 @@ import { ResponseRateChart } from "../ResponseRateChart";
 import { ResponseByLocationChart } from "../ResponseByLocationChart";
 import { ResponseByGenderChart } from "../ResponseByGenderChart";
 import { ResponseByEmploymentTypeChart } from "../ResponseByEmploymentTypeChart";
+import { ResponseByAgeChart } from "../ResponseByAgeChart";
+import { ResponseByGenerationChart } from "../ResponseByGenerationChart";
 import { TopPerformingSBUsChart } from "./TopPerformingSBUsChart";
 import { TopPerformingManagersChart } from "./TopPerformingManagersChart";
 
@@ -38,15 +40,23 @@ export function ChartsSection({
         />
       </div>
 
-       <div className="grid gap-6 md:grid-cols-1">
-        
-        <ResponseByEmploymentTypeChart 
+      <div className="grid gap-6 md:grid-cols-2">
+        <ResponseByAgeChart 
+          campaignId={campaignId} 
+          instanceId={selectedInstanceId} 
+        />
+        <ResponseByGenerationChart 
           campaignId={campaignId} 
           instanceId={selectedInstanceId} 
         />
       </div>
 
-      
+      <div className="grid gap-6 md:grid-cols-1">
+        <ResponseByEmploymentTypeChart 
+          campaignId={campaignId} 
+          instanceId={selectedInstanceId} 
+        />
+      </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <TopPerformingSBUsChart 
