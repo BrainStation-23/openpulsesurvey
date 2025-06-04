@@ -2,7 +2,8 @@
 import pptxgen from "pptxgenjs";
 import { CampaignData } from "../types";
 import { ProcessedData } from "../types/responses";
-import { createTitleSlide, createCompletionSlide, createQuestionSlides } from "./pptx/slides";
+import { createTitleSlide, createCompletionSlide, createQuestionSlidesWithConfig } from "./pptx/slides";
+import { ExportConfig, DEFAULT_EXPORT_CONFIG } from "./pptx/config/exportConfig";
 
 /**
  * PPTX export generation is now decoupled from the React slide rendering logic.
@@ -13,16 +14,27 @@ import { createTitleSlide, createCompletionSlide, createQuestionSlides } from ".
 
 type ProgressCallback = (progress: number) => void;
 
-// Main export function (remains a pure data-driven implementation)
-export const exportToPptx = async (
+// Enhanced export function with configuration support
+export const exportToPptxWithConfig = async (
   campaign: CampaignData,
   processedData: ProcessedData,
+  config: ExportConfig = DEFAULT_EXPORT_CONFIG,
   onProgress?: ProgressCallback
 ) => {
   try {
     const pptx = new pptxgen();
     let currentProgress = 0;
-    const totalSteps = 3 + (processedData.questions?.length || 0); // Title, completion, trends + questions
+    
+    // Calculate total steps based on configuration
+    const enabledDimensions = config.dimensions.filter(dim => dim.enabled);
+    const questionsCount = processedData.questions?.filter(
+      question => question.type !== "text" && question.type !== "comment"
+    ).length || 0;
+    
+    let totalSteps = 1; // Title slide
+    if (config.includeMainSlides) totalSteps += 1; // Completion slide
+    if (config.includeMainSlides) totalSteps += questionsCount; // Main question slides
+    if (config.includeComparisonSlides) totalSteps += questionsCount * enabledDimensions.length; // Comparison slides
 
     // Set presentation properties
     pptx.author = "Survey System";
@@ -36,13 +48,15 @@ export const exportToPptx = async (
     currentProgress += 1;
     onProgress?.(Math.round((currentProgress / totalSteps) * 100));
 
-    // Create completion rate slide with processed data
-    await createCompletionSlide(pptx, campaign);
-    currentProgress += 1;
-    onProgress?.(Math.round((currentProgress / totalSteps) * 100));
+    // Create completion rate slide if enabled
+    if (config.includeMainSlides) {
+      await createCompletionSlide(pptx, campaign);
+      currentProgress += 1;
+      onProgress?.(Math.round((currentProgress / totalSteps) * 100));
+    }
 
-    // Generate each question's PPTX slides (purely via campaign/processedData, not React)
-    await createQuestionSlides(pptx, campaign, processedData, () => {
+    // Generate question slides with configuration
+    await createQuestionSlidesWithConfig(pptx, campaign, processedData, config, () => {
       currentProgress += 1;
       onProgress?.(Math.round((currentProgress / totalSteps) * 100));
     });
@@ -57,4 +71,13 @@ export const exportToPptx = async (
     console.error("Error exporting presentation:", error);
     throw error;
   }
+};
+
+// Legacy export function for backward compatibility
+export const exportToPptx = async (
+  campaign: CampaignData,
+  processedData: ProcessedData,
+  onProgress?: ProgressCallback
+) => {
+  return exportToPptxWithConfig(campaign, processedData, DEFAULT_EXPORT_CONFIG, onProgress);
 };

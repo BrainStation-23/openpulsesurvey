@@ -1,238 +1,34 @@
 
 import pptxgen from "pptxgenjs";
-import { CampaignData } from "../../types";
-import { ProcessedData } from "../../types/responses";
-import { THEME, slideMasters } from "./theme";
-import { cleanText, formatDate } from "./helpers";
-import { addQuestionChart, addComparisonChart } from "./charts";
-import { supabase } from "@/integrations/supabase/client";
+import { CampaignData } from "../types";
+import { ProcessedData } from "../types/responses";
+import { ExportConfig, DEFAULT_EXPORT_CONFIG } from "./config/exportConfig";
 
-// Create title slide
-export const createTitleSlide = (pptx: pptxgen, campaign: CampaignData) => {
-  const slide = pptx.addSlide();
-  Object.assign(slide, slideMasters.TITLE);
+// Import individual slide creators
+import { createTitleSlide } from "./slides/titleSlide";
+import { createCompletionSlide } from "./slides/completionSlide";
+import { createQuestionSlides } from "./slides/questionSlides";
 
-  // Main title
-  slide.addText(campaign.name, {
-    x: 1,
-    y: 2.5,
-    w: 8,
-    fontSize: 44,
-    bold: true,
-    color: THEME.text.primary,
-    align: "center"
-  });
+// Re-export for backward compatibility
+export { createTitleSlide, createCompletionSlide };
 
-  // Instance information if available
-  if (campaign.instance) {
-    slide.addText(`Period ${campaign.instance.period_number}`, {
-      x: 1,
-      y: 3.5,
-      w: 8,
-      fontSize: 28,
-      color: THEME.primary,
-      align: "center"
-    });
-  }
-
-  // Description if available
-  if (campaign.description) {
-    slide.addText(campaign.description, {
-      x: 1,
-      y: 4.2,
-      w: 8,
-      fontSize: 20,
-      color: THEME.text.secondary,
-      align: "center",
-      wrap: true
-    });
-  }
-
-  // Date range
-  const startDate = campaign.instance?.starts_at || campaign.starts_at;
-  const endDate = campaign.instance?.ends_at || campaign.ends_at;
-
-  slide.addText(`${formatDate(startDate)} - ${formatDate(endDate)}`, {
-    x: 1,
-    y: 5.2,
-    w: 8,
-    fontSize: 18,
-    color: THEME.text.light,
-    align: "center"
-  });
-
-  // Add a decorative element
-  slide.addShape(pptx.ShapeType.rect, {
-    x: 3,
-    y: 5.8,
-    w: 4,
-    h: 0.1,
-    fill: { color: THEME.primary }
-  });
+// Enhanced question slides creation with configuration
+export const createQuestionSlidesWithConfig = async (
+  pptx: pptxgen, 
+  campaign: CampaignData, 
+  processedData: ProcessedData,
+  config: ExportConfig = DEFAULT_EXPORT_CONFIG,
+  onProgress?: (progress: number) => void
+) => {
+  return createQuestionSlides(pptx, campaign, processedData, config, onProgress);
 };
 
-// Create completion rate slide with proper status distribution data
-export const createCompletionSlide = async (pptx: pptxgen, campaign: CampaignData) => {
-  const slide = pptx.addSlide();
-  Object.assign(slide, slideMasters.CHART);
-
-  slide.addText("Response Distribution", {
-    x: 0.5,
-    y: 0.5,
-    fontSize: 32,
-    bold: true,
-    color: THEME.text.primary,
-  });
-
-  // Get actual status distribution data using the same RPC as overview tab
-  let statusData = [];
-  if (campaign.instance?.id) {
-    try {
-      const { data, error } = await supabase
-        .rpc('get_campaign_instance_status_distribution', {
-          p_campaign_id: campaign.id,
-          p_instance_id: campaign.instance.id
-        });
-
-      if (!error && data) {
-        // Ensure all status types have a value
-        const defaultStatuses = ['submitted', 'in_progress', 'expired', 'assigned'];
-        const statusMap = new Map(data.map(item => [item.status, item.count]));
-        
-        statusData = defaultStatuses.map(status => ({
-          name: status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' '),
-          value: statusMap.get(status) || 0
-        }));
-      }
-    } catch (error) {
-      console.error("Error fetching status distribution:", error);
-    }
-  }
-
-  const data = [{
-    name: "Response Status",
-    labels: statusData.map(item => item.name),
-    values: statusData.map(item => item.value)
-  }];
-
-  // Add pie chart
-  slide.addChart(pptx.ChartType.pie, data, {
-    x: 0.5,
-    y: 1.5,
-    w: 4.2,
-    h: 3,
-    chartColors: [THEME.primary, '#3B82F6', '#EF4444', '#F59E0B'],
-    showLegend: true,
-    legendPos: 'r',
-    legendFontSize: 11,
-    dataLabelFormatCode: '0',
-    dataLabelFontSize: 10,
-    showValue: true,
-  });
-
-  // Add response statistics as text
-  const total = statusData.reduce((sum, item) => sum + item.value, 0);
-  
-  const statsText = [
-    { text: "Response Summary\n\n", options: { bold: true, fontSize: 14 } },
-    { text: `Total: `, options: { bold: true } },
-    { text: `${total}\n\n` }
-  ];
-
-  statusData.forEach(item => {
-    const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0.0';
-    statsText.push(
-      { text: `${item.name}: `, options: { bold: true } },
-      { text: `${item.value} (${percentage}%)\n` }
-    );
-  });
-
-  slide.addText(statsText, {
-    x: 5.2,
-    y: 2,
-    w: 4,
-    fontSize: 12,
-    color: THEME.text.primary,
-  });
-};
-
-// Create question slides
+// Legacy function for backward compatibility
 export const createQuestionSlides = async (
   pptx: pptxgen, 
   campaign: CampaignData, 
   processedData: ProcessedData,
   onProgress?: (progress: number) => void
 ) => {
-  // Filter out text and comment questions
-  const filteredQuestions = processedData.questions.filter(
-    question => question.type !== "text" && question.type !== "comment"
-  );
-
-  // Include all comparison dimensions including supervisor
-  const comparisonDimensions = [
-    "supervisor", 
-    "sbu", 
-    "gender", 
-    "location", 
-    "employment_type", 
-    "level", 
-    "employee_type", 
-    "employee_role", 
-    "generation"
-  ];
-
-  for (const question of filteredQuestions) {
-    // Main question slide
-    const mainSlide = pptx.addSlide();
-    Object.assign(mainSlide, slideMasters.CHART);
-
-    mainSlide.addText(cleanText(question.title), {
-      x: 0.5,
-      y: 0.5,
-      w: "90%",
-      fontSize: 28,
-      bold: true,
-      color: THEME.text.primary,
-      wrap: true,
-    });
-
-    // Add chart based on question type
-    await addQuestionChart(mainSlide, question, processedData);
-
-    // Create comparison slides for each dimension
-    for (const dimension of comparisonDimensions) {
-      const comparisonSlide = pptx.addSlide();
-      Object.assign(comparisonSlide, slideMasters.CHART);
-
-      comparisonSlide.addText(cleanText(question.title), {
-        x: 0.5,
-        y: 0.5,
-        w: "90%",
-        fontSize: 24,
-        bold: true,
-        color: THEME.text.primary,
-        wrap: true,
-      });
-
-      // Format dimension name for display
-      const dimensionDisplayName = dimension
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, l => l.toUpperCase());
-
-      comparisonSlide.addText(`Response Distribution by ${dimensionDisplayName}`, {
-        x: 0.5,
-        y: 1.2,
-        fontSize: 20,
-        color: THEME.text.secondary,
-      });
-
-      // Add comparison chart
-      await addComparisonChart(comparisonSlide, question, processedData, dimension);
-    }
-    
-    // Call the progress callback after each question's slides are created
-    if (onProgress) {
-      onProgress(1); // Pass a numeric value to indicate progress increment
-    }
-  }
+  return createQuestionSlidesWithConfig(pptx, campaign, processedData, DEFAULT_EXPORT_CONFIG, onProgress);
 };
