@@ -37,7 +37,7 @@ export const exportToPptx = async (
     onProgress?.(Math.round((currentProgress / totalSteps) * 100));
 
     // Create completion rate slide with processed data
-    createCompletionSlide(pptx, campaign, processedData);
+    await createCompletionSlide(pptx, campaign, processedData);
     currentProgress += 1;
     onProgress?.(Math.round((currentProgress / totalSteps) * 100));
 
