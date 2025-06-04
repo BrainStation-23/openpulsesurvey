@@ -42,8 +42,8 @@ export const createQuestionSlides = async (
         fontFace: config.theme.fontFamily
       });
 
-      // Add chart based on question type with theme
-      await addQuestionChart(mainSlide, question, processedData, theme);
+      // Add chart based on question type with theme - fix: remove theme parameter
+      await addQuestionChart(mainSlide, question, processedData);
     }
 
     // Create comparison slides for enabled dimensions
@@ -71,8 +71,8 @@ export const createQuestionSlides = async (
           fontFace: config.theme.fontFamily
         });
 
-        // Add comparison chart with theme
-        await addComparisonChart(comparisonSlide, question, processedData, dimension.key, theme);
+        // Add comparison chart - fix: remove theme parameter
+        await addComparisonChart(comparisonSlide, question, processedData, dimension.key);
       }
     }
     
