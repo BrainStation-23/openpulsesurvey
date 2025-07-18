@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
@@ -99,9 +100,8 @@ serve(async (req) => {
     comment on each response from a professional consultant view.
     `;
 
-    // Call Gemini AI
+    // Call Gemini AI with the new 2.5 Pro model
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-    const geminiModel = Deno.env.get('GEMINI_MODEL_NAME') || 'gemini-1.5-flash';
     
     if (!geminiApiKey) {
       return new Response(JSON.stringify({
@@ -116,9 +116,10 @@ serve(async (req) => {
       });
     }
 
-    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`, {
+    const geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent', {
       method: 'POST',
       headers: {
+        'x-goog-api-key': geminiApiKey,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -135,7 +136,10 @@ serve(async (req) => {
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 2048
+          maxOutputTokens: 2048,
+          thinkingConfig: {
+            thinkingBudget: 1024  // Enable enhanced reasoning capabilities
+          }
         }
       })
     });
