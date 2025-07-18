@@ -88,24 +88,16 @@ serve(async (req) => {
     ### 1. Executive Summary:
     Briefly summarize the overall sentiment and tone of the feedback.
     
-    ### 2. Key Strengths:
-    List what the team appreciates most about the supervisor, based on positive trends.
-    
-    ### 3. Areas for Improvement:
-    Identify 2–3 clear themes where improvement is needed, based on patterns in the data.
-    
-    ### 4. Actionable Recommendations:
-    Give 3–5 specific, practical steps the supervisor can take to improve team engagement and satisfaction.
-    
-    ### 5. Priority Focus:
+    ### 2. Priority Focus:
     Highlight the single most important issue to address immediately.
-    
-    ### 6. Success Metrics:
-    Suggest measurable KPIs or team signals that can be used to track progress after these improvements.
-    
+  
+    ### 3. Actionable Recommendations:
+    Give 1-3 specific, practical steps the supervisor can take to improve team engagement and satisfaction.
     ---
     
-    Do **not quote** individual responses. Generalize themes based on overall trends and sentiment. Keep your tone supportive, professional, and focused on improvement.`;
+    as for individual text responses, rephrase them in a generic way while keeping the emotion and intent intact. 
+    comment on each response from a professional consultant view.
+    `;
 
     // Call Gemini AI
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
