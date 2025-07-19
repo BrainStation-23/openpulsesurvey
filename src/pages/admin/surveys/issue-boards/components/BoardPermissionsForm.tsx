@@ -215,6 +215,7 @@ export function BoardPermissionsForm({
                   </TooltipProvider>
                  )}
                </div>
+               </div>
                
                <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-4">
