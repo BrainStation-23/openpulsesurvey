@@ -3,6 +3,15 @@ import { Building, GraduationCap, BadgeCheck, Plus, Trash2, Copy, Info } from "l
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Tooltip,
   TooltipContent,
@@ -35,7 +44,7 @@ export function BoardPermissionsForm({
     Object.fromEntries(permissions.map((_, i) => [i, true]))
   );
 
-  const { validatePermissions, enforcePermissionDependencies } = usePermissionValidation();
+  const { validatePermissions, enforcePermissionDependencies, validateRuleConflicts } = usePermissionValidation();
 
   const { data: sbus } = useQuery({
     queryKey: ['sbus'],
@@ -87,7 +96,13 @@ export function BoardPermissionsForm({
 
   const addPermission = () => {
     const newIndex = permissions.length;
-    setPermissions([...permissions, {}]);
+    const defaultPermission = {
+      rule_name: `Rule ${newIndex + 1}`,
+      rule_type: 'include' as const,
+      priority: 100,
+      is_active: true,
+    };
+    setPermissions([...permissions, defaultPermission]);
     setExpandedRules(prev => ({ ...prev, [newIndex]: true }));
   };
 
@@ -124,9 +139,11 @@ export function BoardPermissionsForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const errors = validatePermissions(permissions);
+    const conflicts = validateRuleConflicts(permissions);
     
-    if (errors.length > 0) {
-      errors.forEach(error => {
+    const allErrors = [...errors, ...conflicts];
+    if (allErrors.length > 0) {
+      allErrors.forEach(error => {
         toast({
           title: "Validation Error",
           description: error,
@@ -159,10 +176,11 @@ export function BoardPermissionsForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
         {permissions.map((permission, index) => (
-          <Card key={index} className="p-4 relative">
-            <div className="mb-6 flex items-center justify-between">
-              <h4 className="font-medium">Permission Rule {index + 1}</h4>
-              <div className="flex items-center gap-2">
+           <Card key={index} className="p-4 relative">
+             <div className="space-y-4">
+               <div className="flex items-center justify-between">
+                 <h4 className="font-medium">Permission Rule {index + 1}</h4>
+                 <div className="flex items-center gap-2">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -195,11 +213,10 @@ export function BoardPermissionsForm({
                       <TooltipContent>Remove rule</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                )}
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
+                 )}
+               </div>
+               
+               <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <AccessLevelGroup
                   title="Organization"
@@ -327,21 +344,92 @@ export function BoardPermissionsForm({
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
                           Can Vote
-                        </label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-4 w-4 text-muted-foreground" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Users can vote on issues in the board (requires View permission)
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                         </label>
+                         <TooltipProvider>
+                           <Tooltip>
+                             <TooltipTrigger asChild>
+                               <Info className="h-4 w-4 text-muted-foreground" />
+                             </TooltipTrigger>
+                             <TooltipContent>
+                               Users can vote on issues in the board (requires View permission)
+                             </TooltipContent>
+                           </Tooltip>
+                         </TooltipProvider>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+
+                 {/* Rule Configuration */}
+                 <div className="mt-4">
+                   <h5 className="font-medium text-sm mb-3">Rule Configuration</h5>
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
+                     <div className="space-y-2">
+                       <Label htmlFor={`rule_name_${index}`} className="text-sm font-medium">
+                         Rule Name
+                       </Label>
+                       <Input
+                         id={`rule_name_${index}`}
+                         value={permission.rule_name || ''}
+                         onChange={(e) => updatePermission(index, 'rule_name', e.target.value)}
+                         placeholder="Enter rule name"
+                         className="text-sm"
+                       />
+                     </div>
+
+                     <div className="space-y-2">
+                       <Label htmlFor={`rule_type_${index}`} className="text-sm font-medium">
+                         Rule Type
+                       </Label>
+                       <Select
+                         value={permission.rule_type || 'include'}
+                         onValueChange={(value) => updatePermission(index, 'rule_type', value)}
+                       >
+                         <SelectTrigger id={`rule_type_${index}`} className="text-sm">
+                           <SelectValue placeholder="Select type" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="include">Include</SelectItem>
+                           <SelectItem value="exclude">Exclude</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+
+                     <div className="space-y-2">
+                       <Label htmlFor={`priority_${index}`} className="text-sm font-medium">
+                         Priority
+                       </Label>
+                       <Input
+                         id={`priority_${index}`}
+                         type="number"
+                         min={0}
+                         max={1000}
+                         value={permission.priority || 100}
+                         onChange={(e) => updatePermission(index, 'priority', parseInt(e.target.value) || 100)}
+                         className="text-sm"
+                       />
+                     </div>
+
+                     <div className="space-y-2">
+                       <Label htmlFor={`is_active_${index}`} className="text-sm font-medium">
+                         Active
+                       </Label>
+                       <div className="flex items-center space-x-2 mt-2">
+                         <Checkbox
+                           id={`is_active_${index}`}
+                           checked={permission.is_active ?? true}
+                           onCheckedChange={(checked) => updatePermission(index, 'is_active', checked)}
+                         />
+                         <label
+                           htmlFor={`is_active_${index}`}
+                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                         >
+                           Enabled
+                         </label>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
 
                 <PermissionRuleExplanation 
                   permission={permission}
@@ -349,7 +437,7 @@ export function BoardPermissionsForm({
                 />
               </div>
             </div>
-          </Card>
+           </Card>
         ))}
       </div>
 

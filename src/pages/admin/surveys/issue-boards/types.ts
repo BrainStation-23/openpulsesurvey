@@ -20,6 +20,10 @@ export type IssueBoardPermission = {
   can_view: boolean;
   can_create: boolean;
   can_vote: boolean;
+  rule_name?: string;
+  rule_type?: 'include' | 'exclude';
+  priority?: number;
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 };

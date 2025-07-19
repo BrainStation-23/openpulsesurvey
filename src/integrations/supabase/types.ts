@@ -454,8 +454,12 @@ export type Database = {
           employee_type_ids: string[] | null
           employment_type_ids: string[] | null
           id: string
+          is_active: boolean | null
           level_ids: string[] | null
           location_ids: string[] | null
+          priority: number | null
+          rule_name: string | null
+          rule_type: string | null
           sbu_ids: string[] | null
           updated_at: string
         }
@@ -469,8 +473,12 @@ export type Database = {
           employee_type_ids?: string[] | null
           employment_type_ids?: string[] | null
           id?: string
+          is_active?: boolean | null
           level_ids?: string[] | null
           location_ids?: string[] | null
+          priority?: number | null
+          rule_name?: string | null
+          rule_type?: string | null
           sbu_ids?: string[] | null
           updated_at?: string
         }
@@ -484,8 +492,12 @@ export type Database = {
           employee_type_ids?: string[] | null
           employment_type_ids?: string[] | null
           id?: string
+          is_active?: boolean | null
           level_ids?: string[] | null
           location_ids?: string[] | null
+          priority?: number | null
+          rule_name?: string | null
+          rule_type?: string | null
           sbu_ids?: string[] | null
           updated_at?: string
         }
@@ -2259,6 +2271,10 @@ export type Database = {
           p_instance_id: string
           p_question_name: string
         }
+        Returns: Json
+      }
+      get_user_board_permissions: {
+        Args: { p_user_id: string; p_board_id: string }
         Returns: Json
       }
       handle_instance_activation: {

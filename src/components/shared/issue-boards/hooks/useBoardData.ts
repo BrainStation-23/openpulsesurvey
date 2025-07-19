@@ -15,18 +15,18 @@ export function useBoardData(boardId: string) {
           description,
           status,
           created_at,
-          created_by,
-          permissions:issue_board_permissions(
-            can_view,
-            can_create,
-            can_vote
-          )
+          created_by
         `)
         .eq('id', boardId)
         .single();
 
       if (error) throw error;
-      return data as UserIssueBoard;
+      
+      // Return simplified board data - permissions will be handled separately
+      return {
+        ...data,
+        permissions: [] // Empty array to maintain compatibility
+      } as UserIssueBoard;
     }
   });
 }
