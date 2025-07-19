@@ -438,6 +438,7 @@ export function BoardPermissionsForm({
                 />
               </div>
             </div>
+             </div>
            </Card>
         ))}
       </div>
