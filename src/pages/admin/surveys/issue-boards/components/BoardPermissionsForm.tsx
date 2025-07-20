@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Plus, Users, Shield, Settings, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { PermissionOverviewCard } from "./PermissionOverviewCard";
 import { PermissionRuleCard } from "./PermissionRuleCard";
 
 interface BoardPermissionsFormProps {
-  board: IssueBoard;
+  board?: IssueBoard; // Make board optional for create scenario
   onSubmit: (permissions: Partial<IssueBoardPermission>[]) => void;
   initialPermissions: IssueBoardPermission[];
 }
@@ -37,6 +38,9 @@ export function BoardPermissionsForm({
     getTotalUsersAffected
   } = usePermissionForm(initialPermissions);
 
+  console.log('BoardPermissionsForm - board prop:', board);
+  console.log('BoardPermissionsForm - board.name:', board?.name);
+
   if (permissionData.isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -60,6 +64,10 @@ export function BoardPermissionsForm({
     );
   }
 
+  // Get board name with fallback for create scenario
+  const boardName = board?.name || "this board";
+  const isCreateMode = !board?.id;
+
   return (
     <div className="space-y-6">
       {/* Header with Summary */}
@@ -70,8 +78,13 @@ export function BoardPermissionsForm({
             Board Access Control
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Define who can access "{board.name}" and what they can do
+            Define who can access "{boardName}" and what they can do
           </p>
+          {isCreateMode && (
+            <p className="text-xs text-muted-foreground mt-1 italic">
+              Configure permissions for your new board
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
@@ -118,7 +131,10 @@ export function BoardPermissionsForm({
                 <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">No Access Rules Configured</h3>
                 <p className="text-muted-foreground mb-4">
-                  This board is currently inaccessible to all users. Create your first access rule to get started.
+                  {isCreateMode 
+                    ? "Your new board will be inaccessible to users until you create access rules."
+                    : "This board is currently inaccessible to all users. Create your first access rule to get started."
+                  }
                 </p>
                 <Button onClick={() => {
                   addPermission();
@@ -211,7 +227,7 @@ export function BoardPermissionsForm({
                 Back to Overview
               </Button>
               <Button type="submit">
-                Save All Rules
+                {isCreateMode ? "Create Board with Rules" : "Save All Rules"}
               </Button>
             </div>
           </div>
