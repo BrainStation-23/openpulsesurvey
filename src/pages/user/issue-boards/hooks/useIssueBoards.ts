@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserIssueBoard } from "../types";
+import type { BoardPermissionResult } from "@/components/shared/issue-boards/hooks/useBoardPermissions";
 
 export function useIssueBoards() {
   return useQuery({
@@ -53,8 +54,11 @@ export function useIssueBoards() {
 
             console.log(`Permissions for board ${board.name}:`, permissionData);
 
+            // Cast to the correct type and check permissions
+            const permissions = permissionData as unknown as BoardPermissionResult;
+
             // Only include boards where user has view permission
-            if (permissionData?.can_view) {
+            if (permissions?.can_view) {
               return {
                 id: board.id,
                 name: board.name,
@@ -63,9 +67,9 @@ export function useIssueBoards() {
                 created_at: board.created_at,
                 created_by: board.created_by,
                 permissions: {
-                  can_view: permissionData.can_view,
-                  can_create: permissionData.can_create,
-                  can_vote: permissionData.can_vote
+                  can_view: permissions.can_view,
+                  can_create: permissions.can_create,
+                  can_vote: permissions.can_vote
                 }
               } as UserIssueBoard;
             }
