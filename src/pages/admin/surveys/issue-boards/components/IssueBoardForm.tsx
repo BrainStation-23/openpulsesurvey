@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import type { IssueBoard } from "../types";
@@ -95,26 +94,6 @@ export function IssueBoardForm({
                   />
                 </FormControl>
                 <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value === 'active'}
-                    onCheckedChange={(checked) => {
-                      field.onChange(checked ? 'active' : 'disabled');
-                    }}
-                  />
-                </FormControl>
-                <FormLabel className="font-normal">
-                  Active (Board will be accessible to users)
-                </FormLabel>
               </FormItem>
             )}
           />

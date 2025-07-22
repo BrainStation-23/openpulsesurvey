@@ -86,16 +86,6 @@ export function IssueBoardTabs({
             onChange={handleBoardUpdate}
             hasError={formErrors.board}
           />
-          
-          <div className="flex justify-between">
-            <div />
-            <Button 
-              onClick={() => setActiveTab("permissions")}
-              disabled={!isBasicInfoComplete}
-            >
-              Next: Configure Permissions
-            </Button>
-          </div>
         </TabsContent>
         
         <TabsContent value="permissions" className="space-y-4">
@@ -104,16 +94,6 @@ export function IssueBoardTabs({
             onSubmit={handlePermissionsUpdate}
             initialPermissions={formState.permissions as IssueBoardPermission[]}
           />
-          
-          <div className="flex justify-between">
-            <Button 
-              variant="outline"
-              onClick={() => setActiveTab("basic")}
-            >
-              Back to Basic Info
-            </Button>
-            <div />
-          </div>
         </TabsContent>
       </Tabs>
 
