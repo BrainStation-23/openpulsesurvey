@@ -12,9 +12,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import type { IssueBoard } from "../types";
 
 const issueBoardFormSchema = z.object({
@@ -26,82 +26,79 @@ const issueBoardFormSchema = z.object({
 type IssueBoardFormValues = z.infer<typeof issueBoardFormSchema>;
 
 interface IssueBoardFormProps {
-  onSubmit: (values: IssueBoardFormValues) => void;
-  initialValues?: Partial<IssueBoard>;
-  submitLabel?: string;
+  values: Partial<IssueBoard>;
+  onChange: (values: Partial<IssueBoard>) => void;
+  hasError?: boolean;
 }
 
 export function IssueBoardForm({ 
-  onSubmit, 
-  initialValues, 
-  submitLabel = "Create Board" 
+  values, 
+  onChange,
+  hasError = false
 }: IssueBoardFormProps) {
   const form = useForm<IssueBoardFormValues>({
     resolver: zodResolver(issueBoardFormSchema),
-    defaultValues: {
-      name: initialValues?.name || "",
-      description: initialValues?.description || "",
-      status: initialValues?.status || "active"
+    values: {
+      name: values.name || "",
+      description: values.description || "",
+      status: values.status || "active"
     }
   });
 
+  // Watch for form changes and notify parent
+  React.useEffect(() => {
+    const subscription = form.watch((data) => {
+      onChange(data as Partial<IssueBoard>);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, onChange]);
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter board name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <div className="space-y-4">
+      {hasError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Please complete all required fields before proceeding.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <Form {...form}>
+        <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Board Name *</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter board name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Enter board description" 
-                  {...field} 
-                  value={field.value || ''}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-              <FormControl>
-                <Checkbox
-                  checked={field.value === 'active'}
-                  onCheckedChange={(checked) => {
-                    field.onChange(checked ? 'active' : 'disabled');
-                  }}
-                />
-              </FormControl>
-              <FormLabel className="font-normal">Active</FormLabel>
-            </FormItem>
-          )}
-        />
-
-        <Button type="submit" className="w-full">
-          {submitLabel}
-        </Button>
-      </form>
-    </Form>
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Enter board description (optional)" 
+                    {...field} 
+                    value={field.value || ''}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </Form>
+    </div>
   );
 }

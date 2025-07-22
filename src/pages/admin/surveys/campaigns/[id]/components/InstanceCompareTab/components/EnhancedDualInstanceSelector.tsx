@@ -115,7 +115,7 @@ export function EnhancedDualInstanceSelector({
       </div>
       
       {warning && (
-        <Alert variant="warning" className="mt-2">
+        <Alert variant="destructive" className="mt-2">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{warning}</AlertDescription>
         </Alert>
