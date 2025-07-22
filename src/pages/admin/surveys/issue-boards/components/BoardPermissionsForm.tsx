@@ -1,24 +1,17 @@
+
 import React from "react";
-import { Building, GraduationCap, BadgeCheck, Plus, Trash2, Copy, Info } from "lucide-react";
+import { Plus, Users, Shield, Settings, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { toast } from "@/components/ui/use-toast";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import type { IssueBoard, IssueBoardPermission } from "../types";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { AccessLevelGroup } from "./AccessLevelGroup";
-import { PermissionRuleExplanation } from "./PermissionRuleExplanation";
-import { usePermissionValidation } from "../hooks/usePermissionValidation";
+import { usePermissionData } from "../hooks/usePermissionData";
+import { usePermissionForm } from "../hooks/usePermissionForm";
+import { PermissionOverviewCard } from "./PermissionOverviewCard";
+import { PermissionRuleCard } from "./PermissionRuleCard";
 
 interface BoardPermissionsFormProps {
-  board: IssueBoard;
+  board?: IssueBoard; // Make board optional for create scenario
   onSubmit: (permissions: Partial<IssueBoardPermission>[]) => void;
   initialPermissions: IssueBoardPermission[];
 }
@@ -28,342 +21,218 @@ export function BoardPermissionsForm({
   onSubmit,
   initialPermissions
 }: BoardPermissionsFormProps) {
-  const [permissions, setPermissions] = React.useState<Partial<IssueBoardPermission>[]>(
-    initialPermissions.length > 0 ? initialPermissions : [{}]
-  );
-  const [expandedRules, setExpandedRules] = React.useState<Record<number, boolean>>(
-    Object.fromEntries(permissions.map((_, i) => [i, true]))
-  );
+  const permissionData = usePermissionData();
+  const {
+    permissions,
+    expandedRules,
+    activeStep,
+    setActiveStep,
+    addPermission,
+    duplicatePermission,
+    removePermission,
+    updatePermission,
+    toggleRule,
+    handleSubmit,
+    getSelectionSummary,
+    getPermissionsSummary,
+    getTotalUsersAffected
+  } = usePermissionForm(initialPermissions);
 
-  const { validatePermissions, enforcePermissionDependencies } = usePermissionValidation();
+  console.log('BoardPermissionsForm - board prop:', board);
+  console.log('BoardPermissionsForm - board.name:', board?.name);
 
-  const { data: sbus } = useQuery({
-    queryKey: ['sbus'],
-    queryFn: async () => {
-      const { data } = await supabase.from('sbus').select('id, name');
-      return data || [];
-    }
-  });
+  if (permissionData.isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading permission data...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const { data: levels } = useQuery({
-    queryKey: ['levels'],
-    queryFn: async () => {
-      const { data } = await supabase.from('levels').select('id, name');
-      return data || [];
-    }
-  });
+  if (permissionData.error) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-4" />
+          <p className="text-destructive">Failed to load permission data</p>
+          <p className="text-sm text-muted-foreground mt-2">{permissionData.error.message}</p>
+        </div>
+      </div>
+    );
+  }
 
-  const { data: locations } = useQuery({
-    queryKey: ['locations'],
-    queryFn: async () => {
-      const { data } = await supabase.from('locations').select('id, name');
-      return data || [];
-    }
-  });
-
-  const { data: employmentTypes } = useQuery({
-    queryKey: ['employmentTypes'],
-    queryFn: async () => {
-      const { data } = await supabase.from('employment_types').select('id, name');
-      return data || [];
-    }
-  });
-
-  const { data: employeeTypes } = useQuery({
-    queryKey: ['employeeTypes'],
-    queryFn: async () => {
-      const { data } = await supabase.from('employee_types').select('id, name');
-      return data || [];
-    }
-  });
-
-  const { data: employeeRoles } = useQuery({
-    queryKey: ['employeeRoles'],
-    queryFn: async () => {
-      const { data } = await supabase.from('employee_roles').select('id, name');
-      return data || [];
-    }
-  });
-
-  const addPermission = () => {
-    const newIndex = permissions.length;
-    setPermissions([...permissions, {}]);
-    setExpandedRules(prev => ({ ...prev, [newIndex]: true }));
-  };
-
-  const duplicatePermission = (index: number) => {
-    const newPermission = { ...permissions[index] };
-    setPermissions([...permissions, newPermission]);
-    setExpandedRules(prev => ({ ...prev, [permissions.length]: true }));
-  };
-
-  const removePermission = (index: number) => {
-    setPermissions(permissions.filter((_, i) => i !== index));
-    setExpandedRules(prev => {
-      const { [index]: _, ...rest } = prev;
-      return rest;
-    });
-  };
-
-  const updatePermission = (index: number, field: keyof IssueBoardPermission, value: any) => {
-    const newPermissions = [...permissions];
-    newPermissions[index] = enforcePermissionDependencies({
-      ...newPermissions[index],
-      [field]: value
-    });
-    setPermissions(newPermissions);
-  };
-
-  const toggleRule = (index: number) => {
-    setExpandedRules(prev => ({
-      ...prev,
-      [index]: !prev[index]
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const errors = validatePermissions(permissions);
-    
-    if (errors.length > 0) {
-      errors.forEach(error => {
-        toast({
-          title: "Validation Error",
-          description: error,
-          variant: "destructive",
-        });
-      });
-      return;
-    }
-    
-    onSubmit(permissions);
-  };
-
-  const getSelectionSummary = (permission: Partial<IssueBoardPermission>) => {
-    const counts = {
-      sbus: permission.sbu_ids?.length || 0,
-      levels: permission.level_ids?.length || 0,
-      locations: permission.location_ids?.length || 0,
-      employmentTypes: permission.employment_type_ids?.length || 0,
-      employeeTypes: permission.employee_type_ids?.length || 0,
-      employeeRoles: permission.employee_role_ids?.length || 0,
-    };
-
-    return Object.entries(counts)
-      .filter(([_, count]) => count > 0)
-      .map(([key, count]) => `${count} ${key.replace(/([A-Z])/g, ' $1').trim()}`)
-      .join(' | ');
-  };
+  // Get board name with fallback for create scenario
+  const boardName = board?.name || "this board";
+  const isCreateMode = !board?.id;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-        {permissions.map((permission, index) => (
-          <Card key={index} className="p-4 relative">
-            <div className="mb-6 flex items-center justify-between">
-              <h4 className="font-medium">Permission Rule {index + 1}</h4>
-              <div className="flex items-center gap-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => duplicatePermission(index)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Duplicate rule</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                
-                {permissions.length > 1 && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removePermission(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Remove rule</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <AccessLevelGroup
-                  title="Organization"
-                  icon={<Building className="h-4 w-4" />}
-                  selections={[
-                    {
-                      label: "Strategic Business Units",
-                      options: sbus || [],
-                      value: permission.sbu_ids || [],
-                      onChange: (value) => updatePermission(index, 'sbu_ids', value)
-                    },
-                    {
-                      label: "Locations",
-                      options: locations || [],
-                      value: permission.location_ids || [],
-                      onChange: (value) => updatePermission(index, 'location_ids', value)
-                    }
-                  ]}
-                />
-
-                <AccessLevelGroup
-                  title="Position"
-                  icon={<GraduationCap className="h-4 w-4" />}
-                  selections={[
-                    {
-                      label: "Levels",
-                      options: levels || [],
-                      value: permission.level_ids || [],
-                      onChange: (value) => updatePermission(index, 'level_ids', value)
-                    },
-                    {
-                      label: "Employee Roles",
-                      options: employeeRoles || [],
-                      value: permission.employee_role_ids || [],
-                      onChange: (value) => updatePermission(index, 'employee_role_ids', value)
-                    }
-                  ]}
-                />
-
-                <AccessLevelGroup
-                  title="Employment"
-                  icon={<BadgeCheck className="h-4 w-4" />}
-                  selections={[
-                    {
-                      label: "Employment Types",
-                      options: employmentTypes || [],
-                      value: permission.employment_type_ids || [],
-                      onChange: (value) => updatePermission(index, 'employment_type_ids', value)
-                    },
-                    {
-                      label: "Employee Types",
-                      options: employeeTypes || [],
-                      value: permission.employee_type_ids || [],
-                      onChange: (value) => updatePermission(index, 'employee_type_ids', value)
-                    }
-                  ]}
-                />
-              </div>
-
-              <div className="space-y-6">
-                <div>
-                  <h5 className="font-medium text-sm mb-3">Permissions</h5>
-                  <div className="space-y-4 bg-secondary/20 p-4 rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`can_view_${index}`}
-                        checked={permission.can_view}
-                        onCheckedChange={(checked) => updatePermission(index, 'can_view', checked)}
-                      />
-                      <div className="flex items-center gap-2">
-                        <label
-                          htmlFor={`can_view_${index}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          Can View
-                        </label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-4 w-4 text-muted-foreground" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Users can view the board and its issues
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`can_create_${index}`}
-                        checked={permission.can_create}
-                        onCheckedChange={(checked) => updatePermission(index, 'can_create', checked)}
-                      />
-                      <div className="flex items-center gap-2">
-                        <label
-                          htmlFor={`can_create_${index}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          Can Create
-                        </label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-4 w-4 text-muted-foreground" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Users can create new issues on the board (requires View permission)
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`can_vote_${index}`}
-                        checked={permission.can_vote}
-                        onCheckedChange={(checked) => updatePermission(index, 'can_vote', checked)}
-                      />
-                      <div className="flex items-center gap-2">
-                        <label
-                          htmlFor={`can_vote_${index}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          Can Vote
-                        </label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-4 w-4 text-muted-foreground" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Users can vote on issues in the board (requires View permission)
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <PermissionRuleExplanation 
-                  permission={permission}
-                  index={index}
-                />
-              </div>
-            </div>
-          </Card>
-        ))}
+    <div className="space-y-6">
+      {/* Header with Summary */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg border">
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Board Access Control
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Define who can access "{boardName}" and what they can do
+          </p>
+          {isCreateMode && (
+            <p className="text-xs text-muted-foreground mt-1 italic">
+              Configure permissions for your new board
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">{getTotalUsersAffected()}</span>
+            <span className="text-muted-foreground">estimated users</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Settings className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">{permissions.length}</span>
+            <span className="text-muted-foreground">rules active</span>
+          </div>
+        </div>
       </div>
 
-      <div className="flex justify-between">
+      {/* Step Navigation */}
+      <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
         <Button
           type="button"
-          variant="outline"
-          onClick={addPermission}
+          variant={activeStep === 'overview' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setActiveStep('overview')}
+          className="flex-1"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Permission Rule
+          Overview
         </Button>
-        <Button type="submit">Save Permissions</Button>
+        <Button
+          type="button"
+          variant={activeStep === 'rules' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setActiveStep('rules')}
+          className="flex-1"
+        >
+          Configure Rules
+        </Button>
       </div>
-    </form>
+
+      {/* Overview Step */}
+      {activeStep === 'overview' && (
+        <div className="space-y-6">
+          {permissions.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No Access Rules Configured</h3>
+                <p className="text-muted-foreground mb-4">
+                  {isCreateMode 
+                    ? "Your new board will be inaccessible to users until you create access rules."
+                    : "This board is currently inaccessible to all users. Create your first access rule to get started."
+                  }
+                </p>
+                <Button onClick={() => {
+                  addPermission();
+                  setActiveStep('rules');
+                }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create First Rule
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {permissions.map((permission, index) => (
+                <PermissionOverviewCard
+                  key={index}
+                  permission={permission}
+                  index={index}
+                  getSelectionSummary={getSelectionSummary}
+                  onEdit={() => {
+                    setActiveStep('rules');
+                    toggleRule(index);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {permissions.length > 0 && (
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  addPermission();
+                  setActiveStep('rules');
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Another Rule
+              </Button>
+              <Button
+                onClick={() => setActiveStep('rules')}
+              >
+                Configure Rules
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Rules Configuration Step */}
+      {activeStep === 'rules' && (
+        <form onSubmit={(e) => handleSubmit(e, onSubmit)} className="space-y-6">
+          <div className="space-y-4">
+            {permissions.map((permission, index) => (
+              <PermissionRuleCard
+                key={index}
+                permission={permission}
+                index={index}
+                isExpanded={expandedRules[index]}
+                permissions={permissions}
+                permissionData={permissionData}
+                getSelectionSummary={getSelectionSummary}
+                getPermissionsSummary={getPermissionsSummary}
+                updatePermission={updatePermission}
+                duplicatePermission={duplicatePermission}
+                removePermission={removePermission}
+                toggleRule={toggleRule}
+              />
+            ))}
+          </div>
+
+          <Separator />
+
+          <div className="flex flex-col sm:flex-row justify-between gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addPermission}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Permission Rule
+            </Button>
+
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveStep('overview')}
+              >
+                Back to Overview
+              </Button>
+              <Button type="submit">
+                {isCreateMode ? "Create Board with Rules" : "Save All Rules"}
+              </Button>
+            </div>
+          </div>
+        </form>
+      )}
+    </div>
   );
 }

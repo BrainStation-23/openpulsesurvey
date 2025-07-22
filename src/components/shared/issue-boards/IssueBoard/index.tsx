@@ -5,16 +5,19 @@ import { BoardHeader } from "./BoardHeader";
 import { IssuesList } from "./IssuesList";
 import { CreateIssueButton } from "./CreateIssueButton";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { PermissionProvider, usePermissionContext } from "../contexts/PermissionContext";
+import { PermissionDebugger } from "../components/PermissionDebugger";
 import type { BoardViewProps } from "../types";
 
-export function IssueBoard({ boardId }: BoardViewProps) {
-  const { data: board, isLoading, error } = useBoardData(boardId);
+function IssueBoardContent({ boardId }: BoardViewProps) {
+  const { data: board, isLoading: boardLoading, error: boardError } = useBoardData(boardId);
+  const { permissions, isLoading: permissionsLoading } = usePermissionContext();
 
   const handleBack = () => {
     window.history.back();
   };
 
-  if (isLoading) {
+  if (boardLoading || permissionsLoading) {
     return (
       <div className="flex justify-center p-8">
         <LoadingSpinner />
@@ -22,7 +25,7 @@ export function IssueBoard({ boardId }: BoardViewProps) {
     );
   }
 
-  if (error || !board) {
+  if (boardError || !board) {
     return (
       <div className="text-center p-8 text-destructive">
         Error loading board. Please try again.
@@ -30,11 +33,13 @@ export function IssueBoard({ boardId }: BoardViewProps) {
     );
   }
 
-  const permissions = board.permissions[0] || {
-    can_create: false,
-    can_vote: false,
-    can_view: false
-  };
+  if (!permissions?.can_view) {
+    return (
+      <div className="text-center p-8 text-muted-foreground">
+        You don't have permission to view this board.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -50,6 +55,16 @@ export function IssueBoard({ boardId }: BoardViewProps) {
         boardId={boardId} 
         canVote={permissions.can_vote} 
       />
+      
+      <PermissionDebugger />
     </div>
+  );
+}
+
+export function IssueBoard({ boardId }: BoardViewProps) {
+  return (
+    <PermissionProvider boardId={boardId}>
+      <IssueBoardContent boardId={boardId} />
+    </PermissionProvider>
   );
 }
