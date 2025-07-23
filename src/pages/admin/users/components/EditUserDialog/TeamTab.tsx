@@ -126,17 +126,17 @@ export const TeamTab: React.FC<TeamTabProps> = ({ userId }) => {
                       {member.profileImageUrl ? (
                         <img
                           src={member.profileImageUrl}
-                          alt={`${member.firstName} ${member.lastName}`}
+                          alt={`${member.firstName || ''} ${member.lastName || ''}`}
                           className="w-12 h-12 rounded-full object-cover"
                         />
                       ) : (
                         <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
-                          {member.firstName.charAt(0)}
+                          {member.firstName ? member.firstName.charAt(0) : '?'}
                         </div>
                       )}
                       <div>
                         <div className="font-medium">
-                          {member.firstName} {member.lastName}
+                          {member.firstName || ''} {member.lastName || ''}
                           {member.isLoggedInUser && (
                             <span className="ml-2 text-xs text-blue-500 font-medium">(This User)</span>
                           )}
@@ -164,17 +164,17 @@ export const TeamTab: React.FC<TeamTabProps> = ({ userId }) => {
                       {report.profileImageUrl ? (
                         <img
                           src={report.profileImageUrl}
-                          alt={`${report.firstName} ${report.lastName}`}
+                          alt={`${report.firstName || ''} ${report.lastName || ''}`}
                           className="w-12 h-12 rounded-full object-cover"
                         />
                       ) : (
                         <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-lg">
-                          {report.firstName.charAt(0)}
+                          {report.firstName ? report.firstName.charAt(0) : '?'}
                         </div>
                       )}
                       <div>
                         <div className="font-medium">
-                          {report.firstName} {report.lastName}
+                          {report.firstName || ''} {report.lastName || ''}
                         </div>
                         <div className="text-sm text-gray-500">{report.designation || report.email}</div>
                       </div>
@@ -195,17 +195,17 @@ export const TeamTab: React.FC<TeamTabProps> = ({ userId }) => {
               {teamData.supervisor.profileImageUrl ? (
                 <img
                   src={teamData.supervisor.profileImageUrl}
-                  alt={`${teamData.supervisor.firstName} ${teamData.supervisor.lastName}`}
+                  alt={`${teamData.supervisor.firstName || ''} ${teamData.supervisor.lastName || ''}`}
                   className="w-16 h-16 rounded-full object-cover"
                 />
               ) : (
                 <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-xl">
-                  {teamData.supervisor.firstName.charAt(0)}
+                  {teamData.supervisor.firstName ? teamData.supervisor.firstName.charAt(0) : '?'}
                 </div>
               )}
               <div>
                 <div className="font-semibold text-lg">
-                  {teamData.supervisor.firstName} {teamData.supervisor.lastName}
+                  {teamData.supervisor.firstName || ''} {teamData.supervisor.lastName || ''}
                 </div>
                 <div className="text-muted-foreground">
                   {teamData.supervisor.designation || teamData.supervisor.email}
