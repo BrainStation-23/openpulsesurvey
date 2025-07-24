@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useIssues } from "../../hooks/useIssues";
 import { IssueCard } from "./IssueCard";
@@ -31,6 +30,7 @@ export function IssuesList({ boardId, canVote, canCreate }: IssuesListProps) {
   const [showMineOnly, setShowMineOnly] = React.useState(false);
   const [showMyVotesOnly, setShowMyVotesOnly] = React.useState(false);
   const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
+  const [userVotes, setUserVotes] = React.useState<{ [issueId: string]: { upvoted: boolean; downvoted: boolean } }>({});
 
   React.useEffect(() => {
     const getCurrentUser = async () => {
@@ -39,6 +39,41 @@ export function IssuesList({ boardId, canVote, canCreate }: IssuesListProps) {
     };
     getCurrentUser();
   }, []);
+
+  React.useEffect(() => {
+    const fetchUserVotes = async () => {
+      if (!currentUserId || !issues) return;
+
+      const issueIds = issues.map(issue => issue.id);
+      
+      // Fetch user's upvotes
+      const { data: upvotes } = await supabase
+        .from('issue_votes')
+        .select('issue_id')
+        .eq('user_id', currentUserId)
+        .in('issue_id', issueIds);
+
+      // Fetch user's downvotes
+      const { data: downvotes } = await supabase
+        .from('issue_downvotes')
+        .select('issue_id')
+        .eq('user_id', currentUserId)
+        .in('issue_id', issueIds);
+
+      const votes: { [issueId: string]: { upvoted: boolean; downvoted: boolean } } = {};
+      
+      issueIds.forEach(issueId => {
+        votes[issueId] = {
+          upvoted: upvotes?.some(vote => vote.issue_id === issueId) || false,
+          downvoted: downvotes?.some(vote => vote.issue_id === issueId) || false
+        };
+      });
+
+      setUserVotes(votes);
+    };
+
+    fetchUserVotes();
+  }, [currentUserId, issues]);
 
   const filteredAndSortedIssues = React.useMemo(() => {
     if (!issues) return [];
@@ -50,8 +85,7 @@ export function IssuesList({ boardId, canVote, canCreate }: IssuesListProps) {
       const matchesMineOnly = !showMineOnly || issue.created_by === currentUserId;
       
       const matchesMyVotes = !showMyVotesOnly || 
-                            (issue.has_voted && issue.has_voted.length > 0) ||
-                            (issue.has_downvoted && issue.has_downvoted.length > 0);
+                            (userVotes[issue.id]?.upvoted || userVotes[issue.id]?.downvoted);
 
       return matchesSearch && matchesMineOnly && matchesMyVotes;
     });
@@ -71,7 +105,7 @@ export function IssuesList({ boardId, canVote, canCreate }: IssuesListProps) {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
     }
-  }, [issues, search, sortBy, showMineOnly, showMyVotesOnly, currentUserId]);
+  }, [issues, search, sortBy, showMineOnly, showMyVotesOnly, currentUserId, userVotes]);
 
   if (isLoading) {
     return (
