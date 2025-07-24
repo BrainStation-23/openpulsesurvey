@@ -70,22 +70,16 @@ export const userNavigationItems: UserNavigationItem[] = [
     ]
   },
   {
-    title: "Surveys",
+    title: "My Surveys",
     icon: ClipboardList,
     path: "/user/my-surveys",
     section: "surveys",
-    children: [
-      {
-        title: "My Surveys",
-        icon: ClipboardList,
-        path: "/user/my-surveys",
-      },
-      {
-        title: "Issue Boards",
-        icon: Kanban,
-        path: "/user/issue-boards",
-      },
-    ]
+  },
+  {
+    title: "Issue Boards",
+    icon: Kanban,
+    path: "/user/issue-boards",
+    section: "issue_boards",
   },
   {
     title: "Achievements",
@@ -100,6 +94,7 @@ export const userNavigationSections = [
   { id: "core", label: "Main" },
   { id: "user", label: "User Center" },
   { id: "feedback", label: "Feedback" },
-  { id: "surveys", label: "Survey Management" },
+  { id: "surveys", label: "My Surveys" },
+  { id: "issue_boards", label: "Issue Boards" },
   { id: "achievements", label: "Recognition" },
 ];

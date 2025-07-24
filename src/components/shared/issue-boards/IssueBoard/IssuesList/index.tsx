@@ -17,17 +17,20 @@ import { supabase } from "@/integrations/supabase/client";
 interface IssuesListProps {
   boardId: string;
   canVote: boolean;
+  canCreate: boolean;
 }
 
-type SortOption = "latest" | "votes" | "oldest";
+type SortOption = "latest" | "votes" | "oldest" | "most_downvoted";
 
-export function IssuesList({ boardId, canVote }: IssuesListProps) {
+export function IssuesList({ boardId, canVote, canCreate }: IssuesListProps) {
   const { data: issues, isLoading } = useIssues(boardId);
   const { mutate: vote } = useVoting();
   const [search, setSearch] = React.useState("");
   const [sortBy, setSortBy] = React.useState<SortOption>("latest");
   const [showMineOnly, setShowMineOnly] = React.useState(false);
+  const [showMyVotesOnly, setShowMyVotesOnly] = React.useState(false);
   const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
+  const [userVotes, setUserVotes] = React.useState<{ [issueId: string]: { upvoted: boolean; downvoted: boolean } }>({});
 
   React.useEffect(() => {
     const getCurrentUser = async () => {
@@ -37,18 +40,61 @@ export function IssuesList({ boardId, canVote }: IssuesListProps) {
     getCurrentUser();
   }, []);
 
+  React.useEffect(() => {
+    const fetchUserVotes = async () => {
+      if (!currentUserId || !issues) return;
+
+      const issueIds = issues.map(issue => issue.id);
+      
+      // Fetch user's upvotes
+      const { data: upvotes } = await supabase
+        .from('issue_votes')
+        .select('issue_id')
+        .eq('user_id', currentUserId)
+        .in('issue_id', issueIds);
+
+      // Fetch user's downvotes
+      const { data: downvotes } = await supabase
+        .from('issue_downvotes')
+        .select('issue_id')
+        .eq('user_id', currentUserId)
+        .in('issue_id', issueIds);
+
+      const votes: { [issueId: string]: { upvoted: boolean; downvoted: boolean } } = {};
+      
+      issueIds.forEach(issueId => {
+        votes[issueId] = {
+          upvoted: upvotes?.some(vote => vote.issue_id === issueId) || false,
+          downvoted: downvotes?.some(vote => vote.issue_id === issueId) || false
+        };
+      });
+
+      setUserVotes(votes);
+    };
+
+    fetchUserVotes();
+  }, [currentUserId, issues]);
+
   const filteredAndSortedIssues = React.useMemo(() => {
     if (!issues) return [];
 
-    let filtered = issues.filter(issue => 
-      (issue.title.toLowerCase().includes(search.toLowerCase()) ||
-       issue.description?.toLowerCase().includes(search.toLowerCase())) &&
-      (!showMineOnly || issue.created_by === currentUserId)
-    );
+    let filtered = issues.filter(issue => {
+      const matchesSearch = issue.title.toLowerCase().includes(search.toLowerCase()) ||
+                           issue.description?.toLowerCase().includes(search.toLowerCase());
+      
+      const matchesMineOnly = !showMineOnly || issue.created_by === currentUserId;
+      
+      const matchesMyVotes = !showMyVotesOnly || 
+                            (userVotes[issue.id]?.upvoted || userVotes[issue.id]?.downvoted);
+
+      return matchesSearch && matchesMineOnly && matchesMyVotes;
+    });
 
     switch (sortBy) {
       case "votes":
-        return filtered.sort((a, b) => (b.vote_count + (b.downvote_count || 0)) - (a.vote_count + (a.downvote_count || 0)));
+        return filtered.sort((a, b) => b.vote_count - a.vote_count);
+      case "most_downvoted":
+        return filtered.sort((a, b) => (b.downvote_count || 0) - (a.downvote_count || 0));
       case "oldest":
         return filtered.sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -59,7 +105,7 @@ export function IssuesList({ boardId, canVote }: IssuesListProps) {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
     }
-  }, [issues, search, sortBy, showMineOnly, currentUserId]);
+  }, [issues, search, sortBy, showMineOnly, showMyVotesOnly, currentUserId, userVotes]);
 
   if (isLoading) {
     return (
@@ -92,21 +138,34 @@ export function IssuesList({ boardId, canVote }: IssuesListProps) {
             value={sortBy}
             onValueChange={(value: SortOption) => setSortBy(value)}
           >
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="latest">Latest</SelectItem>
               <SelectItem value="oldest">Oldest</SelectItem>
               <SelectItem value="votes">Most Votes</SelectItem>
+              <SelectItem value="most_downvoted">Most Downvoted</SelectItem>
             </SelectContent>
           </Select>
-          <Button
-            variant={showMineOnly ? "default" : "outline"}
-            onClick={() => setShowMineOnly(!showMineOnly)}
-          >
-            My Issues
-          </Button>
+          
+          {canCreate && (
+            <Button
+              variant={showMineOnly ? "default" : "outline"}
+              onClick={() => setShowMineOnly(!showMineOnly)}
+            >
+              My Issues
+            </Button>
+          )}
+          
+          {canVote && (
+            <Button
+              variant={showMyVotesOnly ? "default" : "outline"}
+              onClick={() => setShowMyVotesOnly(!showMyVotesOnly)}
+            >
+              My Votes
+            </Button>
+          )}
         </div>
       </div>
 

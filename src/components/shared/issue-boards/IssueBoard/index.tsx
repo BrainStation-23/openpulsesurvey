@@ -54,6 +54,7 @@ function IssueBoardContent({ boardId }: BoardViewProps) {
       <IssuesList 
         boardId={boardId} 
         canVote={permissions.can_vote} 
+        canCreate={permissions.can_create}
       />
       
       <PermissionDebugger />
