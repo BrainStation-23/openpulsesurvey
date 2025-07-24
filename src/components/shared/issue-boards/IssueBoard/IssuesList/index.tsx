@@ -18,16 +18,18 @@ import { supabase } from "@/integrations/supabase/client";
 interface IssuesListProps {
   boardId: string;
   canVote: boolean;
+  canCreate: boolean;
 }
 
-type SortOption = "latest" | "votes" | "oldest";
+type SortOption = "latest" | "votes" | "oldest" | "most_downvoted";
 
-export function IssuesList({ boardId, canVote }: IssuesListProps) {
+export function IssuesList({ boardId, canVote, canCreate }: IssuesListProps) {
   const { data: issues, isLoading } = useIssues(boardId);
   const { mutate: vote } = useVoting();
   const [search, setSearch] = React.useState("");
   const [sortBy, setSortBy] = React.useState<SortOption>("latest");
   const [showMineOnly, setShowMineOnly] = React.useState(false);
+  const [showMyVotesOnly, setShowMyVotesOnly] = React.useState(false);
   const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -41,15 +43,24 @@ export function IssuesList({ boardId, canVote }: IssuesListProps) {
   const filteredAndSortedIssues = React.useMemo(() => {
     if (!issues) return [];
 
-    let filtered = issues.filter(issue => 
-      (issue.title.toLowerCase().includes(search.toLowerCase()) ||
-       issue.description?.toLowerCase().includes(search.toLowerCase())) &&
-      (!showMineOnly || issue.created_by === currentUserId)
-    );
+    let filtered = issues.filter(issue => {
+      const matchesSearch = issue.title.toLowerCase().includes(search.toLowerCase()) ||
+                           issue.description?.toLowerCase().includes(search.toLowerCase());
+      
+      const matchesMineOnly = !showMineOnly || issue.created_by === currentUserId;
+      
+      const matchesMyVotes = !showMyVotesOnly || 
+                            (issue.has_voted && issue.has_voted.length > 0) ||
+                            (issue.has_downvoted && issue.has_downvoted.length > 0);
+
+      return matchesSearch && matchesMineOnly && matchesMyVotes;
+    });
 
     switch (sortBy) {
       case "votes":
-        return filtered.sort((a, b) => (b.vote_count + (b.downvote_count || 0)) - (a.vote_count + (a.downvote_count || 0)));
+        return filtered.sort((a, b) => b.vote_count - a.vote_count);
+      case "most_downvoted":
+        return filtered.sort((a, b) => (b.downvote_count || 0) - (a.downvote_count || 0));
       case "oldest":
         return filtered.sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -60,7 +71,7 @@ export function IssuesList({ boardId, canVote }: IssuesListProps) {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
     }
-  }, [issues, search, sortBy, showMineOnly, currentUserId]);
+  }, [issues, search, sortBy, showMineOnly, showMyVotesOnly, currentUserId]);
 
   if (isLoading) {
     return (
@@ -93,21 +104,34 @@ export function IssuesList({ boardId, canVote }: IssuesListProps) {
             value={sortBy}
             onValueChange={(value: SortOption) => setSortBy(value)}
           >
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="latest">Latest</SelectItem>
               <SelectItem value="oldest">Oldest</SelectItem>
               <SelectItem value="votes">Most Votes</SelectItem>
+              <SelectItem value="most_downvoted">Most Downvoted</SelectItem>
             </SelectContent>
           </Select>
-          <Button
-            variant={showMineOnly ? "default" : "outline"}
-            onClick={() => setShowMineOnly(!showMineOnly)}
-          >
-            My Issues
-          </Button>
+          
+          {canCreate && (
+            <Button
+              variant={showMineOnly ? "default" : "outline"}
+              onClick={() => setShowMineOnly(!showMineOnly)}
+            >
+              My Issues
+            </Button>
+          )}
+          
+          {canVote && (
+            <Button
+              variant={showMyVotesOnly ? "default" : "outline"}
+              onClick={() => setShowMyVotesOnly(!showMyVotesOnly)}
+            >
+              My Votes
+            </Button>
+          )}
         </div>
       </div>
 
