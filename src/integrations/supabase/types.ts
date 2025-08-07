@@ -1963,6 +1963,10 @@ export type Database = {
       }
     }
     Functions: {
+      activate_campaign_instances: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       calculate_progress: {
         Args: {
           p_measurement_type: string
@@ -1980,6 +1984,10 @@ export type Database = {
       check_user_board_access: {
         Args: { p_user_id: string; p_board_id: string; p_access_type: string }
         Returns: boolean
+      }
+      complete_campaign_instances: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       create_next_campaign_instance: {
         Args: { p_campaign_id: string }
@@ -2403,6 +2411,14 @@ export type Database = {
           updated_at: string
           error_message: string
         }[]
+      }
+      update_campaign_instance_status: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_last_reminder_sent: {
+        Args: { assignment_ids: string[] }
+        Returns: undefined
       }
       update_system_version: {
         Args: {
