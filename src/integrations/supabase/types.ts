@@ -1985,6 +1985,10 @@ export type Database = {
         Args: { p_user_id: string; p_board_id: string; p_access_type: string }
         Returns: boolean
       }
+      check_user_survey_access: {
+        Args: { p_user_id: string; p_survey_id: string }
+        Returns: boolean
+      }
       complete_campaign_instances: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -2281,8 +2285,27 @@ export type Database = {
         }
         Returns: Json
       }
+      get_user_active_assignments: {
+        Args: { p_user_id: string }
+        Returns: {
+          assignment_id: string
+          survey_id: string
+          survey_name: string
+          campaign_id: string
+          campaign_name: string
+          instance_id: string
+          instance_period: number
+          starts_at: string
+          ends_at: string
+          status: string
+        }[]
+      }
       get_user_board_permissions: {
         Args: { p_user_id: string; p_board_id: string }
+        Returns: Json
+      }
+      get_user_permissions: {
+        Args: { p_user_id: string }
         Returns: Json
       }
       handle_instance_activation: {
@@ -2363,6 +2386,7 @@ export type Database = {
       }
       search_users: {
         Args:
+          | { p_search_term?: string; p_limit?: number; p_offset?: number }
           | {
               search_text: string
               page_number: number
@@ -2381,8 +2405,15 @@ export type Database = {
               employee_type_filter?: string
             }
         Returns: {
-          profile: Json
-          total_count: number
+          id: string
+          email: string
+          first_name: string
+          last_name: string
+          designation: string
+          status: string
+          location_name: string
+          sbu_name: string
+          level_name: string
         }[]
       }
       toggle_instance_cron_job: {
