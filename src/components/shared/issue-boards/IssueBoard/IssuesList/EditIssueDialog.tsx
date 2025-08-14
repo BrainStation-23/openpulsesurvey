@@ -1,61 +1,62 @@
 
 import React from "react";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { RichMarkdownEditor } from "./RichMarkdownEditor";
-import type { CreateIssueButtonProps } from "../../types";
+import type { Issue } from "../../types";
 
-export function CreateIssueButton({ boardId, onIssueCreated }: CreateIssueButtonProps) {
-  const [open, setOpen] = React.useState(false);
-  const [title, setTitle] = React.useState("");
-  const [description, setDescription] = React.useState("");
+interface EditIssueDialogProps {
+  issue: Issue;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function EditIssueDialog({ issue, open, onOpenChange }: EditIssueDialogProps) {
+  const [title, setTitle] = React.useState(issue.title);
+  const [description, setDescription] = React.useState(issue.description || "");
   const queryClient = useQueryClient();
 
-  const createIssueMutation = useMutation({
-    mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
+  React.useEffect(() => {
+    if (open) {
+      setTitle(issue.title);
+      setDescription(issue.description || "");
+    }
+  }, [issue, open]);
 
+  const updateIssueMutation = useMutation({
+    mutationFn: async () => {
       const { error } = await supabase
         .from('issues')
-        .insert([
-          {
-            title: title.trim(),
-            description: description.trim() || null,
-            board_id: boardId,
-            created_by: user.id,
-          }
-        ]);
+        .update({
+          title: title.trim(),
+          description: description.trim() || null,
+        })
+        .eq('id', issue.id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['board-issues', boardId] });
+      queryClient.invalidateQueries({ queryKey: ['board-issues', issue.board_id] });
       toast({
         title: "Success",
-        description: "Issue created successfully",
+        description: "Issue updated successfully",
       });
-      setTitle("");
-      setDescription("");
-      setOpen(false);
-      onIssueCreated?.();
+      onOpenChange(false);
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create issue: " + error.message,
+        description: "Failed to update issue: " + error.message,
         variant: "destructive",
       });
     },
@@ -71,27 +72,21 @@ export function CreateIssueButton({ boardId, onIssueCreated }: CreateIssueButton
       });
       return;
     }
-    createIssueMutation.mutate();
+    updateIssueMutation.mutate();
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Issue
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Create New Issue</DialogTitle>
+          <DialogTitle>Edit Issue</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 flex-1 min-h-0">
           <div className="space-y-2">
-            <Label htmlFor="create-title">Title</Label>
+            <Label htmlFor="edit-title">Title</Label>
             <Input
-              id="create-title"
+              id="edit-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter issue title"
@@ -100,7 +95,7 @@ export function CreateIssueButton({ boardId, onIssueCreated }: CreateIssueButton
           </div>
           
           <div className="space-y-2 flex-1 min-h-0">
-            <Label htmlFor="create-description">Description</Label>
+            <Label htmlFor="edit-description">Description</Label>
             <RichMarkdownEditor
               value={description}
               onChange={setDescription}
@@ -113,16 +108,16 @@ export function CreateIssueButton({ boardId, onIssueCreated }: CreateIssueButton
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={createIssueMutation.isPending}
+              onClick={() => onOpenChange(false)}
+              disabled={updateIssueMutation.isPending}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={createIssueMutation.isPending}
+              disabled={updateIssueMutation.isPending}
             >
-              {createIssueMutation.isPending ? "Creating..." : "Create Issue"}
+              {updateIssueMutation.isPending ? "Updating..." : "Update Issue"}
             </Button>
           </div>
         </form>
