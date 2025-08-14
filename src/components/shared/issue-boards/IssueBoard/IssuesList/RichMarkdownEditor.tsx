@@ -13,9 +13,7 @@ import {
   ListOrdered, 
   Quote, 
   Code, 
-  Link, 
-  Eye, 
-  Edit,
+  Link,
   Type
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -34,7 +32,6 @@ export function RichMarkdownEditor({
   placeholder = "Enter markdown content...",
   className = "" 
 }: RichMarkdownEditorProps) {
-  const [showPreview, setShowPreview] = React.useState(true);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   const insertText = (before: string, after: string = "", placeholder: string = "") => {
@@ -140,91 +137,56 @@ export function RichMarkdownEditor({
   return (
     <div className={`border rounded-lg overflow-hidden ${className}`}>
       {/* Toolbar */}
-      <div className="flex items-center justify-between p-2 border-b bg-muted/50">
-        <div className="flex items-center gap-1 flex-wrap">
-          {toolbarButtons.map((button, index) => (
-            <Button
-              key={index}
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={button.action}
-              title={button.label}
-              className="h-8 w-8 p-0"
-            >
-              <button.icon className="h-3.5 w-3.5" />
-            </Button>
-          ))}
-        </div>
-        
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 p-2 border-b bg-muted/50 flex-wrap">
+        {toolbarButtons.map((button, index) => (
           <Button
+            key={index}
             type="button"
-            variant={!showPreview ? "default" : "ghost"}
+            variant="ghost"
             size="sm"
-            onClick={() => setShowPreview(false)}
-            className="h-8"
+            onClick={button.action}
+            title={button.label}
+            className="h-8 w-8 p-0"
           >
-            <Edit className="h-3.5 w-3.5 mr-1" />
-            Edit
+            <button.icon className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            type="button"
-            variant={showPreview ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setShowPreview(true)}
-            className="h-8"
-          >
-            <Eye className="h-3.5 w-3.5 mr-1" />
-            Preview
-          </Button>
-        </div>
+        ))}
       </div>
 
-      {/* Editor Content */}
+      {/* Editor Content - Side by Side */}
       <div className="h-80">
-        {showPreview ? (
-          <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={50} minSize={30}>
-              <div className="h-full p-0">
-                <Textarea
-                  ref={textareaRef}
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                  placeholder={placeholder}
-                  className="h-full resize-none border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                />
-              </div>
-            </ResizablePanel>
-            
-            <ResizableHandle withHandle />
-            
-            <ResizablePanel defaultSize={50} minSize={30}>
-              <div className="h-full p-4 overflow-auto bg-background">
-                {value ? (
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <ReactMarkdown>{value}</ReactMarkdown>
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <div className="h-full p-0">
+              <Textarea
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={placeholder}
+                className="h-full resize-none border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+            </div>
+          </ResizablePanel>
+          
+          <ResizableHandle withHandle />
+          
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <div className="h-full p-4 overflow-auto bg-background">
+              {value ? (
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown>{value}</ReactMarkdown>
+                </div>
+              ) : (
+                <div className="text-muted-foreground text-sm flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Type className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Preview will appear here</p>
                   </div>
-                ) : (
-                  <div className="text-muted-foreground text-sm flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <Type className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>Preview will appear here</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        ) : (
-          <Textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            className="h-full resize-none border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
-          />
-        )}
+                </div>
+              )}
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );
