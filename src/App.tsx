@@ -158,6 +158,7 @@ const App = () => (
               <Route path="achievements/:id/edit" element={<AchievementFormPage />} />
               <Route path="settings" element={<AdminSettings />} />
               <Route path="settings/system-info" element={<SystemInfo />} />
+              <Route path="surveys/campaigns/:id/performance" element={<CampaignPerformance />} />
             </Route>
           </Routes>
         </TourProvider>
