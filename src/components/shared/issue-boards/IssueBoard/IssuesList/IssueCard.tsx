@@ -1,8 +1,9 @@
-
 import React from "react";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { VoteButton } from "./VoteButton";
-import { Trash2, Edit2 } from "lucide-react";
+import { IssueDetailsModal } from "./IssueDetailsModal";
+import { MarkdownEditor } from "./MarkdownEditor";
+import { Trash2, Edit2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +18,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +30,7 @@ export function IssueCard({
   const { mutate: vote } = useVoting();
   const [canEdit, setCanEdit] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = React.useState(false);
   const [editTitle, setEditTitle] = React.useState(issue.title);
   const [editDescription, setEditDescription] = React.useState(issue.description || "");
   const [hasDownvoted, setHasDownvoted] = React.useState(false);
@@ -68,7 +69,6 @@ export function IssueCard({
     checkDownvote();
   }, [issue.id]);
 
-  // Calculate vote ratio and determine color
   const totalVotes = issue.vote_count + (issue.downvote_count || 0);
   const getCardColorClass = () => {
     if (totalVotes === 0) return "border-muted bg-card";
@@ -171,101 +171,114 @@ export function IssueCard({
   };
 
   return (
-    <Card className={cn(
-      "flex flex-col h-[200px] transition-all duration-200 hover:shadow-md",
-      getCardColorClass()
-    )}>
-      <CardHeader className="flex-none py-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1">
-            <h3 className="font-medium text-sm line-clamp-2">{issue.title}</h3>
+    <>
+      <Card className={cn(
+        "flex flex-col h-[180px] transition-all duration-200 hover:shadow-md",
+        getCardColorClass()
+      )}>
+        <CardHeader className="flex-none py-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <h3 className="font-medium text-sm line-clamp-2">{issue.title}</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              {getScoreIndicator()}
+              {canEdit && (
+                <div className="flex gap-1 flex-shrink-0">
+                  <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                      <DialogHeader>
+                        <DialogTitle>Edit Issue</DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleEdit} className="space-y-4 mt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="title">Title</Label>
+                          <Input
+                            id="title"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            placeholder="Enter issue title"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="description">Description (Markdown supported)</Label>
+                          <MarkdownEditor
+                            value={editDescription}
+                            onChange={setEditDescription}
+                            placeholder="Enter issue description using markdown..."
+                            rows={6}
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsEditDialogOpen(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="submit"
+                            disabled={editIssueMutation.isPending}
+                          >
+                            Save Changes
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => deleteIssueMutation.mutate()}
+                    disabled={deleteIssueMutation.isPending}
+                  >
+                    <Trash2 className="h-3 w-3 text-destructive" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {getScoreIndicator()}
-            {canEdit && (
-              <div className="flex gap-1 flex-shrink-0">
-                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Edit2 className="h-3 w-3" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Edit Issue</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleEdit} className="space-y-4 mt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="title">Title</Label>
-                        <Input
-                          id="title"
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          placeholder="Enter issue title"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                          id="description"
-                          value={editDescription}
-                          onChange={(e) => setEditDescription(e.target.value)}
-                          placeholder="Enter issue description"
-                          rows={4}
-                        />
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setIsEditDialogOpen(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          disabled={editIssueMutation.isPending}
-                        >
-                          Save Changes
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => deleteIssueMutation.mutate()}
-                  disabled={deleteIssueMutation.isPending}
-                >
-                  <Trash2 className="h-3 w-3 text-destructive" />
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-auto py-2">
-        {issue.description && (
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            {issue.description}
-          </p>
-        )}
-      </CardContent>
-      <CardFooter className="flex-none pt-3 border-t bg-background/50">
-        <VoteButton
-          issueId={issue.id}
-          voteCount={issue.vote_count}
-          downvoteCount={issue.downvote_count || 0}
-          hasVoted={Boolean(issue.has_voted?.length)}
-          hasDownvoted={hasDownvoted}
-          onVote={() => vote({ issueId: issue.id, isDownvote: false })}
-          onDownvote={() => vote({ issueId: issue.id, isDownvote: true })}
-          disabled={!canVote}
-        />
-      </CardFooter>
-    </Card>
+        </CardHeader>
+        
+        <CardContent className="flex-1 flex items-center justify-center py-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsDetailsModalOpen(true)}
+            className="w-full"
+          >
+            <Eye className="h-3 w-3 mr-2" />
+            View Details
+          </Button>
+        </CardContent>
+        
+        <CardFooter className="flex-none pt-3 border-t bg-background/50">
+          <VoteButton
+            issueId={issue.id}
+            voteCount={issue.vote_count}
+            downvoteCount={issue.downvote_count || 0}
+            hasVoted={Boolean(issue.has_voted?.length)}
+            hasDownvoted={hasDownvoted}
+            onVote={() => vote({ issueId: issue.id, isDownvote: false })}
+            onDownvote={() => vote({ issueId: issue.id, isDownvote: true })}
+            disabled={!canVote}
+          />
+        </CardFooter>
+      </Card>
+
+      <IssueDetailsModal
+        issue={issue}
+        open={isDetailsModalOpen}
+        onOpenChange={setIsDetailsModalOpen}
+      />
+    </>
   );
 }
