@@ -9,18 +9,14 @@ import { Button } from "@/components/ui/button";
 import { 
   Bold, 
   Italic, 
-  Underline, 
   Strikethrough, 
   List, 
   ListOrdered, 
   Quote, 
   Code, 
   Link as LinkIcon,
-  Heading1,
   Heading2,
-  Heading3,
-  CheckSquare,
-  Minus
+  CheckSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,16 +35,28 @@ export function TiptapEditor({
 }: TiptapEditorProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
+      }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-blue-600 underline cursor-pointer',
+          class: 'text-primary underline underline-offset-2',
         },
       }),
       TaskList,
       TaskItem.configure({
         nested: true,
+        HTMLAttributes: {
+          class: 'flex items-start gap-2',
+        },
       }),
     ],
     content,
@@ -57,10 +65,16 @@ export function TiptapEditor({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[120px] p-3',
+        class: 'min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
       },
     },
   });
+
+  React.useEffect(() => {
+    if (editor && editor.getHTML() !== content) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
 
   if (!editor) {
     return null;
@@ -73,145 +87,126 @@ export function TiptapEditor({
     }
   };
 
-  const ToolbarButton = ({ 
-    onClick, 
-    isActive = false, 
-    children,
-    title 
-  }: { 
-    onClick: () => void;
-    isActive?: boolean;
-    children: React.ReactNode;
-    title: string;
-  }) => (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      onClick={onClick}
-      className={cn(
-        "h-8 w-8 p-0",
-        isActive && "bg-muted"
-      )}
-      title={title}
-    >
-      {children}
-    </Button>
-  );
+  const handleToolbarClick = (e: React.MouseEvent, action: () => void) => {
+    e.preventDefault();
+    e.stopPropagation();
+    action();
+  };
 
   return (
-    <div className={cn("border rounded-md", className)}>
+    <div className={cn("border rounded-md bg-background", className)}>
       {/* Toolbar */}
-      <div className="border-b p-2 flex flex-wrap gap-1">
-        <div className="flex gap-1 mr-2">
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            isActive={editor.isActive('bold')}
-            title="Bold"
-          >
-            <Bold className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            isActive={editor.isActive('italic')}
-            title="Italic"
-          >
-            <Italic className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-            isActive={editor.isActive('strike')}
-            title="Strikethrough"
-          >
-            <Strikethrough className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleCode().run()}
-            isActive={editor.isActive('code')}
-            title="Inline Code"
-          >
-            <Code className="h-4 w-4" />
-          </ToolbarButton>
-        </div>
+      <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-1">
+        <Button
+          type="button"
+          variant={editor.isActive('bold') ? 'secondary' : 'ghost'}
+          size="sm"
+          onMouseDown={(e) => handleToolbarClick(e, () => editor.chain().focus().toggleBold().run())}
+          className="h-8 w-8 p-0"
+        >
+          <Bold className="h-4 w-4" />
+        </Button>
 
-        <div className="flex gap-1 mr-2 border-l pl-2">
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            isActive={editor.isActive('heading', { level: 1 })}
-            title="Heading 1"
-          >
-            <Heading1 className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            isActive={editor.isActive('heading', { level: 2 })}
-            title="Heading 2"
-          >
-            <Heading2 className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            isActive={editor.isActive('heading', { level: 3 })}
-            title="Heading 3"
-          >
-            <Heading3 className="h-4 w-4" />
-          </ToolbarButton>
-        </div>
+        <Button
+          type="button"
+          variant={editor.isActive('italic') ? 'secondary' : 'ghost'}
+          size="sm"
+          onMouseDown={(e) => handleToolbarClick(e, () => editor.chain().focus().toggleItalic().run())}
+          className="h-8 w-8 p-0"
+        >
+          <Italic className="h-4 w-4" />
+        </Button>
 
-        <div className="flex gap-1 mr-2 border-l pl-2">
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            isActive={editor.isActive('bulletList')}
-            title="Bullet List"
-          >
-            <List className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            isActive={editor.isActive('orderedList')}
-            title="Numbered List"
-          >
-            <ListOrdered className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleTaskList().run()}
-            isActive={editor.isActive('taskList')}
-            title="Task List"
-          >
-            <CheckSquare className="h-4 w-4" />
-          </ToolbarButton>
-        </div>
+        <Button
+          type="button"
+          variant={editor.isActive('strike') ? 'secondary' : 'ghost'}
+          size="sm"
+          onMouseDown={(e) => handleToolbarClick(e, () => editor.chain().focus().toggleStrike().run())}
+          className="h-8 w-8 p-0"
+        >
+          <Strikethrough className="h-4 w-4" />
+        </Button>
 
-        <div className="flex gap-1 mr-2 border-l pl-2">
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            isActive={editor.isActive('blockquote')}
-            title="Quote"
-          >
-            <Quote className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={addLink}
-            isActive={editor.isActive('link')}
-            title="Add Link"
-          >
-            <LinkIcon className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().setHorizontalRule().run()}
-            title="Horizontal Rule"
-          >
-            <Minus className="h-4 w-4" />
-          </ToolbarButton>
-        </div>
+        <Button
+          type="button"
+          variant={editor.isActive('code') ? 'secondary' : 'ghost'}
+          size="sm"
+          onMouseDown={(e) => handleToolbarClick(e, () => editor.chain().focus().toggleCode().run())}
+          className="h-8 w-8 p-0"
+        >
+          <Code className="h-4 w-4" />
+        </Button>
+
+        <div className="w-px h-6 bg-border mx-1" />
+
+        <Button
+          type="button"
+          variant={editor.isActive('heading', { level: 2 }) ? 'secondary' : 'ghost'}
+          size="sm"
+          onMouseDown={(e) => handleToolbarClick(e, () => editor.chain().focus().toggleHeading({ level: 2 }).run())}
+          className="h-8 w-8 p-0"
+        >
+          <Heading2 className="h-4 w-4" />
+        </Button>
+
+        <div className="w-px h-6 bg-border mx-1" />
+
+        <Button
+          type="button"
+          variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'}
+          size="sm"
+          onMouseDown={(e) => handleToolbarClick(e, () => editor.chain().focus().toggleBulletList().run())}
+          className="h-8 w-8 p-0"
+        >
+          <List className="h-4 w-4" />
+        </Button>
+
+        <Button
+          type="button"
+          variant={editor.isActive('orderedList') ? 'secondary' : 'ghost'}
+          size="sm"
+          onMouseDown={(e) => handleToolbarClick(e, () => editor.chain().focus().toggleOrderedList().run())}
+          className="h-8 w-8 p-0"
+        >
+          <ListOrdered className="h-4 w-4" />
+        </Button>
+
+        <Button
+          type="button"
+          variant={editor.isActive('taskList') ? 'secondary' : 'ghost'}
+          size="sm"
+          onMouseDown={(e) => handleToolbarClick(e, () => editor.chain().focus().toggleTaskList().run())}
+          className="h-8 w-8 p-0"
+        >
+          <CheckSquare className="h-4 w-4" />
+        </Button>
+
+        <div className="w-px h-6 bg-border mx-1" />
+
+        <Button
+          type="button"
+          variant={editor.isActive('blockquote') ? 'secondary' : 'ghost'}
+          size="sm"
+          onMouseDown={(e) => handleToolbarClick(e, () => editor.chain().focus().toggleBlockquote().run())}
+          className="h-8 w-8 p-0"
+        >
+          <Quote className="h-4 w-4" />
+        </Button>
+
+        <Button
+          type="button"
+          variant={editor.isActive('link') ? 'secondary' : 'ghost'}
+          size="sm"
+          onMouseDown={(e) => handleToolbarClick(e, addLink)}
+          className="h-8 w-8 p-0"
+        >
+          <LinkIcon className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Editor */}
-      <div className="min-h-[120px]">
-        <EditorContent 
-          editor={editor}
-          className="prose prose-sm max-w-none"
-        />
+      <div className="min-h-[120px] p-0">
+        <EditorContent editor={editor} />
       </div>
     </div>
   );

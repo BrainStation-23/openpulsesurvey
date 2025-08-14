@@ -80,7 +80,7 @@ export function CreateIssueButton({ boardId, onIssueCreated }: CreateIssueButton
           Create Issue
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh] flex flex-col">
+      <DialogContent className="sm:max-w-[900px] max-h-[85vh] flex flex-col">
         <DialogHeader className="flex-none">
           <DialogTitle className="text-lg font-semibold">Create New Issue</DialogTitle>
         </DialogHeader>

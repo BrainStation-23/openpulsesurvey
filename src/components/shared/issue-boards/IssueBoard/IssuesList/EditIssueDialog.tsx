@@ -42,7 +42,7 @@ export function EditIssueDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh] flex flex-col">
+      <DialogContent className="sm:max-w-[900px] max-h-[85vh] flex flex-col">
         <DialogHeader className="flex-none">
           <DialogTitle className="text-lg font-semibold">Edit Issue</DialogTitle>
         </DialogHeader>
