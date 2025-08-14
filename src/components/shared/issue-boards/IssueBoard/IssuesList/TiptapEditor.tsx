@@ -40,27 +40,13 @@ export function TiptapEditor({
         bulletList: {
           keepMarks: true,
           keepAttributes: false,
-          HTMLAttributes: {
-            class: 'tiptap-bullet-list',
-          },
         },
         orderedList: {
           keepMarks: true,
           keepAttributes: false,
-          HTMLAttributes: {
-            class: 'tiptap-ordered-list',
-          },
-        },
-        listItem: {
-          HTMLAttributes: {
-            class: 'tiptap-list-item',
-          },
         },
         heading: {
           levels: [1, 2, 3],
-          HTMLAttributes: {
-            class: 'tiptap-heading',
-          },
         },
       }),
       Link.configure({
@@ -71,14 +57,11 @@ export function TiptapEditor({
       }),
       TaskList.configure({
         HTMLAttributes: {
-          class: 'tiptap-task-list',
+          class: 'not-prose',
         },
       }),
       TaskItem.configure({
         nested: true,
-        HTMLAttributes: {
-          class: 'tiptap-task-item',
-        },
       }),
     ],
     content,
@@ -87,8 +70,7 @@ export function TiptapEditor({
     },
     editorProps: {
       attributes: {
-        class: 'tiptap-editor-content prose prose-sm max-w-none focus:outline-none p-4',
-        placeholder,
+        class: 'prose prose-sm max-w-none focus:outline-none p-4 min-h-[300px]',
       },
     },
   });
@@ -123,9 +105,13 @@ export function TiptapEditor({
   }) => (
     <Button
       type="button"
-      variant={isActive ? 'default' : 'ghost'}
+      variant="ghost"
       size="sm"
-      onClick={onClick}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick();
+      }}
       className={cn(
         "h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground",
         isActive && "bg-accent text-accent-foreground"
@@ -137,211 +123,228 @@ export function TiptapEditor({
   );
 
   return (
-    <div className={cn("border border-border rounded-lg bg-card overflow-hidden", className)}>
-      {/* Toolbar */}
-      <div className="border-b border-border bg-muted/30 p-2">
-        <div className="flex flex-wrap gap-1 items-center">
-          {/* Text Formatting */}
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            isActive={editor.isActive('bold')}
-            title="Bold"
-          >
-            <Bold className="h-4 w-4" />
-          </ToolbarButton>
+    <>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .ProseMirror {
+            outline: none !important;
+          }
+          
+          .ProseMirror h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            line-height: 2.25rem;
+            margin: 1.5rem 0 0.75rem 0;
+          }
+          
+          .ProseMirror h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            line-height: 2rem;
+            margin: 1.25rem 0 0.5rem 0;
+          }
+          
+          .ProseMirror h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1.75rem;
+            margin: 1rem 0 0.5rem 0;
+          }
+          
+          .ProseMirror ul {
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+            list-style-type: disc;
+          }
+          
+          .ProseMirror ol {
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+            list-style-type: decimal;
+          }
+          
+          .ProseMirror li {
+            margin: 0.25rem 0;
+          }
+          
+          .ProseMirror ul[data-type="taskList"] {
+            list-style: none;
+            padding-left: 0;
+          }
+          
+          .ProseMirror li[data-type="taskItem"] {
+            display: flex;
+            align-items: flex-start;
+            margin: 0.25rem 0;
+          }
+          
+          .ProseMirror li[data-type="taskItem"] > label {
+            margin-right: 0.5rem;
+            margin-top: 0.125rem;
+            user-select: none;
+          }
+          
+          .ProseMirror li[data-type="taskItem"] > div {
+            flex: 1;
+          }
+          
+          .ProseMirror blockquote {
+            border-left: 4px solid hsl(var(--border));
+            padding-left: 1rem;
+            margin: 1rem 0;
+            font-style: italic;
+            color: hsl(var(--muted-foreground));
+          }
+          
+          .ProseMirror code {
+            background-color: hsl(var(--muted));
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+          }
+          
+          .ProseMirror p {
+            margin: 0.5rem 0;
+          }
+          
+          .ProseMirror p:first-child {
+            margin-top: 0;
+          }
+          
+          .ProseMirror p:last-child {
+            margin-bottom: 0;
+          }
+          
+          .ProseMirror p.is-editor-empty:first-child::before {
+            content: attr(data-placeholder);
+            float: left;
+            color: hsl(var(--muted-foreground));
+            pointer-events: none;
+            height: 0;
+          }
+        `
+      }} />
+      
+      <div className={cn("border border-border rounded-lg bg-card overflow-hidden", className)}>
+        {/* Toolbar */}
+        <div className="border-b border-border bg-muted/30 p-2">
+          <div className="flex flex-wrap gap-1 items-center">
+            {/* Text Formatting */}
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              isActive={editor.isActive('bold')}
+              title="Bold"
+            >
+              <Bold className="h-4 w-4" />
+            </ToolbarButton>
 
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            isActive={editor.isActive('italic')}
-            title="Italic"
-          >
-            <Italic className="h-4 w-4" />
-          </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              isActive={editor.isActive('italic')}
+              title="Italic"
+            >
+              <Italic className="h-4 w-4" />
+            </ToolbarButton>
 
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-            isActive={editor.isActive('strike')}
-            title="Strikethrough"
-          >
-            <Strikethrough className="h-4 w-4" />
-          </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleStrike().run()}
+              isActive={editor.isActive('strike')}
+              title="Strikethrough"
+            >
+              <Strikethrough className="h-4 w-4" />
+            </ToolbarButton>
 
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleCode().run()}
-            isActive={editor.isActive('code')}
-            title="Inline Code"
-          >
-            <Code className="h-4 w-4" />
-          </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleCode().run()}
+              isActive={editor.isActive('code')}
+              title="Inline Code"
+            >
+              <Code className="h-4 w-4" />
+            </ToolbarButton>
 
-          <div className="w-px h-6 bg-border mx-1" />
+            <div className="w-px h-6 bg-border mx-1" />
 
-          {/* Headings */}
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            isActive={editor.isActive('heading', { level: 1 })}
-            title="Heading 1"
-          >
-            <Heading1 className="h-4 w-4" />
-          </ToolbarButton>
+            {/* Headings */}
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+              isActive={editor.isActive('heading', { level: 1 })}
+              title="Heading 1"
+            >
+              <Heading1 className="h-4 w-4" />
+            </ToolbarButton>
 
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            isActive={editor.isActive('heading', { level: 2 })}
-            title="Heading 2"
-          >
-            <Heading2 className="h-4 w-4" />
-          </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+              isActive={editor.isActive('heading', { level: 2 })}
+              title="Heading 2"
+            >
+              <Heading2 className="h-4 w-4" />
+            </ToolbarButton>
 
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            isActive={editor.isActive('heading', { level: 3 })}
-            title="Heading 3"
-          >
-            <Heading3 className="h-4 w-4" />
-          </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+              isActive={editor.isActive('heading', { level: 3 })}
+              title="Heading 3"
+            >
+              <Heading3 className="h-4 w-4" />
+            </ToolbarButton>
 
-          <div className="w-px h-6 bg-border mx-1" />
+            <div className="w-px h-6 bg-border mx-1" />
 
-          {/* Lists */}
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            isActive={editor.isActive('bulletList')}
-            title="Bullet List"
-          >
-            <List className="h-4 w-4" />
-          </ToolbarButton>
+            {/* Lists */}
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              isActive={editor.isActive('bulletList')}
+              title="Bullet List"
+            >
+              <List className="h-4 w-4" />
+            </ToolbarButton>
 
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            isActive={editor.isActive('orderedList')}
-            title="Numbered List"
-          >
-            <ListOrdered className="h-4 w-4" />
-          </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              isActive={editor.isActive('orderedList')}
+              title="Numbered List"
+            >
+              <ListOrdered className="h-4 w-4" />
+            </ToolbarButton>
 
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleTaskList().run()}
-            isActive={editor.isActive('taskList')}
-            title="Task List"
-          >
-            <CheckSquare className="h-4 w-4" />
-          </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleTaskList().run()}
+              isActive={editor.isActive('taskList')}
+              title="Task List"
+            >
+              <CheckSquare className="h-4 w-4" />
+            </ToolbarButton>
 
-          <div className="w-px h-6 bg-border mx-1" />
+            <div className="w-px h-6 bg-border mx-1" />
 
-          {/* Other */}
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            isActive={editor.isActive('blockquote')}
-            title="Quote"
-          >
-            <Quote className="h-4 w-4" />
-          </ToolbarButton>
+            {/* Other */}
+            <ToolbarButton
+              onClick={() => editor.chain().focus().toggleBlockquote().run()}
+              isActive={editor.isActive('blockquote')}
+              title="Quote"
+            >
+              <Quote className="h-4 w-4" />
+            </ToolbarButton>
 
-          <ToolbarButton
-            onClick={addLink}
-            isActive={editor.isActive('link')}
-            title="Add Link"
-          >
-            <LinkIcon className="h-4 w-4" />
-          </ToolbarButton>
+            <ToolbarButton
+              onClick={addLink}
+              isActive={editor.isActive('link')}
+              title="Add Link"
+            >
+              <LinkIcon className="h-4 w-4" />
+            </ToolbarButton>
+          </div>
+        </div>
+
+        {/* Editor */}
+        <div className="min-h-[300px] bg-background">
+          <EditorContent 
+            editor={editor} 
+            placeholder={placeholder}
+          />
         </div>
       </div>
-
-      {/* Editor */}
-      <div className="min-h-[200px] bg-background">
-        <EditorContent editor={editor} />
-      </div>
-
-      <style jsx global>{`
-        .tiptap-editor-content {
-          outline: none !important;
-        }
-        
-        .tiptap-editor-content h1 {
-          font-size: 1.875rem;
-          font-weight: 700;
-          line-height: 2.25rem;
-          margin: 1rem 0 0.5rem 0;
-        }
-        
-        .tiptap-editor-content h2 {
-          font-size: 1.5rem;
-          font-weight: 600;
-          line-height: 2rem;
-          margin: 1rem 0 0.5rem 0;
-        }
-        
-        .tiptap-editor-content h3 {
-          font-size: 1.25rem;
-          font-weight: 600;
-          line-height: 1.75rem;
-          margin: 1rem 0 0.5rem 0;
-        }
-        
-        .tiptap-bullet-list {
-          padding-left: 1.5rem;
-          margin: 0.5rem 0;
-        }
-        
-        .tiptap-ordered-list {
-          padding-left: 1.5rem;
-          margin: 0.5rem 0;
-        }
-        
-        .tiptap-bullet-list .tiptap-list-item {
-          list-style-type: disc;
-          margin: 0.25rem 0;
-        }
-        
-        .tiptap-ordered-list .tiptap-list-item {
-          list-style-type: decimal;
-          margin: 0.25rem 0;
-        }
-        
-        .tiptap-task-list {
-          margin: 0.5rem 0;
-        }
-        
-        .tiptap-task-item {
-          display: flex;
-          align-items: flex-start;
-          margin: 0.25rem 0;
-        }
-        
-        .tiptap-task-item input[type="checkbox"] {
-          margin-right: 0.5rem;
-          margin-top: 0.125rem;
-        }
-        
-        .tiptap-editor-content blockquote {
-          border-left: 4px solid hsl(var(--border));
-          padding-left: 1rem;
-          margin: 1rem 0;
-          font-style: italic;
-          color: hsl(var(--muted-foreground));
-        }
-        
-        .tiptap-editor-content code {
-          background-color: hsl(var(--muted));
-          padding: 0.125rem 0.25rem;
-          border-radius: 0.25rem;
-          font-size: 0.875em;
-        }
-        
-        .tiptap-editor-content p {
-          margin: 0.5rem 0;
-        }
-        
-        .tiptap-editor-content p:first-child {
-          margin-top: 0;
-        }
-        
-        .tiptap-editor-content p:last-child {
-          margin-bottom: 0;
-        }
-      `}</style>
-    </div>
+    </>
   );
 }
