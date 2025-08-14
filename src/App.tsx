@@ -35,7 +35,6 @@ import FeedbackDashboardPage from "./pages/user/feedback";
 import ReporteeFeedbackPage from "./pages/user/feedback/reportee";
 import FeedbackTrendPage from "./pages/user/feedback/trend";
 
-
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminConfig from "./pages/admin/Config";
 import AdminSettings from "./pages/admin/Settings";
@@ -70,7 +69,6 @@ import AchievementsPage from "./pages/admin/achievements";
 import AchievementFormPage from "./pages/admin/achievements/AchievementFormPage";
 import CreateIssueBoard from "./pages/admin/surveys/issue-boards/CreateIssueBoard";
 import EditIssueBoard from "./pages/admin/surveys/issue-boards/EditIssueBoard";
-
 
 import { TokenInputForm } from "./pages/public/presentation/TokenInputForm";
 
@@ -160,7 +158,6 @@ const App = () => (
               <Route path="achievements/:id/edit" element={<AchievementFormPage />} />
               <Route path="settings" element={<AdminSettings />} />
               <Route path="settings/system-info" element={<SystemInfo />} />
-              <Route path="surveys/campaigns/:id/performance" element={<CampaignPerformance />} />
             </Route>
           </Routes>
         </TourProvider>
