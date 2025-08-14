@@ -20,7 +20,7 @@ interface IssueDetailsModalProps {
 export function IssueDetailsModal({ issue, open, onOpenChange }: IssueDetailsModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[80vh] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-left">{issue.title}</DialogTitle>
         </DialogHeader>

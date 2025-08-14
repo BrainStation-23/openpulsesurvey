@@ -1,23 +1,29 @@
 
 import React from "react";
-import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardFooter } from "@/components/ui/card";
 import { VoteButton } from "./VoteButton";
 import { IssueDetailsModal } from "./IssueDetailsModal";
-import { Trash2, Edit2, Eye } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { formatDistanceToNow } from "date-fns";
-import ReactMarkdown from "react-markdown";
-import { EditIssueDialog } from "./EditIssueDialog";
+import { DeleteConfirmationDialog } from "@/pages/admin/config/shared/components/DeleteConfirmationDialog";
+import { useVoting } from "../../hooks/useVoting";
+import { cn } from "@/lib/utils";
 import type { IssueCardProps } from "../../types";
+import { IssueCardHeader } from "./IssueCardHeader";
+import { IssueEditDialog } from "./IssueEditDialog";
 
 export function IssueCard({ issue, canVote, hasVoted }: IssueCardProps) {
   const [showDetails, setShowDetails] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const queryClient = useQueryClient();
   const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
+  const [title, setTitle] = React.useState(issue.title);
+  const [description, setDescription] = React.useState(issue.description || "");
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const { mutate: vote, isPending: isVoting } = useVoting();
+  const [canEdit, setCanEdit] = React.useState<boolean>(false);
+  const [hasDownvoted, setHasDownvoted] = React.useState<boolean>(Boolean(issue.has_downvoted?.length));
 
   React.useEffect(() => {
     const getCurrentUser = async () => {
@@ -27,12 +33,71 @@ export function IssueCard({ issue, canVote, hasVoted }: IssueCardProps) {
     getCurrentUser();
   }, []);
 
-  const handleVote = async (issueId: string) => {
-    await queryClient.invalidateQueries({ queryKey: ['board-issues', issue.board_id] });
+  React.useEffect(() => {
+    if (isEditing) {
+      setTitle(issue.title);
+      setDescription(issue.description || "");
+    }
+  }, [issue, isEditing]);
+
+  // Compute edit permissions (admin or creator) similar to old behavior
+  React.useEffect(() => {
+    const computeCanEdit = async () => {
+      const base = Boolean(issue.can_edit) || (currentUserId !== null && issue.created_by === currentUserId);
+      if (!currentUserId) {
+        setCanEdit(base);
+        return;
+      }
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', currentUserId)
+        .single();
+      setCanEdit(base || userRole?.role === 'admin');
+    };
+    computeCanEdit();
+  }, [currentUserId, issue]);
+
+  // Determine if current user has downvoted (fallback when not provided on issue)
+  React.useEffect(() => {
+    const checkDownvote = async () => {
+      if (!currentUserId) return;
+      const { data: downvotes } = await supabase
+        .from('issue_downvotes')
+        .select('id')
+        .eq('issue_id', issue.id)
+        .eq('user_id', currentUserId);
+      setHasDownvoted(Boolean(downvotes && downvotes.length));
+    };
+    checkDownvote();
+  }, [currentUserId, issue.id]);
+
+  // Visual design rules based on vote ratio
+  const totalVotes = (issue.vote_count || 0) + (issue.downvote_count || 0);
+  const getCardColorClass = () => {
+    if (totalVotes === 0) return "border-muted bg-card";
+    const upvoteRatio = (issue.vote_count || 0) / totalVotes;
+    if (upvoteRatio >= 0.8) return "border-green-200 bg-green-50/50 shadow-green-100";
+    if (upvoteRatio >= 0.6) return "border-emerald-200 bg-emerald-50/50 shadow-emerald-100";
+    if (upvoteRatio >= 0.4) return "border-yellow-200 bg-yellow-50/50 shadow-yellow-100";
+    if (upvoteRatio >= 0.2) return "border-orange-200 bg-orange-50/50 shadow-orange-100";
+    return "border-red-200 bg-red-50/50 shadow-red-100";
   };
 
-  const handleDownvote = async (issueId: string) => {
-    await queryClient.invalidateQueries({ queryKey: ['board-issues', issue.board_id] });
+  // score indicator is handled inside IssueCardHeader
+
+  const handleVote = (issueId: string) => {
+    vote(
+      { issueId, isDownvote: false },
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: ['board-issues', issue.board_id] }) }
+    );
+  };
+
+  const handleDownvote = (issueId: string) => {
+    vote(
+      { issueId, isDownvote: true },
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: ['board-issues', issue.board_id] }) }
+    );
   };
 
   const deleteIssueMutation = useMutation({
@@ -50,6 +115,7 @@ export function IssueCard({ issue, canVote, hasVoted }: IssueCardProps) {
         title: "Success",
         description: "Issue deleted successfully",
       });
+      setShowDeleteConfirm(false);
     },
     onError: (error) => {
       toast({
@@ -60,55 +126,62 @@ export function IssueCard({ issue, canVote, hasVoted }: IssueCardProps) {
     },
   });
 
-  const hasDownvoted = issue.has_downvoted?.length > 0;
-  const canEdit = issue.can_edit || (currentUserId && issue.created_by === currentUserId);
-  const authorName = issue.profiles?.first_name 
-    ? `${issue.profiles.first_name} ${issue.profiles.last_name || ''}`.trim()
-    : issue.profiles?.email || 'Unknown User';
+  const updateIssueMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('issues')
+        .update({
+          title: title.trim(),
+          description: description.trim() || null,
+        })
+        .eq('id', issue.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['board-issues', issue.board_id] });
+      toast({
+        title: "Success",
+        description: "Issue updated successfully",
+      });
+      setIsEditing(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update issue: " + error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) {
+      toast({
+        title: "Error",
+        description: "Title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    updateIssueMutation.mutate();
+  };
+
+  // author info is rendered inside IssueCardHeader
 
   return (
     <>
-      <Card className="w-full">
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-          <div className="flex-1">
-            <h3 className="font-semibold leading-none tracking-tight text-lg">
-              {issue.title}
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Created {formatDistanceToNow(new Date(issue.created_at), { addSuffix: true })} 
-              by {authorName}
-            </p>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowDetails(true)}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            
-            {canEdit && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => deleteIssueMutation.mutate()}
-                  disabled={deleteIssueMutation.isPending}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </>
-            )}
-          </div>
+      <Card className={cn("w-full transition-all duration-200 hover:shadow-md", getCardColorClass())}>
+        <CardHeader className="pb-2">
+          <IssueCardHeader
+            issue={issue}
+            onViewDetails={() => setShowDetails(true)}
+            canEdit={canEdit}
+            onStartEdit={() => setIsEditing(true)}
+            onRequestDelete={() => setShowDeleteConfirm(true)}
+            isDeletePending={deleteIssueMutation.isPending}
+          />
         </CardHeader>
 
 
@@ -131,6 +204,7 @@ export function IssueCard({ issue, canVote, hasVoted }: IssueCardProps) {
               hasDownvoted={hasDownvoted}
               onVote={handleVote}
               onDownvote={handleDownvote}
+              disabled={!canVote || isVoting}
             />
           )}
         </CardFooter>
@@ -143,11 +217,22 @@ export function IssueCard({ issue, canVote, hasVoted }: IssueCardProps) {
         onOpenChange={setShowDetails}
       />
 
-      {/* Edit Issue Dialog */}
-      <EditIssueDialog
-        issue={issue}
+      <IssueEditDialog
         open={isEditing}
         onOpenChange={setIsEditing}
+        title={title}
+        description={description}
+        onTitleChange={setTitle}
+        onDescriptionChange={setDescription}
+        onSubmit={handleEditSubmit}
+        isSubmitting={updateIssueMutation.isPending}
+      />
+
+      {/* Delete confirmation dialog */}
+      <DeleteConfirmationDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        onConfirm={() => deleteIssueMutation.mutate()}
       />
     </>
   );
