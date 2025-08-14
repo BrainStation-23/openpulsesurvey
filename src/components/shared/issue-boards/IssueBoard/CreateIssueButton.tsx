@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor';
+import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -85,11 +85,11 @@ export function CreateIssueButton({
           Create Issue
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Issue</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 gap-4 overflow-hidden">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
@@ -100,17 +100,17 @@ export function CreateIssueButton({
               required
             />
           </div>
-          <div className="flex-1 flex flex-col space-y-2 overflow-hidden">
+          <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-            <div className="flex-1 overflow-hidden">
-              <SimpleEditor
-                value={description}
-                onChange={setDescription}
-                placeholder="Enter issue description"
-              />
-            </div>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter issue description"
+              rows={4}
+            />
           </div>
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex justify-end gap-2">
             <Button
               type="button"
               variant="outline"

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Save, X } from "lucide-react";
-import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor';
+import { TiptapEditor } from "./TiptapEditor";
 
 interface EditIssueDialogProps {
   open: boolean;
@@ -70,10 +70,11 @@ export function EditIssueDialog({
               Description
             </Label>
             <div className="flex-1 overflow-hidden">
-              <SimpleEditor
-                value={description}
+              <TiptapEditor
+                content={description}
                 onChange={onDescriptionChange}
-                placeholder="Describe the issue in detail. You can use rich text formatting..."
+                placeholder="Describe the issue in detail. You can use markdown formatting..."
+                className="h-full flex flex-col"
               />
             </div>
             <p className="text-xs text-muted-foreground">
