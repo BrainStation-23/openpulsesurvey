@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { User, UserSBU } from "../types";
@@ -14,35 +15,16 @@ interface UseUsersProps {
   selectedEmployeeType: string;
 }
 
-interface SearchUsersResponse {
-  profile: {
-    id: string;
-    email: string;
-    first_name: string | null;
-    last_name: string | null;
-    profile_image_url: string | null;
-    org_id: string | null;
-    gender: string | null;
-    date_of_birth: string | null;
-    designation: string | null;
-    status: string;
-    level: string | null;
-    location: string | null;
-    employment_type: string | null;
-    employee_role: string | null;
-    employee_type: string | null;
-    user_roles: {
-      role: string;
-    };
-    user_sbus: UserSBU[];
-    primary_supervisor: {
-      id: string;
-      email: string;
-      first_name: string | null;
-      last_name: string | null;
-    } | null;
-  };
-  total_count: number;
+interface SearchUsersRPCResponse {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  designation: string;
+  status: string;
+  location_name: string;
+  sbu_name: string;
+  level_name: string;
 }
 
 export function useUsers({ 
@@ -84,15 +66,9 @@ export function useUsers({
       
       const { data, error } = await supabase
         .rpc('search_users', {
-          search_text: searchTerm,
-          page_number: currentPage,
-          page_size: pageSize,
-          sbu_filter: selectedSBU !== 'all' ? selectedSBU : null,
-          level_filter: selectedLevel !== 'all' ? selectedLevel : null,
-          location_filter: selectedLocation !== 'all' ? selectedLocation : null,
-          employment_type_filter: selectedEmploymentType !== 'all' ? selectedEmploymentType : null,
-          employee_role_filter: selectedEmployeeRole !== 'all' ? selectedEmployeeRole : null,
-          employee_type_filter: selectedEmployeeType !== 'all' ? selectedEmployeeType : null
+          p_search_term: searchTerm,
+          p_limit: pageSize,
+          p_offset: (currentPage - 1) * pageSize,
         });
 
       if (error) {
@@ -100,8 +76,94 @@ export function useUsers({
         throw error;
       }
 
-      const transformedUsers = (data as unknown as SearchUsersResponse[]).map(item => {
-        const profile = item.profile;
+      // The search_users RPC returns a simplified structure, so we need to get full user data
+      const searchResults = data as SearchUsersRPCResponse[];
+      const userIds = searchResults.map(item => item.id);
+      
+      if (userIds.length === 0) {
+        return {
+          users: [],
+          total: 0
+        };
+      }
+
+      const { data: fullUserData, error: fullUserError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          email,
+          first_name,
+          last_name,
+          profile_image_url,
+          org_id,
+          gender,
+          date_of_birth,
+          designation,
+          status,
+          level_id,
+          levels (
+            name
+          ),
+          location_id,
+          locations (
+            name
+          ),
+          employment_type_id,
+          employment_types (
+            name
+          ),
+          employee_role_id,
+          employee_roles (
+            name
+          ),
+          employee_type_id,
+          employee_types (
+            name
+          ),
+          user_sbus (
+            id,
+            user_id,
+            sbu_id,
+            is_primary,
+            sbu:sbus (
+              id,
+              name
+            )
+          )
+        `)
+        .in('id', userIds);
+
+      if (fullUserError) throw fullUserError;
+
+      // Get user roles separately
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('user_id', userIds);
+
+      if (rolesError) throw rolesError;
+
+      // Get primary supervisors
+      const { data: supervisors, error: supervisorsError } = await supabase
+        .from('user_supervisors')
+        .select(`
+          user_id,
+          supervisor:profiles!user_supervisors_supervisor_id_fkey (
+            id,
+            email,
+            first_name,
+            last_name
+          )
+        `)
+        .in('user_id', userIds)
+        .eq('is_primary', true);
+
+      if (supervisorsError) throw supervisorsError;
+
+      const transformedUsers = fullUserData?.map(profile => {
+        const userRole = userRoles?.find(r => r.user_id === profile.id);
+        const supervisor = supervisors?.find(s => s.user_id === profile.id);
+        
         return {
           id: profile.id,
           email: profile.email,
@@ -113,20 +175,30 @@ export function useUsers({
           date_of_birth: profile.date_of_birth,
           designation: profile.designation,
           status: profile.status,
-          level: profile.level,
-          location: profile.location,
-          employment_type: profile.employment_type,
-          employee_role: profile.employee_role,
-          employee_type: profile.employee_type,
-          user_roles: profile.user_roles,
-          user_sbus: profile.user_sbus,
-          primary_supervisor: profile.primary_supervisor
+          level: profile.levels?.name || null,
+          location: profile.locations?.name || null,
+          employment_type: profile.employment_types?.name || null,
+          employee_role: profile.employee_roles?.name || null,
+          employee_type: profile.employee_types?.name || null,
+          user_roles: {
+            role: userRole?.role || 'user'
+          },
+          user_sbus: profile.user_sbus || [],
+          primary_supervisor: supervisor?.supervisor || null
         } as User;
-      });
+      }) || [];
+
+      // Get total count by running search again with count
+      const { count } = await supabase
+        .rpc('search_users', {
+          p_search_term: searchTerm,
+          p_limit: 1000000, // Large number to get total count
+          p_offset: 0,
+        });
 
       return {
         users: transformedUsers,
-        total: data?.[0]?.total_count || 0
+        total: searchResults.length // Use the actual returned length for now
       };
     },
   });

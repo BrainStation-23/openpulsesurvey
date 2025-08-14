@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,18 +8,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Plus } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import type { CreateIssueButtonProps } from "../types";
+import { toast } from "@/hooks/use-toast";
+import { IssueForm } from "./IssueForm";
+import type { CreateIssueButtonProps } from "../../types";
 
-export function CreateIssueButton({ 
-  boardId, 
-  onIssueCreated 
-}: CreateIssueButtonProps) {
+export function CreateIssueButton({ boardId, onIssueCreated }: CreateIssueButtonProps) {
   const [open, setOpen] = React.useState(false);
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
@@ -29,18 +24,18 @@ export function CreateIssueButton({
   const createIssueMutation = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!user) throw new Error("User not authenticated");
 
       const { error } = await supabase
         .from('issues')
-        .insert({
-          title,
-          description,
-          board_id: boardId,
-          created_by: user.id,
-          status: 'open',
-          vote_count: 0
-        });
+        .insert([
+          {
+            title: title.trim(),
+            description: description.trim() || null,
+            board_id: boardId,
+            created_by: user.id,
+          }
+        ]);
 
       if (error) throw error;
     },
@@ -50,9 +45,9 @@ export function CreateIssueButton({
         title: "Success",
         description: "Issue created successfully",
       });
-      setOpen(false);
       setTitle("");
       setDescription("");
+      setOpen(false);
       onIssueCreated?.();
     },
     onError: (error) => {
@@ -85,47 +80,22 @@ export function CreateIssueButton({
           Create Issue
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[80vw] max-w-none max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Create New Issue</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter issue title"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter issue description"
-              rows={4}
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={createIssueMutation.isPending}
-            >
-              Create
-            </Button>
-          </div>
-        </form>
+        
+        <IssueForm
+          title={title}
+          description={description}
+          onTitleChange={setTitle}
+          onDescriptionChange={setDescription}
+          onSubmit={handleSubmit}
+          onCancel={() => setOpen(false)}
+          isSubmitting={createIssueMutation.isPending}
+          submitButtonText="Create Issue"
+          submitButtonLoadingText="Creating..."
+        />
       </DialogContent>
     </Dialog>
   );
