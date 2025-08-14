@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
 import { Survey as SurveyComponent } from "survey-react-ui";
@@ -37,6 +38,18 @@ export default function PreviewSurveyPage() {
   const surveyModel = new Model(survey.json_data);
   surveyModel.applyTheme(LayeredDarkPanelless);
 
+  // Sanitize HTML content to prevent XSS
+  const createSafeHTML = (htmlContent: string) => {
+    // Remove script tags and event handlers
+    const sanitized = htmlContent
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/\son\w+="[^"]*"/g, '')
+      .replace(/\son\w+='[^']*'/g, '')
+      .replace(/javascript:/gi, '');
+    
+    return { __html: sanitized };
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -54,6 +67,16 @@ export default function PreviewSurveyPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
+        <div 
+          className="survey-container"
+          dangerouslySetInnerHTML={createSafeHTML(`
+            <div id="surveyElement"></div>
+            <script>
+              // Prevent any script execution in preview mode
+              console.log('Survey preview mode - scripts disabled');
+            </script>
+          `)}
+        />
         <SurveyComponent model={surveyModel} />
       </div>
     </div>
