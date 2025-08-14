@@ -2,7 +2,7 @@ import React from "react";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { VoteButton } from "./VoteButton";
 import { IssueDetailsModal } from "./IssueDetailsModal";
-import { MarkdownEditor } from "./MarkdownEditor";
+import { RichMarkdownEditor } from "./RichMarkdownEditor";
 import { Trash2, Edit2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -208,11 +208,10 @@ export function IssueCard({
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="description">Description (Markdown supported)</Label>
-                          <MarkdownEditor
+                          <RichMarkdownEditor
                             value={editDescription}
                             onChange={setEditDescription}
                             placeholder="Enter issue description using markdown..."
-                            rows={6}
                           />
                         </div>
                         <div className="flex justify-end gap-2">
