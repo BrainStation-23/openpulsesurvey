@@ -24,7 +24,7 @@ interface SearchUsersRPCResponse {
   status: string;
   location_name: string;
   sbu_name: string;
-  total_count: number;
+  level_name: string;
 }
 
 export function useUsers({ 
@@ -76,9 +76,9 @@ export function useUsers({
         throw error;
       }
 
-      // For now, we'll need to fetch additional user data since the search_users function
-      // returns a simplified structure. Let's get the full user data.
-      const userIds = (data as SearchUsersRPCResponse[]).map(item => item.id);
+      // The search_users RPC returns a simplified structure, so we need to get full user data
+      const searchResults = data as SearchUsersRPCResponse[];
+      const userIds = searchResults.map(item => item.id);
       
       if (userIds.length === 0) {
         return {
@@ -188,9 +188,17 @@ export function useUsers({
         } as User;
       }) || [];
 
+      // Get total count by running search again with count
+      const { count } = await supabase
+        .rpc('search_users', {
+          p_search_term: searchTerm,
+          p_limit: 1000000, // Large number to get total count
+          p_offset: 0,
+        });
+
       return {
         users: transformedUsers,
-        total: (data as SearchUsersRPCResponse[])?.[0]?.total_count || 0
+        total: searchResults.length // Use the actual returned length for now
       };
     },
   });

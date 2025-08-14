@@ -18,7 +18,7 @@ interface SearchUsersResponse {
   status: string;
   location_name: string;
   sbu_name: string;
-  total_count: number;
+  level_name: string;
 }
 
 export function useSearchProfiles(searchTerm: string) {
@@ -47,7 +47,7 @@ export function useSearchProfiles(searchTerm: string) {
       
       return {
         data: profiles,
-        count: data?.[0]?.total_count || 0,
+        count: data?.length || 0,
       };
     },
     enabled: searchTerm.trim().length > 0,
