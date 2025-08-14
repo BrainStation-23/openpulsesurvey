@@ -8,13 +8,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import { RichMarkdownEditor } from "./RichMarkdownEditor";
+import { toast } from "@/hooks/use-toast";
+import { IssueForm } from "./IssueForm";
 import type { CreateIssueButtonProps } from "../../types";
 
 export function CreateIssueButton({ boardId, onIssueCreated }: CreateIssueButtonProps) {
@@ -82,50 +80,22 @@ export function CreateIssueButton({ boardId, onIssueCreated }: CreateIssueButton
           Create Issue
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="w-[80vw] max-w-none max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Create New Issue</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6 flex-1 min-h-0">
-          <div className="space-y-2">
-            <Label htmlFor="create-title">Title</Label>
-            <Input
-              id="create-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter issue title"
-              required
-            />
-          </div>
-          
-          <div className="space-y-2 flex-1 min-h-0">
-            <Label htmlFor="create-description">Description</Label>
-            <RichMarkdownEditor
-              value={description}
-              onChange={setDescription}
-              placeholder="Describe the issue in detail using markdown..."
-              className="flex-1"
-            />
-          </div>
-          
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={createIssueMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={createIssueMutation.isPending}
-            >
-              {createIssueMutation.isPending ? "Creating..." : "Create Issue"}
-            </Button>
-          </div>
-        </form>
+        <IssueForm
+          title={title}
+          description={description}
+          onTitleChange={setTitle}
+          onDescriptionChange={setDescription}
+          onSubmit={handleSubmit}
+          onCancel={() => setOpen(false)}
+          isSubmitting={createIssueMutation.isPending}
+          submitButtonText="Create Issue"
+          submitButtonLoadingText="Creating..."
+        />
       </DialogContent>
     </Dialog>
   );

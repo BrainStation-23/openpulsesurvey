@@ -2,113 +2,37 @@ import React from "react";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { VoteButton } from "./VoteButton";
 import { IssueDetailsModal } from "./IssueDetailsModal";
-import { RichMarkdownEditor } from "./RichMarkdownEditor";
+import { IssueForm } from "./IssueForm";
 import { Trash2, Edit2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import { useVoting } from "../../hooks/useVoting";
+import { toast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
+import ReactMarkdown from "react-markdown";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { IssueCardProps } from "../../types";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 
-export function IssueCard({ 
-  issue, 
-  canVote,
-  hasVoted,
-}: IssueCardProps) {
-  const queryClient = useQueryClient();
-  const { mutate: vote } = useVoting();
-  const [canEdit, setCanEdit] = React.useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = React.useState(false);
+export function IssueCard({ issue, canVote, hasVoted }: IssueCardProps) {
+  const [showDetails, setShowDetails] = React.useState(false);
+  const [isEditing, setIsEditing] = React.useState(false);
   const [editTitle, setEditTitle] = React.useState(issue.title);
   const [editDescription, setEditDescription] = React.useState(issue.description || "");
-  const [hasDownvoted, setHasDownvoted] = React.useState(false);
+  const queryClient = useQueryClient();
 
   React.useEffect(() => {
-    const checkEditPermission = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: userRole } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-
-      setCanEdit(userRole?.role === 'admin' || issue.created_by === user.id);
-    };
-
-    checkEditPermission();
-  }, [issue.created_by]);
-
-  React.useEffect(() => {
-    const checkDownvote = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: downvotes } = await supabase
-        .from('issue_downvotes')
-        .select()
-        .eq('issue_id', issue.id)
-        .eq('user_id', user.id);
-
-      setHasDownvoted(Boolean(downvotes?.length));
-    };
-
-    checkDownvote();
-  }, [issue.id]);
-
-  const totalVotes = issue.vote_count + (issue.downvote_count || 0);
-  const getCardColorClass = () => {
-    if (totalVotes === 0) return "border-muted bg-card";
-    
-    const upvoteRatio = issue.vote_count / totalVotes;
-    
-    if (upvoteRatio >= 0.8) {
-      return "border-green-200 bg-green-50/50 shadow-green-100";
-    } else if (upvoteRatio >= 0.6) {
-      return "border-emerald-200 bg-emerald-50/50 shadow-emerald-100";
-    } else if (upvoteRatio >= 0.4) {
-      return "border-yellow-200 bg-yellow-50/50 shadow-yellow-100";
-    } else if (upvoteRatio >= 0.2) {
-      return "border-orange-200 bg-orange-50/50 shadow-orange-100";
-    } else {
-      return "border-red-200 bg-red-50/50 shadow-red-100";
+    if (isEditing) {
+      setEditTitle(issue.title);
+      setEditDescription(issue.description || "");
     }
+  }, [issue, isEditing]);
+
+  const handleVote = async (issueId: string) => {
+    await queryClient.invalidateQueries({ queryKey: ['board-issues', issue.board_id] });
   };
 
-  const getScoreIndicator = () => {
-    if (totalVotes === 0) return null;
-    
-    const upvoteRatio = issue.vote_count / totalVotes;
-    const score = Math.round(upvoteRatio * 100);
-    
-    let indicatorColor = "bg-gray-500";
-    if (upvoteRatio >= 0.8) indicatorColor = "bg-green-500";
-    else if (upvoteRatio >= 0.6) indicatorColor = "bg-emerald-500";
-    else if (upvoteRatio >= 0.4) indicatorColor = "bg-yellow-500";
-    else if (upvoteRatio >= 0.2) indicatorColor = "bg-orange-500";
-    else indicatorColor = "bg-red-500";
-    
-    return (
-      <div className="flex items-center gap-1">
-        <div className={cn("w-2 h-2 rounded-full", indicatorColor)} />
-        <span className="text-xs font-medium text-muted-foreground">
-          {score}%
-        </span>
-      </div>
-    );
+  const handleDownvote = async (issueId: string) => {
+    await queryClient.invalidateQueries({ queryKey: ['board-issues', issue.board_id] });
   };
 
   const deleteIssueMutation = useMutation({
@@ -141,8 +65,8 @@ export function IssueCard({
       const { error } = await supabase
         .from('issues')
         .update({
-          title: editTitle,
-          description: editDescription
+          title: editTitle.trim(),
+          description: editDescription.trim() || null,
         })
         .eq('id', issue.id);
 
@@ -150,11 +74,11 @@ export function IssueCard({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board-issues', issue.board_id] });
-      setIsEditDialogOpen(false);
       toast({
         title: "Success",
         description: "Issue updated successfully",
       });
+      setIsEditing(false);
     },
     onError: (error) => {
       toast({
@@ -165,119 +89,127 @@ export function IssueCard({
     },
   });
 
-  const handleEdit = (e: React.FormEvent) => {
+  const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editTitle.trim()) {
+      toast({
+        title: "Error",
+        description: "Title is required",
+        variant: "destructive",
+      });
+      return;
+    }
     editIssueMutation.mutate();
   };
 
+  const hasDownvoted = issue.has_downvoted?.length > 0;
+
   return (
     <>
-      <Card className={cn(
-        "flex flex-col h-[180px] transition-all duration-200 hover:shadow-md",
-        getCardColorClass()
-      )}>
-        <CardHeader className="flex-none py-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1">
-              <h3 className="font-medium text-sm line-clamp-2">{issue.title}</h3>
-            </div>
-            <div className="flex items-center gap-2">
-              {getScoreIndicator()}
-              {canEdit && (
-                <div className="flex gap-1 flex-shrink-0">
-                  <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Edit2 className="h-3 w-3" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px]">
-                      <DialogHeader>
-                        <DialogTitle>Edit Issue</DialogTitle>
-                      </DialogHeader>
-                      <form onSubmit={handleEdit} className="space-y-4 mt-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="title">Title</Label>
-                          <Input
-                            id="title"
-                            value={editTitle}
-                            onChange={(e) => setEditTitle(e.target.value)}
-                            placeholder="Enter issue title"
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="description">Description (Markdown supported)</Label>
-                          <RichMarkdownEditor
-                            value={editDescription}
-                            onChange={setEditDescription}
-                            placeholder="Enter issue description using markdown..."
-                          />
-                        </div>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setIsEditDialogOpen(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            type="submit"
-                            disabled={editIssueMutation.isPending}
-                          >
-                            Save Changes
-                          </Button>
-                        </div>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => deleteIssueMutation.mutate()}
-                    disabled={deleteIssueMutation.isPending}
-                  >
-                    <Trash2 className="h-3 w-3 text-destructive" />
-                  </Button>
-                </div>
-              )}
-            </div>
+      <Card className="w-full">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+          <div className="flex-1">
+            <h3 className="font-semibold leading-none tracking-tight text-lg">
+              {issue.title}
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Created {formatDistanceToNow(new Date(issue.created_at), { addSuffix: true })} 
+              by {issue.profiles?.first_name} {issue.profiles?.last_name || issue.profiles?.email}
+            </p>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDetails(true)}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            
+            {issue.can_edit && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => deleteIssueMutation.mutate()}
+                  disabled={deleteIssueMutation.isPending}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
         </CardHeader>
-        
-        <CardContent className="flex-1 flex items-center justify-center py-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsDetailsModalOpen(true)}
-            className="w-full"
-          >
-            <Eye className="h-3 w-3 mr-2" />
-            View Details
-          </Button>
-        </CardContent>
-        
-        <CardFooter className="flex-none pt-3 border-t bg-background/50">
-          <VoteButton
-            issueId={issue.id}
-            voteCount={issue.vote_count}
-            downvoteCount={issue.downvote_count || 0}
-            hasVoted={Boolean(issue.has_voted?.length)}
-            hasDownvoted={hasDownvoted}
-            onVote={() => vote({ issueId: issue.id, isDownvote: false })}
-            onDownvote={() => vote({ issueId: issue.id, isDownvote: true })}
-            disabled={!canVote}
-          />
+
+        {issue.description && (
+          <CardContent className="pt-0">
+            <div className="prose prose-sm max-w-none dark:prose-invert">
+              <ReactMarkdown>{issue.description}</ReactMarkdown>
+            </div>
+          </CardContent>
+        )}
+
+        <CardFooter className="flex justify-between items-center pt-4">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>#{issue.id.slice(0, 8)}</span>
+            <span className={`px-2 py-1 rounded-full text-xs ${
+              issue.status === 'open' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+              issue.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+              'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+            }`}>
+              {issue.status.replace('_', ' ')}
+            </span>
+          </div>
+          
+          {canVote && (
+            <VoteButton
+              issueId={issue.id}
+              voteCount={issue.vote_count || 0}
+              downvoteCount={issue.downvote_count || 0}
+              hasVoted={hasVoted}
+              hasDownvoted={hasDownvoted}
+              onVote={handleVote}
+              onDownvote={handleDownvote}
+            />
+          )}
         </CardFooter>
       </Card>
 
+      {/* Issue Details Modal */}
       <IssueDetailsModal
         issue={issue}
-        open={isDetailsModalOpen}
-        onOpenChange={setIsDetailsModalOpen}
+        open={showDetails}
+        onOpenChange={setShowDetails}
       />
+
+      {/* Edit Issue Dialog */}
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="w-[80vw] max-w-none max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Edit Issue</DialogTitle>
+          </DialogHeader>
+          
+          <IssueForm
+            title={editTitle}
+            description={editDescription}
+            onTitleChange={setEditTitle}
+            onDescriptionChange={setEditDescription}
+            onSubmit={handleEditSubmit}
+            onCancel={() => setIsEditing(false)}
+            isSubmitting={editIssueMutation.isPending}
+            submitButtonText="Update Issue"
+            submitButtonLoadingText="Updating..."
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

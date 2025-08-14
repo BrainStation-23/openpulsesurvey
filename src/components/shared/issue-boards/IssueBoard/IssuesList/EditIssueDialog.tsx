@@ -6,13 +6,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import { RichMarkdownEditor } from "./RichMarkdownEditor";
+import { toast } from "@/hooks/use-toast";
+import { IssueForm } from "./IssueForm";
 import type { Issue } from "../../types";
 
 interface EditIssueDialogProps {
@@ -77,50 +74,22 @@ export function EditIssueDialog({ issue, open, onOpenChange }: EditIssueDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="w-[80vw] max-w-none max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Edit Issue</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6 flex-1 min-h-0">
-          <div className="space-y-2">
-            <Label htmlFor="edit-title">Title</Label>
-            <Input
-              id="edit-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter issue title"
-              required
-            />
-          </div>
-          
-          <div className="space-y-2 flex-1 min-h-0">
-            <Label htmlFor="edit-description">Description</Label>
-            <RichMarkdownEditor
-              value={description}
-              onChange={setDescription}
-              placeholder="Describe the issue in detail using markdown..."
-              className="flex-1"
-            />
-          </div>
-          
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={updateIssueMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={updateIssueMutation.isPending}
-            >
-              {updateIssueMutation.isPending ? "Updating..." : "Update Issue"}
-            </Button>
-          </div>
-        </form>
+        <IssueForm
+          title={title}
+          description={description}
+          onTitleChange={setTitle}
+          onDescriptionChange={setDescription}
+          onSubmit={handleSubmit}
+          onCancel={() => onOpenChange(false)}
+          isSubmitting={updateIssueMutation.isPending}
+          submitButtonText="Update Issue"
+          submitButtonLoadingText="Updating..."
+        />
       </DialogContent>
     </Dialog>
   );
