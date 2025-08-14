@@ -2,7 +2,7 @@ import React from "react";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { VoteButton } from "./VoteButton";
 import { IssueDetailsModal } from "./IssueDetailsModal";
-import { EditIssueDialog } from "./EditIssueDialog";
+import { MarkdownEditor } from "./MarkdownEditor";
 import { Trash2, Edit2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,6 +10,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { useVoting } from "../../hooks/useVoting";
 import type { IssueCardProps } from "../../types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 export function IssueCard({ 
@@ -156,14 +165,9 @@ export function IssueCard({
     },
   });
 
-  const handleEditSave = () => {
+  const handleEdit = (e: React.FormEvent) => {
+    e.preventDefault();
     editIssueMutation.mutate();
-  };
-
-  const handleEditCancel = () => {
-    setEditTitle(issue.title);
-    setEditDescription(issue.description || "");
-    setIsEditDialogOpen(false);
   };
 
   return (
@@ -181,14 +185,54 @@ export function IssueCard({
               {getScoreIndicator()}
               {canEdit && (
                 <div className="flex gap-1 flex-shrink-0">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8"
-                    onClick={() => setIsEditDialogOpen(true)}
-                  >
-                    <Edit2 className="h-3 w-3" />
-                  </Button>
+                  <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                      <DialogHeader>
+                        <DialogTitle>Edit Issue</DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleEdit} className="space-y-4 mt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="title">Title</Label>
+                          <Input
+                            id="title"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            placeholder="Enter issue title"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="description">Description (Markdown supported)</Label>
+                          <MarkdownEditor
+                            value={editDescription}
+                            onChange={setEditDescription}
+                            placeholder="Enter issue description using markdown..."
+                            rows={6}
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsEditDialogOpen(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="submit"
+                            disabled={editIssueMutation.isPending}
+                          >
+                            Save Changes
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -229,18 +273,6 @@ export function IssueCard({
           />
         </CardFooter>
       </Card>
-
-      <EditIssueDialog
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        title={editTitle}
-        description={editDescription}
-        onTitleChange={setEditTitle}
-        onDescriptionChange={setEditDescription}
-        onSave={handleEditSave}
-        onCancel={handleEditCancel}
-        isLoading={editIssueMutation.isPending}
-      />
 
       <IssueDetailsModal
         issue={issue}

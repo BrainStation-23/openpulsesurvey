@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar, User } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import type { Issue } from "../../types";
 
 interface IssueDetailsModalProps {
@@ -16,18 +17,7 @@ interface IssueDetailsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-function sanitizeHtml(html: string): string {
-  // Basic HTML sanitization - remove script tags and event handlers
-  return html
-    .replace(/<script[^>]*>.*?<\/script>/gi, '')
-    .replace(/on\w+="[^"]*"/gi, '')
-    .replace(/on\w+='[^']*'/gi, '')
-    .replace(/javascript:/gi, '');
-}
-
 export function IssueDetailsModal({ issue, open, onOpenChange }: IssueDetailsModalProps) {
-  const sanitizedDescription = issue.description ? sanitizeHtml(issue.description) : '';
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
@@ -48,14 +38,13 @@ export function IssueDetailsModal({ issue, open, onOpenChange }: IssueDetailsMod
             </div>
           </div>
 
-          {/* Issue description with HTML rendering */}
+          {/* Issue description with markdown rendering */}
           <div className="space-y-2">
             <h4 className="font-medium">Description</h4>
             {issue.description ? (
-              <div 
-                className="prose prose-sm max-w-none dark:prose-invert border rounded-md p-4 bg-muted/20"
-                dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
-              />
+              <div className="prose prose-sm max-w-none dark:prose-invert border rounded-md p-4 bg-muted/20">
+                <ReactMarkdown>{issue.description}</ReactMarkdown>
+              </div>
             ) : (
               <p className="text-muted-foreground text-sm italic">No description provided</p>
             )}
