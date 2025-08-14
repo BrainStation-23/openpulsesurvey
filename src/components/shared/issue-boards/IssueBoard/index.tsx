@@ -3,7 +3,7 @@ import React from "react";
 import { useBoardData } from "../hooks/useBoardData";
 import { BoardHeader } from "./BoardHeader";
 import { IssuesList } from "./IssuesList";
-import { CreateIssueButton } from "./CreateIssueButton";
+import { CreateIssueButton } from "./IssuesList/CreateIssueButton";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { PermissionProvider, usePermissionContext } from "../contexts/PermissionContext";
 import { PermissionDebugger } from "../components/PermissionDebugger";
