@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -6,6 +7,18 @@ interface Profile {
   email: string;
   first_name: string | null;
   last_name: string | null;
+}
+
+interface SearchUsersResponse {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  designation: string;
+  status: string;
+  location_name: string;
+  sbu_name: string;
+  total_count: number;
 }
 
 export function useSearchProfiles(searchTerm: string) {
@@ -17,33 +30,24 @@ export function useSearchProfiles(searchTerm: string) {
       }
       
       const { data, error } = await supabase.rpc("search_users", {
-        search_text: searchTerm,
-        page_number: 1,
-        page_size: 5,
-        sbu_filter: null,
-        level_filter: null,
-        location_filter: null,
-        employment_type_filter: null,
-        employee_role_filter: null,
-        employee_type_filter: null,
+        p_search_term: searchTerm,
+        p_limit: 5,
+        p_offset: 0,
       });
       
       if (error) throw error;
       
       // Transform the data to match the Profile interface
-      const profiles = data.map(item => {
-        const profile = item.profile as any;
-        return {
-          id: profile.id,
-          email: profile.email,
-          first_name: profile.first_name,
-          last_name: profile.last_name
-        } as Profile;
-      });
+      const profiles = (data as SearchUsersResponse[]).map(item => ({
+        id: item.id,
+        email: item.email,
+        first_name: item.first_name,
+        last_name: item.last_name
+      } as Profile));
       
       return {
         data: profiles,
-        count: data[0]?.total_count || 0,
+        count: data?.[0]?.total_count || 0,
       };
     },
     enabled: searchTerm.trim().length > 0,
