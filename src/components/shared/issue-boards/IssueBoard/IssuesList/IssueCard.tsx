@@ -111,17 +111,9 @@ export function IssueCard({ issue, canVote, hasVoted }: IssueCardProps) {
           </div>
         </CardHeader>
 
-        {issue.description && (
-          <CardContent className="pt-0">
-            <div className="prose prose-sm max-w-none dark:prose-invert">
-              <ReactMarkdown>{issue.description}</ReactMarkdown>
-            </div>
-          </CardContent>
-        )}
 
         <CardFooter className="flex justify-between items-center pt-4">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>#{issue.id.slice(0, 8)}</span>
             <span className={`px-2 py-1 rounded-full text-xs ${
               issue.status === 'open' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
               'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
