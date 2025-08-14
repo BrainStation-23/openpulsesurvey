@@ -18,7 +18,8 @@ export function useIssues(boardId: string) {
         downvote_count,
         board_id,
         has_voted:issue_votes(id),
-        has_downvoted:issue_downvotes(id)
+        has_downvoted:issue_downvotes(id),
+        profiles:created_by(first_name, last_name, email)
       `)
       .eq('board_id', boardId)
       .order('vote_count', { ascending: false });
