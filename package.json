@@ -84,6 +84,7 @@
     "react-swipeable": "^7.0.2",
     "recharts": "^2.12.7",
     "sonner": "^1.5.0",
+    "supabase": "^2.39.2",
     "survey-core": "^1.12.19",
     "survey-react-ui": "^1.12.19",
     "tailwind-merge": "^2.5.2",
