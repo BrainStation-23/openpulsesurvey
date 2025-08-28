@@ -1,164 +1,216 @@
-
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BooleanCharts } from "../charts/BooleanCharts";
-import { NpsChart } from "../charts/NpsChart";
-import { WordCloud } from "../charts/WordCloud";
-import { SatisfactionChart } from "../charts/SatisfactionChart";
-import { RadioGroupChart } from "../charts/RadioGroupChart";
-import { ComparisonSelector } from "./ComparisonSelector";
-import { BooleanComparison } from "./comparisons/BooleanComparison";
-import { NpsComparison } from "./comparisons/NpsComparison";
-import { TextComparison } from "./comparisons/TextComparison";
-import { ComparisonDimension } from "../types/comparison";
-import { processAnswersForQuestion } from "../utils/answerProcessing";
-import { ProcessedResponse } from "../hooks/useResponseProcessing";
-import { NpsData } from "../types/nps";
-import { ExportMenu } from "./ExportMenu";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useDimensionComparison } from "../hooks/useDimensionComparison";
+import { ComparisonSelector } from "./ComparisonSelector";
+import { ComparisonDimension } from "../types/comparison";
+import { HeatMapChart } from "../charts/HeatMapChart";
+import { NpsChart } from "../charts/NpsChart";
+import { GroupedBarChart } from "../charts/GroupedBarChart";
+import { processAnswersForQuestion } from "../utils/answerProcessing";
+import { RadioGroupChart } from "../charts/RadioGroupChart";
 
 interface QuestionCardProps {
   question: any;
-  responses: ProcessedResponse[];
-  comparisonDimension: ComparisonDimension;
-  onComparisonChange: (dimension: ComparisonDimension) => void;
+  responses: any[];
   campaignId: string;
-  instanceId?: string;
+  instanceId: string;
+  onExportToPowerPoint?: (questionName: string, chartData: any) => void;
 }
 
-export function QuestionCard({
-  question,
-  responses,
-  comparisonDimension,
-  onComparisonChange,
-  campaignId,
-  instanceId
-}: QuestionCardProps) {
+export function QuestionCard({ question, responses, campaignId, instanceId, onExportToPowerPoint }: QuestionCardProps) {
+  const [comparisonDimension, setComparisonDimension] = useState<ComparisonDimension>("none");
+  
+  const questionName = question.name;
+  const questionType = question.type;
+  const isNps = questionType === "rating" && question.rateCount === 10;
+  const isBoolean = questionType === "boolean";
+  const isRadioGroup = questionType === "radiogroup" || questionType === "multiple_choice";
+  
+  // Get dimension comparison data
+  const { data: comparisonData, isLoading: isComparisonLoading } = useDimensionComparison(
+    campaignId,
+    instanceId,
+    questionName,
+    comparisonDimension,
+    isNps,
+    isBoolean,
+    isRadioGroup
+  );
+
+  // Process answers based on question type
   const processedData = processAnswersForQuestion(
-    question.name,
-    question.type,
+    questionName,
+    questionType,
     question,
     responses
   );
-  
-  const isNpsQuestion = question.type === "rating" && question.rateCount === 10;
-  const chartId = `chart-${question.name}`;
-  const fileName = `${question.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_data`;
 
-  // Get comparison data when a dimension is selected
-  const { data: comparisonData, isLoading } = useDimensionComparison(
-    campaignId,
-    instanceId,
-    question.name,
-    comparisonDimension,
-    isNpsQuestion,
-    question.type === "boolean"
-  );
+  const renderComparisonChart = () => {
+    if (!comparisonData || comparisonData.length === 0) {
+      return (
+        <div className="text-center text-muted-foreground py-8">
+          No comparison data available for this dimension
+        </div>
+      );
+    }
 
-  // Determine which data to use for export based on comparison state
-  const exportData = comparisonDimension !== "none" && comparisonData ? comparisonData : 
-    Array.isArray(processedData) ? processedData : [processedData];
+    if (isBoolean) {
+      const chartData = comparisonData.map((item: any) => ({
+        name: item.dimension,
+        Yes: item.yes_count,
+        No: item.no_count
+      }));
 
-  // Hide export for text/comment type questions
-  const isExportable = !["text", "comment"].includes(question.type);
+      return (
+        <GroupedBarChart 
+          data={chartData}
+          keys={["Yes", "No"]}
+          colors={["#22c55e", "#ef4444"]}
+          height={300}
+        />
+      );
+    }
+
+    if (isRadioGroup) {
+      // For radiogroup data, create a grouped bar chart with all choices
+      const allChoices = new Set<string>();
+      comparisonData.forEach((item: any) => {
+        item.choice_data.forEach((choice: any) => {
+          allChoices.add(choice.choice_text);
+        });
+      });
+
+      const chartData = comparisonData.map((item: any) => {
+        const dimensionData: any = { name: item.dimension };
+        item.choice_data.forEach((choice: any) => {
+          dimensionData[choice.choice_text] = choice.count;
+        });
+        return dimensionData;
+      });
+
+      const colors = ["#3b82f6", "#22c55e", "#eab308", "#ef4444", "#8b5cf6", "#f97316"];
+
+      return (
+        <GroupedBarChart 
+          data={chartData}
+          keys={Array.from(allChoices)}
+          colors={colors}
+          height={300}
+        />
+      );
+    }
+
+    if (isNps) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {comparisonData.map((groupData: any) => (
+            <div key={groupData.dimension} className="bg-card rounded-lg border p-4">
+              <h4 className="font-medium mb-3">{groupData.dimension}</h4>
+              <NpsChart data={groupData} />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return <HeatMapChart data={comparisonData} />;
+  };
 
   return (
-    <Card key={question.name} className="w-full overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle>{question.title}</CardTitle>
-        <div className="flex items-center gap-2">
-          {isExportable && (
-            <ExportMenu
-              chartId={chartId}
-              fileName={fileName}
-              data={exportData}
-              isComparison={comparisonDimension !== "none"}
-              isNps={isNpsQuestion}
-              isBoolean={question.type === "boolean"}
-            />
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">{question.title || questionName}</CardTitle>
+          {onExportToPowerPoint && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onExportToPowerPoint(questionName, processedData)}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
           )}
-          <ComparisonSelector
-            value={comparisonDimension}
-            onChange={onComparisonChange}
-          />
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div id={chartId}>
-          {comparisonDimension === "none" && (
-            <>
-              {question.type === "boolean" && (
-                <BooleanCharts
-                  data={processedData as { yes: number; no: number }}
-                />
-              )}
-              {(question.type === "radiogroup" || question.type === "multiple_choice") && (
-                <RadioGroupChart
-                  data={processedData as Array<{ name: string; value: number; percentage: number }>}
-                />
-              )}
-              {(question.type === "nps" || question.type === "rating") && (
-                <>
-                  {isNpsQuestion ? (
-                    <NpsChart
-                      data={processedData as NpsData}
-                    />
-                  ) : (
-                    <SatisfactionChart
-                      data={processedData as { 
-                        unsatisfied: number;
-                        neutral: number;
-                        satisfied: number;
-                        total: number;
-                        median: number;
-                      }}
-                    />
-                  )}
-                </>
-              )}
-              {(question.type === "text" || question.type === "comment") && (
-                <WordCloud
-                  words={processedData as { text: string; value: number }[]}
-                />
-              )}
-            </>
-          )}
+      
+      <CardContent className="space-y-6">
+        <div>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">Overall Results</h3>
+          <div className="h-[300px]">
+            {questionType === "boolean" && (
+              <GroupedBarChart 
+                data={[{
+                  name: "Responses",
+                  Yes: processedData.yes,
+                  No: processedData.no
+                }]}
+                keys={["Yes", "No"]}
+                colors={["#22c55e", "#ef4444"]}
+                height={300}
+              />
+            )}
+            
+            {(questionType === "radiogroup" || questionType === "multiple_choice") && (
+              <RadioGroupChart 
+                data={processedData}
+                chartType="bar"
+              />
+            )}
+            
+            {questionType === "rating" && !isNps && (
+              <GroupedBarChart 
+                data={[{
+                  name: "Satisfaction",
+                  Unsatisfied: processedData.unsatisfied,
+                  Neutral: processedData.neutral,
+                  Satisfied: processedData.satisfied
+                }]}
+                keys={["Unsatisfied", "Neutral", "Satisfied"]}
+                colors={["#ef4444", "#eab308", "#22c55e"]}
+                height={300}
+              />
+            )}
+            
+            {isNps && (
+              <div className="flex justify-center">
+                <NpsChart data={processedData} />
+              </div>
+            )}
+            
+            {(questionType === "text" || questionType === "comment") && (
+              <div className="text-center text-muted-foreground">
+                Text responses: {processedData.length} entries
+              </div>
+            )}
+          </div>
+        </div>
 
+        <Separator />
+
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-muted-foreground">Demographic Comparison</h3>
+            <ComparisonSelector 
+              value={comparisonDimension}
+              onChange={setComparisonDimension}
+            />
+          </div>
+          
           {comparisonDimension !== "none" && (
-            <>
-              {question.type === "boolean" && (
-                <BooleanComparison
-                  responses={responses}
-                  questionName={question.name}
-                  dimension={comparisonDimension}
-                  campaignId={campaignId}
-                  instanceId={instanceId || ""}
-                />
+            <div className="min-h-[300px]">
+              {isComparisonLoading ? (
+                <div className="flex items-center justify-center h-[300px]">
+                  <LoadingSpinner />
+                </div>
+              ) : (
+                renderComparisonChart()
               )}
-              {(question.type === "nps" || question.type === "rating") && (
-                <NpsComparison
-                  responses={responses}
-                  questionName={question.name}
-                  dimension={comparisonDimension}
-                  isNps={isNpsQuestion}
-                  campaignId={campaignId}
-                  instanceId={instanceId}
-                />
-              )}
-              {(question.type === "text" || question.type === "comment") && (
-                <TextComparison
-                  responses={responses}
-                  questionName={question.name}
-                  dimension={comparisonDimension}
-                />
-              )}
-              {(question.type === "radiogroup" || question.type === "multiple_choice") && (
-                <TextComparison
-                  responses={responses}
-                  questionName={question.name}
-                  dimension={comparisonDimension}
-                />
-              )}
-            </>
+            </div>
           )}
         </div>
       </CardContent>

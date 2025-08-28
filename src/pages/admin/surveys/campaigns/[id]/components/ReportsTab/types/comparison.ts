@@ -26,3 +26,13 @@ export interface NpsComparisonData {
   nps_score: number;
   avg_score?: number;
 }
+
+export interface RadioGroupComparisonData {
+  dimension: string;
+  choice_data: Array<{
+    choice_value: string;
+    choice_text: string;
+    count: number;
+    percentage: number;
+  }>;
+}
