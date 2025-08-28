@@ -1,19 +1,22 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BooleanCharts } from "../charts/BooleanCharts";
 import { NpsChart } from "../charts/NpsChart";
 import { WordCloud } from "../charts/WordCloud";
 import { SatisfactionChart } from "../charts/SatisfactionChart";
+import { RadioGroupChart } from "../charts/RadioGroupChart";
+import { RadioGroupMainChart } from "./charts/RadioGroupMainChart";
 import { ComparisonSelector } from "./ComparisonSelector";
 import { BooleanComparison } from "./comparisons/BooleanComparison";
 import { NpsComparison } from "./comparisons/NpsComparison";
 import { TextComparison } from "./comparisons/TextComparison";
+import { RadioGroupComparison } from "./comparisons/RadioGroupComparison";
 import { ComparisonDimension } from "../types/comparison";
 import { processAnswersForQuestion } from "../utils/answerProcessing";
 import { ProcessedResponse } from "../hooks/useResponseProcessing";
 import { NpsData } from "../types/nps";
 import { ExportMenu } from "./ExportMenu";
 import { useDimensionComparison } from "../hooks/useDimensionComparison";
+import { RadioGroupComparisonData } from "../types/comparison";
 
 interface QuestionCardProps {
   question: any;
@@ -40,6 +43,7 @@ export function QuestionCard({
   );
   
   const isNpsQuestion = question.type === "rating" && question.rateCount === 10;
+  const isRadioGroupQuestion = question.type === "radiogroup" || question.type === "multiple_choice";
   const chartId = `chart-${question.name}`;
   const fileName = `${question.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_data`;
 
@@ -50,8 +54,14 @@ export function QuestionCard({
     question.name,
     comparisonDimension,
     isNpsQuestion,
-    question.type === "boolean"
+    question.type === "boolean",
+    isRadioGroupQuestion
   );
+
+  // Type guard to check if data is RadioGroupComparisonData
+  const isRadioGroupData = (data: any[]): data is RadioGroupComparisonData[] => {
+    return data.length > 0 && 'choice_data' in data[0];
+  };
 
   // Determine which data to use for export based on comparison state
   const exportData = comparisonDimension !== "none" && comparisonData ? comparisonData : 
@@ -89,6 +99,19 @@ export function QuestionCard({
                 <BooleanCharts
                   data={processedData as { yes: number; no: number }}
                 />
+              )}
+              {(question.type === "radiogroup" || question.type === "multiple_choice") && (
+                <>
+                  {isLoading ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      Loading...
+                    </div>
+                  ) : (
+                    <RadioGroupMainChart 
+                      data={comparisonData && isRadioGroupData(comparisonData) ? comparisonData : []} 
+                    />
+                  )}
+                </>
               )}
               {(question.type === "nps" || question.type === "rating") && (
                 <>
@@ -141,6 +164,14 @@ export function QuestionCard({
               {(question.type === "text" || question.type === "comment") && (
                 <TextComparison
                   responses={responses}
+                  questionName={question.name}
+                  dimension={comparisonDimension}
+                />
+              )}
+              {(question.type === "radiogroup" || question.type === "multiple_choice") && (
+                <RadioGroupComparison
+                  campaignId={campaignId}
+                  instanceId={instanceId || ""}
                   questionName={question.name}
                   dimension={comparisonDimension}
                 />

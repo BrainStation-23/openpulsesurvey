@@ -38,6 +38,18 @@ export const processAnswersForQuestion = (
         no: answers.filter((a) => a === false).length,
       };
 
+    case "radiogroup":
+    case "multiple_choice": {
+      const choices = question.choices || [];
+      const total = answers.filter(a => a != null).length;
+      
+      return choices.map((choice: any) => ({
+        name: choice.text || choice.value,
+        value: answers.filter(a => a === choice.value).length,
+        percentage: total > 0 ? (answers.filter(a => a === choice.value).length / total) * 100 : 0
+      }));
+    }
+
     case "rating":
     case "nps": {
       const isNps = question.rateCount === 10;

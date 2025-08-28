@@ -1,4 +1,3 @@
-
 export interface BooleanResponseData {
   yes: number;
   no: number;
@@ -20,6 +19,12 @@ export interface SatisfactionData {
   median: number;
 }
 
+export interface RadioGroupResponseData {
+  name: string;
+  value: number;
+  percentage: number;
+}
+
 export interface TextDataPoint {
   text: string;
   value: number;
@@ -32,6 +37,7 @@ export interface Question {
   title: string;
   type: string;
   rateCount?: number;
+  choices?: Array<{ value: string; text: string }>;
 }
 
 export interface ProcessedResponse {

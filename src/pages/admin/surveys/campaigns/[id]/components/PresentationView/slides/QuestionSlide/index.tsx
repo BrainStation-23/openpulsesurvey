@@ -5,12 +5,13 @@ import { ComparisonDimension } from "../../types/comparison";
 import { QuestionSlideLayout } from "./QuestionSlideLayout";
 import { BooleanQuestionView } from "./BooleanQuestionView";
 import { RatingQuestionView } from "./RatingQuestionView";
+import { RadioGroupQuestionView } from "./RadioGroupQuestionView";
 import { ComparisonView } from "./ComparisonView";
 import { useQuestionData } from "./useQuestionData";
 import { usePresentationResponses } from "../../hooks/usePresentationResponses";
 import { ComparisonLayout } from "../../components/ComparisonLayout";
 import { NpsComparison } from "../../../ReportsTab/components/comparisons/NpsComparison";
-import { BooleanResponseData, RatingResponseData, SatisfactionData } from "../../types/responses";
+import { BooleanResponseData, RatingResponseData, SatisfactionData, RadioGroupResponseData } from "../../types/responses";
 import { NpsData, NpsComparisonData } from "../../../ReportsTab/types/nps";
 import { NpsComparisonTable } from "../../../ReportsTab/components/comparisons/NpsComparisonTable";
 
@@ -105,6 +106,9 @@ export function QuestionSlide({
           {questionType === "boolean" && processedData && 'yes' in processedData && 'no' in processedData && (
             <BooleanQuestionView data={processedData as BooleanResponseData} />
           )}
+          {(questionType === "radiogroup" || questionType === "multiple_choice") && Array.isArray(processedData) && (
+            <RadioGroupQuestionView data={processedData as RadioGroupResponseData[]} />
+          )}
           {questionType === "rating" && (
             <RatingQuestionView 
               data={processedData} 
@@ -116,6 +120,9 @@ export function QuestionSlide({
         <ComparisonLayout title={getDimensionTitle(slideType)}>
           {questionType === "boolean" && Array.isArray(processedData) && processedData.length > 0 && 'yes_count' in processedData[0] && (
             <ComparisonView data={processedData} isNps={false} />
+          )}
+          {(questionType === "radiogroup" || questionType === "multiple_choice") && (
+            <ComparisonView data={processedData} isNps={false} isRadioGroup={true} />
           )}
           {questionType === "rating" && (
             <NpsComparison

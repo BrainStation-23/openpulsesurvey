@@ -1,10 +1,10 @@
 
 import { useMemo } from "react";
 import { ProcessedData } from "../../types/responses";
-import { ComparisonDimension } from "../../types/comparison";
+import { ComparisonDimension, RadioGroupComparisonData } from "../../types/comparison";
 import { useDimensionData } from "../../hooks/useDimensionData";
 import { NpsData, NpsComparisonData } from "../../../ReportsTab/types/nps";
-import { BooleanResponseData, SatisfactionData } from "../../types/responses";
+import { BooleanResponseData, SatisfactionData, RadioGroupResponseData } from "../../types/responses";
 import { calculateMedian } from "../../../ReportsTab/utils/calculateMedian";
 
 // Define the data types from RPC functions
@@ -24,14 +24,16 @@ interface BooleanComparisonData {
   total_count: number;
 }
 
-// Update ProcessedResult to include all possible return types
+// Update ProcessedResult to include RadioGroupResponseData and RadioGroupComparisonData
 type ProcessedResult = 
   | NpsComparisonData[] 
   | SupervisorSatisfactionData[] 
   | BooleanComparisonData[]
+  | RadioGroupComparisonData[]
   | NpsData 
   | SatisfactionData
   | BooleanResponseData 
+  | RadioGroupResponseData[]
   | null;
 
 export function useQuestionData(
@@ -45,29 +47,58 @@ export function useQuestionData(
   const question = data?.questions.find(q => q.name === questionName);
   const isNps = question?.type === 'rating' && question?.rateCount === 10;
   const isBoolean = question?.type === 'boolean';
+  const isRadioGroup = question?.type === 'radiogroup' || question?.type === 'multiple_choice';
 
-  // Only call useDimensionData if slideType is a valid dimension
+  // Always call useDimensionData for radiogroup questions, even when slideType is 'main' or 'none'
+  const shouldUseDimension = slideType !== 'main' && slideType !== 'none';
+  const dimensionToUse = shouldUseDimension ? slideType : 'none';
+
   const { data: dimensionData, isLoading: isLoadingDimension } = useDimensionData(
     campaignId,
     instanceId,
     questionName,
     isNps,
     isBoolean,
-    slideType !== 'main' && slideType !== 'none' ? slideType : 'supervisor'
+    isRadioGroup,
+    dimensionToUse
   );
 
   return useMemo(() => {
     if (!data?.responses) return null;
 
-    // For dimension comparison views (except 'main' and 'none'), use RPC data directly
-    if (slideType !== 'main' && slideType !== 'none') {
-      if (isLoadingDimension || !dimensionData) return null;
-      return dimensionData;
-    }
-
     // Skip processing for text questions
     if (questionType === "text" || questionType === "comment") {
       return null;
+    }
+
+    // For radiogroup questions, always use RPC data
+    if (isRadioGroup) {
+      if (isLoadingDimension || !dimensionData) return null;
+      
+      // If it's main view (no dimension), convert RPC data to RadioGroupResponseData format
+      if (slideType === 'main' || slideType === 'none') {
+        const rpcData = dimensionData as RadioGroupComparisonData[];
+        if (rpcData.length === 0) return null;
+        
+        // Take the first item (should be overall data when dimension is empty)
+        const overallData = rpcData[0];
+        if (!overallData || !overallData.choice_data) return null;
+        
+        return overallData.choice_data.map(choice => ({
+          name: choice.choice_text || choice.choice_value,
+          value: choice.count,
+          percentage: choice.percentage
+        }));
+      }
+      
+      // For comparison views, return the RPC data directly
+      return dimensionData;
+    }
+
+    // For dimension comparison views (except radiogroup which is handled above)
+    if (slideType !== 'main' && slideType !== 'none') {
+      if (isLoadingDimension || !dimensionData) return null;
+      return dimensionData;
     }
 
     // For boolean questions in main view
@@ -158,5 +189,5 @@ export function useQuestionData(
 
     // Return null for other question types
     return null;
-  }, [data, questionName, questionType, slideType, dimensionData, isLoadingDimension, isNps]);
+  }, [data, questionName, questionType, slideType, dimensionData, isLoadingDimension, isNps, isRadioGroup]);
 }

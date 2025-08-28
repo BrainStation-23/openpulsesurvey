@@ -2,6 +2,7 @@
 import { BooleanInput } from "./response-inputs/BooleanInput";
 import { RatingInput } from "./response-inputs/RatingInput";
 import { MultipleChoiceInput } from "./response-inputs/MultipleChoiceInput";
+import { RadioGroupInput } from "./response-inputs/RadioGroupInput";
 import { TextInput } from "./response-inputs/TextInput";
 import { ActiveQuestion } from "../types";
 
@@ -22,6 +23,16 @@ export function ResponseInput({ question, value, onChange, isDisabled }: Respons
       if (!question.question_data.choices) return null;
       return (
         <MultipleChoiceInput
+          choices={question.question_data.choices}
+          value={value}
+          onChange={onChange}
+          isDisabled={isDisabled}
+        />
+      );
+    case 'radiogroup':
+      if (!question.question_data.choices) return null;
+      return (
+        <RadioGroupInput
           choices={question.question_data.choices}
           value={value}
           onChange={onChange}

@@ -3,6 +3,7 @@ import pptxgen from "pptxgenjs";
 import { ProcessedData } from "../../../types/responses";
 import { addBooleanChart, addBooleanComparison } from "./booleanCharts";
 import { addRatingChart, addRatingComparison } from "./ratingCharts";
+import { addRadioGroupChart, addRadioGroupComparison } from "./radioGroupCharts";
 import { getGroupedResponses } from "../utils/dataProcessors";
 
 // Helper to add appropriate chart for question type
@@ -22,6 +23,10 @@ export const addQuestionChart = async (
     case "rating":
       addRatingChart(slide, answers, question.rateCount === 10);
       break;
+    case "radiogroup":
+    case "multiple_choice":
+      addRadioGroupChart(slide, answers, question.choices || []);
+      break;
   }
 };
 
@@ -40,6 +45,10 @@ export const addComparisonChart = async (
       break;
     case "rating":
       addRatingComparison(slide, groupedData, dimension, question.rateCount === 10);
+      break;
+    case "radiogroup":
+    case "multiple_choice":
+      addRadioGroupComparison(slide, groupedData, dimension, question.choices || []);
       break;
   }
 };

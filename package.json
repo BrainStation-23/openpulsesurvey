@@ -9,7 +9,8 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "gen:types": "npx supabase gen types typescript --project-id \"bdnbcaiqgumzsujkbsmp\" --schema public > src/integrations/supabase/types.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -83,6 +84,7 @@
     "react-swipeable": "^7.0.2",
     "recharts": "^2.12.7",
     "sonner": "^1.5.0",
+    "supabase": "^2.39.2",
     "survey-core": "^1.12.19",
     "survey-react-ui": "^1.12.19",
     "tailwind-merge": "^2.5.2",
