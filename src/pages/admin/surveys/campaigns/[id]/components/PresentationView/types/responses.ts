@@ -20,6 +20,12 @@ export interface SatisfactionData {
   median: number;
 }
 
+export interface RadioGroupResponseData {
+  name: string;
+  value: number;
+  percentage: number;
+}
+
 export interface TextDataPoint {
   text: string;
   value: number;

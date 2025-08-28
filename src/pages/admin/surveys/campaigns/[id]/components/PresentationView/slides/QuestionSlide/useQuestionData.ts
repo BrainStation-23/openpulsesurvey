@@ -1,10 +1,9 @@
-
 import { useMemo } from "react";
 import { ProcessedData } from "../../types/responses";
 import { ComparisonDimension, RadioGroupComparisonData } from "../../types/comparison";
 import { useDimensionData } from "../../hooks/useDimensionData";
 import { NpsData, NpsComparisonData } from "../../../ReportsTab/types/nps";
-import { BooleanResponseData, SatisfactionData } from "../../types/responses";
+import { BooleanResponseData, SatisfactionData, RadioGroupResponseData } from "../../types/responses";
 import { calculateMedian } from "../../../ReportsTab/utils/calculateMedian";
 
 // Define the data types from RPC functions
@@ -24,7 +23,7 @@ interface BooleanComparisonData {
   total_count: number;
 }
 
-// Update ProcessedResult to include RadioGroupComparisonData
+// Update ProcessedResult to include RadioGroupResponseData and RadioGroupComparisonData
 type ProcessedResult = 
   | NpsComparisonData[] 
   | SupervisorSatisfactionData[] 
@@ -33,6 +32,7 @@ type ProcessedResult =
   | NpsData 
   | SatisfactionData
   | BooleanResponseData 
+  | RadioGroupResponseData[]
   | null;
 
 export function useQuestionData(
@@ -86,6 +86,22 @@ export function useQuestionData(
         yes,
         no
       };
+    }
+
+    // For radiogroup questions in main view
+    if (questionType === "radiogroup" || questionType === "multiple_choice") {
+      const answers = data.responses
+        .map(response => response.answers[questionName]?.answer)
+        .filter(answer => answer != null);
+
+      const choices = question?.choices || [];
+      const total = answers.length;
+
+      return choices.map((choice: any) => ({
+        name: choice.text || choice.value,
+        value: answers.filter(a => a === choice.value).length,
+        percentage: total > 0 ? (answers.filter(a => a === choice.value).length / total) * 100 : 0
+      }));
     }
 
     // For NPS questions in main view
