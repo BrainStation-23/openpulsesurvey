@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BooleanCharts } from "../charts/BooleanCharts";
 import { NpsChart } from "../charts/NpsChart";
@@ -17,6 +16,7 @@ import { ProcessedResponse } from "../hooks/useResponseProcessing";
 import { NpsData } from "../types/nps";
 import { ExportMenu } from "./ExportMenu";
 import { useDimensionComparison } from "../hooks/useDimensionComparison";
+import { RadioGroupComparisonData } from "../types/comparison";
 
 interface QuestionCardProps {
   question: any;
@@ -57,6 +57,11 @@ export function QuestionCard({
     question.type === "boolean",
     isRadioGroupQuestion
   );
+
+  // Type guard to check if data is RadioGroupComparisonData
+  const isRadioGroupData = (data: any[]): data is RadioGroupComparisonData[] => {
+    return data.length > 0 && 'choice_data' in data[0];
+  };
 
   // Determine which data to use for export based on comparison state
   const exportData = comparisonDimension !== "none" && comparisonData ? comparisonData : 
@@ -102,7 +107,9 @@ export function QuestionCard({
                       Loading...
                     </div>
                   ) : (
-                    <RadioGroupMainChart data={comparisonData || []} />
+                    <RadioGroupMainChart 
+                      data={comparisonData && isRadioGroupData(comparisonData) ? comparisonData : []} 
+                    />
                   )}
                 </>
               )}
