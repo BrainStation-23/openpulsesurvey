@@ -9,6 +9,7 @@ import { ComparisonSelector } from "./ComparisonSelector";
 import { BooleanComparison } from "./comparisons/BooleanComparison";
 import { NpsComparison } from "./comparisons/NpsComparison";
 import { TextComparison } from "./comparisons/TextComparison";
+import { RadioGroupComparison } from "./comparisons/RadioGroupComparison";
 import { ComparisonDimension } from "../types/comparison";
 import { processAnswersForQuestion } from "../utils/answerProcessing";
 import { ProcessedResponse } from "../hooks/useResponseProcessing";
@@ -41,6 +42,7 @@ export function QuestionCard({
   );
   
   const isNpsQuestion = question.type === "rating" && question.rateCount === 10;
+  const isRadioGroupQuestion = question.type === "radiogroup" || question.type === "multiple_choice";
   const chartId = `chart-${question.name}`;
   const fileName = `${question.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_data`;
 
@@ -51,7 +53,8 @@ export function QuestionCard({
     question.name,
     comparisonDimension,
     isNpsQuestion,
-    question.type === "boolean"
+    question.type === "boolean",
+    isRadioGroupQuestion
   );
 
   // Determine which data to use for export based on comparison state
@@ -152,8 +155,9 @@ export function QuestionCard({
                 />
               )}
               {(question.type === "radiogroup" || question.type === "multiple_choice") && (
-                <TextComparison
-                  responses={responses}
+                <RadioGroupComparison
+                  campaignId={campaignId}
+                  instanceId={instanceId || ""}
                   questionName={question.name}
                   dimension={comparisonDimension}
                 />
