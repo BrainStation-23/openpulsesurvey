@@ -1,7 +1,7 @@
 
 import { useMemo } from "react";
 import { ProcessedData } from "../../types/responses";
-import { ComparisonDimension } from "../../types/comparison";
+import { ComparisonDimension, RadioGroupComparisonData } from "../../types/comparison";
 import { useDimensionData } from "../../hooks/useDimensionData";
 import { NpsData, NpsComparisonData } from "../../../ReportsTab/types/nps";
 import { BooleanResponseData, SatisfactionData } from "../../types/responses";
@@ -24,11 +24,12 @@ interface BooleanComparisonData {
   total_count: number;
 }
 
-// Update ProcessedResult to include all possible return types
+// Update ProcessedResult to include RadioGroupComparisonData
 type ProcessedResult = 
   | NpsComparisonData[] 
   | SupervisorSatisfactionData[] 
   | BooleanComparisonData[]
+  | RadioGroupComparisonData[]
   | NpsData 
   | SatisfactionData
   | BooleanResponseData 
@@ -45,6 +46,7 @@ export function useQuestionData(
   const question = data?.questions.find(q => q.name === questionName);
   const isNps = question?.type === 'rating' && question?.rateCount === 10;
   const isBoolean = question?.type === 'boolean';
+  const isRadioGroup = question?.type === 'radiogroup' || question?.type === 'multiple_choice';
 
   // Only call useDimensionData if slideType is a valid dimension
   const { data: dimensionData, isLoading: isLoadingDimension } = useDimensionData(
@@ -53,6 +55,7 @@ export function useQuestionData(
     questionName,
     isNps,
     isBoolean,
+    isRadioGroup,
     slideType !== 'main' && slideType !== 'none' ? slideType : 'supervisor'
   );
 
@@ -158,5 +161,5 @@ export function useQuestionData(
 
     // Return null for other question types
     return null;
-  }, [data, questionName, questionType, slideType, dimensionData, isLoadingDimension, isNps]);
+  }, [data, questionName, questionType, slideType, dimensionData, isLoadingDimension, isNps, isRadioGroup]);
 }
