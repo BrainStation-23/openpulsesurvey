@@ -2,7 +2,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NpsComparisonData } from "@/pages/admin/surveys/campaigns/[id]/components/ReportsTab/types/nps";
-import { RadioGroupComparisonData } from "@/pages/admin/surveys/campaigns/[id]/components/ReportsTab/types/comparison";
 
 interface SupervisorSatisfactionData {
   dimension: string;
@@ -29,11 +28,10 @@ export function useDimensionData(
   questionName: string,
   isNps: boolean,
   isBoolean: boolean,
-  dimension: ValidDimension = 'supervisor',
-  isRadioGroup?: boolean
+  dimension: ValidDimension = 'supervisor'
 ) {
   return useQuery({
-    queryKey: ["supervisor-data", campaignId, instanceId, questionName, isNps, isBoolean, dimension, isRadioGroup],
+    queryKey: ["supervisor-data", campaignId, instanceId, questionName, isNps, isBoolean, dimension],
     queryFn: async () => {
       if (!campaignId || !instanceId) {
         throw new Error("Campaign or instance ID not provided");
@@ -61,17 +59,6 @@ export function useDimensionData(
 
         if (error) throw error;
         return data as BooleanComparisonData[];
-      } else if (isRadioGroup) {
-        // For radiogroup questions, use get_dimension_radiogroup
-        const { data, error } = await supabase.rpc("get_dimension_radiogroup", {
-          p_campaign_id: campaignId,
-          p_instance_id: instanceId,
-          p_question_name: questionName,
-          p_dimension: dimension
-        });
-
-        if (error) throw error;
-        return data as RadioGroupComparisonData[];
       } else {
         // For satisfaction questions, use get_dimension_satisfaction
         const { data, error } = await supabase.rpc("get_dimension_satisfaction", {

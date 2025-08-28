@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
+  // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -1969,11 +1969,11 @@ export type Database = {
       }
       calculate_progress: {
         Args: {
-          p_boolean_value: boolean
-          p_current_value: number
           p_measurement_type: string
+          p_current_value: number
           p_start_value: number
           p_target_value: number
+          p_boolean_value: boolean
         }
         Returns: number
       }
@@ -1982,11 +1982,11 @@ export type Database = {
         Returns: undefined
       }
       check_user_board_access: {
-        Args: { p_access_type: string; p_board_id: string; p_user_id: string }
+        Args: { p_user_id: string; p_board_id: string; p_access_type: string }
         Returns: boolean
       }
       check_user_survey_access: {
-        Args: { p_survey_id: string; p_user_id: string }
+        Args: { p_user_id: string; p_survey_id: string }
         Returns: boolean
       }
       complete_campaign_instances: {
@@ -2020,141 +2020,129 @@ export type Database = {
       get_campaign_assignments: {
         Args: { p_campaign_id: string; p_instance_id: string }
         Returns: {
-          campaign_id: string
           id: string
-          last_reminder_sent: string
+          user_id: string
+          campaign_id: string
           public_access_token: string
-          response: Json
+          last_reminder_sent: string
           status: string
           user_details: Json
-          user_id: string
+          response: Json
         }[]
       }
       get_campaign_instance_status_distribution: {
         Args: { p_campaign_id: string; p_instance_id: string }
         Returns: {
-          count: number
           status: string
+          count: number
         }[]
       }
       get_campaign_instances: {
         Args: {
           p_campaign_id: string
-          p_end_date_max?: string
+          p_start_date_min?: string
+          p_start_date_max?: string
           p_end_date_min?: string
-          p_page?: number
-          p_page_size?: number
+          p_end_date_max?: string
+          p_status?: string
           p_sort_by?: string
           p_sort_direction?: string
-          p_start_date_max?: string
-          p_start_date_min?: string
-          p_status?: string
+          p_page?: number
+          p_page_size?: number
         }
         Returns: {
-          campaign_id: string
-          created_at: string
-          ends_at: string
           id: string
+          campaign_id: string
           period_number: number
           starts_at: string
+          ends_at: string
           status: string
-          total_count: number
+          created_at: string
           updated_at: string
+          total_count: number
         }[]
       }
       get_campaign_sbu_performance: {
         Args: { p_campaign_id: string; p_instance_id: string }
         Returns: {
-          avg_score: number
-          completion_rate: number
           rank: number
           sbu_name: string
           total_assigned: number
           total_completed: number
+          avg_score: number
+          completion_rate: number
         }[]
       }
       get_campaign_supervisor_performance: {
         Args: { p_campaign_id: string; p_instance_id: string }
         Returns: {
-          avg_score: number
-          completion_rate: number
           rank: number
-          sbu_name: string
           supervisor_name: string
+          sbu_name: string
           total_assigned: number
           total_completed: number
+          avg_score: number
+          completion_rate: number
         }[]
       }
       get_current_system_version: {
         Args: Record<PropertyKey, never>
         Returns: {
-          applied_at: string
-          changelog: string
-          edge_functions_version: string
-          frontend_version: string
-          release_notes: string
-          released_at: string
-          schema_version: string
           version: string
+          released_at: string
+          applied_at: string
+          schema_version: string
+          frontend_version: string
+          edge_functions_version: string
+          changelog: string
+          release_notes: string
         }[]
       }
       get_dimension_bool: {
         Args: {
           p_campaign_id: string
-          p_dimension: string
           p_instance_id: string
           p_question_name: string
+          p_dimension: string
         }
         Returns: {
           dimension: string
+          yes_count: number
           no_count: number
           total_count: number
-          yes_count: number
         }[]
       }
       get_dimension_nps: {
         Args: {
           p_campaign_id: string
-          p_dimension: string
           p_instance_id: string
           p_question_name: string
+          p_dimension: string
         }
         Returns: {
-          avg_score: number
-          detractors: number
           dimension: string
-          nps_score: number
+          detractors: number
           passives: number
           promoters: number
           total: number
-        }[]
-      }
-      get_dimension_radiogroup: {
-        Args: {
-          p_campaign_id: string
-          p_dimension: string
-          p_instance_id: string
-          p_question_name: string
-        }
-        Returns: {
-          choice_data: Json
-          dimension: string
+          nps_score: number
+          avg_score: number
         }[]
       }
       get_dimension_satisfaction: {
         Args: {
           p_campaign_id: string
-          p_dimension: string
           p_instance_id: string
           p_question_name: string
+          p_dimension: string
         }
         Returns: {
-          avg_score: number
           dimension: string
+          unsatisfied: number
           neutral: number
           satisfied: number
           total: number
-          unsatisfied: number
+          avg_score: number
         }[]
       }
       get_instance_analysis_data: {
@@ -2168,75 +2156,75 @@ export type Database = {
       get_instance_question_responses: {
         Args: { p_campaign_id: string; p_instance_id: string }
         Returns: {
-          avg_numeric_value: number
           campaign_instance_id: string
-          question_key: string
           response_count: number
-          text_responses: string[]
+          avg_numeric_value: number
           yes_percentage: number
+          question_key: string
+          text_responses: string[]
         }[]
       }
       get_my_survey_assignments: {
         Args: { p_user_id: string }
         Returns: {
-          campaign_id: string
           id: string
-          instance: Json
-          last_reminder_sent: string
-          public_access_token: string
-          response: Json
-          status: string
-          survey: Json
           survey_id: string
+          campaign_id: string
           user_id: string
+          public_access_token: string
+          last_reminder_sent: string
+          instance: Json
+          survey: Json
+          status: string
+          response: Json
         }[]
       }
       get_paginated_campaign_assignments: {
         Args: {
           p_campaign_id: string
           p_instance_id?: string
+          p_status?: string
+          p_search_term?: string
           p_page?: number
           p_page_size?: number
-          p_search_term?: string
-          p_status?: string
         }
         Returns: {
-          campaign_id: string
           id: string
-          last_reminder_sent: string
-          public_access_token: string
-          response: Json
-          status: string
-          total_count: number
-          user_details: Json
           user_id: string
+          campaign_id: string
+          public_access_token: string
+          last_reminder_sent: string
+          status: string
+          user_details: Json
+          response: Json
+          total_count: number
         }[]
       }
       get_paginated_campaign_responses: {
         Args: {
           p_campaign_id: string
           p_instance_id: string
+          p_search_term?: string
           p_page?: number
           p_page_size?: number
-          p_search_term?: string
           p_sort_by?: string
           p_sort_direction?: string
         }
         Returns: {
+          id: string
           assignment_id: string
-          campaign_anonymous: boolean
+          user_id: string
           campaign_instance_id: string
           created_at: string
-          id: string
-          primary_sbu_name: string
-          primary_supervisor_name: string
+          updated_at: string
+          submitted_at: string
+          status: string
           response_data: Json
           state_data: Json
-          status: string
-          submitted_at: string
           total_count: number
-          updated_at: string
-          user_id: string
+          campaign_anonymous: boolean
+          primary_sbu_name: string
+          primary_supervisor_name: string
         }[]
       }
       get_pending_surveys_count: {
@@ -2247,16 +2235,16 @@ export type Database = {
         Args: {
           p_campaign_id: string
           p_instance_id: string
-          p_question_name?: string
           p_supervisor_id: string
+          p_question_name?: string
         }
         Returns: Json
       }
       get_supervisor_team_trend: {
         Args: {
           p_campaign_id: string
-          p_question_name?: string
           p_supervisor_id: string
+          p_question_name?: string
         }
         Returns: Json
       }
@@ -2267,8 +2255,8 @@ export type Database = {
           p_instance_id?: string
         }
         Returns: {
-          reportee_count: number
           supervisor_id: string
+          reportee_count: number
         }[]
       }
       get_survey_responses: {
@@ -2278,8 +2266,8 @@ export type Database = {
       get_survey_responses_for_export: {
         Args: { p_campaign_id: string; p_instance_id: string }
         Returns: {
-          primary_manager: string
           primary_sbu: string
+          primary_manager: string
           respondent_name: string
           response_data: Json
           submitted_at: string
@@ -2301,19 +2289,19 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: {
           assignment_id: string
+          survey_id: string
+          survey_name: string
           campaign_id: string
           campaign_name: string
-          ends_at: string
           instance_id: string
           instance_period: number
           starts_at: string
+          ends_at: string
           status: string
-          survey_id: string
-          survey_name: string
         }[]
       }
       get_user_board_permissions: {
-        Args: { p_board_id: string; p_user_id: string }
+        Args: { p_user_id: string; p_board_id: string }
         Returns: Json
       }
       get_user_permissions: {
@@ -2338,26 +2326,26 @@ export type Database = {
       }
       log_login_attempt: {
         Args: {
-          p_device_info?: Json
+          p_user_id: string
           p_email: string
+          p_login_method: string
+          p_success: boolean
           p_error_message?: string
           p_ip_address?: string
-          p_location_info?: Json
-          p_login_method: string
-          p_network_info?: Json
-          p_session_id?: string
-          p_success: boolean
           p_user_agent?: string
-          p_user_id: string
+          p_device_info?: Json
+          p_network_info?: Json
+          p_location_info?: Json
+          p_session_id?: string
         }
         Returns: string
       }
       manage_instance_cron_job: {
         Args: {
           p_campaign_id: string
+          p_job_type: string
           p_cron_schedule: string
           p_is_active: boolean
-          p_job_type: string
         }
         Returns: string
       }
@@ -2367,11 +2355,11 @@ export type Database = {
       }
       reorder_questions: {
         Args: {
-          p_direction: string
-          p_new_order: number
-          p_old_order: number
-          p_question_id: string
           p_session_id: string
+          p_question_id: string
+          p_old_order: number
+          p_new_order: number
+          p_direction: string
         }
         Returns: boolean
       }
@@ -2381,78 +2369,78 @@ export type Database = {
       }
       search_live_sessions: {
         Args: {
-          created_by_user: string
           search_text: string
           status_filters: string[]
+          created_by_user: string
         }
         Returns: {
-          created_at: string
-          created_by: string
-          description: string
           id: string
-          join_code: string
           name: string
+          join_code: string
           status: Database["public"]["Enums"]["session_status"]
+          created_at: string
+          description: string
           survey_id: string
+          created_by: string
         }[]
       }
       search_users: {
         Args:
+          | { p_search_term?: string; p_limit?: number; p_offset?: number }
           | {
-              employee_role_filter?: string
-              employee_type_filter?: string
-              employment_type_filter?: string
+              search_text: string
+              page_number: number
+              page_size: number
+              sbu_filter?: string
+            }
+          | {
+              search_text: string
+              page_number: number
+              page_size: number
+              sbu_filter?: string
               level_filter?: string
               location_filter?: string
-              page_number: number
-              page_size: number
-              sbu_filter?: string
-              search_text: string
-            }
-          | { p_limit?: number; p_offset?: number; p_search_term?: string }
-          | {
-              page_number: number
-              page_size: number
-              sbu_filter?: string
-              search_text: string
+              employment_type_filter?: string
+              employee_role_filter?: string
+              employee_type_filter?: string
             }
         Returns: {
-          designation: string
+          id: string
           email: string
           first_name: string
-          id: string
           last_name: string
-          level_name: string
+          designation: string
+          status: string
           location_name: string
           sbu_name: string
-          status: string
+          level_name: string
         }[]
       }
       toggle_instance_cron_job: {
         Args: {
           p_campaign_id: string
-          p_is_active: boolean
           p_job_type: string
+          p_is_active: boolean
         }
         Returns: boolean
       }
       update_campaign_instance: {
         Args: {
           p_instance_id: string
-          p_new_ends_at: string
           p_new_starts_at: string
+          p_new_ends_at: string
           p_new_status: string
         }
         Returns: {
-          campaign_id: string
-          created_at: string
-          ends_at: string
-          error_message: string
           id: string
+          campaign_id: string
           period_number: number
           starts_at: string
+          ends_at: string
           status: string
+          created_at: string
           updated_at: string
+          error_message: string
         }[]
       }
       update_campaign_instance_status: {
@@ -2465,14 +2453,14 @@ export type Database = {
       }
       update_system_version: {
         Args: {
-          p_changelog: string
-          p_created_by: string
-          p_edge_functions_version: string
-          p_frontend_version: string
-          p_migration_scripts: string[]
-          p_release_notes: string
-          p_schema_version: string
           p_version: string
+          p_schema_version: string
+          p_frontend_version: string
+          p_edge_functions_version: string
+          p_changelog: string
+          p_release_notes: string
+          p_migration_scripts: string[]
+          p_created_by: string
         }
         Returns: string
       }
