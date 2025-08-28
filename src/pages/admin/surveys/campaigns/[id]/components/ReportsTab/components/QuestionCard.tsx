@@ -5,6 +5,7 @@ import { NpsChart } from "../charts/NpsChart";
 import { WordCloud } from "../charts/WordCloud";
 import { SatisfactionChart } from "../charts/SatisfactionChart";
 import { RadioGroupChart } from "../charts/RadioGroupChart";
+import { RadioGroupMainChart } from "./charts/RadioGroupMainChart";
 import { ComparisonSelector } from "./ComparisonSelector";
 import { BooleanComparison } from "./comparisons/BooleanComparison";
 import { NpsComparison } from "./comparisons/NpsComparison";
@@ -95,9 +96,15 @@ export function QuestionCard({
                 />
               )}
               {(question.type === "radiogroup" || question.type === "multiple_choice") && (
-                <RadioGroupChart
-                  data={processedData as Array<{ name: string; value: number; percentage: number }>}
-                />
+                <>
+                  {isLoading ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      Loading...
+                    </div>
+                  ) : (
+                    <RadioGroupMainChart data={comparisonData || []} />
+                  )}
+                </>
               )}
               {(question.type === "nps" || question.type === "rating") && (
                 <>
