@@ -1,4 +1,3 @@
-
 export interface BooleanResponseData {
   yes: number;
   no: number;
@@ -38,6 +37,7 @@ export interface Question {
   title: string;
   type: string;
   rateCount?: number;
+  choices?: Array<{ value: string; text: string }>;
 }
 
 export interface ProcessedResponse {

@@ -94,6 +94,7 @@ export function useQuestionData(
         .map(response => response.answers[questionName]?.answer)
         .filter(answer => answer != null);
 
+      // Get choices from the question, with fallback to empty array
       const choices = question?.choices || [];
       const total = answers.length;
 
