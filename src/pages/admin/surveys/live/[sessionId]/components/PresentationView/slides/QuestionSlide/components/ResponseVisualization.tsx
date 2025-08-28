@@ -1,4 +1,3 @@
-
 import { LivePieChart } from "../../../charts/LivePieChart";
 import { LiveBarChart } from "../../../charts/LiveBarChart";
 import { LiveWordCloud } from "../../../charts/LiveWordCloud";
@@ -36,6 +35,31 @@ export function ResponseVisualization({ question, responses }: ResponseVisualiza
         { value: true, count: yesCount, percentage: total > 0 ? (yesCount / total) * 100 : 0, timestamp: Date.now() },
         { value: false, count: noCount, percentage: total > 0 ? (noCount / total) * 100 : 0, timestamp: Date.now() }
       ];
+      
+      return (
+        <div className="w-full max-w-4xl mx-auto">
+          <LivePieChart data={data} total={total} />
+          <div className="text-center text-muted-foreground mt-4">
+            {responses.length} responses received
+          </div>
+        </div>
+      );
+    }
+    
+    case 'radiogroup':
+    case 'multiple_choice': {
+      const choices = question.question_data.choices || [];
+      const total = processedResponses.length;
+      
+      const data = choices.map(choice => {
+        const count = processedResponses.filter(r => r === choice.value).length;
+        return {
+          value: choice.value,
+          count,
+          percentage: total > 0 ? (count / total) * 100 : 0,
+          timestamp: Date.now()
+        };
+      });
       
       return (
         <div className="w-full max-w-4xl mx-auto">

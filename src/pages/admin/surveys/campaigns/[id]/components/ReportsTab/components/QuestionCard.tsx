@@ -4,6 +4,7 @@ import { BooleanCharts } from "../charts/BooleanCharts";
 import { NpsChart } from "../charts/NpsChart";
 import { WordCloud } from "../charts/WordCloud";
 import { SatisfactionChart } from "../charts/SatisfactionChart";
+import { RadioGroupChart } from "../charts/RadioGroupChart";
 import { ComparisonSelector } from "./ComparisonSelector";
 import { BooleanComparison } from "./comparisons/BooleanComparison";
 import { NpsComparison } from "./comparisons/NpsComparison";
@@ -90,6 +91,11 @@ export function QuestionCard({
                   data={processedData as { yes: number; no: number }}
                 />
               )}
+              {(question.type === "radiogroup" || question.type === "multiple_choice") && (
+                <RadioGroupChart
+                  data={processedData as Array<{ name: string; value: number; percentage: number }>}
+                />
+              )}
               {(question.type === "nps" || question.type === "rating") && (
                 <>
                   {isNpsQuestion ? (
@@ -139,6 +145,13 @@ export function QuestionCard({
                 />
               )}
               {(question.type === "text" || question.type === "comment") && (
+                <TextComparison
+                  responses={responses}
+                  questionName={question.name}
+                  dimension={comparisonDimension}
+                />
+              )}
+              {(question.type === "radiogroup" || question.type === "multiple_choice") && (
                 <TextComparison
                   responses={responses}
                   questionName={question.name}

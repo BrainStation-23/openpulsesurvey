@@ -14,7 +14,7 @@ export function QuestionSlidesRenderer({ campaign, currentSlide, filterTypes }: 
     (page) => page.elements || []
   );
 
-  // By default, filter out text and comment questions
+  // By default, filter out text and comment questions but include radiogroup
   const skipTypes = filterTypes ?? ["text", "comment"];
   const filteredQuestions = surveyQuestions.filter(
     question => !skipTypes.includes(question.type)
