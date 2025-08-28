@@ -21,7 +21,7 @@ interface BooleanComparisonData {
 }
 
 // Define valid dimensions for type safety
-export type ValidDimension = 'supervisor' | 'gender' | 'sbu' | 'location' | 'employment_type' | 'level' | 'employee_type' | 'employee_role' | 'generation';
+export type ValidDimension = 'supervisor' | 'gender' | 'sbu' | 'location' | 'employment_type' | 'level' | 'employee_type' | 'employee_role' | 'generation' | 'none';
 
 export function useDimensionData(
   campaignId: string | undefined,
@@ -39,13 +39,16 @@ export function useDimensionData(
         throw new Error("Campaign or instance ID not provided");
       }
 
+      // For 'none' dimension, pass empty string to get overall data
+      const dimensionParam = dimension === 'none' ? '' : dimension;
+
       if (isRadioGroup) {
         // For radiogroup questions, use get_dimension_radiogroup
         const { data, error } = await supabase.rpc("get_dimension_radiogroup", {
           p_campaign_id: campaignId,
           p_instance_id: instanceId,
           p_question_name: questionName,
-          p_dimension: dimension
+          p_dimension: dimensionParam
         });
 
         if (error) throw error;
@@ -56,7 +59,7 @@ export function useDimensionData(
           p_campaign_id: campaignId,
           p_instance_id: instanceId,
           p_question_name: questionName,
-          p_dimension: dimension
+          p_dimension: dimensionParam
         });
 
         if (error) throw error;
@@ -67,7 +70,7 @@ export function useDimensionData(
           p_campaign_id: campaignId,
           p_instance_id: instanceId,
           p_question_name: questionName,
-          p_dimension: dimension
+          p_dimension: dimensionParam
         });
 
         if (error) throw error;
@@ -78,7 +81,7 @@ export function useDimensionData(
           p_campaign_id: campaignId,
           p_instance_id: instanceId,
           p_question_name: questionName,
-          p_dimension: dimension
+          p_dimension: dimensionParam
         });
 
         if (error) throw error;

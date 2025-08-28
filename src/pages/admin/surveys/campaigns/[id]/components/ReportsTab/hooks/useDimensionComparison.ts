@@ -19,6 +19,9 @@ export function useDimensionComparison(
         throw new Error("Campaign or instance ID not provided");
       }
 
+      // For 'none' dimension, pass empty string to get overall data
+      const dimensionParam = dimension === 'none' ? '' : dimension;
+
       if (isBoolean) {
         const { data, error } = await supabase.rpc(
           'get_dimension_bool',
@@ -26,7 +29,7 @@ export function useDimensionComparison(
             p_campaign_id: campaignId,
             p_instance_id: instanceId,
             p_question_name: questionName,
-            p_dimension: dimension
+            p_dimension: dimensionParam
           }
         );
 
@@ -41,7 +44,7 @@ export function useDimensionComparison(
             p_campaign_id: campaignId,
             p_instance_id: instanceId,
             p_question_name: questionName,
-            p_dimension: dimension
+            p_dimension: dimensionParam
           }
         );
 
@@ -56,7 +59,7 @@ export function useDimensionComparison(
             p_campaign_id: campaignId,
             p_instance_id: instanceId,
             p_question_name: questionName,
-            p_dimension: dimension
+            p_dimension: dimensionParam
           }
         );
 
@@ -70,13 +73,13 @@ export function useDimensionComparison(
           p_campaign_id: campaignId,
           p_instance_id: instanceId,
           p_question_name: questionName,
-          p_dimension: dimension
+          p_dimension: dimensionParam
         }
       );
 
       if (error) throw error;
       return data as DimensionComparisonData[];
     },
-    enabled: !!campaignId && !!instanceId && !!questionName && dimension !== 'none',
+    enabled: !!campaignId && !!instanceId && !!questionName,
   });
 }
