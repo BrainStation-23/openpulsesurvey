@@ -45,7 +45,7 @@ export function QuestionCard({
   const isNpsQuestion = question.type === "rating" && question.rateCount === 10;
   const isRadioGroupQuestion = question.type === "radiogroup" || question.type === "multiple_choice";
   const chartId = `chart-${question.name}`;
-  const fileName = `${question.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_data`;
+  const fileName = `${(question.title || question.name || 'question').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_data`;
 
   // Get comparison data when a dimension is selected
   const { data: comparisonData, isLoading } = useDimensionComparison(
@@ -73,7 +73,7 @@ export function QuestionCard({
   return (
     <Card key={question.name} className="w-full overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle>{question.title}</CardTitle>
+        <CardTitle>{question.title || question.name || 'Untitled Question'}</CardTitle>
         <div className="flex items-center gap-2">
           {isExportable && (
             <ExportMenu
